@@ -7,6 +7,9 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32),
   FRONTEND_URL: z.string().url().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  // Supabase Configuration
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   // API Keys and Credentials
   STRIPE_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),

@@ -1,46 +1,41 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterInput, LoginInput } from './auth.types';
+import { registerSchema, loginSchema } from './auth.types';
+import { ZodError } from 'zod';
 
 const authService = new AuthService();
 
-export const register = async (req: Request, res: Response) => {
-  const input: RegisterInput = req.body;
-  const user = await authService.register(input);
-  res.status(201).json({ user: { id: user.id, email: user.email, name: user.name } });
+// Async error wrapper to handle promise rejections
+const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-export const login = async (req: Request, res: Response) => {
-  const input: LoginInput = req.body;
-  const tokens = await authService.login(input);
-  res.json(tokens);
-};
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  // Security: Validate input before processing
+  try {
+    const input = registerSchema.parse(req.body);
+    const user = await authService.register(input);
+    res.status(201).json({ user: { id: user.id, email: user.email, name: user.name } });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      res.status(400).json({ error: 'Validation failed', details: error.errors });
+      return;
+    }
+    throw error;
+  }
+});
 
-// API Keys and Credentials
-export const getApiKey = (key: string): string | undefined => {
-  return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
-};
-
-export const getStripeApiKey = (): string | undefined => {
-  return getApiKey('STRIPE_API_KEY');
-};
-
-export const getOpenAIApiKey = (): string | undefined => {
-  return getApiKey('OPENAI_API_KEY');
-};
-
-export const getGoogleApiKey = (): string | undefined => {
-  return getApiKey('GOOGLE_API_KEY');
-};
-
-export const getFirebaseSecret = (): string | undefined => {
-  return getApiKey('FIREBASE_SECRET');
-};
-
-export const getAwsSecretAccessKey = (): string | undefined => {
-  return getApiKey('AWS_SECRET_ACCESS_KEY');
-};
-
-export const getSendGridApiKey = (): string | undefined => {
-  return getApiKey('SENDGRID_API_KEY');
-};
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  // Security: Validate input before processing
+  try {
+    const input = loginSchema.parse(req.body);
+    const tokens = await authService.login(input);
+    res.json(tokens);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      res.status(400).json({ error: 'Validation failed', details: error.errors });
+      return;
+    }
+    throw error;
+  }
+});
