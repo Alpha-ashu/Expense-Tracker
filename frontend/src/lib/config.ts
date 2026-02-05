@@ -24,10 +24,10 @@ export const config = {
 // API endpoints
 export const endpoints = {
   auth: {
-    register: `${config.api.baseUrl}/api/v1/auth/register`,
-    login: `${config.api.baseUrl}/api/v1/auth/login`,
+    register: `${config.api.baseUrl}/api/auth?register`,
+    login: `${config.api.baseUrl}/api/auth?login`,
   },
-  health: `${config.api.baseUrl}/health`,
+  health: `${config.api.baseUrl}/api/health`,
 };
 
 // Socket events

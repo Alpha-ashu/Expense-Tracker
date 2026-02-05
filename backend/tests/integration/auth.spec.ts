@@ -1,31 +1,61 @@
-import request from 'supertest';
-import app from '../../src/app';
-
 describe('Auth Integration', () => {
-  it('should register a new user', async () => {
-    const response = await request(app)
-      .post('/api/v1/auth/register')
-      .send({
-        email: 'test@example.com',
-        name: 'Test User',
-        password: 'password123',
-      });
+import request from 'supertest';
+import { supabase } from '../../src/db/supabase';
 
-    expect(response.status).toBe(201);
-    expect(response.body.user).toHaveProperty('email', 'test@example.com');
+const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3000';
+
+describe('Auth API', () => {
+  const testUser = {
+    email: `testuser_${Date.now()}@example.com`,
+    name: 'Test User',
+    password: 'TestPassword123!',
+  };
+
+  afterAll(async () => {
+    // Clean up test user from Supabase
+    await supabase.from('users').delete().eq('email', testUser.email);
   });
 
-  it('should login with valid credentials', async () => {
-    const response = await request(app)
-      .post('/api/v1/auth/login')
-      .send({
-        email: 'test@example.com',
-        password: 'password123',
-      });
+  it('should register a new user', async () => {
+    const res = await request(baseUrl)
+      .post('/api/auth?register')
+      .send(testUser);
+    expect(res.status).toBe(201);
+    expect(res.body.user).toHaveProperty('id');
+    expect(res.body.user.email).toBe(testUser.email);
+  });
 
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('accessToken');
-    expect(response.body).toHaveProperty('refreshToken');
+  it('should not register with existing email', async () => {
+    await request(baseUrl).post('/api/auth?register').send(testUser);
+    const res = await request(baseUrl)
+      .post('/api/auth?register')
+      .send(testUser);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('should login with correct credentials', async () => {
+    await request(baseUrl).post('/api/auth?register').send(testUser);
+    const res = await request(baseUrl)
+      .post('/api/auth?login')
+      .send({ email: testUser.email, password: testUser.password });
+    expect(res.status).toBe(200);
+    expect(res.body.accessToken).toBeDefined();
+    expect(res.body.refreshToken).toBeDefined();
+  });
+
+  it('should not login with wrong password', async () => {
+    await request(baseUrl).post('/api/auth?register').send(testUser);
+    const res = await request(baseUrl)
+      .post('/api/auth?login')
+      .send({ email: testUser.email, password: 'WrongPassword' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('should return 404 for unknown route', async () => {
+    const res = await request(baseUrl).post('/api/auth?unknown').send({});
+    expect(res.status).toBe(404);
   });
 });
 
