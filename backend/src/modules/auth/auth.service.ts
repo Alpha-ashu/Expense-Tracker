@@ -1,26 +1,33 @@
 import bcrypt from 'bcryptjs';
 import { User, RegisterInput, LoginInput, AuthTokens } from './auth.types';
-import { prisma } from '../../db/prisma';
+import { supabase } from '../../db/supabase';
 import { generateTokens } from '../../utils/auth';
 
 export class AuthService {
   async register(input: RegisterInput): Promise<User> {
     const hashedPassword = await bcrypt.hash(input.password, 10);
-    const user = await prisma.user.create({
-      data: {
-        email: input.email,
-        name: input.name,
-        password: hashedPassword,
-      },
-    });
-    return user;
+    const { data, error } = await supabase
+      .from('users')
+      .insert([
+        {
+          email: input.email,
+          name: input.name,
+          password: hashedPassword,
+        },
+      ])
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
   }
 
   async login(input: LoginInput): Promise<AuthTokens> {
-    const user = await prisma.user.findUnique({
-      where: { email: input.email },
-    });
-    if (!user) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', input.email)
+      .single();
+    if (error || !user) {
       throw new Error('Invalid credentials');
     }
     const isPasswordValid = await bcrypt.compare(input.password, user.password);

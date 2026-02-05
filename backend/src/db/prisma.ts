@@ -1,8 +1,3 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-export { prisma };
 
 // API Keys and Credentials
 export const getApiKey = (key: string): string | undefined => {
