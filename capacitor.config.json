@@ -1,0 +1,59 @@
+{
+  "appId": "com.financelife.app",
+  "appName": "FinanceLife",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#2563eb",
+      "showSpinner": true,
+      "spinnerColor": "#ffffff",
+      "androidSpinnerStyle": "small",
+      "iosSpinnerStyle": "small"
+    },
+    "StatusBar": {
+      "style": "dark",
+      "backgroundColor": "#2563eb"
+    },
+    "Keyboard": {
+      "resize": "body",
+      "style": "dark",
+      "resizeOnFullScreen": true
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#2563eb",
+      "sound": "beep.wav"
+    },
+    "Haptics": {
+      "enabled": true
+    }
+  },
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#ffffff",
+    "buildOptions": {
+      "keystorePath": "",
+      "keystorePassword": "",
+      "keystoreAlias": "",
+      "keystoreAliasPassword": "",
+      "releaseType": "APK"
+    }
+  },
+  "ios": {
+    "scheme": "FinanceLife",
+    "contentInset": "automatic",
+    "allowsLinkPreview": false,
+    "backgroundColor": "#ffffff",
+    "buildOptions": {
+      "developmentTeam": "",
+      "provisioningProfile": ""
+    }
+  }
+}

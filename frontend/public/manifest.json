@@ -1,0 +1,6 @@
+{
+  "name": "Expense Tracker",
+  "short_name": "ExpenseTracker",
+  "start_url": ".",
+  "display": "standalone"
+}

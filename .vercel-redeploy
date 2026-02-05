@@ -1,0 +1,9 @@
+Redeploy trigger for fix version 7.1
+- Fixed CenteredLayout import in TaxCalculatorPage
+- Fixed CenteredLayout import in FinanceAdvisorPage
+- Added feature visibility setter to AppContext
+- Fixed Settings component state management
+- Fixed transaction self-transfer color logic
+- Added Edit/Delete for Loans
+- Added Edit/Delete for Goals
+- Fixed Quick Action direct navigation
