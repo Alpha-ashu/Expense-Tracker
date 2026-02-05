@@ -1,36 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { AuthTokens } from '../modules/auth/auth.types';
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret');
+// Security: No fallback secret - application must fail if JWT_SECRET is not set
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
-// API Keys and Credentials
-export const getApiKey = (key: string): string | undefined => {
-  return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
-};
-
-export const getStripeApiKey = (): string | undefined => {
-  return getApiKey('STRIPE_API_KEY');
-};
-
-export const getOpenAIApiKey = (): string | undefined => {
-  return getApiKey('OPENAI_API_KEY');
-};
-
-export const getGoogleApiKey = (): string | undefined => {
-  return getApiKey('GOOGLE_API_KEY');
-};
-
-export const getFirebaseSecret = (): string | undefined => {
-  return getApiKey('FIREBASE_SECRET');
-};
-
-export const getAwsSecretAccessKey = (): string | undefined => {
-  return getApiKey('AWS_SECRET_ACCESS_KEY');
-};
-
-export const getSendGridApiKey = (): string | undefined => {
-  return getApiKey('SENDGRID_API_KEY');
-};
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export const generateTokens = async (userId: string): Promise<AuthTokens> => {
   const accessToken = await new SignJWT({ userId })

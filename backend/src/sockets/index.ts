@@ -1,44 +1,42 @@
 import { Server } from 'socket.io';
+import { jwtVerify } from 'jose';
 
 export const setupSocketIO = (server: any) => {
   const io = new Server(server, {
     cors: {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
       methods: ['GET', 'POST'],
+      credentials: true,
     },
   });
 
-  // API Keys and Credentials
-  const getApiKey = (key: string): string | undefined => {
-    return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
-  };
+  // Security: Verify JWT token before accepting socket connections
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      
+      if (!token) {
+        return next(new Error('Authentication token required'));
+      }
 
-  const getStripeApiKey = (): string | undefined => {
-    return getApiKey('STRIPE_API_KEY');
-  };
+      // Verify JWT token
+      if (!process.env.JWT_SECRET) {
+        return next(new Error('Server configuration error'));
+      }
 
-  const getOpenAIApiKey = (): string | undefined => {
-    return getApiKey('OPENAI_API_KEY');
-  };
-
-  const getGoogleApiKey = (): string | undefined => {
-    return getApiKey('GOOGLE_API_KEY');
-  };
-
-  const getFirebaseSecret = (): string | undefined => {
-    return getApiKey('FIREBASE_SECRET');
-  };
-
-  const getAwsSecretAccessKey = (): string | undefined => {
-    return getApiKey('AWS_SECRET_ACCESS_KEY');
-  };
-
-  const getSendGridApiKey = (): string | undefined => {
-    return getApiKey('SENDGRID_API_KEY');
-  };
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const { payload } = await jwtVerify(token, secret);
+      
+      // Attach user ID to socket for later use
+      socket.data.userId = payload.userId;
+      next();
+    } catch (error) {
+      next(new Error('Invalid authentication token'));
+    }
+  });
 
   io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
+    console.log('Socket connected:', socket.id, 'User:', socket.data.userId);
 
     socket.on('disconnect', () => {
       console.log('Socket disconnected:', socket.id);

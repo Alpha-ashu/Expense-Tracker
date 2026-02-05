@@ -6,7 +6,8 @@ services:
     environment:
       POSTGRES_DB: expense_tracker
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # Security: Use environment variable instead of hardcoded password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -15,8 +16,9 @@ services:
   api:
     build: .
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/expense_tracker
-      JWT_SECRET: your-super-secret-jwt-key-min-32-chars
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/expense_tracker
+      # Security: JWT_SECRET must be provided via environment variable
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET environment variable is required}
       NODE_ENV: development
     ports:
       - "3000:3000"
