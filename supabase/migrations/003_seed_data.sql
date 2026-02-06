@@ -1,22 +1,27 @@
 -- =====================================================
--- SEED DATA (Optional - For Testing)
+-- DEVELOPMENT SEED DATA (Testing & Demo Only)
 -- =====================================================
--- This script adds sample data to test your app
+-- ⚠️ THIS FILE IS FOR DEVELOPMENT/TESTING ONLY
 -- 
--- ⚠️ IMPORTANT: You must be signed up/logged in first!
+-- NEW USERS: This script is NOT automatically run on user registration.
+-- Production users will NOT have mock data created.
+-- 
+-- IDEMPOTENT: Safe to run multiple times - checks for existing data
+-- and skips insertion if data already exists.
 -- 
 -- Instructions:
--- 1. Sign up in your app OR use Supabase Auth Dashboard
--- 2. Get your user ID with: SELECT id FROM auth.users;
--- 3. Replace 'YOUR_USER_ID_HERE' below with your actual user ID
--- 4. Run this script in Supabase SQL Editor
+-- 1. Sign up in your app
+-- 2. Get your user ID: SELECT id FROM auth.users;
+-- 3. Replace 'aecbed92-87e2-481c-985b-33dbc1f03fa2' with your user ID
+-- 4. Go to Supabase SQL Editor
+-- 5. Paste this entire file and run ONLY ONCE per user
 -- =====================================================
 
 -- Replace this with your actual user ID from auth.users
 -- Get it by running: SELECT id, email FROM auth.users;
 DO $$
 DECLARE
-  v_user_id UUID := 'YOUR_USER_ID_HERE'; -- ⚠️ REPLACE THIS!
+  v_user_id UUID := 'aecbed92-87e2-481c-985b-33dbc1f03fa2'; -- ⚠️ REPLACE THIS!
   v_account1_id BIGINT;
   v_account2_id BIGINT;
   v_account3_id BIGINT;
@@ -30,7 +35,14 @@ BEGIN
     RAISE EXCEPTION 'User ID % does not exist. Please sign up first or use correct user ID.', v_user_id;
   END IF;
 
-  RAISE NOTICE 'Creating sample data for user: %', v_user_id;
+  -- =====================================================
+  -- IDEMPOTENCY CHECK: Skip if data already exists
+  -- =====================================================
+  IF EXISTS (SELECT 1 FROM public.accounts WHERE user_id = v_user_id) THEN
+    RAISE EXCEPTION 'Seed data already exists for this user. Please delete existing data first or use a different user.';
+  END IF;
+
+  RAISE NOTICE 'Creating development sample data for user: %', v_user_id;
 
   -- =====================================================
   -- ACCOUNTS
@@ -40,14 +52,15 @@ BEGIN
     (v_user_id, 'Main Bank Account', 'bank', 15000.00, 'USD', true),
     (v_user_id, 'Credit Card', 'card', -2500.00, 'USD', true),
     (v_user_id, 'Cash Wallet', 'cash', 500.00, 'USD', true),
-    (v_user_id, 'Savings Account', 'bank', 25000.00, 'USD', true)
-  RETURNING id INTO v_account1_id;
+    (v_user_id, 'Savings Account', 'bank', 25000.00, 'USD', true);
 
-  -- Get other account IDs
+  -- Get account IDs
+  SELECT id INTO v_account1_id FROM public.accounts 
+    WHERE user_id = v_user_id AND name = 'Main Bank Account' LIMIT 1;
   SELECT id INTO v_account2_id FROM public.accounts 
-    WHERE user_id = v_user_id AND name = 'Credit Card';
+    WHERE user_id = v_user_id AND name = 'Credit Card' LIMIT 1;
   SELECT id INTO v_account3_id FROM public.accounts 
-    WHERE user_id = v_user_id AND name = 'Cash Wallet';
+    WHERE user_id = v_user_id AND name = 'Cash Wallet' LIMIT 1;
 
   RAISE NOTICE 'Created 4 accounts';
 
@@ -58,8 +71,11 @@ BEGIN
   VALUES 
     (v_user_id, 'John Doe', 'john@example.com', '+1234567890', 'College friend'),
     (v_user_id, 'Jane Smith', 'jane@example.com', '+1234567891', 'Work colleague'),
-    (v_user_id, 'Mike Johnson', 'mike@example.com', '+1234567892', 'Business partner')
-  RETURNING id INTO v_friend1_id;
+    (v_user_id, 'Mike Johnson', 'mike@example.com', '+1234567892', 'Business partner');
+
+  -- Get friend ID
+  SELECT id INTO v_friend1_id FROM public.friends 
+    WHERE user_id = v_user_id AND name = 'John Doe' LIMIT 1;
 
   RAISE NOTICE 'Created 3 friends';
 
@@ -106,8 +122,11 @@ BEGIN
   VALUES 
     (v_user_id, 'borrowed', 'Personal Loan', 10000.00, 7500.00, 8.5, 500.00, NOW() + INTERVAL '15 days', 'monthly', 'active', 'John Doe', v_friend1_id),
     (v_user_id, 'lent', 'Loan to Mike', 2000.00, 1500.00, 0, NULL, NOW() + INTERVAL '30 days', 'custom', 'active', 'Mike Johnson', NULL),
-    (v_user_id, 'emi', 'Car Loan', 25000.00, 18000.00, 6.5, 750.00, NOW() + INTERVAL '20 days', 'monthly', 'active', 'Bank of America', NULL)
-  RETURNING id INTO v_loan1_id;
+    (v_user_id, 'emi', 'Car Loan', 25000.00, 18000.00, 6.5, 750.00, NOW() + INTERVAL '20 days', 'monthly', 'active', 'Bank of America', NULL);
+
+  -- Get loan ID
+  SELECT id INTO v_loan1_id FROM public.loans 
+    WHERE user_id = v_user_id AND name = 'Personal Loan' LIMIT 1;
 
   RAISE NOTICE 'Created 3 loans';
 
@@ -129,8 +148,11 @@ BEGIN
     (v_user_id, 'Emergency Fund', 10000.00, 6500.00, NOW() + INTERVAL '180 days', 'Savings', false),
     (v_user_id, 'Vacation to Hawaii', 5000.00, 2000.00, NOW() + INTERVAL '120 days', 'Travel', false),
     (v_user_id, 'New Laptop', 2000.00, 800.00, NOW() + INTERVAL '60 days', 'Electronics', false),
-    (v_user_id, 'Home Down Payment', 50000.00, 15000.00, NOW() + INTERVAL '365 days', 'Real Estate', false)
-  RETURNING id INTO v_goal1_id;
+    (v_user_id, 'Home Down Payment', 50000.00, 15000.00, NOW() + INTERVAL '365 days', 'Real Estate', false);
+
+  -- Get goal ID
+  SELECT id INTO v_goal1_id FROM public.goals 
+    WHERE user_id = v_user_id AND name = 'Emergency Fund' LIMIT 1;
 
   RAISE NOTICE 'Created 4 goals';
 
@@ -198,8 +220,11 @@ BEGIN
   VALUES 
     (v_user_id, 'Personal Tasks', 'Daily personal tasks and reminders', false),
     (v_user_id, 'Work Projects', 'Work-related tasks and deadlines', false),
-    (v_user_id, 'Shopping List', 'Things to buy', false)
-  RETURNING id INTO v_todo_list1_id;
+    (v_user_id, 'Shopping List', 'Things to buy', false);
+
+  -- Get todo list ID
+  SELECT id INTO v_todo_list1_id FROM public.todo_lists 
+    WHERE user_id = v_user_id AND name = 'Personal Tasks' LIMIT 1;
 
   RAISE NOTICE 'Created 3 todo lists';
 

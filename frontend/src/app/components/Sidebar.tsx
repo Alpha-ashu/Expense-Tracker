@@ -58,12 +58,12 @@ export const Sidebar: React.FC = () => {
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-4 sm:p-6 border-b border-gray-200">
         <h1 className="text-2xl font-bold text-blue-600">FinanceLife</h1>
         <p className="text-sm text-gray-500 mt-1">Your Financial OS</p>
       </div>
       
-      <nav className="flex-1 p-4 overflow-y-auto">
+      <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
         {filteredMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;

@@ -1,3 +1,95 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* CSS Variables for Layout */
+:root {
+  /* Bottom navigation height (64px = h-16) */
+  --bottom-nav-height: 64px;
+  /* Safe area inset for mobile devices */
+  --safe-area-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  /* Total space needed for bottom nav + safe area */
+  --bottom-reserved-space: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
+  --header-height: 64px;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 1023px) {
+  :root {
+    --bottom-nav-height: 64px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --bottom-nav-height: 0px;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Ensure buttons are touch-friendly (min 44px) */
+  button, [role="button"], input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Fix text selection on mobile */
+  input, textarea, select {
+    font-size: 16px;
+  }
+}
+
+/* Safe Area Support */
+.safe-area-inset-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.safe-area-inset-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Main content container - respect bottom nav */
+@media (max-width: 1023px) {
+  main {
+    max-height: calc(100vh - var(--header-height) - var(--bottom-reserved-space));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (min-width: 1024px) {
+  main {
+    max-height: calc(100vh - var(--header-height));
+  }
+}
+
+/* Smooth scrolling with bounce on iOS */
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+/* Disable zoom on iOS */
+html {
+  -webkit-user-scalable: yes;
+  -webkit-touch-callout: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}

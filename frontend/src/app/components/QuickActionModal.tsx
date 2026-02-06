@@ -3,11 +3,12 @@ import {
   X, 
   TrendingDown, 
   TrendingUp, 
-  CreditCard, 
+  ArrowRightLeft,
   Users, 
   Target,
   Mic,
-  Camera
+  Calendar,
+  CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -20,13 +21,18 @@ interface QuickActionModalProps {
 }
 
 const quickActions = [
-  { id: 'add-expense', label: 'Add Expense', icon: TrendingDown, color: 'bg-red-600', description: 'Quick expense entry', openForm: 'expense' },
-  { id: 'add-income', label: 'Add Income', icon: TrendingUp, color: 'bg-green-600', description: 'Record income', openForm: 'income' },
-  { id: 'pay-emi', label: 'Pay EMI', icon: CreditCard, color: 'bg-blue-600', description: 'EMI payment', openForm: 'transaction' },
-  { id: 'split-bill', label: 'Split Bill', icon: Users, color: 'bg-blue-600', description: 'Group expense', openForm: 'group' },
-  { id: 'add-goal', label: 'New Goal', icon: Target, color: 'bg-green-600', description: 'Savings goal', openForm: 'goal' },
-  { id: 'voice-entry', label: 'Voice Input', icon: Mic, color: 'bg-blue-600', description: 'Speak to add', openForm: 'voice' },
-  { id: 'transfer', label: 'Transfer', icon: Camera, color: 'bg-blue-600', description: 'Transfer money', openForm: 'transfer' },
+  // Row 1
+  { id: 'add-expense', label: 'Expense', icon: TrendingDown, color: 'bg-red-600', description: 'Quick expense entry', openForm: 'expense' },
+  { id: 'add-income', label: 'Income', icon: TrendingUp, color: 'bg-green-600', description: 'Record income', openForm: 'income' },
+  // Row 2
+  { id: 'transfer', label: 'Transfer', icon: ArrowRightLeft, color: 'bg-blue-600', description: 'Transfer money', openForm: 'transfer' },
+  { id: 'split-bill', label: 'Split Expense', icon: Users, color: 'bg-purple-600', description: 'Group expense', openForm: 'group' },
+  // Row 3
+  { id: 'add-goal', label: 'New Goal', icon: Target, color: 'bg-indigo-600', description: 'Savings goal', openForm: 'goal' },
+  { id: 'pay-emi', label: 'Pay EMI', icon: CreditCard, color: 'bg-orange-600', description: 'EMI payment', openForm: 'transaction' },
+  // Row 4
+  { id: 'calendar', label: 'Calendar', icon: Calendar, color: 'bg-teal-600', description: 'Transaction calendar', openForm: 'calendar' },
+  { id: 'voice-entry', label: 'Voice Input', icon: Mic, color: 'bg-pink-600', description: 'Speak to add', openForm: 'voice' },
 ];
 
 export const QuickActionModal: React.FC<QuickActionModalProps> = ({

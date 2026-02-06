@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/contexts/AppContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
+import { AuthPage } from '@/app/components/AuthPage';
 import { PINAuth } from '@/app/components/PINAuth';
 import { Sidebar } from '@/app/components/Sidebar';
 import { Header } from '@/app/components/Header';
@@ -44,6 +46,7 @@ import { toast } from 'sonner';
 
 const AppContent: React.FC = () => {
   const { currentPage, setCurrentPage, currency } = useApp();
+  const { user, loading: authLoading } = useAuth();
   const { isAuthenticated, setAuthenticated } = useSecurity();
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
@@ -155,7 +158,24 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // Show PIN authentication if not authenticated
+  // Loading auth state
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-blue-600">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth page if not logged in with Supabase
+  if (!user) {
+    return <AuthPage onAuthSuccess={() => setAuthenticated(true)} />;
+  }
+
+  // Show PIN authentication if enabled and not authenticated
   if (!isAuthenticated) {
     return <PINAuth onAuthenticated={setAuthenticated} />;
   }
@@ -234,7 +254,7 @@ const AppContent: React.FC = () => {
       
       <div className="flex-1 flex flex-col overflow-hidden w-full">
         <Header />
-        <main className="flex-1 overflow-y-auto scrollbar-hide pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto scrollbar-hide" style={{paddingBottom: 'var(--bottom-reserved-space)'}}>
           {renderPage()}
         </main>
       </div>
@@ -257,12 +277,14 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <SecurityProvider>
-      <AppProvider>
-        <AppContent />
-        <Toaster position="top-center" richColors closeButton />
-      </AppProvider>
-    </SecurityProvider>
+    <AuthProvider>
+      <SecurityProvider>
+        <AppProvider>
+          <AppContent />
+          <Toaster position="top-center" richColors closeButton />
+        </AppProvider>
+      </SecurityProvider>
+    </AuthProvider>
   );
 };
 

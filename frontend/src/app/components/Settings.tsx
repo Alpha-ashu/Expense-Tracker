@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { db } from '@/lib/database';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
-import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff } from 'lucide-react';
+import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   downloadDataToFile, 
   uploadDataFromFile,
@@ -15,6 +16,7 @@ import {
 
 export const Settings: React.FC = () => {
   const { currency, setCurrency, language, setLanguage, setCurrentPage, visibleFeatures, setVisibleFeatures } = useApp();
+  const { user, signOut } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
   const [backups, setBackups] = useState<Array<any>>([]);
   const [showBackups, setShowBackups] = useState(false);
@@ -26,6 +28,16 @@ export const Settings: React.FC = () => {
   const loadBackups = async () => {
     const backupList = await listBackups();
     setBackups(backupList);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Signed out successfully');
+      // App will automatically redirect to login page via AuthContext
+    } catch (error) {
+      toast.error('Failed to sign out');
+    }
   };
 
   const toggleFeature = (feature: string) => {
@@ -91,6 +103,42 @@ export const Settings: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
           <p className="text-gray-500 mt-1">Manage your data and preferences</p>
         </div>
+
+      {/* Account Section */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Account</h3>
+          <p className="text-sm text-gray-500 mt-1">Manage your account settings</p>
+        </div>
+
+        <div className="divide-y divide-gray-200">
+          <div className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Users className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">Signed in as</h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {user?.email || 'Not signed in'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    User ID: {user?.id?.slice(0, 8)}...
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <LogOut size={18} />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200">

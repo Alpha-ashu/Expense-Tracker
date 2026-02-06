@@ -3,7 +3,6 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { Wallet, TrendingUp, TrendingDown, Target, CreditCard, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import SupabaseTest from '@/app/components/SupabaseTest';
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1'];
 
@@ -97,10 +96,7 @@ export const Dashboard: React.FC = () => {
           <p className="text-gray-500 mt-1">Welcome to your financial overview</p>
         </div>
 
-        {/* Supabase Connection Test - Remove this after testing */}
-        <SupabaseTest />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Monthly Income"
           value={formatCurrency(stats.monthlyIncome)}

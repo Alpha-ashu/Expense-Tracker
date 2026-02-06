@@ -11,7 +11,7 @@ export const CenteredLayout: React.FC<CenteredLayoutProps> = ({
 }) => {
   return (
     <div className="w-full h-full flex flex-col">
-      <div className={`${maxWidth} w-full mx-auto px-6 py-6 flex-1`}>
+      <div className={`${maxWidth} w-full mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-5 md:py-6 flex-1`}>
         {children}
       </div>
     </div>
