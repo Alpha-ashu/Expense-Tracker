@@ -3,7 +3,7 @@ import { Bell, Search, Menu, X } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';
-import { Sheet, SheetContent, SheetTrigger } from '@/app/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/app/components/ui/sheet';
 import {
   LayoutDashboard,
   Wallet,
@@ -74,6 +74,7 @@ export const Header: React.FC = () => {
           </button>
         </SheetTrigger>
         <SheetContent side="left" className="w-[280px] p-0">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <div className="flex flex-col h-full bg-white">
             <div className="p-6 border-b border-gray-200">
               <h1 className="text-2xl font-bold text-blue-600">FinanceLife</h1>

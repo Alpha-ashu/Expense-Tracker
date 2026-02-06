@@ -21,6 +21,7 @@ import { Settings } from '@/app/components/Settings';
 import { Calendar } from '@/app/components/Calendar';
 import { Transfer } from '@/app/components/Transfer';
 import { VoiceInput } from '@/app/components/VoiceInput';
+import { VoiceReview } from '@/app/components/VoiceReview';
 import { PayEMI } from '@/app/components/PayEMI';
 import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
 import { FinanceAdvisor } from '@/app/components/FinanceAdvisorPage';
@@ -246,6 +247,8 @@ const AppContent: React.FC = () => {
         return <FinanceAdvisor />;
       case 'voice-input':
         return <VoiceInput />;
+      case 'voice-review':
+        return <VoiceReview />;
       case 'pay-emi':
         return <PayEMI />;
       default:

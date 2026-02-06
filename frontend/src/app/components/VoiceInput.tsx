@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { Capacitor } from '@capacitor/core';
-import { toast } from 'sonner';
-import { useApp } from '@/contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
-import { parseVoiceExpense } from '@/lib/voiceExpenseParser';
+import React, { useState, useEffect } from "react";
+import { Mic, MicOff, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
+import { Haptics, ImpactStyle } from "@capacitor/haptics";
+import { Capacitor } from "@capacitor/core";
+import { toast } from "sonner";
+import { useApp } from "@/contexts/AppContext";
+import { CenteredLayout } from "@/app/components/CenteredLayout";
+import { parseVoiceExpense, parseMultipleTransactions } from "@/lib/voiceExpenseParser";
 
-// Define the SpeechRecognition types
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
   resultIndex: number;
@@ -59,27 +58,26 @@ interface VoiceInputProps {
 export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose }) => {
   const { setCurrentPage } = useApp();
   const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [interimTranscript, setInterimTranscript] = useState('');
+  const [transcript, setTranscript] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<ISpeechRecognition | null>(null);
 
   useEffect(() => {
-    // Check if speech recognition is supported
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast.error('Voice input is not supported in your browser');
+      toast.error("Voice input is not supported in your browser");
       return;
     }
 
     const recognitionInstance = new SpeechRecognition();
     recognitionInstance.continuous = true;
     recognitionInstance.interimResults = true;
-    recognitionInstance.lang = 'en-US';
+    recognitionInstance.lang = "en-US";
 
     recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      let final = '';
+      let interim = "";
+      let final = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
@@ -92,13 +90,13 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
 
       setInterimTranscript(interim);
       if (final) {
-        setTranscript((prev) => prev + ' ' + final);
+        setTranscript((prev) => prev + " " + final);
       }
     };
 
     recognitionInstance.onerror = (event) => {
-      console.error('Speech recognition error:', event);
-      toast.error('Voice input error. Please try again.');
+      console.error("Speech recognition error:", event);
+      toast.error("Voice input error. Please try again.");
       setIsListening(false);
     };
 
@@ -118,7 +116,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
   const startListening = async () => {
     if (!recognition) return;
 
-    // Haptic feedback
     if (Capacitor.isNativePlatform()) {
       try {
         await Haptics.impact({ style: ImpactStyle.Medium });
@@ -128,21 +125,20 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
     }
 
     try {
-      setTranscript('');
-      setInterimTranscript('');
+      setTranscript("");
+      setInterimTranscript("");
       recognition.start();
       setIsListening(true);
-      toast.success('Listening... Speak now');
+      toast.success("Listening... Speak now");
     } catch (error) {
-      console.error('Failed to start recognition:', error);
-      toast.error('Failed to start voice input');
+      console.error("Failed to start recognition:", error);
+      toast.error("Failed to start voice input");
     }
   };
 
   const stopListening = async () => {
     if (!recognition) return;
 
-    // Haptic feedback
     if (Capacitor.isNativePlatform()) {
       try {
         await Haptics.impact({ style: ImpactStyle.Light });
@@ -156,48 +152,70 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
 
     if (transcript.trim()) {
       setIsProcessing(true);
-      setTimeout(() => {
-        // If prop callback exists, use it; otherwise navigate with a parsed draft
+      setTimeout(async () => {
         if (onTranscript) {
           onTranscript(transcript.trim());
         } else {
-          const parsed = parseVoiceExpense(transcript.trim());
+          const transactions = parseMultipleTransactions(transcript.trim());
 
-          if (!parsed.amount) {
-            setIsProcessing(false);
-            toast.error('Could not detect the amount. Please try again.');
-            return;
-          }
+          if (transactions.length === 0) {
+            const parsed = parseVoiceExpense(transcript.trim());
+            if (!parsed.amount) {
+              setIsProcessing(false);
+              toast.error("Could not detect the amount. Please try again.");
+              return;
+            }
 
-          if (parsed.intent === 'transfer') {
-            localStorage.setItem('voiceTransferDraft', JSON.stringify({
-              amount: parsed.amount,
-              description: parsed.description,
-            }));
-            setCurrentPage('transfer');
+            if (parsed.intent === "transfer") {
+              localStorage.setItem("voiceTransferDraft", JSON.stringify({
+                amount: parsed.amount,
+                description: parsed.description,
+              }));
+              setCurrentPage("transfer");
+            } else {
+              localStorage.setItem("voiceTransactionDraft", JSON.stringify({
+                type: parsed.intent,
+                amount: parsed.amount,
+                category: parsed.category,
+                description: parsed.description,
+                date: new Date().toISOString().split("T")[0],
+              }));
+              setCurrentPage("add-transaction");
+            }
+          } else if (transactions.length === 1) {
+            const item = transactions[0];
+            if (item.intent === "transfer") {
+              localStorage.setItem("voiceTransferDraft", JSON.stringify({
+                amount: item.amount,
+                description: item.description,
+              }));
+              setCurrentPage("transfer");
+            } else {
+              localStorage.setItem("voiceTransactionDraft", JSON.stringify({
+                type: item.intent,
+                amount: item.amount,
+                category: item.category,
+                description: item.description,
+                date: new Date().toISOString().split("T")[0],
+              }));
+              setCurrentPage("add-transaction");
+            }
           } else {
-            localStorage.setItem('voiceTransactionDraft', JSON.stringify({
-              type: 'expense',
-              amount: parsed.amount,
-              category: parsed.category,
-              description: parsed.description,
-              date: new Date().toISOString().split('T')[0],
-            }));
-            setCurrentPage('add-transaction');
+            localStorage.setItem("voiceBatchDraft", JSON.stringify(transactions));
+            setCurrentPage("voice-review");
           }
         }
         setIsProcessing(false);
-        toast.success('Voice input processed');
       }, 500);
     }
   };
 
   const handleClear = () => {
-    setTranscript('');
-    setInterimTranscript('');
+    setTranscript("");
+    setInterimTranscript("");
   };
 
-  const displayText = transcript + ' ' + interimTranscript;
+  const displayText = transcript + " " + interimTranscript;
 
   if (onClose) {
     return (
@@ -208,14 +226,13 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
           exit={{ scale: 0.9, opacity: 0 }}
           className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
         >
-          {/* Header */}
           <div className="bg-gradient-to-br from-pink-500 to-pink-600 px-6 py-8 text-white text-center">
             <div className="flex justify-center mb-4">
               <motion.div
                 animate={isListening ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ repeat: Infinity, duration: 1.5 }}
                 className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                  isListening ? 'bg-white/20 backdrop-blur-sm' : 'bg-white/10'
+                  isListening ? "bg-white/20 backdrop-blur-sm" : "bg-white/10"
                 }`}
               >
                 {isProcessing ? (
@@ -229,31 +246,23 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
             </div>
             <h3 className="text-2xl font-bold mb-2">Voice Input</h3>
             <p className="text-pink-100">
-              {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Tap to start'}
+              {isListening ? "Listening..." : isProcessing ? "Processing..." : "Tap to start"}
             </p>
           </div>
 
-          {/* Transcript Display */}
           <div className="p-6 min-h-[120px] max-h-[200px] overflow-y-auto">
             {displayText.trim() ? (
               <div className="space-y-2">
-                <p className="text-gray-900 text-lg leading-relaxed">
-                  {displayText}
-                </p>
+                <p className="text-gray-900 text-lg leading-relaxed">{displayText}</p>
                 {interimTranscript && (
-                  <p className="text-gray-400 text-sm italic">
-                    (still listening...)
-                  </p>
+                  <p className="text-gray-400 text-sm italic">(still listening...)</p>
                 )}
               </div>
             ) : (
-              <p className="text-gray-400 text-center py-8">
-                Your voice input will appear here...
-              </p>
+              <p className="text-gray-400 text-center py-8">Your voice input will appear here...</p>
             )}
           </div>
 
-          {/* Controls */}
           <div className="p-6 bg-gray-50 border-t border-gray-200">
             <div className="flex gap-3">
               {isListening ? (
@@ -274,7 +283,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
                   Start
                 </button>
               )}
-              
+
               {transcript && !isListening && (
                 <button
                   onClick={handleClear}
@@ -283,7 +292,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
                   Clear
                 </button>
               )}
-              
+
               <button
                 onClick={onClose}
                 className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
@@ -300,14 +309,13 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-3xl px-6 py-8 text-white text-center">
           <div className="flex justify-center mb-4">
             <motion.div
               animate={isListening ? { scale: [1, 1.2, 1] } : {}}
               transition={{ repeat: Infinity, duration: 1.5 }}
               className={`w-20 h-20 rounded-full flex items-center justify-center ${
-                isListening ? 'bg-white/20 backdrop-blur-sm' : 'bg-white/10'
+                isListening ? "bg-white/20 backdrop-blur-sm" : "bg-white/10"
               }`}
             >
               {isProcessing ? (
@@ -321,31 +329,27 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
           </div>
           <h3 className="text-2xl font-bold mb-2">Voice Entry</h3>
           <p className="text-pink-100">
-            {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Tap to describe a transaction'}
+            {isListening
+              ? "Listening..."
+              : isProcessing
+                ? "Processing..."
+                : "Speak your expenses (e.g., \"Food 500 and Uber 200\")"}
           </p>
         </div>
 
-        {/* Transcript Display */}
         <div className="bg-white rounded-3xl p-6 min-h-[180px] border border-gray-200">
           {displayText.trim() ? (
             <div className="space-y-2">
-              <p className="text-gray-900 text-lg leading-relaxed">
-                {displayText}
-              </p>
+              <p className="text-gray-900 text-lg leading-relaxed">{displayText}</p>
               {interimTranscript && (
-                <p className="text-gray-400 text-sm italic">
-                  (still listening...)
-                </p>
+                <p className="text-gray-400 text-sm italic">(still listening...)</p>
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-12">
-              Describe your transaction and it will appear here...
-            </p>
+            <p className="text-gray-400 text-center py-12">Describe your transactions and it will appear here...</p>
           )}
         </div>
 
-        {/* Controls */}
         <div className="space-y-3">
           {isListening ? (
             <button
@@ -362,10 +366,10 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
               className="w-full py-4 bg-pink-600 text-white rounded-2xl font-semibold hover:bg-pink-700 disabled:bg-gray-300 transition-colors flex items-center justify-center gap-2"
             >
               <Mic size={24} />
-              {isProcessing ? 'Processing...' : 'Start Listening'}
+              {isProcessing ? "Processing..." : "Start Listening"}
             </button>
           )}
-          
+
           {transcript && !isListening && (
             <button
               onClick={handleClear}
