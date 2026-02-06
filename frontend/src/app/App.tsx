@@ -22,6 +22,10 @@ import { Calendar } from '@/app/components/Calendar';
 import { Transfer } from '@/app/components/Transfer';
 import { VoiceInput } from '@/app/components/VoiceInput';
 import { VoiceReview } from '@/app/components/VoiceReview';
+import { AuthCallback } from '@/app/components/AuthCallback';
+import { AdminDashboard } from '@/app/components/AdminDashboard';
+import { AdvisorWorkspace } from '@/app/components/AdvisorWorkspace';
+import { BookAdvisor } from '@/app/components/BookAdvisor';
 import { PayEMI } from '@/app/components/PayEMI';
 import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
 import { FinanceAdvisor } from '@/app/components/FinanceAdvisorPage';
@@ -56,6 +60,12 @@ const AppContent: React.FC = () => {
   const [showQuickAction, setShowQuickAction] = useState(false);
 
   useEffect(() => {
+    // Check if this is an auth callback from Supabase email verification
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token') && hash.includes('type=')) {
+      setCurrentPage('auth-callback');
+    }
+    
     // Initialize app data
     const initTasks = [initializeNotifications()];
     
@@ -256,6 +266,14 @@ const AppContent: React.FC = () => {
         return <VoiceInput />;
       case 'voice-review':
         return <VoiceReview />;
+      case 'auth-callback':
+        return <AuthCallback />;
+      case 'admin':
+        return <AdminDashboard />;
+      case 'advisor':
+        return <AdvisorWorkspace />;
+      case 'book-advisor':
+        return <BookAdvisor />;
       case 'pay-emi':
         return <PayEMI />;
       default:

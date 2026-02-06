@@ -240,9 +240,46 @@ export interface ToDoListShare {
   sharedBy: string;
 }
 
+export interface AdvisorAssignment {
+  id?: number;
+  advisorId: string; // Supabase user ID
+  userId: string; // Supabase user ID
+  assignedAt: Date;
+  notes?: string;
+  status: 'active' | 'inactive';
+}
+
+export interface ChatMessage {
+  id?: number;
+  conversationId: string; // advisorId_userId
+  senderId: string; // Supabase user ID
+  senderRole: 'advisor' | 'user';
+  message: string;
+  timestamp: Date;
+  isRead: boolean;
+  attachmentUrl?: string;
+}
+
+export interface BookingRequest {
+  id?: number;
+  advisorId: string; // Supabase user ID
+  userId: string; // Supabase user ID
+  advisorName: string;
+  userEmail: string;
+  requestedDate?: Date;
+  preferredTime?: string;
+  topic?: string;
+  message?: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  sessionType: 'video' | 'audio' | 'chat';
+  createdAt: Date;
+  respondedAt?: Date;
+  sequenceNumber?: number; // For sorting
+}
+
 export interface Notification {
   id?: number;
-  type: 'emi' | 'loan' | 'goal' | 'group';
+  type: 'emi' | 'loan' | 'goal' | 'group' | 'booking' | 'message';
   title: string;
   message: string;
   dueDate: Date;
@@ -310,6 +347,9 @@ export class ProductionDB extends FinanceLifeDB {
   toDoLists!: Table<ToDoList>;
   toDoItems!: Table<ToDoItem>;
   toDoListShares!: Table<ToDoListShare>;
+  advisorAssignments!: Table<AdvisorAssignment>;
+  chatMessages!: Table<ChatMessage>;
+  bookingRequests!: Table<BookingRequest>;
 
   constructor() {
     super();
@@ -338,7 +378,10 @@ export class ProductionDB extends FinanceLifeDB {
       expenseBills: '++id, transactionId, uploadedAt',
       toDoLists: '++id, ownerId, createdAt, archived',
       toDoItems: '++id, listId, completed, dueDate, priority',
-      toDoListShares: '++id, listId, sharedWithUserId'
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
     });
   }
 }

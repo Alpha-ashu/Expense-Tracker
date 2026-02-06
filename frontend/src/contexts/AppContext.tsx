@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
 import { realtimeSyncManager, trackChange } from '@/lib/realTime';
+import { useAuth } from '@/contexts/AuthContext';
+import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures } from '@/lib/featureFlags';
 
 interface AppContextType {
   currentPage: string;
@@ -37,21 +39,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [forceUpdate, setForceUpdate] = useState(0);
   const [visibleFeatures, setVisibleFeaturesState] = useState<Record<string, boolean>>(() => {
     const stored = localStorage.getItem('visibleFeatures');
-    return stored ? JSON.parse(stored) : {
-      accounts: true,
-      transactions: true,
-      loans: true,
-      goals: true,
-      groups: true,
-      investments: true,
-      reports: true,
-      calendar: true,
-      todoLists: true,
-      transfer: true,
-      taxCalculator: true,
-      financeAdvisor: true,
-    };
+    const parsed = stored ? JSON.parse(stored) : {};
+    return normalizeFeatures(parsed);
   });
+  const { role } = useAuth();
 
   const accounts = useLiveQuery(() => db.accounts.toArray(), [forceUpdate]) || [];
   const friends = useLiveQuery(() => db.friends.toArray(), [forceUpdate]) || [];
@@ -131,14 +122,88 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('language', language);
   }, [language]);
 
+  useEffect(() => {
+    const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
+    
+    // Read feature flag overrides from localStorage (set by admin panel)
+    const overrideFlags = localStorage.getItem('featureFlagsOverride');
+    let finalFeatures = roleFeatures;
+    
+    if (overrideFlags) {
+      try {
+        const parsed = JSON.parse(overrideFlags);
+        const overrides: Record<string, boolean> = {};
+        
+        Object.entries(parsed).forEach(([feature, roleFlags]: [string, any]) => {
+          if (roleFlags[role]) {
+            overrides[feature] = true;
+          } else {
+            overrides[feature] = false;
+          }
+        });
+        
+        finalFeatures = {
+          ...roleFeatures,
+          ...overrides,
+        };
+      } catch (e) {
+        console.error('Failed to parse feature flag overrides:', e);
+      }
+    }
+    
+    setVisibleFeaturesState((prev) => mergeVisibleFeatures(normalizeFeatures(prev), finalFeatures));
+  }, [role]);
+
+  // Listen for changes to feature flags from admin panel
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'featureFlagsOverride' || e.storageArea === localStorage) {
+        // Force a re-read of feature flags
+        const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
+        
+        const overrideFlags = localStorage.getItem('featureFlagsOverride');
+        let finalFeatures = roleFeatures;
+        
+        if (overrideFlags) {
+          try {
+            const parsed = JSON.parse(overrideFlags);
+            const overrides: Record<string, boolean> = {};
+            
+            Object.entries(parsed).forEach(([feature, roleFlags]: [string, any]) => {
+              if (roleFlags[role]) {
+                overrides[feature] = true;
+              } else {
+                overrides[feature] = false;
+              }
+            });
+            
+            finalFeatures = {
+              ...roleFeatures,
+              ...overrides,
+            };
+          } catch (error) {
+            console.error('Failed to parse feature flag overrides:', error);
+          }
+        }
+        
+        setVisibleFeaturesState(finalFeatures);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [role]);
+
   // Save visible features to localStorage
   useEffect(() => {
     localStorage.setItem('visibleFeatures', JSON.stringify(visibleFeatures));
   }, [visibleFeatures]);
 
   const setVisibleFeatures = useCallback((features: Record<string, boolean>) => {
-    setVisibleFeaturesState(features);
-  }, []);
+    const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
+    const normalized = normalizeFeatures(features);
+    setVisibleFeaturesState(mergeVisibleFeatures(normalized, roleFeatures));
+  }, [role]);
 
   return (
     <AppContext.Provider

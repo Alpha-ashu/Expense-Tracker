@@ -2,20 +2,48 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
+import { UserRole } from '@/lib/featureFlags';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  role: UserRole;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const parseEmailList = (value?: string) => {
+  return (value || '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+};
+
+const adminEmails = parseEmailList(import.meta.env.VITE_ADMIN_EMAILS);
+const advisorEmails = parseEmailList(import.meta.env.VITE_ADVISOR_EMAILS);
+
+const resolveUserRole = (user: User | null): UserRole => {
+  if (!user) return 'user';
+
+  const email = (user.email || '').toLowerCase();
+  if (adminEmails.includes(email)) return 'admin';
+  if (advisorEmails.includes(email)) return 'advisor';
+
+  const metadataRole = user.user_metadata?.role;
+  if (metadataRole === 'admin' || metadataRole === 'advisor' || metadataRole === 'user') {
+    return metadataRole;
+  }
+
+  return 'user';
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<UserRole>('user');
 
   useEffect(() => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -32,7 +60,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
-        setUser(session?.user ?? null);
+        const nextUser = session?.user ?? null;
+        setUser(nextUser);
+        setRole(resolveUserRole(nextUser));
       } catch (error) {
         console.error('Error loading session:', error);
       } finally {
@@ -47,7 +77,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       async (event, session) => {
         console.log('Auth state changed:', event);
         setSession(session);
-        setUser(session?.user ?? null);
+        const nextUser = session?.user ?? null;
+        setUser(nextUser);
+        setRole(resolveUserRole(nextUser));
         setLoading(false);
       }
     );
@@ -63,6 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (error) throw error;
       setUser(null);
       setSession(null);
+      setRole('user');
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
@@ -70,7 +103,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, role, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -179,6 +179,74 @@ VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRi
             )}
           </div>
         </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900">Email Confirmation Setup</h3>
+            <a
+              href="https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh/auth/url-configuration"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+            >
+              Open Supabase <ExternalLink size={14} />
+            </a>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+              <p className="text-sm font-medium text-amber-900 mb-2">⚠️ Fix "localhost refused to connect" error</p>
+              <p className="text-sm text-amber-700">
+                If email confirmation links redirect to localhost in production, configure these URLs in Supabase Dashboard:
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Site URL:</p>
+                <code className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded block">
+                  {import.meta.env.VITE_APP_URL || window.location.origin}
+                </code>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-900 mb-1">Redirect URLs (add all):</p>
+                <div className="space-y-1">
+                  <code className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded block">
+                    http://localhost:5173
+                  </code>
+                  <code className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded block">
+                    http://localhost:5173/**
+                  </code>
+                  <code className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded block">
+                    {import.meta.env.VITE_APP_URL || 'https://your-app.vercel.app'}
+                  </code>
+                  <code className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded block">
+                    {import.meta.env.VITE_APP_URL || 'https://your-app.vercel.app'}/**
+                  </code>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 p-4 space-y-2">
+              <p className="text-sm font-semibold text-gray-900">Configuration Steps:</p>
+              <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+                <li>Go to <strong>Supabase Dashboard → Authentication → URL Configuration</strong></li>
+                <li>Set <strong>Site URL</strong> to your production URL</li>
+                <li>Add all redirect URLs listed above</li>
+                <li>Add <code className="text-xs bg-gray-100 px-1">VITE_APP_URL</code> to Vercel environment variables</li>
+                <li>Redeploy your app</li>
+                <li>Test by signing up with a new email</li>
+              </ol>
+            </div>
+
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Tip:</strong> After configuration, the email confirmation link will redirect to your app, which will automatically verify the email and log the user in.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </CenteredLayout>
   );

@@ -69,12 +69,15 @@ export async function getCurrentUser() {
 }
 
 export async function signUp(email: string, password: string, fullName?: string) {
+  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: appUrl, // Supabase will add hash params with tokens
       data: {
         full_name: fullName,
+        role: 'user',
       },
     },
   });

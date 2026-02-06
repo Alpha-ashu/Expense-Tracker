@@ -13,8 +13,12 @@ import {
   ArrowRightLeft,
   CalendarDays,
   BookOpen,
+  Zap,
+  BriefcaseIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -34,6 +38,7 @@ const menuItems = [
 
 export const Sidebar: React.FC = () => {
   const { currentPage, setCurrentPage, visibleFeatures } = useApp();
+  const { role } = useAuth();
 
   const filteredMenuItems = menuItems.filter(item => {
     const featureMap: Record<string, string> = {
@@ -64,6 +69,45 @@ export const Sidebar: React.FC = () => {
       </div>
       
       <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
+        {role === 'admin' && (
+          <button
+            onClick={() => setCurrentPage('admin')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
+              currentPage === 'admin'
+                ? 'bg-yellow-50 text-yellow-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Zap size={20} />
+            <span className="font-medium">Admin</span>
+          </button>
+        )}
+        {role === 'advisor' && (
+          <button
+            onClick={() => setCurrentPage('advisor')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
+              currentPage === 'advisor'
+                ? 'bg-purple-50 text-purple-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <BriefcaseIcon size={20} />
+            <span className="font-medium">Your Workspace</span>
+          </button>
+        )}
+        {role === 'user' && (
+          <button
+            onClick={() => setCurrentPage('book-advisor')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
+              currentPage === 'book-advisor'
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <MessageSquare size={20} />
+            <span className="font-medium">Book Advisor</span>
+          </button>
+        )}
         {filteredMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
