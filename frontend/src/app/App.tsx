@@ -57,10 +57,14 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     // Initialize app data
-    Promise.all([
-      initializeDemoData(),
-      initializeNotifications(),
-    ]).then(() => {
+    const initTasks = [initializeNotifications()];
+    
+    // Only initialize demo data if explicitly enabled via env var
+    if (import.meta.env.VITE_ENABLE_DEMO_DATA === 'true') {
+      initTasks.push(initializeDemoData());
+    }
+    
+    Promise.all(initTasks).then(() => {
       // Initialize real-time sync
       initializeRealtimeSync();
       
