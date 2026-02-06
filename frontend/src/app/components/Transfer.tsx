@@ -111,7 +111,9 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         updatedAt: new Date(),
       });
 
-      toast.success(`Transferred ${currency} ${formData.amount.toFixed(2)} successfully`);
+      // Show detailed success message
+      const message = `✅ Transfer completed: ${currency} ${formData.amount.toFixed(2)} from ${fromAccount.name} to ${toAccount.name}`;
+      toast.success(message);
       setFormData({
         fromAccountId: 0,
         toAccountId: 0,
@@ -122,7 +124,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
       setCurrentPage('accounts');
     } catch (error) {
       console.error('Transfer failed:', error);
-      toast.error('Transfer failed. Please try again.');
+      toast.error('❌ Transfer failed. Please try again.');
     }
   };
 

@@ -100,7 +100,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
         updatedAt: new Date(),
       });
 
-      toast.success(`Transferred ${currency} ${formData.amount.toFixed(2)} successfully`);
+      toast.success(`✅ Transfer completed: ${currency} ${formData.amount.toFixed(2)} from ${fromAccount.name} to ${toAccount.name}`);
       setFormData({
         fromAccountId: 0,
         toAccountId: 0,
@@ -111,7 +111,7 @@ export const TransferModal: React.FC<TransferModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Transfer failed:', error);
-      toast.error('Transfer failed. Please try again.');
+      toast.error('❌ Failed to transfer funds. Please try again.');
     }
   };
 

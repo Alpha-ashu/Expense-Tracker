@@ -139,18 +139,34 @@ export const VoiceReview: React.FC = () => {
         updatedAt: new Date(),
       });
 
+      // Calculate totals for feedback
+      const totalIncome = nonTransfers
+        .filter((item) => item.intent === 'income')
+        .reduce((sum, item) => sum + item.amount, 0);
+      const totalExpense = nonTransfers
+        .filter((item) => item.intent === 'expense')
+        .reduce((sum, item) => sum + item.amount, 0);
+
       if (transfers.length === 0) {
         localStorage.removeItem(STORAGE_KEY);
-        toast.success(`✅ Saved ${nonTransfers.length} transactions`);
+        const feedbackParts = [];
+        if (totalIncome > 0) feedbackParts.push(`💰 Income: ${currency} ${totalIncome.toFixed(2)}`);
+        if (totalExpense > 0) feedbackParts.push(`💸 Expense: ${currency} ${totalExpense.toFixed(2)}`);
+        const message = `✅ Saved ${nonTransfers.length} transactions${feedbackParts.length > 0 ? ' · ' + feedbackParts.join(' · ') : ''}`;
+        toast.success(message);
         setCurrentPage('transactions');
         return;
       }
 
       setItems(transfers);
-      toast.success(`✅ Saved ${nonTransfers.length} transactions. Review transfers next.`);
+      const feedbackParts = [];
+      if (totalIncome > 0) feedbackParts.push(`💰 Income: ${currency} ${totalIncome.toFixed(2)}`);
+      if (totalExpense > 0) feedbackParts.push(`💸 Expense: ${currency} ${totalExpense.toFixed(2)}`);
+      const message = `✅ Saved ${nonTransfers.length} transactions${feedbackParts.length > 0 ? ' · ' + feedbackParts.join(' · ') : ''} · Review transfers next`;
+      toast.success(message);
     } catch (error) {
       console.error('Failed to save reviewed transactions:', error);
-      toast.error('Failed to save transactions');
+      toast.error('❌ Failed to save transactions. Please try again.');
     } finally {
       setIsSaving(false);
     }

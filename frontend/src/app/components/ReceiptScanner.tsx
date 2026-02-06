@@ -115,12 +115,14 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         updatedAt: new Date(),
       });
 
-      toast.success('Transaction created from receipt');
+      // Show detailed success feedback
+      const message = `📦 Expense ${currency} ${(scanResult.amount || 0).toFixed(2)} from ${scanResult.merchantName || 'Receipt'} added to ${scanResult.category || 'Shopping'}`;
+      toast.success(message);
       onTransactionCreated?.(transactionId as number);
       handleClose();
     } catch (error) {
       console.error('Error creating transaction:', error);
-      toast.error('Failed to create transaction');
+      toast.error('❌ Failed to create transaction. Please try again.');
     }
   };
 

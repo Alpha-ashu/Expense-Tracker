@@ -85,11 +85,15 @@ export const AddTransaction: React.FC = () => {
 
       await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: new Date() });
 
-      toast.success('Transaction added successfully');
+      // Show detailed success message
+      const typeLabel = formData.type === 'income' ? 'Income' : 'Expense';
+      const icon = formData.type === 'income' ? '📈' : '📉';
+      const message = `${icon} ${typeLabel} ${currency} ${formData.amount.toFixed(2)} added to ${formData.category}`;
+      toast.success(message);
       setCurrentPage('transactions');
     } catch (error) {
       console.error('Failed to add transaction:', error);
-      toast.error('Failed to add transaction');
+      toast.error('❌ Failed to add transaction. Please try again.');
     }
   };
 
