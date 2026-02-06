@@ -4,12 +4,16 @@ import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
 import { Plus, Target, Calendar, TrendingUp, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
 export const Goals: React.FC = () => {
   const { goals, accounts, currency, setCurrentPage } = useApp();
   const [showContributeModal, setShowContributeModal] = useState<number | null>(null);
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -46,15 +50,24 @@ export const Goals: React.FC = () => {
     }
   };
 
-  const handleDeleteGoal = async (goalId: number) => {
-    if (window.confirm('Are you sure you want to delete this goal?')) {
-      try {
-        await db.goals.delete(goalId);
-        toast.success('Goal deleted successfully');
-      } catch (error) {
-        console.error('Failed to delete goal:', error);
-        toast.error('Failed to delete goal');
-      }
+  const handleDeleteGoal = (goalId: number, goalName: string) => {
+    setGoalToDelete({ id: goalId, name: goalName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteGoal = async () => {
+    if (!goalToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.goals.delete(goalToDelete.id);
+      toast.success('Goal deleted successfully');
+      setDeleteModalOpen(false);
+      setGoalToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete goal:', error);
+      toast.error('Failed to delete goal');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -96,7 +109,7 @@ export const Goals: React.FC = () => {
                     <Edit2 size={16} />
                   </button>
                   <button
-                    onClick={() => handleDeleteGoal(goal.id!)}
+                    onClick={() => handleDeleteGoal(goal.id!, goal.name)}
                     className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
                     title="Delete goal"
                   >
@@ -244,6 +257,20 @@ export const Goals: React.FC = () => {
           onClose={() => setShowContributeModal(null)}
         />
       )}
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Goal"
+        message="This goal will be permanently deleted. All contribution records will be lost."
+        itemName={goalToDelete?.name}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteGoal}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setGoalToDelete(null);
+        }}
+      />
+
       </div>
     </CenteredLayout>
   );

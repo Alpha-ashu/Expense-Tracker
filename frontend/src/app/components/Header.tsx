@@ -43,8 +43,26 @@ export const Header: React.FC = () => {
     []
   ) || [];
 
-  const handleMarkAsRead = async (notificationId: string) => {
-    await db.notifications.update(notificationId, { isRead: true });
+  const handleMarkAsRead = async (notification: any) => {
+    // Mark as read
+    await db.notifications.update(notification.id, { isRead: true });
+    
+    // Navigate if deepLink exists
+    if (notification.deepLink) {
+      // Parse deepLink like "/calendar?session=123" or "/advisor-workspace"
+      const [path, query] = notification.deepLink.split('?');
+      setCurrentPage(path.replace('/', ''));
+      
+      // If there are query params, store them for the component
+      if (query) {
+        const params = new URLSearchParams(query);
+        params.forEach((value, key) => {
+          localStorage.setItem(`deepLink_${key}`, value);
+        });
+      }
+    }
+    
+    setNotificationsOpen(false);
   };
 
   const handleClearAll = async () => {
@@ -171,7 +189,7 @@ export const Header: React.FC = () => {
                         className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
                           !notification.isRead ? 'bg-blue-50' : ''
                         }`}
-                        onClick={() => handleMarkAsRead(notification.id)}
+                        onClick={() => handleMarkAsRead(notification)}
                       >
                         <div className="flex items-start gap-3">
                           {!notification.isRead && (

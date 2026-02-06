@@ -132,13 +132,15 @@ export interface Investment {
 
 export interface Notification {
   id?: number;
-  type: 'emi' | 'loan' | 'goal' | 'group';
+  type: 'emi' | 'loan' | 'goal' | 'group' | 'booking' | 'message' | 'session';
   title: string;
   message: string;
-  dueDate: Date;
+  dueDate?: Date;
   isRead: boolean;
   relatedId?: number;
   createdAt: Date;
+  userId?: string;
+  deepLink?: string; // e.g., "/calendar?session=123"
 }
 
 export interface TaxCalculation {
@@ -159,27 +161,38 @@ export interface TaxCalculation {
 
 export interface FinanceAdvisor {
   id?: number;
+  userId: string; // Linked to auth user
   name: string;
   email: string;
   phone: string;
-  specialization: string[];
-  qualifications: string[];
-  experience: number; // years
-  rating: number; // 1-5
-  availability: string[];
-  hourlyRate: number;
+  photo?: string;
   bio?: string;
+  specialization: string[]; // tax, accounting, investment, business, etc.
+  experience: number; // years
+  qualifications: string[];
+  rating: number; // 1-5
+  totalReviews: number;
+  clientsCompleted: number;
+  activeClients: number;
+  socialLinks?: {
+    linkedin?: string;
+    twitter?: string;
+    website?: string;
+  };
+  availability: boolean; // ON/OFF toggle
+  hourlyRate: number;
   verified: boolean;
   createdAt: Date;
 }
 
 export interface AdvisorSession {
   id?: number;
-  advisorId: number;
+  advisorId: string;
+  userId: string;
   date: Date;
   duration: number; // minutes
   type: 'video' | 'audio' | 'chat';
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'rescheduled';
   notes?: string;
   meetingLink?: string;
   amount: number;
@@ -270,8 +283,9 @@ export interface BookingRequest {
   preferredTime?: string;
   topic?: string;
   message?: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+  status: 'pending' | 'accepted' | 'rejected' | 'completed' | 'reschedule';
   sessionType: 'video' | 'audio' | 'chat';
+  responseMessage?: string; // Advisor's response (e.g., for reschedule)
   createdAt: Date;
   respondedAt?: Date;
   sequenceNumber?: number; // For sorting
@@ -279,13 +293,15 @@ export interface BookingRequest {
 
 export interface Notification {
   id?: number;
-  type: 'emi' | 'loan' | 'goal' | 'group' | 'booking' | 'message';
+  type: 'emi' | 'loan' | 'goal' | 'group' | 'booking' | 'message' | 'session';
   title: string;
   message: string;
-  dueDate: Date;
+  dueDate?: Date;
   isRead: boolean;
   relatedId?: number;
   createdAt: Date;
+  userId?: string;
+  deepLink?: string; // e.g., "/calendar?session=123"
 }
 
 // Database Class
@@ -349,6 +365,7 @@ export class ProductionDB extends FinanceLifeDB {
   toDoListShares!: Table<ToDoListShare>;
   advisorAssignments!: Table<AdvisorAssignment>;
   chatMessages!: Table<ChatMessage>;
+  chatConversations!: Table<ChatConversation>;
   bookingRequests!: Table<BookingRequest>;
 
   constructor() {
@@ -363,7 +380,7 @@ export class ProductionDB extends FinanceLifeDB {
       goalContributions: '++id, goalId, date',
       groupExpenses: '++id, date',
       investments: '++id, assetType',
-      notifications: '++id, type, dueDate, isRead',
+      notifications: '++id, type, userId, isRead, createdAt',
       logs: 'id, level, timestamp',
       errorReports: 'id, timestamp',
       backups: 'id, timestamp',
@@ -381,6 +398,7 @@ export class ProductionDB extends FinanceLifeDB {
       toDoListShares: '++id, listId, sharedWithUserId',
       advisorAssignments: '++id, advisorId, userId, status',
       chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
       bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
     });
   }

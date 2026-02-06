@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
-import { Wallet, TrendingUp, TrendingDown, Target, CreditCard, Users } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Target, CreditCard, Users, Download } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1'];
 
 export const Dashboard: React.FC = () => {
-  const { accounts, transactions, loans, goals, investments, currency } = useApp();
+  const { accounts, transactions, loans, goals, investments, currency, setCurrentPage } = useApp();
 
   const stats = useMemo(() => {
     const today = new Date();
@@ -91,9 +91,19 @@ export const Dashboard: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-          <p className="text-gray-500 mt-1">Welcome to your financial overview</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+            <p className="text-gray-500 mt-1">Welcome to your financial overview</p>
+          </div>
+          <button
+            onClick={() => setCurrentPage('export-reports')}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <Download size={20} />
+            <span className="hidden sm:inline">Export & Reports</span>
+            <span className="sm:hidden">Export</span>
+          </button>
         </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

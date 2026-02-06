@@ -12,23 +12,11 @@ export type FeatureKey =
   | 'todoLists'
   | 'transfer'
   | 'taxCalculator'
-  | 'financeAdvisor';
-
-export type FeatureVisibility = Record<FeatureKey, boolean>;
-
-const DEFAULT_FEATURES: FeatureVisibility = {
-  accounts: true,
-  transactions: true,
-  loans: true,
-  goals: true,
-  groups: true,
-  investments: true,
-  reports: true,
-  calendar: true,
+  | 'bookAdvisor';
   todoLists: true,
   transfer: true,
   taxCalculator: true,
-  financeAdvisor: true,
+  bookAdvisor: true,
 };
 
 const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
@@ -44,21 +32,21 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     todoLists: true,
     transfer: true,
     taxCalculator: true,
-    financeAdvisor: true,
+    bookAdvisor: true,
   },
   advisor: {
-    accounts: false,
-    transactions: false,
-    loans: false,
-    goals: false,
-    groups: false,
-    investments: false,
+    accounts: true,
+    transactions: true,
+    loans: true,
+    goals: true,
+    groups: true,
+    investments: true,
     reports: true,
     calendar: true,
-    todoLists: false,
-    transfer: false,
-    taxCalculator: false,
-    financeAdvisor: true,
+    todoLists: true,
+    transfer: true,
+    taxCalculator: true,
+    bookAdvisor: true,
   },
   user: {
     accounts: true,
@@ -72,7 +60,7 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     todoLists: true,
     transfer: true,
     taxCalculator: true,
-    financeAdvisor: true,
+    bookAdvisor: true,
   },
 };
 
@@ -91,14 +79,7 @@ export function getVisibleFeaturesForRole(
 ): FeatureVisibility {
   const base = ROLE_FEATURES[role] || ROLE_FEATURES.user;
 
-  // Example: In production, keep finance advisor behind admin-only until ready
-  if (env === 'production') {
-    return {
-      ...base,
-      financeAdvisor: role === 'admin' ? base.financeAdvisor : false,
-    };
-  }
-
+  // In production, all roles have access to bookAdvisor
   return base;
 }
 

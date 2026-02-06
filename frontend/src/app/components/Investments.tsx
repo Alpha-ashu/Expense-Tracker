@@ -2,14 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
-import { Plus, TrendingUp, TrendingDown, Edit2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1'];
 
 export const Investments: React.FC = () => {
   const { investments, currency, setCurrentPage } = useApp();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [investmentToDelete, setInvestmentToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const portfolioStats = useMemo(() => {
     const totalInvested = investments.reduce((sum, i) => sum + i.totalInvested, 0);
@@ -38,6 +42,27 @@ export const Investments: React.FC = () => {
       style: 'currency',
       currency: currency,
     }).format(amount);
+  };
+
+  const handleDeleteInvestment = (investmentId: number, investmentName: string) => {
+    setInvestmentToDelete({ id: investmentId, name: investmentName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteInvestment = async () => {
+    if (!investmentToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.investments.delete(investmentToDelete.id);
+      toast.success('Investment deleted successfully');
+      setDeleteModalOpen(false);
+      setInvestmentToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete investment:', error);
+      toast.error('Failed to delete investment');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -182,16 +207,25 @@ export const Investments: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => {
-                        localStorage.setItem('editingInvestmentId', inv.id.toString());
-                        setCurrentPage('edit-investment');
-                      }}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
-                      title="Edit investment"
-                    >
-                      <Edit2 size={16} />
-                    </button>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        onClick={() => {
+                          localStorage.setItem('editingInvestmentId', inv.id.toString());
+                          setCurrentPage('edit-investment');
+                        }}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        title="Edit investment"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteInvestment(inv.id!, inv.assetName)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Delete investment"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -212,6 +246,18 @@ export const Investments: React.FC = () => {
           </div>
         )}
       </div>
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Investment"
+        message="This investment record will be permanently deleted. All transaction history will be lost."
+        itemName={investmentToDelete?.name}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteInvestment}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setInvestmentToDelete(null);
+        }}
+      />
       </div>
     </CenteredLayout>
   );

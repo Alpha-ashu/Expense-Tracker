@@ -16,6 +16,7 @@ import {
   Zap,
   BriefcaseIcon,
   MessageSquare,
+  Download,
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,10 +30,10 @@ const menuItems = [
   { id: 'groups', label: 'Group Expenses', icon: Users },
   { id: 'investments', label: 'Investments', icon: TrendingUp },
   { id: 'reports', label: 'Reports', icon: BarChart3 },
+  { id: 'export-reports', label: 'Export & Reports', icon: Download },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'todo-lists', label: 'To-Do Lists', icon: BookOpen },
   { id: 'tax-calculator', label: 'Tax Calculator', icon: Calculator },
-  { id: 'finance-advisor', label: 'Finance Advisor', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -49,11 +50,11 @@ export const Sidebar: React.FC = () => {
       'groups': 'groups',
       'investments': 'investments',
       'reports': 'reports',
+      'export-reports': 'reports',
       'calendar': 'calendar',
       'todo-lists': 'todoLists',
       'transfer': 'transfer',
       'tax-calculator': 'taxCalculator',
-      'finance-advisor': 'financeAdvisor',
       'settings': 'settings',
     };
     const featureKey = featureMap[item.id];

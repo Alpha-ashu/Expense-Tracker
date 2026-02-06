@@ -19,7 +19,7 @@ const FEATURE_DESCRIPTIONS: Record<FeatureKey, string> = {
   todoLists: 'To-do lists and reminders',
   transfer: 'Money transfers between accounts',
   taxCalculator: 'Tax calculation tools',
-  financeAdvisor: 'Finance advisor consultation booking',
+  bookAdvisor: 'Book and consult with financial advisors',
 };
 
 export const AdminDashboard: React.FC = () => {

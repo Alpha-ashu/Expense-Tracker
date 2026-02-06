@@ -1,11 +1,32 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { ChevronLeft, ChevronRight, AlertCircle, TrendingDown, TrendingUp } from 'lucide-react';
+import { useAuth } from '@/contexts/SecurityContext';
+import { ChevronLeft, ChevronRight, AlertCircle, TrendingDown, TrendingUp, Video, Phone, MessageCircle, CheckCircle, Clock, RotateCw } from 'lucide-react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/lib/database';
 import type { Loan, Transaction } from '@/lib/database';
 
 export const Calendar: React.FC = () => {
   const { transactions, loans, currency } = useApp();
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Fetch all booking requests for current user (both as user and advisor)
+  const bookingRequests = useLiveQuery(
+    () =>
+      user
+        ? db.bookingRequests
+            .where('userId')
+            .equals(user.id)
+            .or('advisorId')
+            .equals(user.id)
+            .toArray()
+        : Promise.resolve([]),
+    [user?.id]
+  ) || [];
+
+  // Fetch all advisors for name lookup
+  const advisors = useLiveQuery(() => db.financeAdvisors.toArray(), []) || [];
 
   const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
@@ -48,6 +69,31 @@ export const Calendar: React.FC = () => {
         }
       }
     });
+
+    // Add advisor booking sessions
+    if (bookingRequests && user) {
+      bookingRequests.forEach(booking => {
+        if (booking.preferredTime) {
+          const bookingDate = new Date(booking.preferredTime);
+          if (bookingDate.toDateString() === dateStr.toDateString()) {
+            const advisor = advisors.find(a => a.id === booking.advisorId);
+            const advisorName = advisor?.name || 'Advisor';
+            const sessionType = booking.sessionType || 'Meeting';
+            const icon = sessionType === 'video' ? '📹' : sessionType === 'audio' ? '🎧' : '💬';
+
+            events.push({
+              type: 'session',
+              label: `${booking.userId === user.id ? 'Session with ' + advisorName : 'Session'}: ${sessionType}`,
+              status: booking.status,
+              icon,
+              bookingId: booking.id,
+              isRescheduled: booking.status === 'reschedule',
+              isCompleted: booking.status === 'completed',
+            });
+          }
+        }
+      });
+    }
 
     return events;
   };
@@ -155,12 +201,19 @@ export const Calendar: React.FC = () => {
                               ? event.isIncome
                                 ? 'bg-green-500'
                                 : 'bg-red-500'
-                              : 'bg-orange-500'
+                              : event.type === 'emi'
+                                ? 'bg-orange-500'
+                                : event.isRescheduled
+                                  ? 'bg-purple-500'
+                                  : event.isCompleted
+                                    ? 'bg-gray-500'
+                                    : 'bg-blue-500'
                           }`}
                           title={event.label}
                         >
                           {event.type === 'transaction' && (event.isIncome ? '📈' : '📉')}
                           {event.type === 'emi' && '💳'}
+                          {event.type === 'session' && event.icon}
                           {' '}{event.label.split(':')[1]?.trim() || event.label}
                         </div>
                       ))}
@@ -174,7 +227,7 @@ export const Calendar: React.FC = () => {
       </div>
 
       {/* Upcoming Events Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Upcoming Income */}
         <div className="bg-green-50 p-6 rounded-xl border border-green-200">
           <div className="flex items-center gap-2 mb-3">
@@ -256,7 +309,101 @@ export const Calendar: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Upcoming Advisor Sessions */}
+        <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="text-blue-600" size={24} />
+            <h3 className="font-semibold text-blue-900">Advisor Sessions</h3>
+          </div>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {bookingRequests
+              .filter(booking => booking.status === 'accepted' && booking.preferredTime && new Date(booking.preferredTime) >= currentDate)
+              .map((booking, idx) => {
+                const advisor = advisors.find(a => a.id === booking.advisorId);
+                const advisorName = advisor?.name || 'Advisor';
+                const bookingDate = new Date(booking.preferredTime || '');
+                const timeStr = bookingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <div key={idx} className="text-sm text-blue-700">
+                    <p className="font-medium">
+                      {booking.userId === user?.id ? advisorName : booking.topic || 'Session'}
+                    </p>
+                    <p className="text-blue-600">
+                      {bookingDate.toLocaleDateString()} at {timeStr}
+                    </p>
+                  </div>
+                );
+              })}
+            {bookingRequests.filter(booking => booking.status === 'accepted' && booking.preferredTime && new Date(booking.preferredTime) >= currentDate).length === 0 && (
+              <p className="text-gray-500 text-sm">No upcoming sessions</p>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Completed & Rescheduled Sessions */}
+      {(bookingRequests.filter(b => b.status === 'completed' || b.status === 'reschedule').length > 0 || bookingRequests.filter(b => b.status === 'accepted' && b.preferredTime && new Date(b.preferredTime) < currentDate).length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Completed Sessions */}
+          {bookingRequests.filter(b => b.status === 'completed').length > 0 && (
+            <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="text-green-600" size={24} />
+                <h3 className="font-semibold text-gray-900">Completed Sessions</h3>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {bookingRequests
+                  .filter(b => b.status === 'completed')
+                  .map((booking, idx) => {
+                    const advisor = advisors.find(a => a.id === booking.advisorId);
+                    const advisorName = advisor?.name || 'Advisor';
+                    const bookingDate = new Date(booking.preferredTime || '');
+                    const dateStr = bookingDate.toLocaleDateString();
+                    return (
+                      <div key={idx} className="text-sm text-gray-700">
+                        <p className="font-medium">
+                          {booking.userId === user?.id ? advisorName : booking.topic || 'Session'}
+                        </p>
+                        <p className="text-gray-600">{dateStr}</p>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* Rescheduled Sessions */}
+          {bookingRequests.filter(b => b.status === 'reschedule').length > 0 && (
+            <div className="bg-purple-50 p-6 rounded-xl border border-purple-200">
+              <div className="flex items-center gap-2 mb-3">
+                <RotateCw className="text-purple-600" size={24} />
+                <h3 className="font-semibold text-purple-900">Rescheduled Sessions</h3>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {bookingRequests
+                  .filter(b => b.status === 'reschedule')
+                  .map((booking, idx) => {
+                    const advisor = advisors.find(a => a.id === booking.advisorId);
+                    const advisorName = advisor?.name || 'Advisor';
+                    const bookingDate = new Date(booking.preferredTime || '');
+                    const timeStr = bookingDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div key={idx} className="text-sm text-purple-700">
+                        <p className="font-medium text-purple-900">
+                          {booking.userId === user?.id ? advisorName : booking.topic || 'Session'}
+                        </p>
+                        <p className="text-purple-600 text-xs">
+                          New time: {bookingDate.toLocaleDateString()} at {timeStr}
+                        </p>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -2,8 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '../../lib/database';
-import { Plus, Upload, TrendingUp, TrendingDown, Filter, Search, Camera } from 'lucide-react';
+import { Plus, Upload, TrendingUp, TrendingDown, Filter, Search, Camera, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
+import { ReceiptScanner } from '@/app/components/ReceiptScanner';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 
 const CATEGORIES = {
@@ -16,6 +18,10 @@ export const Transactions: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showTransactionTypeModal, setShowTransactionTypeModal] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<{ id: number; description: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Check for quick form type from localStorage
   useEffect(() => {
@@ -46,6 +52,27 @@ export const Transactions: React.FC = () => {
       style: 'currency',
       currency: currency,
     }).format(amount);
+  };
+
+  const handleDeleteTransaction = (id: number, description: string) => {
+    setTransactionToDelete({ id, description });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteTransaction = async () => {
+    if (!transactionToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.transactions.delete(transactionToDelete.id);
+      toast.success('Transaction deleted successfully');
+      setDeleteModalOpen(false);
+      setTransactionToDelete(null);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast.error('Failed to delete transaction');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -159,6 +186,9 @@ export const Transactions: React.FC = () => {
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
                 </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -204,6 +234,28 @@ export const Transactions: React.FC = () => {
                       displayType === 'income' ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {displayType === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => {
+                            // Store transaction ID in localStorage for edit page
+                            localStorage.setItem('editTransactionId', transaction.id?.toString() || '');
+                            setCurrentPage('add-transaction');
+                          }}
+                          className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 size={16} className="text-blue-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTransaction(transaction.id!, transaction.description)}
+                          className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} className="text-red-600" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -267,6 +319,29 @@ export const Transactions: React.FC = () => {
           </div>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Transaction"
+        message="This transaction will be permanently deleted. This action cannot be undone."
+        itemName={transactionToDelete?.description}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteTransaction}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setTransactionToDelete(null);
+        }}
+      />
+
+      <ReceiptScanner
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onTransactionCreated={() => {
+          // Optionally refresh or navigate
+          setShowScanModal(false);
+        }}
+      />
+
       </div>
     </CenteredLayout>
   );

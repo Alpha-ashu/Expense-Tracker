@@ -5,12 +5,16 @@ import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Trash2, Share2, Archive, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
 export const ToDoLists: React.FC = () => {
   const { setCurrentPage } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [listToDelete, setListToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Get current user (simplified - in real app would use auth context)
   const currentUserId = 'user-1'; // Placeholder
@@ -49,18 +53,27 @@ export const ToDoLists: React.FC = () => {
     }
   };
 
-  const handleDeleteList = async (listId: number) => {
-    if (confirm('Are you sure you want to delete this list? This action cannot be undone.')) {
-      try {
-        await db.toDoLists.delete(listId);
-        // Also delete items and shares
-        await db.toDoItems.where('listId').equals(listId).delete();
-        await db.toDoListShares.where('listId').equals(listId).delete();
-        toast.success('List deleted successfully');
-      } catch (error) {
-        console.error('Failed to delete list:', error);
-        toast.error('Failed to delete list');
-      }
+  const handleDeleteList = (listId: number, listName: string) => {
+    setListToDelete({ id: listId, name: listName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteList = async () => {
+    if (!listToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.toDoLists.delete(listToDelete.id);
+      // Also delete items and shares
+      await db.toDoItems.where('listId').equals(listToDelete.id).delete();
+      await db.toDoListShares.where('listId').equals(listToDelete.id).delete();
+      toast.success('List deleted successfully');
+      setDeleteModalOpen(false);
+      setListToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete list:', error);
+      toast.error('Failed to delete list');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -214,7 +227,7 @@ export const ToDoLists: React.FC = () => {
                     <Archive size={18} />
                   </button>
                   <button
-                    onClick={() => handleDeleteList(list.id!)}
+                    onClick={() => handleDeleteList(list.id!, list.name)}
                     title="Delete list"
                     className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                   >
@@ -226,6 +239,19 @@ export const ToDoLists: React.FC = () => {
           </div>
         )}
       </div>
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete List"
+        message="This to-do list and all its items will be permanently deleted. All shares and collaborations will also be removed."
+        itemName={listToDelete?.name}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteList}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setListToDelete(null);
+        }}
+      />
     </CenteredLayout>
   );
 };

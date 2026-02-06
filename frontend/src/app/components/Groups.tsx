@@ -2,17 +2,84 @@ import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
-import { Plus, Users, DollarSign } from 'lucide-react';
+import { Plus, Users, DollarSign, Trash2, Edit2, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
 export const Groups: React.FC = () => {
   const { groupExpenses, accounts, currency, setCurrentPage } = useApp();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const [editedName, setEditedName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
     }).format(amount);
+  };
+
+  const handleDeleteGroup = (groupId: number, groupName: string) => {
+    setGroupToDelete({ id: groupId, name: groupName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteGroup = async () => {
+    if (!groupToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.groupExpenses.delete(groupToDelete.id);
+      toast.success('Group expense deleted successfully');
+      setDeleteModalOpen(false);
+      setGroupToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete group expense:', error);
+      toast.error('Failed to delete group expense');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEditClick = (groupId: number, groupName: string) => {
+    setEditingGroupId(groupId);
+    setEditedName(groupName);
+  };
+
+  const handleSaveEdit = async (groupId: number) => {
+    if (!editedName.trim()) {
+      toast.error('Group name cannot be empty');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await db.groupExpenses.update(groupId, { name: editedName });
+      toast.success('Group name updated successfully');
+      setEditingGroupId(null);
+    } catch (error) {
+      console.error('Failed to update group:', error);
+      toast.error('Failed to update group name');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleMemberPayment = async (groupId: number, memberIndex: number, paid: boolean) => {
+    try {
+      const group = groupExpenses.find(g => g.id === groupId);
+      if (!group) return;
+      
+      const updatedMembers = [...group.members];
+      updatedMembers[memberIndex] = { ...updatedMembers[memberIndex], paid: !paid };
+      
+      await db.groupExpenses.update(groupId, { members: updatedMembers });
+      toast.success(`Member marked as ${!paid ? 'paid' : 'pending'}`);
+    } catch (error) {
+      console.error('Failed to update member payment:', error);
+      toast.error('Failed to update member status');
+    }
   };
 
   return (
@@ -40,11 +107,54 @@ export const Groups: React.FC = () => {
           return (
             <div key={expense.id} className="bg-white rounded-xl border-2 border-gray-200 p-6">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">{expense.name}</h3>
+                <div className="flex-1">
+                  {editingGroupId === expense.id ? (
+                    <div className="flex gap-2 items-center mb-2">
+                      <input
+                        type="text"
+                        value={editedName}
+                        onChange={(e) => setEditedName(e.target.value)}
+                        className="flex-1 px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold"
+                      />
+                      <button
+                        onClick={() => handleSaveEdit(expense.id!)}
+                        disabled={isSaving}
+                        className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                        title="Save"
+                      >
+                        <Check size={18} />
+                      </button>
+                      <button
+                        onClick={() => setEditingGroupId(null)}
+                        disabled={isSaving}
+                        className="p-1.5 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
+                        title="Cancel"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-xl font-bold text-gray-900">{expense.name}</h3>
+                      <button
+                        onClick={() => handleEditClick(expense.id!, expense.name)}
+                        className="p-1 hover:bg-blue-100 rounded transition-colors text-blue-600"
+                        title="Edit group name"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    </div>
+                  )}
                   <p className="text-sm text-gray-500">{new Date(expense.date).toLocaleDateString()}</p>
                 </div>
-                <div className="text-right">
+                <button
+                  onClick={() => handleDeleteGroup(expense.id!, expense.name)}
+                  className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
+                  title="Delete group"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <div className="text-right ml-4">
                   <p className="text-sm text-gray-500">Total</p>
                   <p className="text-2xl font-bold text-gray-900">{formatCurrency(expense.totalAmount)}</p>
                 </div>
@@ -68,20 +178,27 @@ export const Groups: React.FC = () => {
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-700 mb-2">Members & Shares</p>
                 {expense.members.map((member, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <button
+                    key={idx}
+                    onClick={() => handleToggleMemberPayment(expense.id!, idx, member.paid)}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                    title="Click to toggle payment status"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                         member.paid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                       }`}>
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{member.name}</p>
-                        <p className="text-xs text-gray-500">{member.paid ? 'Paid' : 'Pending'}</p>
+                        <p className={`text-xs ${member.paid ? 'text-green-600' : 'text-orange-600'}`}>
+                          {member.paid ? '✓ Paid' : '⏱ Pending'}
+                        </p>
                       </div>
                     </div>
                     <p className="font-semibold text-gray-900">{formatCurrency(member.share)}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
 
@@ -114,6 +231,19 @@ export const Groups: React.FC = () => {
           </button>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Group Expense"
+        message="This group expense will be permanently deleted. All payment records will be lost."
+        itemName={groupToDelete?.name}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteGroup}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setGroupToDelete(null);
+        }}
+      />
 
       </div>
     </CenteredLayout>

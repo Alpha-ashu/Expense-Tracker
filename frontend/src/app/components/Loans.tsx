@@ -4,6 +4,7 @@ import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
 import { Plus, DollarSign, Calendar, TrendingUp, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { AddLoanModalWithFriends } from '@/app/components/AddLoanModalWithFriends';
 
 export const Loans: React.FC = () => {
@@ -11,6 +12,9 @@ export const Loans: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState<number | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [loanToDelete, setLoanToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loanStats = useMemo(() => {
     const borrowed = loans.filter(l => l.type === 'borrowed' && l.status === 'active');
@@ -66,15 +70,24 @@ export const Loans: React.FC = () => {
     }
   };
 
-  const handleDeleteLoan = async (loanId: number) => {
-    if (window.confirm('Are you sure you want to delete this loan?')) {
-      try {
-        await db.loans.delete(loanId);
-        toast.success('Loan deleted successfully');
-      } catch (error) {
-        console.error('Failed to delete loan:', error);
-        toast.error('Failed to delete loan');
-      }
+  const handleDeleteLoan = (loanId: number, loanName: string) => {
+    setLoanToDelete({ id: loanId, name: loanName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteLoan = async () => {
+    if (!loanToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.loans.delete(loanToDelete.id);
+      toast.success('Loan deleted successfully');
+      setDeleteModalOpen(false);
+      setLoanToDelete(null);
+    } catch (error) {
+      console.error('Failed to delete loan:', error);
+      toast.error('Failed to delete loan');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -151,7 +164,7 @@ export const Loans: React.FC = () => {
                           <Edit2 size={16} />
                         </button>
                         <button
-                          onClick={() => handleDeleteLoan(loan.id!)}
+                          onClick={() => handleDeleteLoan(loan.id!, loan.name)}
                           className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
                           title="Delete loan"
                         >
@@ -278,6 +291,20 @@ export const Loans: React.FC = () => {
           onClose={() => setShowPaymentModal(null)}
         />
       )}
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Loan"
+        message="This loan record will be permanently deleted. All payment history will be lost."
+        itemName={loanToDelete?.name}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteLoan}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setLoanToDelete(null);
+        }}
+      />
+
       </div>
     </CenteredLayout>
   );

@@ -28,8 +28,8 @@ import { AdvisorWorkspace } from '@/app/components/AdvisorWorkspace';
 import { BookAdvisor } from '@/app/components/BookAdvisor';
 import { PayEMI } from '@/app/components/PayEMI';
 import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
-import { FinanceAdvisor } from '@/app/components/FinanceAdvisorPage';
 import { Diagnostics } from '@/app/components/Diagnostics';
+import { ExportReports } from '@/app/components/ExportReports';
 import { ToDoLists } from '@/app/components/ToDoLists';
 import { ToDoListDetail } from '@/app/components/ToDoListDetail';
 import { ToDoListShare } from '@/app/components/ToDoListShare';
@@ -244,6 +244,8 @@ const AppContent: React.FC = () => {
         return <EditInvestment />;
       case 'reports':
         return <Reports />;
+      case 'export-reports':
+        return <ExportReports />;
       case 'calendar':
         return <Calendar />;
       case 'todo-lists':
@@ -260,8 +262,6 @@ const AppContent: React.FC = () => {
         return <Transfer />;
       case 'tax-calculator':
         return <TaxCalculator />;
-      case 'finance-advisor':
-        return <FinanceAdvisor />;
       case 'voice-input':
         return <VoiceInput />;
       case 'voice-review':

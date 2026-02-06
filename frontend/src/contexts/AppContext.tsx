@@ -154,11 +154,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setVisibleFeaturesState((prev) => mergeVisibleFeatures(normalizeFeatures(prev), finalFeatures));
   }, [role]);
 
-  // Listen for changes to feature flags from admin panel
+  // Listen for changes to feature flags from admin panel (both same-tab and cross-tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'featureFlagsOverride' || e.storageArea === localStorage) {
-        // Force a re-read of feature flags
+      if (e.key === 'featureFlagsOverride' && e.storageArea === localStorage) {
+        // Force a re-read of feature flags from storage
         const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
         
         const overrideFlags = localStorage.getItem('featureFlagsOverride');
@@ -189,9 +189,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setVisibleFeaturesState(finalFeatures);
       }
     };
+    
+    const handleFeatureFlagsChanged = (event: any) => {
+      // Handle custom event from same-tab feature flag changes
+      const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
+      
+      const overrideFlags = localStorage.getItem('featureFlagsOverride');
+      let finalFeatures = roleFeatures;
+      
+      if (overrideFlags) {
+        try {
+          const parsed = JSON.parse(overrideFlags);
+          const overrides: Record<string, boolean> = {};
+          
+          Object.entries(parsed).forEach(([feature, roleFlags]: [string, any]) => {
+            if (roleFlags[role]) {
+              overrides[feature] = true;
+            } else {
+              overrides[feature] = false;
+            }
+          });
+          
+          finalFeatures = {
+            ...roleFeatures,
+            ...overrides,
+          };
+        } catch (error) {
+          console.error('Failed to parse feature flag overrides:', error);
+        }
+      }
+      
+      setVisibleFeaturesState(finalFeatures);
+    };
 
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('featureFlagsChanged', handleFeatureFlagsChanged);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('featureFlagsChanged', handleFeatureFlagsChanged);
+    };
   }, [role]);
 
   // Save visible features to localStorage

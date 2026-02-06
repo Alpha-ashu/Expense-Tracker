@@ -4,10 +4,14 @@ import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
 import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, Eye, EyeOff, ChevronRight, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
 export const Accounts: React.FC = () => {
   const { accounts, transactions, currency, setCurrentPage } = useApp();
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -16,10 +20,27 @@ export const Accounts: React.FC = () => {
     }).format(amount);
   };
 
-  const handleDeleteAccount = async (id: number) => {
-    if (confirm('Are you sure you want to delete this account?')) {
-      await db.accounts.delete(id);
+  const handleDeleteAccount = (id: number, name: string) => {
+    setAccountToDelete({ id, name });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!accountToDelete) return;
+    setIsDeleting(true);
+    try {
+      await db.accounts.delete(accountToDelete.id);
       toast.success('Account deleted successfully');
+      setDeleteModalOpen(false);
+      setAccountToDelete(null);
+      if (selectedAccountId === accountToDelete.id) {
+        setSelectedAccountId(null);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      toast.error('Failed to delete account');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -110,7 +131,7 @@ export const Accounts: React.FC = () => {
                   <Edit2 size={16} className="text-gray-600" />
                 </button>
                 <button
-                  onClick={() => handleDeleteAccount(account.id!)}
+                  onClick={() => handleDeleteAccount(account.id!, account.name)}
                   className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 size={16} className="text-red-600" />
@@ -193,6 +214,19 @@ export const Accounts: React.FC = () => {
           </div>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Account"
+        message="This account will be permanently deleted. All associated transaction records will remain unchanged."
+        itemName={accountToDelete?.name}
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteAccount}
+        onCancel={() => {
+          setDeleteModalOpen(false);
+          setAccountToDelete(null);
+        }}
+      />
 
       </div>
     </CenteredLayout>

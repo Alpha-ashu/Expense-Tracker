@@ -3,52 +3,39 @@ import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/database';
-import { ChevronLeft, Star, Calendar, Clock, MessageSquare } from 'lucide-react';
+import { db, FinanceAdvisor } from '@/lib/database';
+import {
+  ChevronLeft,
+  Star,
+  Calendar,
+  Clock,
+  MessageSquare,
+  Briefcase,
+  Award,
+  Users,
+  Linkedin,
+  Twitter,
+  Globe,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
-
-const MOCK_ADVISORS = [
-  {
-    id: 'advisor-1',
-    name: 'Rajesh Kumar',
-    specialty: 'Portfolio Management',
-    rating: 4.8,
-    reviews: 125,
-    hourlyRate: 500,
-    availability: 'Available Today',
-  },
-  {
-    id: 'advisor-2',
-    name: 'Priya Sharma',
-    specialty: 'Tax Planning',
-    rating: 4.9,
-    reviews: 98,
-    hourlyRate: 450,
-    availability: 'Available Tomorrow',
-  },
-  {
-    id: 'advisor-3',
-    name: 'Amit Patel',
-    specialty: 'Wealth Management',
-    rating: 4.7,
-    reviews: 156,
-    hourlyRate: 600,
-    availability: 'Available in 2 hours',
-  },
-];
 
 interface BookingForm {
   advisorId: string;
   topic?: string;
   message?: string;
   sessionType: 'video' | 'audio' | 'chat';
+  preferredDate?: string;
   preferredTime?: string;
 }
 
 export const BookAdvisor: React.FC = () => {
   const { setCurrentPage } = useApp();
   const { user, role } = useAuth();
-  const [selectedAdvisor, setSelectedAdvisor] = useState<string | null>(null);
+  const [selectedAdvisor, setSelectedAdvisor] = useState<FinanceAdvisor | null>(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingForm, setBookingForm] = useState<BookingForm>({
     advisorId: '',
     sessionType: 'video',
@@ -57,47 +44,69 @@ export const BookAdvisor: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Query all available advisors from database
+  const advisors = useLiveQuery(
+    () => db.financeAdvisors.where('availability').equals(true).and((advisor) => advisor.verified).toArray(),
+    []
+  ) || [];
+
   // Query existing booking requests from current user
   const userBookings = useLiveQuery(
     () => db.bookingRequests.where('userId').equals(user?.id || '').toArray(),
     [user?.id]
   ) || [];
 
-  const handleSelectAdvisor = (advisorId: string) => {
-    setSelectedAdvisor(advisorId);
+  const handleSelectAdvisor = (advisor: FinanceAdvisor) => {
+    setSelectedAdvisor(advisor);
+    setShowBookingModal(true);
     setBookingForm((prev) => ({
       ...prev,
-      advisorId,
+      advisorId: advisor.userId,
     }));
   };
 
   const handleSubmitBooking = async () => {
-    if (!bookingForm.advisorId || !user) {
-      toast.error('Please select an advisor');
+    if (!bookingForm.advisorId || !user || !selectedAdvisor) {
+      toast.error('Please complete the booking form');
+      return;
+    }
+
+    if (!bookingForm.preferredDate || !bookingForm.preferredTime) {
+      toast.error('Please select a preferred date and time');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const advisor = MOCK_ADVISORS.find((a) => a.id === bookingForm.advisorId);
       const nextSequence = Math.max(...userBookings.map((b) => b.sequenceNumber || 0), 0) + 1;
-
-      await db.bookingRequests.add({
+      const bookingId = await db.bookingRequests.add({
         advisorId: bookingForm.advisorId,
         userId: user.id,
-        advisorName: advisor?.name || 'Unknown',
+        advisorName: selectedAdvisor.name,
         userEmail: user.email || 'unknown@example.com',
         topic: bookingForm.topic,
         message: bookingForm.message,
         sessionType: bookingForm.sessionType,
-        preferredTime: bookingForm.preferredTime,
+        preferredTime: `${bookingForm.preferredDate} ${bookingForm.preferredTime}`,
         status: 'pending',
         createdAt: new Date(),
         sequenceNumber: nextSequence,
       });
 
+      // Create notification for advisor with deepLink to workspace
+      await db.notifications.add({
+        type: 'booking',
+        title: 'New Booking Request',
+        message: `You have a new booking request from ${user.email}. Session: ${bookingForm.topic || 'Consultation'}`,
+        isRead: false,
+        userId: bookingForm.advisorId,
+        deepLink: '/advisor?booking=' + bookingId,
+        createdAt: new Date(),
+      });
+
       toast.success('Booking request sent! The advisor will respond soon.');
+      setShowBookingModal(false);
       setSelectedAdvisor(null);
       setBookingForm({
         advisorId: '',
@@ -113,6 +122,23 @@ export const BookAdvisor: React.FC = () => {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      pending: { icon: <AlertCircle size={14} />, text: 'Pending', color: 'text-yellow-600 bg-yellow-50' },
+      accepted: { icon: <CheckCircle size={14} />, text: 'Accepted', color: 'text-green-600 bg-green-50' },
+      rejected: { icon: <XCircle size={14} />, text: 'Rejected', color: 'text-red-600 bg-red-50' },
+      reschedule: { icon: <Clock size={14} />, text: 'Reschedule Requested', color: 'text-blue-600 bg-blue-50' },
+    };
+
+    const badge = badges[status as keyof typeof badges] || badges.pending;
+    return (
+      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${badge.color}`}>
+        {badge.icon}
+        {badge.text}
+      </span>
+    );
+  };
+
   return (
     <CenteredLayout>
       <div className="space-y-6">
@@ -125,163 +151,320 @@ export const BookAdvisor: React.FC = () => {
           </button>
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Book a Financial Advisor</h2>
-            <p className="text-gray-500 mt-1">Get expert guidance for your finances</p>
+            <p className="text-gray-500 mt-1">Connect with verified financial experts</p>
           </div>
         </div>
 
         {/* My Active Bookings */}
-        {userBookings.filter((b) => b.status !== 'rejected').length > 0 && (
+        {userBookings.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">Your Active Bookings</h3>
-            <div className="space-y-2">
+            <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+              <Calendar size={20} />
+              Your Bookings
+            </h3>
+            <div className="space-y-3">
               {userBookings.map((booking) => (
                 <div
                   key={booking.id}
-                  className="flex items-center justify-between text-sm text-blue-800 bg-white rounded px-3 py-2"
+                  className="bg-white rounded-lg px-4 py-3 border border-blue-100"
                 >
-                  <div>
-                    <p className="font-medium">{booking.advisorName}</p>
-                    <p className="text-xs text-blue-600">{booking.status}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-gray-900">{booking.advisorName}</p>
+                    {getStatusBadge(booking.status)}
                   </div>
-                  <span className="text-xs font-medium">
-                    {new Date(booking.createdAt).toLocaleDateString()}
-                  </span>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    {booking.topic && <p className="font-medium">Topic: {booking.topic}</p>}
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1">
+                        <Clock size={14} />
+                        {booking.preferredTime}
+                      </span>
+                      <span className="capitalize">{booking.sessionType}</span>
+                    </div>
+                  </div>
+                  {booking.responseMessage && (
+                    <div className="mt-2 text-sm bg-gray-50 rounded p-2">
+                      <p className="font-medium text-gray-700">Response:</p>
+                      <p className="text-gray-600">{booking.responseMessage}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Advisors Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {MOCK_ADVISORS.map((advisor) => (
-            <div
-              key={advisor.id}
-              className={`rounded-lg border p-6 transition-all cursor-pointer ${
-                selectedAdvisor === advisor.id
-                  ? 'border-blue-500 bg-blue-50 shadow-lg'
-                  : 'border-gray-200 bg-white hover:shadow-md'
-              }`}
-              onClick={() => handleSelectAdvisor(advisor.id)}
-            >
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">{advisor.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{advisor.specialty}</p>
-              </div>
-
-              <div className="space-y-2 mb-4 text-sm">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Star size={16} className="text-yellow-500" />
-                  <span className="font-medium">{advisor.rating}</span>
-                  <span className="text-gray-500">({advisor.reviews} reviews)</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Clock size={16} />
-                  <span>{advisor.availability}</span>
-                </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <span className="font-medium">₹{advisor.hourlyRate}/hour</span>
-                </div>
-              </div>
-
-              {selectedAdvisor === advisor.id && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedAdvisor(null);
-                  }}
-                  className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  Selected ✓
-                </button>
-              )}
+        {/* Available Advisors */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Advisors</h3>
+          {advisors.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Users size={48} className="mx-auto text-gray-400 mb-3" />
+              <p className="text-gray-600">No advisors available at the moment</p>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {advisors.map((advisor) => (
+                <div
+                  key={advisor.id}
+                  className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all p-6"
+                >
+                  {/* Profile Header */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+                      {advisor.name.charAt(0)}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-gray-900">{advisor.name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-1">
+                          <Star size={16} className="text-yellow-500 fill-current" />
+                          <span className="font-medium text-gray-900">{advisor.rating.toFixed(1)}</span>
+                          <span className="text-sm text-gray-500">({advisor.totalReviews} reviews)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  {advisor.bio && (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{advisor.bio}</p>
+                  )}
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <Briefcase size={14} />
+                        <span className="text-xs font-medium">Experience</span>
+                      </div>
+                      <p className="font-semibold text-gray-900">{advisor.experience} years</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <Users size={14} />
+                        <span className="text-xs font-medium">Clients</span>
+                      </div>
+                      <p className="font-semibold text-gray-900">{advisor.clientsCompleted} completed</p>
+                    </div>
+                  </div>
+
+                  {/* Specializations */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                      <Award size={14} />
+                      <span className="font-medium">Specializations</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {advisor.specialization.slice(0, 3).map((spec, idx) => (
+                        <span
+                          key={idx}
+                          className="text-xs font-medium px-3 py-1 bg-blue-50 text-blue-700 rounded-full"
+                        >
+                          {spec}
+                        </span>
+                      ))}
+                      {advisor.specialization.length > 3 && (
+                        <span className="text-xs font-medium px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
+                          +{advisor.specialization.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Social Links */}
+                  {advisor.socialLinks && (
+                    <div className="flex items-center gap-3 mb-4">
+                      {advisor.socialLinks.linkedin && (
+                        <a
+                          href={advisor.socialLinks.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                          <Linkedin size={18} />
+                        </a>
+                      )}
+                      {advisor.socialLinks.twitter && (
+                        <a
+                          href={advisor.socialLinks.twitter}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-500 transition-colors"
+                        >
+                          <Twitter size={18} />
+                        </a>
+                      )}
+                      {advisor.socialLinks.website && (
+                        <a
+                          href={advisor.socialLinks.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-600 hover:text-gray-700 transition-colors"
+                        >
+                          <Globe size={18} />
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <p className="font-semibold text-gray-900">₹{advisor.hourlyRate}/hour</p>
+                    <button
+                      onClick={() => handleSelectAdvisor(advisor)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                    >
+                      Book Session
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Booking Form */}
-        {selectedAdvisor && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Booking Details</h3>
+        {/* Booking Modal */}
+        {showBookingModal && selectedAdvisor && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900">Book Session with {selectedAdvisor.name}</h3>
+                <p className="text-sm text-gray-600 mt-1">Fill in the details below to request a booking</p>
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Session Type
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {(['video', 'audio', 'chat'] as const).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() =>
+              <div className="p-6 space-y-4">
+                {/* Session Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Session Type
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['video', 'audio', 'chat'].map((type) => (
+                      <button
+                        key={type}
+                        onClick={() =>
+                          setBookingForm((prev) => ({
+                            ...prev,
+                            sessionType: type as any,
+                          }))
+                        }
+                        className={`p-3 rounded-lg border-2 capitalize font-medium transition-all ${
+                          bookingForm.sessionType === type
+                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Topic */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Topic (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={bookingForm.topic}
+                    onChange={(e) =>
                       setBookingForm((prev) => ({
                         ...prev,
-                        sessionType: type,
+                        topic: e.target.value,
                       }))
                     }
-                    className={`p-3 rounded-lg border font-medium transition-all ${
-                      bookingForm.sessionType === type
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {type === 'video' && '🎥 Video'}
-                    {type === 'audio' && '☎️ Audio'}
-                    {type === 'chat' && '💬 Chat'}
-                  </button>
-                ))}
+                    placeholder="e.g., Tax planning for 2026"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Preferred Date & Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Date
+                    </label>
+                    <input
+                      type="date"
+                      value={bookingForm.preferredDate}
+                      onChange={(e) =>
+                        setBookingForm((prev) => ({
+                          ...prev,
+                          preferredDate: e.target.value,
+                        }))
+                      }
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preferred Time
+                    </label>
+                    <input
+                      type="time"
+                      value={bookingForm.preferredTime}
+                      onChange={(e) =>
+                        setBookingForm((prev) => ({
+                          ...prev,
+                          preferredTime: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message (Optional)
+                  </label>
+                  <textarea
+                    value={bookingForm.message}
+                    onChange={(e) =>
+                      setBookingForm((prev) => ({
+                        ...prev,
+                        message: e.target.value,
+                      }))
+                    }
+                    placeholder="Any additional information or questions for the advisor..."
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                {/* Pricing Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-900">
+                    <span className="font-semibold">Rate:</span> ₹{selectedAdvisor.hourlyRate}/hour
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Final pricing will be confirmed by the advisor based on session duration
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Topic (Optional)
-              </label>
-              <input
-                type="text"
-                value={bookingForm.topic || ''}
-                onChange={(e) =>
-                  setBookingForm((prev) => ({
-                    ...prev,
-                    topic: e.target.value,
-                  }))
-                }
-                placeholder="e.g., Portfolio Review, Tax Planning"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Message (Optional)
-              </label>
-              <textarea
-                value={bookingForm.message || ''}
-                onChange={(e) =>
-                  setBookingForm((prev) => ({
-                    ...prev,
-                    message: e.target.value,
-                  }))
-                }
-                placeholder="Tell the advisor about your situation..."
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4 border-t border-gray-200">
-              <button
-                onClick={() => setSelectedAdvisor(null)}
-                className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitBooking}
-                disabled={isSubmitting}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 font-medium transition-colors"
-              >
-                {isSubmitting ? 'Sending...' : 'Submit Request'}
-              </button>
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowBookingModal(false);
+                    setSelectedAdvisor(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitBooking}
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 font-medium"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
             </div>
           </div>
         )}
