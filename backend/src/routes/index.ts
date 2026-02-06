@@ -1,37 +1,21 @@
 import { Router } from 'express';
 import { authRoutes } from '../modules/auth/auth.routes';
+import { transactionRoutes } from '../modules/transactions/transaction.routes';
+import { accountRoutes } from '../modules/accounts/account.routes';
+import { goalRoutes } from '../modules/goals/goal.routes';
+import { loanRoutes } from '../modules/loans/loan.routes';
+import { settingsRoutes } from '../modules/settings/settings.routes';
 
 const router = Router();
 
+// Authentication routes (public)
 router.use('/auth', authRoutes);
 
-export { router as authRoutes };
+// Protected API routes
+router.use('/transactions', transactionRoutes);
+router.use('/accounts', accountRoutes);
+router.use('/goals', goalRoutes);
+router.use('/loans', loanRoutes);
+router.use('/settings', settingsRoutes);
 
-// API Keys and Credentials
-export const getApiKey = (key: string): string | undefined => {
-  return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
-};
-
-export const getStripeApiKey = (): string | undefined => {
-  return getApiKey('STRIPE_API_KEY');
-};
-
-export const getOpenAIApiKey = (): string | undefined => {
-  return getApiKey('OPENAI_API_KEY');
-};
-
-export const getGoogleApiKey = (): string | undefined => {
-  return getApiKey('GOOGLE_API_KEY');
-};
-
-export const getFirebaseSecret = (): string | undefined => {
-  return getApiKey('FIREBASE_SECRET');
-};
-
-export const getAwsSecretAccessKey = (): string | undefined => {
-  return getApiKey('AWS_SECRET_ACCESS_KEY');
-};
-
-export const getSendGridApiKey = (): string | undefined => {
-  return getApiKey('SENDGRID_API_KEY');
-};
+export { router as apiRoutes };

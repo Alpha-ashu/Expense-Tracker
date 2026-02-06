@@ -1,12 +1,68 @@
 # 💰 Expense Tracker - Personal Finance Management App
 
-A comprehensive personal finance management application built with React, Vite, and Supabase. Track expenses, manage accounts, set financial goals, and monitor investments all in one place.
+A comprehensive personal finance management application built with React, Vite, Node.js, and PostgreSQL. Track expenses, manage accounts, set financial goals, and monitor investments all in one place with **cloud-based cross-device sync**.
 
 **Original Figma Design**: https://www.figma.com/design/YFfOCSQMHx6XmjEezEKAkY/Expense-Tracker-Import-Feature
 
 ---
 
-## ✨ Features
+## 🌟 Key Features
+
+### Core Financial Management
+- 📊 **Dashboard** - Complete financial overview
+- 💳 **Accounts** - Manage bank accounts, cards, cash wallets
+- 💸 **Transactions** - Track income, expenses, and transfers
+- 🎯 **Goals** - Set and track savings goals
+- 💰 **Loans & EMI** - Manage borrowed/lent money
+- 📈 **Investments** - Track stocks, crypto, gold, forex
+
+### Advanced Features
+- 👥 **Group Expenses** - Split bills with friends
+- 📅 **Calendar** - View transactions by date with real-time updates
+- 📊 **Reports** - Detailed financial analytics
+- 📝 **Todo Lists** - Task management with sharing
+- 🧾 **Tax Calculator** - Estimate tax liability
+- 🔔 **Notifications** - EMI and payment reminders with deep links
+- 🎓 **Finance Advisor System** - Book sessions with financial advisors
+- 💬 **Advisor Chat** - Real-time communication with advisors
+
+### Technical Features
+- 🌐 **Cloud Data Sync** - ✨ NEW: All data persists to PostgreSQL backend
+- 📱 **Cross-Device Sync** - ✨ NEW: Same data visible on mobile, desktop, any device
+- 🔐 **User Data Isolation** - ✨ NEW: Secure JWT authentication, each user only sees their data
+- 📱 **PWA Support** - Install as mobile app
+- 🌙 **Dark Mode** - Eye-friendly interface
+- 🔒 **PIN Protection** - Secure app access
+- 💾 **Offline Support** - Works offline with automatic sync when back online
+
+---
+
+## ☁️ Cloud-Based Data Persistence (NEW)
+
+Your financial data is now **stored securely in PostgreSQL** and synced across all your devices!
+
+### How It Works
+```
+Login → Data fetches from backend → Same data on all devices
+  ↓
+Create transaction → Saved to backend immediately
+  ↓
+Logout → Data persists in backend (not deleted locally)
+  ↓
+Login from different device → All data syncs automatically
+```
+
+### Benefits
+✅ **Data Never Disappears** - Even after logout, your data is safe in backend  
+✅ **Cross-Device Access** - Login on phone/tablet/desktop, see all your data  
+✅ **Always Backed Up** - PostgreSQL database automatically backs up your data  
+✅ **Secure & Private** - JWT authentication ensures only you can access your data  
+✅ **Real-Time Sync** - Changes sync automatically between devices  
+
+### Getting Started
+See the **[Cloud Persistence Quick Start](docs/QUICK_START.md)** for setup instructions.
+
+---
 
 - 📊 **Dashboard** - Complete financial overview
 - 💳 **Accounts** - Manage bank accounts, cards, cash

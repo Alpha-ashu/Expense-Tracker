@@ -11,16 +11,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String
+  id    String     @id @default(cuid())
+  email String     @unique
+  name  String
+  password String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   refreshTokens RefreshToken[]
-  todos       Todo[]
+  todos         Todo[]
+  transactions  Transaction[]
+  accounts      Account[]
+  goals         Goal[]
+  loans         Loan[]
+  investments   Investment[]
+  settings      UserSettings[]
 }
 
 model RefreshToken {
@@ -32,6 +38,8 @@ model RefreshToken {
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Todo {
@@ -44,4 +52,161 @@ model Todo {
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Financial Models - All linked to User
+
+model Account {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      String   @default("bank") // bank, card, cash, wallet
+  balance   Float    @default(0)
+  currency  String   @default("USD")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model Transaction {
+  id                   String   @id @default(cuid())
+  userId               String
+  accountId            String
+  type                 String   // expense, income, transfer
+  amount               Float
+  category             String
+  subcategory          String?
+  description          String?
+  merchant             String?
+  date                 DateTime
+  tags                 String[] // stored as array
+  attachment           String?
+  transferToAccountId  String?
+  transferType         String?  // self-transfer, other-transfer
+  synced               Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([date])
+  @@index([category])
+}
+
+model Goal {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  targetDate    DateTime
+  category      String?
+  isGroupGoal   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([targetDate])
+}
+
+model Loan {
+  id                  String   @id @default(cuid())
+  userId              String
+  type                String   // borrowed, lent, emi
+  name                String
+  principalAmount     Float
+  outstandingBalance  Float
+  interestRate        Float?
+  emiAmount           Float?
+  dueDate             DateTime?
+  frequency           String?  // monthly, weekly, custom
+  status              String   @default("active") // active, overdue, completed
+  contactPerson       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  deletedAt           DateTime?
+
+  // Relations
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments  LoanPayment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model LoanPayment {
+  id        String   @id @default(cuid())
+  loanId    String
+  amount    Float
+  accountId String?
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@index([date])
+}
+
+model Investment {
+  id            String   @id @default(cuid())
+  userId        String
+  assetType     String   // stock, crypto, forex, gold, silver, other
+  assetName     String
+  quantity      Float
+  buyPrice      Float
+  currentPrice  Float
+  totalInvested Float
+  currentValue  Float
+  profitLoss    Float
+  purchaseDate  DateTime
+  lastUpdated   DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([assetType])
+}
+
+model UserSettings {
+  id       String @id @default(cuid())
+  userId   String @unique
+  theme    String @default("light")
+  language String @default("en")
+  currency String @default("USD")
+  timezone String @default("UTC")
+  settings Json   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
