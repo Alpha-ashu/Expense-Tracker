@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { useAuth } from '@/contexts/SecurityContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { ChevronLeft, ChevronRight, AlertCircle, TrendingDown, TrendingUp, Video, Phone, MessageCircle, CheckCircle, Clock, RotateCw } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';

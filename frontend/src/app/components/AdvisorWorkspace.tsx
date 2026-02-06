@@ -99,7 +99,7 @@ export const AdvisorWorkspace: React.FC = () => {
 
   const handleAcceptBooking = async (bookingId: number, booking: any) => {
     try {
-      const conversationId = `${user?.id}_${booking.userId}`;\n
+      const conversationId = `${user?.id}_${booking.userId}`;
       // Create or update chat conversation
       const existing = await db.chatConversations.where('conversationId').equals(conversationId).first();
       if (!existing) {

@@ -13,6 +13,31 @@ export type FeatureKey =
   | 'transfer'
   | 'taxCalculator'
   | 'bookAdvisor';
+
+export interface FeatureVisibility extends Record<FeatureKey, boolean> {
+  accounts: boolean;
+  transactions: boolean;
+  loans: boolean;
+  goals: boolean;
+  groups: boolean;
+  investments: boolean;
+  reports: boolean;
+  calendar: boolean;
+  todoLists: boolean;
+  transfer: boolean;
+  taxCalculator: boolean;
+  bookAdvisor: boolean;
+}
+
+const DEFAULT_FEATURES: FeatureVisibility = {
+  accounts: true,
+  transactions: true,
+  loans: true,
+  goals: true,
+  groups: true,
+  investments: true,
+  reports: true,
+  calendar: true,
   todoLists: true,
   transfer: true,
   taxCalculator: true,
