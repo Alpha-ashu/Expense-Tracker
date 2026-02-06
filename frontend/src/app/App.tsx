@@ -20,6 +20,8 @@ import { Reports } from '@/app/components/Reports';
 import { Settings } from '@/app/components/Settings';
 import { Calendar } from '@/app/components/Calendar';
 import { Transfer } from '@/app/components/Transfer';
+import { VoiceInput } from '@/app/components/VoiceInput';
+import { PayEMI } from '@/app/components/PayEMI';
 import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
 import { FinanceAdvisor } from '@/app/components/FinanceAdvisorPage';
 import { ToDoLists } from '@/app/components/ToDoLists';
@@ -135,9 +137,8 @@ const AppContent: React.FC = () => {
         setCurrentPage('add-transaction');
         break;
       case 'pay-emi':
-        // Navigate to add transaction with loan payment type
-        localStorage.setItem('quickFormType', 'loan-payment');
-        setCurrentPage('add-transaction');
+        // Navigate to pay EMI page
+        setCurrentPage('pay-emi');
         break;
       case 'split-bill':
         setCurrentPage('add-group');
@@ -146,12 +147,15 @@ const AppContent: React.FC = () => {
         setCurrentPage('add-goal');
         break;
       case 'transfer':
-        setCurrentPage('add-transaction');
-        localStorage.setItem('quickFormType', 'transfer');
+        setCurrentPage('transfer');
         break;
       case 'voice-entry':
-        // Show voice input modal
+        // Show voice input page
         setCurrentPage('voice-input');
+        break;
+      case 'calendar':
+        // Show calendar page
+        setCurrentPage('calendar');
         break;
       default:
         break;
@@ -240,6 +244,10 @@ const AppContent: React.FC = () => {
         return <TaxCalculator />;
       case 'finance-advisor':
         return <FinanceAdvisor />;
+      case 'voice-input':
+        return <VoiceInput />;
+      case 'pay-emi':
+        return <PayEMI />;
       default:
         return <Dashboard />;
     }
@@ -259,8 +267,10 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <BottomNav onQuickAdd={() => setShowQuickAction(true)} />
+      {/* Mobile/Tablet Bottom Navigation */}
+      <div className="lg:hidden">
+        <BottomNav onQuickAdd={() => setShowQuickAction(true)} />
+      </div>
 
       {/* Quick Action Modal */}
       <QuickActionModal

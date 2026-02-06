@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Mic, MicOff, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
+import { useApp } from '@/contexts/AppContext';
+import { CenteredLayout } from '@/app/components/CenteredLayout';
 
 // Define the SpeechRecognition types
 interface SpeechRecognitionEvent extends Event {
@@ -49,11 +51,12 @@ declare global {
 }
 
 interface VoiceInputProps {
-  onTranscript: (transcript: string) => void;
+  onTranscript?: (transcript: string) => void;
   onClose?: () => void;
 }
 
 export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose }) => {
+  const { setCurrentPage } = useApp();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -63,7 +66,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
   useEffect(() => {
     // Check if speech recognition is supported
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
     if (!SpeechRecognition) {
       toast.error('Voice input is not supported in your browser');
       return;
@@ -154,7 +156,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
     if (transcript.trim()) {
       setIsProcessing(true);
       setTimeout(() => {
-        onTranscript(transcript.trim());
+        // If prop callback exists, use it; otherwise navigate to add-transaction
+        if (onTranscript) {
+          onTranscript(transcript.trim());
+        } else {
+          // Store transcript and navigate to add-transaction
+          localStorage.setItem('voiceTranscript', transcript.trim());
+          setCurrentPage('add-transaction');
+        }
         setIsProcessing(false);
         toast.success('Voice input processed');
       }, 500);
@@ -168,16 +177,109 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
 
   const displayText = transcript + ' ' + interimTranscript;
 
+  if (onClose) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-br from-pink-500 to-pink-600 px-6 py-8 text-white text-center">
+            <div className="flex justify-center mb-4">
+              <motion.div
+                animate={isListening ? { scale: [1, 1.2, 1] } : {}}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                  isListening ? 'bg-white/20 backdrop-blur-sm' : 'bg-white/10'
+                }`}
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-10 h-10 animate-spin" />
+                ) : isListening ? (
+                  <Mic className="w-10 h-10" />
+                ) : (
+                  <MicOff className="w-10 h-10" />
+                )}
+              </motion.div>
+            </div>
+            <h3 className="text-2xl font-bold mb-2">Voice Input</h3>
+            <p className="text-pink-100">
+              {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Tap to start'}
+            </p>
+          </div>
+
+          {/* Transcript Display */}
+          <div className="p-6 min-h-[120px] max-h-[200px] overflow-y-auto">
+            {displayText.trim() ? (
+              <div className="space-y-2">
+                <p className="text-gray-900 text-lg leading-relaxed">
+                  {displayText}
+                </p>
+                {interimTranscript && (
+                  <p className="text-gray-400 text-sm italic">
+                    (still listening...)
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-center py-8">
+                Your voice input will appear here...
+              </p>
+            )}
+          </div>
+
+          {/* Controls */}
+          <div className="p-6 bg-gray-50 border-t border-gray-200">
+            <div className="flex gap-3">
+              {isListening ? (
+                <button
+                  onClick={stopListening}
+                  className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <MicOff size={20} />
+                  Stop
+                </button>
+              ) : (
+                <button
+                  onClick={startListening}
+                  disabled={isProcessing}
+                  className="flex-1 py-3 bg-pink-600 text-white rounded-xl font-medium hover:bg-pink-700 disabled:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Mic size={20} />
+                  Start
+                </button>
+              )}
+              
+              {transcript && !isListening && (
+                <button
+                  onClick={handleClear}
+                  className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+              
+              <button
+                onClick={onClose}
+                className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
-      >
+    <CenteredLayout>
+      <div className="space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-br from-pink-500 to-pink-600 px-6 py-8 text-white text-center">
+        <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-3xl px-6 py-8 text-white text-center">
           <div className="flex justify-center mb-4">
             <motion.div
               animate={isListening ? { scale: [1, 1.2, 1] } : {}}
@@ -195,14 +297,14 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
               )}
             </motion.div>
           </div>
-          <h3 className="text-2xl font-bold mb-2">Voice Input</h3>
+          <h3 className="text-2xl font-bold mb-2">Voice Entry</h3>
           <p className="text-pink-100">
-            {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Tap to start'}
+            {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Tap to describe a transaction'}
           </p>
         </div>
 
         {/* Transcript Display */}
-        <div className="p-6 min-h-[120px] max-h-[200px] overflow-y-auto">
+        <div className="bg-white rounded-3xl p-6 min-h-[180px] border border-gray-200">
           {displayText.trim() ? (
             <div className="space-y-2">
               <p className="text-gray-900 text-lg leading-relaxed">
@@ -215,54 +317,43 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
               )}
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-8">
-              Your voice input will appear here...
+            <p className="text-gray-400 text-center py-12">
+              Describe your transaction and it will appear here...
             </p>
           )}
         </div>
 
         {/* Controls */}
-        <div className="p-6 bg-gray-50 border-t border-gray-200">
-          <div className="flex gap-3">
-            {isListening ? (
-              <button
-                onClick={stopListening}
-                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <MicOff size={20} />
-                Stop
-              </button>
-            ) : (
-              <button
-                onClick={startListening}
-                disabled={isProcessing}
-                className="flex-1 py-3 bg-pink-600 text-white rounded-xl font-medium hover:bg-pink-700 disabled:bg-gray-300 transition-colors flex items-center justify-center gap-2"
-              >
-                <Mic size={20} />
-                Start
-              </button>
-            )}
-            
-            {transcript && !isListening && (
-              <button
-                onClick={handleClear}
-                className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
-              >
-                Clear
-              </button>
-            )}
-            
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="px-4 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
-              >
-                Close
-              </button>
-            )}
-          </div>
+        <div className="space-y-3">
+          {isListening ? (
+            <button
+              onClick={stopListening}
+              className="w-full py-4 bg-red-600 text-white rounded-2xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <MicOff size={24} />
+              Stop Listening
+            </button>
+          ) : (
+            <button
+              onClick={startListening}
+              disabled={isProcessing}
+              className="w-full py-4 bg-pink-600 text-white rounded-2xl font-semibold hover:bg-pink-700 disabled:bg-gray-300 transition-colors flex items-center justify-center gap-2"
+            >
+              <Mic size={24} />
+              {isProcessing ? 'Processing...' : 'Start Listening'}
+            </button>
+          )}
+          
+          {transcript && !isListening && (
+            <button
+              onClick={handleClear}
+              className="w-full py-3 bg-gray-200 text-gray-700 rounded-2xl font-medium hover:bg-gray-300 transition-colors"
+            >
+              Clear
+            </button>
+          )}
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </CenteredLayout>
   );
 };
