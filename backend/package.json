@@ -23,7 +23,7 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.7",
+    "@supabase/supabase-js": "^2.95.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
@@ -31,6 +31,7 @@
     "jose": "^5.4.3",
     "pg": "^8.18.0",
     "socket.io": "^4.7.4",
+    "tsx": "^4.21.0",
     "winston": "^3.19.0",
     "zod": "^3.23.8"
   },
