@@ -142,6 +142,37 @@ export const Settings: React.FC = () => {
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">System</h3>
+          <p className="text-sm text-gray-500 mt-1">Diagnostics and environment checks</p>
+        </div>
+
+        <div className="divide-y divide-gray-200">
+          <div className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Database className="text-purple-600" size={20} />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">Diagnostics</h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Check Supabase env vars, connectivity, and session status
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setCurrentPage('diagnostics')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                Open
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Data Management</h3>
           <p className="text-sm text-gray-500 mt-1">Import, export, and manage your financial data</p>
         </div>

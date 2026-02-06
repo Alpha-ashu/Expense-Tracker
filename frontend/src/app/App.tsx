@@ -25,6 +25,7 @@ import { VoiceReview } from '@/app/components/VoiceReview';
 import { PayEMI } from '@/app/components/PayEMI';
 import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
 import { FinanceAdvisor } from '@/app/components/FinanceAdvisorPage';
+import { Diagnostics } from '@/app/components/Diagnostics';
 import { ToDoLists } from '@/app/components/ToDoLists';
 import { ToDoListDetail } from '@/app/components/ToDoListDetail';
 import { ToDoListShare } from '@/app/components/ToDoListShare';
@@ -239,6 +240,8 @@ const AppContent: React.FC = () => {
         return <ToDoListShare />;
       case 'settings':
         return <Settings />;
+      case 'diagnostics':
+        return <Diagnostics />;
       case 'transfer':
         return <Transfer />;
       case 'tax-calculator':

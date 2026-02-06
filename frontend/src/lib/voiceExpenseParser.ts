@@ -8,36 +8,84 @@ export interface VoiceParseResult {
 }
 
 const expenseCategoryRules: Array<{ keywords: string[]; category: string }> = [
-  { keywords: ['food', 'lunch', 'dinner', 'breakfast', 'groceries', 'grocery', 'restaurant', 'cafe', 'kfc', 'pizza', 'burger', 'mcdonald', 'swiggy', 'zomato', 'foodpanda', 'delivery'], category: 'Food & Dining' },
-  { keywords: ['rent', 'maintenance'], category: 'Utilities' },
-  { keywords: ['uber', 'ola', 'auto', 'cab', 'taxi', 'travel', 'bus', 'train', 'metro', 'fuel', 'petrol', 'diesel', 'gas'], category: 'Transportation' },
-  { keywords: ['flight', 'hotel', 'trip', 'vacation', 'tour', 'airbnb', 'booking', 'hostel'], category: 'Travel' },
-  { keywords: ['shopping', 'clothes', 'dress', 'shoes', 'amazon', 'flipkart', 'myntra', 'ajio', 'apparel'], category: 'Shopping' },
-  { keywords: ['emi', 'loan', 'installment', 'payment'], category: 'Financial' },
-  { keywords: ['bill', 'electricity', 'water', 'gas', 'utility', 'internet', 'phone', 'mobile', 'broadband', 'wifi'], category: 'Utilities' },
-  { keywords: ['doctor', 'medicine', 'pharmacy', 'hospital', 'dental', 'clinic', 'medical', 'health'], category: 'Healthcare' },
-  { keywords: ['gym', 'fitness', 'workout', 'yoga', 'trainer', 'sports', 'exercise'], category: 'Fitness & Sports' },
-  { keywords: ['netflix', 'spotify', 'prime', 'hotstar', 'subscription', 'app', 'streaming', 'music', 'movie'], category: 'Entertainment' },
-  { keywords: ['gift', 'birthday', 'wedding', 'present', 'donation', 'charity'], category: 'Gifts & Donations' },
-  { keywords: ['education', 'course', 'book', 'tuition', 'class', 'school', 'college', 'udemy', 'coursera'], category: 'Education' },
-  { keywords: ['salon', 'haircut', 'spa', 'beauty', 'grooming', 'barber'], category: 'Personal Care' },
-  { keywords: ['office', 'client', 'software', 'tools', 'meeting', 'business', 'work'], category: 'Work & Business' },
-  { keywords: ['pet', 'vet', 'veterinary', 'pet food', 'grooming'], category: 'Pets' },
-  { keywords: ['misc', 'miscellaneous', 'other', 'uncategorized'], category: 'Miscellaneous' },
+  { 
+    keywords: ['food', 'lunch', 'dinner', 'breakfast', 'brunch', 'snack', 'snacks', 'groceries', 'grocery', 'restaurant', 'cafe', 'coffee', 'tea', 'kfc', 'pizza', 'burger', 'mcdonald', 'mcdonalds', 'swiggy', 'zomato', 'foodpanda', 'delivery', 'ubereats', 'doordash', 'grubhub', 'dominos', 'subway', 'starbucks', 'dunkin', 'chipotle', 'taco', 'sushi', 'ramen', 'noodles', 'pasta', 'sandwich', 'salad', 'dessert', 'ice cream', 'bakery', 'meal', 'eat', 'ate', 'eating', 'dine', 'dining'], 
+    category: 'Food & Dining' 
+  },
+  { 
+    keywords: ['uber', 'ola', 'lyft', 'auto', 'cab', 'taxi', 'travel', 'bus', 'train', 'metro', 'subway', 'fuel', 'petrol', 'diesel', 'gas', 'gasoline', 'parking', 'toll', 'bike', 'scooter', 'ride', 'commute', 'transport', 'rickshaw', 'tram', 'ferry'], 
+    category: 'Transportation' 
+  },
+  { 
+    keywords: ['flight', 'flights', 'airline', 'hotel', 'hotels', 'trip', 'vacation', 'holiday', 'tour', 'airbnb', 'booking', 'hostel', 'resort', 'cruise', 'luggage', 'visa', 'passport', 'travel insurance', 'accommodation', 'stay', 'lodging'], 
+    category: 'Travel' 
+  },
+  { 
+    keywords: ['shopping', 'shop', 'clothes', 'clothing', 'dress', 'shirt', 'pants', 'jeans', 'shoes', 'sneakers', 'boots', 'amazon', 'flipkart', 'myntra', 'ajio', 'apparel', 'fashion', 'accessories', 'jewelry', 'watch', 'bag', 'purse', 'wallet', 'sunglasses', 'hat', 'belt', 'socks', 'underwear', 'jacket', 'coat', 'sweater'], 
+    category: 'Shopping' 
+  },
+  { 
+    keywords: ['emi', 'loan', 'installment', 'payment', 'credit card', 'card payment', 'debt', 'mortgage', 'bank fee', 'bank charge', 'interest', 'finance charge', 'late fee', 'overdraft', 'loan repayment'], 
+    category: 'Financial' 
+  },
+  { 
+    keywords: ['rent', 'maintenance', 'bill', 'bills', 'electricity', 'electric', 'power', 'water', 'gas', 'utility', 'utilities', 'internet', 'wifi', 'broadband', 'phone', 'mobile', 'telephone', 'cable', 'tv', 'streaming', 'insurance', 'home insurance', 'property tax'], 
+    category: 'Utilities' 
+  },
+  { 
+    keywords: ['doctor', 'doctors', 'medicine', 'medicines', 'pharmacy', 'drug', 'drugs', 'hospital', 'clinic', 'dental', 'dentist', 'teeth', 'medical', 'health', 'healthcare', 'checkup', 'consultation', 'prescription', 'surgery', 'treatment', 'therapy', 'physical therapy', 'lab test', 'x-ray', 'scan', 'mri', 'vaccination', 'vaccine', 'vitamins', 'supplements'], 
+    category: 'Healthcare' 
+  },
+  { 
+    keywords: ['gym', 'fitness', 'workout', 'exercise', 'yoga', 'trainer', 'personal trainer', 'sports', 'sport', 'athletic', 'swimming', 'tennis', 'basketball', 'football', 'soccer', 'cricket', 'badminton', 'running', 'jogging', 'cycling', 'bicycle', 'marathon', 'fitness center', 'health club', 'pilates', 'crossfit', 'martial arts', 'boxing', 'dance', 'zumba'], 
+    category: 'Fitness & Sports' 
+  },
+  { 
+    keywords: ['netflix', 'spotify', 'prime', 'amazon prime', 'hotstar', 'disney', 'hulu', 'subscription', 'subscriptions', 'app', 'streaming', 'music', 'movie', 'movies', 'cinema', 'theater', 'theatre', 'concert', 'show', 'event', 'festival', 'amusement park', 'zoo', 'museum', 'game', 'games', 'gaming', 'playstation', 'xbox', 'nintendo', 'steam', 'entertainment', 'hobby'], 
+    category: 'Entertainment' 
+  },
+  { 
+    keywords: ['gift', 'gifts', 'birthday', 'anniversary', 'wedding', 'present', 'donation', 'donations', 'charity', 'contribute', 'contribution', 'flowers', 'bouquet', 'card', 'greeting card', 'wrapping', 'celebrate', 'celebration'], 
+    category: 'Gifts & Donations' 
+  },
+  { 
+    keywords: ['education', 'school', 'college', 'university', 'course', 'courses', 'book', 'books', 'textbook', 'tuition', 'class', 'classes', 'lesson', 'lessons', 'udemy', 'coursera', 'skillshare', 'training', 'workshop', 'seminar', 'certification', 'exam', 'test', 'fees', 'school supplies', 'stationery', 'notebook', 'pen', 'pencil', 'backpack'], 
+    category: 'Education' 
+  },
+  { 
+    keywords: ['salon', 'haircut', 'hairstyle', 'barber', 'spa', 'massage', 'facial', 'manicure', 'pedicure', 'beauty', 'grooming', 'cosmetics', 'makeup', 'skincare', 'perfume', 'cologne', 'shampoo', 'conditioner', 'soap', 'lotion', 'cream', 'shaving', 'waxing', 'threading'], 
+    category: 'Personal Care' 
+  },
+  { 
+    keywords: ['office', 'work', 'business', 'client', 'meeting', 'conference', 'software', 'tools', 'equipment', 'supplies', 'stationery', 'printer', 'ink', 'paper', 'laptop', 'computer', 'mouse', 'keyboard', 'desk', 'chair', 'license', 'professional', 'coworking', 'workspace'], 
+    category: 'Work & Business' 
+  },
+  { 
+    keywords: ['pet', 'pets', 'dog', 'cat', 'puppy', 'kitten', 'vet', 'veterinary', 'pet food', 'dog food', 'cat food', 'pet supplies', 'pet store', 'grooming', 'pet grooming', 'pet toys', 'leash', 'collar', 'cage', 'litter', 'aquarium', 'fish'], 
+    category: 'Pets' 
+  },
+  { 
+    keywords: ['electronics', 'mobile', 'phone', 'smartphone', 'tablet', 'ipad', 'laptop', 'computer', 'tv', 'television', 'speaker', 'headphones', 'earphones', 'charger', 'cable', 'adapter', 'camera', 'appliance', 'appliances', 'refrigerator', 'washing machine', 'microwave', 'oven', 'ac', 'air conditioner', 'fan', 'heater', 'vacuum', 'blender', 'furniture', 'sofa', 'bed', 'table', 'chair', 'mattress', 'curtain', 'decor', 'decoration', 'home', 'household'], 
+    category: 'Shopping' 
+  },
+  { 
+    keywords: ['misc', 'miscellaneous', 'other', 'others', 'uncategorized', 'general', 'random', 'various', 'stuff', 'things', 'item', 'items'], 
+    category: 'Miscellaneous' 
+  },
 ];
 
 const incomeCategoryRules: Array<{ keywords: string[]; category: string }> = [
-  { keywords: ['salary', 'payroll', 'paycheck', 'pay cheque', 'wages', 'stipend'], category: 'Salary' },
-  { keywords: ['freelance', 'gig', 'side gig', 'consulting', 'contract', 'project', 'client payment'], category: 'Freelance & Side Gigs' },
-  { keywords: ['interest', 'dividend', 'capital gains', 'stock', 'mutual fund', 'bond', 'crypto', 'staking'], category: 'Investment Returns' },
-  { keywords: ['business', 'sale', 'revenue', 'service', 'rental', 'rent received', 'royalty', 'affiliate', 'sponsorship'], category: 'Business' },
-  { keywords: ['refund', 'reimbursement', 'cashback', 'tax return', 'gst', 'claim', 'insurance payout', 'gift received'], category: 'Gift & Refund' },
-  { keywords: ['bonus', 'award', 'inheritance', 'settlement', 'scholarship', 'pension', 'borrowed', 'loan received'], category: 'Other Income' },
+  { keywords: ['salary', 'payroll', 'paycheck', 'pay cheque', 'wages', 'stipend', 'wage', 'pay', 'income', 'earnings', 'remuneration', 'compensation', 'allowance', 'monthly pay', 'annual pay'], category: 'Salary' },
+  { keywords: ['freelance', 'gig', 'side gig', 'consulting', 'contract', 'project', 'client payment', 'upwork', 'fiverr', 'freelancer', '99designs', 'toptal', 'guru', 'peopleperhour', 'consultant', 'consultancy', 'contractor', 'bounty', 'prize', 'award', 'competition', 'side hustle', 'side income', 'extra work', 'part time'], category: 'Freelance & Side Gigs' },
+  { keywords: ['interest', 'dividend', 'capital gains', 'stock', 'mutual fund', 'bond', 'crypto', 'staking', 'dividends', 'stocks', 'shares', 'etf', 'investment', 'profit', 'returns', 'gains', 'earning', 'appreciation', 'payout', 'portfolio', 'trading', 'cryptocurrency', 'bitcoin', 'ethereum', 'forex', 'yield', 'interest income'], category: 'Investment Returns' },
+  { keywords: ['business', 'sale', 'revenue', 'service', 'rental', 'rent received', 'royalty', 'affiliate', 'sponsorship', 'sales', 'invoice', 'billing', 'client payment', 'customer payment', 'order', 'commission', 'fee', 'charges', 'service fee', 'professional fee', 'merchant', 'sold', 'shop income', 'store', 'company', 'startup', 'enterprise', 'business income'], category: 'Business' },
+  { keywords: ['refund', 'reimbursement', 'cashback', 'tax return', 'gst', 'claim', 'insurance payout', 'gift received', 'gift', 'cash back', 'reward', 'rewards', 'rebate', 'discount', 'voucher', 'coupon', 'credit', 'return', 'compensation', 'settlement', 'prize money', 'lottery', 'windfall', 'donation received'], category: 'Gift & Refund' },
+  { keywords: ['bonus', 'award', 'inheritance', 'settlement', 'scholarship', 'pension', 'borrowed', 'loan received', 'rent', 'rental income', 'royalty', 'royalties', 'annuity', 'alimony', 'child support', 'grant', 'fellowship', 'subsidy', 'benefit', 'welfare', 'assistance', 'aid', 'other income', 'miscellaneous income', 'extra income', 'extra', 'additional income'], category: 'Other Income' },
 ];
 
-const transferKeywords = ['transfer', 'moved', 'send', 'sent', 'to savings', 'to wallet', 'to bank', 'from savings', 'from bank', 'shifted'];
-const incomeKeywords = ['salary', 'received', 'got', 'income', 'refund', 'reimbursement', 'cashback', 'gst', 'tax return', 'claim', 'bonus', 'interest', 'dividend', 'borrowed', 'credited', 'loan received', 'gift received'];
-const expenseKeywords = ['spent', 'spend', 'bought', 'buy', 'paid', 'pay', 'purchase', 'petrol', 'fuel', 'food', 'grocery', 'rent', 'movie', 'mobile', 'bill', 'charge', 'fee'];
+const transferKeywords = ['transfer', 'moved', 'send', 'sent', 'to savings', 'to wallet', 'to bank', 'from savings', 'from bank', 'shifted', 'switch', 'swap', 'move money', 'fund transfer', 'between accounts', 'between account', 'moving', 'switch account', 'from account', 'to account'];
+const incomeKeywords = ['salary', 'received', 'got', 'income', 'refund', 'reimbursement', 'cashback', 'gst', 'tax return', 'claim', 'bonus', 'interest', 'dividend', 'borrowed', 'credited', 'loan received', 'gift received', 'paid', 'deposited', 'earned', 'commission', 'tip', 'received from', 'got paid', 'credited to', 'incoming', 'payment received', 'money received', 'credit', 'payout', 'given', 'awarded'];
+const expenseKeywords = ['spent', 'spend', 'bought', 'buy', 'paid', 'pay', 'purchase', 'petrol', 'fuel', 'food', 'grocery', 'rent', 'movie', 'mobile', 'bill', 'charge', 'fee', 'ordered', 'purchased', 'subscription', 'membership', 'enrolled', 'registered', 'paid for', 'spent on', 'expense', 'cost', 'buying', 'shopping', 'payment', 'debited', 'debit', 'withdrew'];
 
 const numberWords: Record<string, number> = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
