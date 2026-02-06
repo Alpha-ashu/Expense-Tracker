@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
@@ -24,6 +24,40 @@ export const AddTransaction: React.FC = () => {
     merchant: '',
     date: new Date().toISOString().split('T')[0],
   });
+
+  useEffect(() => {
+    const rawDraft = localStorage.getItem('voiceTransactionDraft');
+    if (!rawDraft) return;
+
+    try {
+      const draft = JSON.parse(rawDraft) as {
+        type?: 'expense' | 'income';
+        amount?: number;
+        category?: string | null;
+        description?: string;
+        date?: string;
+      };
+
+      const nextType = draft.type ?? 'expense';
+      const categoryList = CATEGORIES[nextType];
+      const nextCategory = draft.category && categoryList.includes(draft.category)
+        ? draft.category
+        : categoryList[0];
+
+      setFormData((prev) => ({
+        ...prev,
+        type: nextType,
+        amount: draft.amount ?? prev.amount,
+        category: nextCategory,
+        description: draft.description ?? prev.description,
+        date: draft.date ?? prev.date,
+      }));
+    } catch (error) {
+      console.error('Failed to parse voice draft:', error);
+    } finally {
+      localStorage.removeItem('voiceTransactionDraft');
+    }
+  }, []);
 
   const subcategories = useMemo(() => {
     return getSubcategoriesForCategory(formData.category, formData.type);

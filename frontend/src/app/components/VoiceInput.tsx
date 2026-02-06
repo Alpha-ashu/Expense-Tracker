@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { parseVoiceExpense } from '@/lib/voiceExpenseParser';
 
 // Define the SpeechRecognition types
 interface SpeechRecognitionEvent extends Event {
@@ -156,13 +157,34 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
     if (transcript.trim()) {
       setIsProcessing(true);
       setTimeout(() => {
-        // If prop callback exists, use it; otherwise navigate to add-transaction
+        // If prop callback exists, use it; otherwise navigate with a parsed draft
         if (onTranscript) {
           onTranscript(transcript.trim());
         } else {
-          // Store transcript and navigate to add-transaction
-          localStorage.setItem('voiceTranscript', transcript.trim());
-          setCurrentPage('add-transaction');
+          const parsed = parseVoiceExpense(transcript.trim());
+
+          if (!parsed.amount) {
+            setIsProcessing(false);
+            toast.error('Could not detect the amount. Please try again.');
+            return;
+          }
+
+          if (parsed.intent === 'transfer') {
+            localStorage.setItem('voiceTransferDraft', JSON.stringify({
+              amount: parsed.amount,
+              description: parsed.description,
+            }));
+            setCurrentPage('transfer');
+          } else {
+            localStorage.setItem('voiceTransactionDraft', JSON.stringify({
+              type: 'expense',
+              amount: parsed.amount,
+              category: parsed.category,
+              description: parsed.description,
+              date: new Date().toISOString().split('T')[0],
+            }));
+            setCurrentPage('add-transaction');
+          }
         }
         setIsProcessing(false);
         toast.success('Voice input processed');

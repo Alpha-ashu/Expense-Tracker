@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
@@ -16,6 +16,24 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     description: '',
     transferType: 'self-transfer' as const,
   });
+
+  useEffect(() => {
+    const rawDraft = localStorage.getItem('voiceTransferDraft');
+    if (!rawDraft) return;
+
+    try {
+      const draft = JSON.parse(rawDraft) as { amount?: number; description?: string };
+      setFormData((prev) => ({
+        ...prev,
+        amount: draft.amount ?? prev.amount,
+        description: draft.description ?? prev.description,
+      }));
+    } catch (error) {
+      console.error('Failed to parse voice transfer draft:', error);
+    } finally {
+      localStorage.removeItem('voiceTransferDraft');
+    }
+  }, []);
 
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
   const activeAccounts = accounts.filter((account) => account.isActive);
