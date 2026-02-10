@@ -16,7 +16,8 @@
         "includeFiles": [
           "backend/dist/**",
           "backend/node_modules/**"
-        ]
+        ],
+        "maxDuration": 30
       }
     }
   ],
@@ -30,11 +31,6 @@
       "dest": "/frontend/dist/index.html"
     }
   ],
-  "functions": {
-    "backend/src/server.ts": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "NODE_VERSION": "18.x"
   },
