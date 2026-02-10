@@ -1,19 +1,59 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterInput, LoginInput } from './auth.types';
+import { AuthRequest } from '../../middleware/auth';
 
 const authService = new AuthService();
 
 export const register = async (req: Request, res: Response) => {
-  const input: RegisterInput = req.body;
-  const user = await authService.register(input);
-  res.status(201).json({ user: { id: user.id, email: user.email, name: user.name } });
+  try {
+    const input: RegisterInput = req.body;
+
+    // Validate input
+    if (!input.email || !input.name || !input.password) {
+      return res.status(400).json({ error: 'Missing required fields: email, name, password' });
+    }
+
+    const tokens = await authService.register(input);
+    res.status(201).json(tokens);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Registration failed' });
+  }
 };
 
 export const login = async (req: Request, res: Response) => {
-  const input: LoginInput = req.body;
-  const tokens = await authService.login(input);
-  res.json(tokens);
+  try {
+    const input: LoginInput = req.body;
+
+    // Validate input
+    if (!input.email || !input.password) {
+      return res.status(400).json({ error: 'Missing required fields: email, password' });
+    }
+
+    const tokens = await authService.login(input);
+    res.json(tokens);
+  } catch (error: any) {
+    res.status(401).json({ error: error.message || 'Login failed' });
+  }
+};
+
+export const getProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const user = await authService.getUser(req.userId);
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isApproved: user.isApproved,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch profile' });
+  }
 };
 
 // API Keys and Credentials

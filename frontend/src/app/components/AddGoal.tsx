@@ -68,23 +68,23 @@ export const AddGoal: React.FC = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Goal Name *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Goal Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               placeholder="e.g., Save for vacation"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             >
               <option value="savings">Savings</option>
               <option value="investment">Investment</option>
@@ -96,7 +96,7 @@ export const AddGoal: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Target Amount *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Target Amount *</label>
             <div className="flex items-center">
               <span className="text-gray-600 mr-3 text-lg">{currency}</span>
               <input
@@ -104,7 +104,7 @@ export const AddGoal: React.FC = () => {
                 step="0.01"
                 value={formData.targetAmount || ''}
                 onChange={(e) => setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 placeholder="0.00"
                 required
               />
@@ -112,7 +112,7 @@ export const AddGoal: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Current Amount</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Current Amount</label>
             <div className="flex items-center">
               <span className="text-gray-600 mr-3 text-lg">{currency}</span>
               <input
@@ -120,29 +120,29 @@ export const AddGoal: React.FC = () => {
                 step="0.01"
                 value={formData.currentAmount || ''}
                 onChange={(e) => setFormData({ ...formData, currentAmount: parseFloat(e.target.value) || 0 })}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 placeholder="0.00"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Target Deadline *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Target Deadline *</label>
             <input
               type="date"
               value={formData.deadline}
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Priority</label>
             <select
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -151,11 +151,11 @@ export const AddGoal: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
               placeholder="Add any notes about this goal"
               rows={3}
             />
@@ -165,13 +165,13 @@ export const AddGoal: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentPage('goals')}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700 bg-white"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-semibold shadow-lg"
             >
               Create Goal
             </button>

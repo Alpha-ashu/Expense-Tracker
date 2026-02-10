@@ -25,6 +25,12 @@ const DEFAULT_FEATURE_FLAGS: FeatureFlagState = {
   transfer: { admin: true, advisor: true, user: true },
   taxCalculator: { admin: true, advisor: true, user: true },
   bookAdvisor: { admin: true, advisor: true, user: true },
+  adminPanel: { admin: true, advisor: false, user: false },
+  advisorPanel: { admin: false, advisor: true, user: false },
+  notifications: { admin: true, advisor: true, user: true },
+  userProfile: { admin: true, advisor: true, user: true },
+  settings: { admin: true, advisor: true, user: true },
+  dashboard: { admin: true, advisor: true, user: true },
 };
 
 export const useFeatureFlags = () => {

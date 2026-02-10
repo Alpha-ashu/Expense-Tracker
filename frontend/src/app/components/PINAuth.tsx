@@ -147,7 +147,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                   type={showPin ? 'text' : 'password'}
                   value={isCreating && pin.length === 6 ? confirmPin : pin}
                   onChange={(e) => handlePINInput(e.target.value)}
-                  className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
                   placeholder="••••••"
                   maxLength={6}
                   inputMode="numeric"

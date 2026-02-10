@@ -1,10 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
-import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, Eye, EyeOff, ChevronRight, X } from 'lucide-react';
+import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, X, Receipt, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+
+type AssetType = 'all' | 'bank' | 'card' | 'wallet' | 'cash';
 
 export const Accounts: React.FC = () => {
   const { accounts, transactions, currency, setCurrentPage } = useApp();
@@ -12,6 +18,61 @@ export const Accounts: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<AssetType>('all');
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Filter accounts based on active tab
+  const filteredAccounts = useMemo(() => {
+    if (activeTab === 'all') return accounts;
+    return accounts.filter(a => a.type === activeTab);
+  }, [accounts, activeTab]);
+
+  const tabs = [
+    { id: 'all', label: 'All Assets', icon: TrendingUp },
+    { id: 'bank', label: 'Banks', icon: Wallet },
+    { id: 'card', label: 'Cards', icon: CreditCard },
+    { id: 'wallet', label: 'Digital', icon: Smartphone },
+    { id: 'cash', label: 'Cash', icon: Banknote },
+  ];
+
+  // Scroll-to-sync: Track active account based on carousel scroll position
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const handleCarouselScroll = () => {
+      const carouselRect = carousel.getBoundingClientRect();
+      const carouselCenter = carouselRect.left + carouselRect.width / 2;
+
+      let closestCard: { id: number; distance: number } | null = null;
+
+      filteredAccounts.forEach((account) => {
+        const cardEl = cardRefs.current[account.id!];
+        if (!cardEl) return;
+
+        const cardRect = cardEl.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const distance = Math.abs(cardCenter - carouselCenter);
+
+        if (!closestCard || distance < closestCard.distance) {
+          closestCard = { id: account.id!, distance };
+        }
+      });
+
+      if (closestCard && closestCard.id !== selectedAccountId) {
+        setSelectedAccountId(closestCard.id);
+      }
+    };
+
+    carousel.addEventListener('scroll', handleCarouselScroll);
+    // Initial check
+    setTimeout(handleCarouselScroll, 100);
+
+    return () => {
+      carousel.removeEventListener('scroll', handleCarouselScroll);
+    };
+  }, [filteredAccounts, selectedAccountId]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -44,23 +105,13 @@ export const Accounts: React.FC = () => {
     }
   };
 
-  const handleToggleActive = async (id: number, isActive: boolean) => {
-    await db.accounts.update(id, { isActive: !isActive });
-    toast.success(`Account ${!isActive ? 'activated' : 'deactivated'}`);
-  };
-
   const getAccountIcon = (type: string) => {
     switch (type) {
-      case 'bank':
-        return <Wallet className="text-blue-500" size={24} />;
-      case 'card':
-        return <CreditCard className="text-purple-500" size={24} />;
-      case 'cash':
-        return <Banknote className="text-green-500" size={24} />;
-      case 'wallet':
-        return <Smartphone className="text-orange-500" size={24} />;
-      default:
-        return <Wallet className="text-gray-500" size={24} />;
+      case 'bank': return <Wallet size={20} />;
+      case 'card': return <CreditCard size={20} />;
+      case 'cash': return <Banknote size={20} />;
+      case 'wallet': return <Smartphone size={20} />;
+      default: return <Wallet size={20} />;
     }
   };
 
@@ -73,147 +124,208 @@ export const Accounts: React.FC = () => {
   }, [transactions, selectedAccountId]);
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Accounts & Wallets</h2>
-            <p className="text-gray-500 mt-1">Manage your payment sources</p>
-          </div>
-        <button
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-8 pb-24">
+      <PageHeader title="Accounts" subtitle="Manage your wallets and payment sources">
+        <Button
           onClick={() => setCurrentPage('add-account')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="rounded-full h-10 px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-sm"
         >
-          <Plus size={20} />
+          <Plus size={16} className="mr-2" />
           Add Account
-        </button>
-      </div>
+        </Button>
+      </PageHeader>
 
-      <div className="bg-blue-600 p-6 rounded-xl text-white">
-        <p className="text-sm opacity-90">Total Balance</p>
-        <p className="text-4xl font-bold mt-2">{formatCurrency(totalBalance)}</p>
-        <p className="text-sm opacity-90 mt-2">{accounts.filter(a => a.isActive).length} active accounts</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {accounts.map(account => (
-          <div
-            key={account.id}
-            onClick={() => setSelectedAccountId(account.id!)}
-            className={`bg-white p-6 rounded-xl border-2 transition-all cursor-pointer ${
-              selectedAccountId === account.id
-                ? 'border-blue-500 bg-blue-50'
-                : account.isActive
-                ? 'border-gray-200 hover:border-gray-300'
-                : 'border-gray-100 opacity-60'
-            }`}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center">
-                {getAccountIcon(account.type)}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleToggleActive(account.id!, account.isActive)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title={account.isActive ? 'Deactivate' : 'Activate'}
-                >
-                  {account.isActive ? (
-                    <Eye size={16} className="text-gray-600" />
-                  ) : (
-                    <EyeOff size={16} className="text-gray-400" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setCurrentPage('edit-account')}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <Edit2 size={16} className="text-gray-600" />
-                </button>
-                <button
-                  onClick={() => handleDeleteAccount(account.id!, account.name)}
-                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 size={16} className="text-red-600" />
-                </button>
-              </div>
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-1">{account.name}</h3>
-            <p className="text-sm text-gray-500 capitalize mb-3">{account.type}</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(account.balance)}</p>
-          </div>
-        ))}
-      </div>
-
-      {accounts.length === 0 && (
-        <div className="bg-white p-12 rounded-xl border-2 border-dashed border-gray-300 text-center">
-          <Wallet className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No accounts yet</h3>
-          <p className="text-gray-500 mb-4">Add your first account to start tracking your finances</p>
-          <button
-            onClick={() => setCurrentPage('add-account')}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Add Your First Account
-          </button>
+      {/* HEADER: Centered Total Balance (All Devices) */}
+      <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10">
+        <p className="text-gray-500 font-medium mb-1 uppercase tracking-wide text-xs sm:text-sm">Total Balance</p>
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-gray-900 tracking-tight">{formatCurrency(totalBalance)}</h2>
+        <div className="mt-2 sm:mt-3 px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">
+          {accounts.filter(a => a.isActive).length} Active Accounts
         </div>
-      )}
+      </div>
 
-      {/* Selected Account Transactions */}
-      {selectedAccount && (
-        <div className="bg-white rounded-xl border-2 border-blue-200">
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Transactions - {selectedAccount.name}
-            </h3>
+      {/* Tab Navigation */}
+      <div className="flex items-center justify-center gap-3 overflow-x-auto scrollbar-hide pb-4 px-4 sm:px-6 lg:px-8 mb-4 lg:mb-6">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
             <button
-              onClick={() => setSelectedAccountId(null)}
-              className="p-1 hover:bg-gray-100 rounded-lg"
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as AssetType)}
+              className={`relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base ${
+                isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
+              }`}
             >
-              <X size={20} className="text-gray-600" />
+              {isActive && (
+                <motion.div
+                  layoutId="activeTabPillAccounts"
+                  className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1 sm:gap-2">
+                <Icon size={14} className="sm:w-4 sm:h-4 lg:w-[18px] lg:h-[18px]" />
+                <span className="inline">{tab.label}</span>
+              </span>
             </button>
-          </div>
+          );
+        })}
+      </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Date</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Description</th>
-                  <th className="px-4 py-2 text-left font-semibold text-gray-600">Category</th>
-                  <th className="px-4 py-2 text-right font-semibold text-gray-600">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accountTransactions.length > 0 ? (
-                  accountTransactions.map(transaction => (
-                    <tr key={transaction.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-600">
-                        {new Date(transaction.date).toLocaleDateString()}
-                      </td>
-                      <td className="px-4 py-3 text-gray-900 font-medium">
-                        {transaction.description}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{transaction.category}</td>
-                      <td className={`px-4 py-3 text-right font-semibold ${
-                        transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                      No transactions for this account
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+      {/* Center-Focused Carousel with Scroll-to-Sync (All Devices) */}
+      <div className="relative -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8">
+        {/* Carousel Container */}
+        <div
+          ref={carouselRef}
+          className="flex gap-3 md:gap-4 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide"
+          style={{
+            scrollBehavior: 'smooth',
+            scrollSnapType: 'x mandatory',
+            scrollPaddingLeft: '50%',
+            scrollPaddingRight: '50%',
+          }}
+        >
+          <AnimatePresence>
+            {filteredAccounts.map((account) => {
+              const isActive = selectedAccountId === account.id;
+              return (
+                <div
+                  key={account.id}
+                  ref={(el) => {
+                    if (el) cardRefs.current[account.id!] = el;
+                  }}
+                  className="snap-center shrink-0"
+                  style={{
+                    scrollSnapAlign: 'center',
+                    scrollSnapStop: 'always',
+                  }}
+                >
+                  <div
+                    style={{
+                      transition: 'all 0.3s ease-in-out',
+                      transform: isActive ? 'scale(1)' : 'scale(0.9)',
+                      opacity: isActive ? 1 : 0.5,
+                    }}
+                  >
+                    <Card
+                      variant="glass"
+                      className={cn(
+                        "w-[280px] sm:w-[320px] md:w-[340px] h-[180px] sm:h-[190px] md:h-[200px] relative overflow-hidden flex flex-col justify-between shrink-0 transition-all duration-300",
+                        isActive
+                          ? "border-black/10 ring-4 ring-black/5 bg-white shadow-xl"
+                          : "border-white/40 hover:border-white/80",
+                        !account.isActive && "opacity-60 grayscale"
+                      )}
+                    >
+                      <div className="p-4 sm:p-5 md:p-6 h-full flex flex-col justify-between">
+                        <div className="flex justify-between items-start">
+                          <div
+                            className={cn(
+                              "w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm",
+                              isActive ? "bg-black text-white" : "bg-gray-50 text-gray-600"
+                            )}
+                          >
+                            {getAccountIcon(account.type)}
+                          </div>
+                          {isActive && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              className="bg-black text-white text-[10px] font-bold px-2 py-1 rounded-full"
+                            >
+                              ACTIVE
+                            </motion.div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-base sm:text-lg truncate">
+                            {account.name}
+                          </h3>
+                          <p className="text-xl sm:text-2xl font-display font-bold text-gray-900 mt-1">
+                            {formatCurrency(account.balance)}
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                  </div>
+                </div>
+              );
+            })}
+          </AnimatePresence>
         </div>
-      )}
+
+        {/* Transaction History - Subscribed to Carousel Scroll */}
+        <AnimatePresence mode="wait">
+          {selectedAccount && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="mt-4 max-w-5xl mx-auto px-2 sm:px-0"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg sm:text-xl font-bold font-display text-gray-900 flex items-center gap-2">
+                  <span className="w-2 h-6 sm:h-8 bg-black rounded-full block"></span>
+                  Transaction History
+                  <span className="text-gray-400 font-normal text-sm sm:text-base ml-2">for {selectedAccount.name}</span>
+                </h3>
+              </div>
+
+              <Card className="bg-white/80 backdrop-blur-xl border-white/60 overflow-hidden shadow-2xl">
+                <div className="max-h-[400px] sm:max-h-[500px] overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                      <tr>
+                        <th className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="hidden md:table-cell px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
+                        <th className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {accountTransactions.length > 0 ? (
+                        accountTransactions.map((t) => (
+                          <tr key={t.id} className="hover:bg-blue-50/50 transition-colors">
+                            <td className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-medium text-gray-500">
+                              {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </td>
+                            <td className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-bold text-gray-900">
+                              {t.description}
+                            </td>
+                            <td className="hidden md:table-cell px-8 py-5">
+                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white border border-gray-200 text-gray-700 shadow-sm">
+                                {t.category}
+                              </span>
+                            </td>
+                            <td className={cn(
+                              "px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-bold text-right",
+                              t.type === 'income' ? "text-emerald-600" : "text-gray-900"
+                            )}>
+                              {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-3 sm:px-4 md:px-8 py-8 sm:py-12 md:py-16 text-center text-gray-500">
+                            <div className="flex flex-col items-center justify-center opacity-50">
+                              <Receipt size={48} className="mb-4" />
+                              <p className="font-medium text-lg">No transactions found</p>
+                              <p className="text-sm">Start spending to see activity here!</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
@@ -227,8 +339,6 @@ export const Accounts: React.FC = () => {
           setAccountToDelete(null);
         }}
       />
-
-      </div>
-    </CenteredLayout>
+    </div>
   );
 };

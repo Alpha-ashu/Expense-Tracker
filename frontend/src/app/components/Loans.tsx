@@ -1,11 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
-import { Plus, DollarSign, Calendar, TrendingUp, AlertCircle, Edit2, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, Calendar, TrendingUp, AlertCircle, Edit2, Trash2, Home, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { AddLoanModalWithFriends } from '@/app/components/AddLoanModalWithFriends';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export const Loans: React.FC = () => {
   const { loans, currency, accounts, friends, setCurrentPage } = useApp();
@@ -41,9 +45,9 @@ export const Loans: React.FC = () => {
   };
 
   const getLoanStatusColor = (loan: any) => {
-    if (loan.status === 'completed') return 'bg-green-100 text-green-800';
-    if (loan.status === 'overdue') return 'bg-red-100 text-red-800';
-    return 'bg-blue-100 text-blue-800';
+    if (loan.status === 'completed') return 'bg-green-100 text-green-700';
+    if (loan.status === 'overdue') return 'bg-red-100 text-red-700';
+    return 'bg-black/10 text-gray-900';
   };
 
   const handleEditClick = (loan: any) => {
@@ -92,164 +96,209 @@ export const Loans: React.FC = () => {
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Loans & EMIs</h2>
-            <p className="text-gray-500 mt-1">Manage your debts and lending</p>
-          </div>
-        <button
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+      <PageHeader
+        title="Loans & EMIs"
+        subtitle="Manage your debts and lending"
+        icon={<DollarSign size={20} className="sm:w-6 sm:h-6" />}
+      >
+        <Button
           onClick={() => setCurrentPage('add-loan')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
         >
-          <Plus size={20} />
+          <Plus size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
           Add Loan
-        </button>
-      </div>
+        </Button>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-red-600 p-6 rounded-xl text-white">
-          <p className="text-sm opacity-90 mb-2">Total Borrowed</p>
-          <p className="text-3xl font-bold">{formatCurrency(loanStats.totalBorrowed)}</p>
-        </div>
-        <div className="bg-green-600 p-6 rounded-xl text-white">
-          <p className="text-sm opacity-90 mb-2">Total Lent</p>
-          <p className="text-3xl font-bold">{formatCurrency(loanStats.totalLent)}</p>
-        </div>
-        <div className="bg-blue-600 p-6 rounded-xl text-white">
-          <p className="text-sm opacity-90 mb-2">Monthly EMI</p>
-          <p className="text-3xl font-bold">{formatCurrency(loanStats.totalEMI)}</p>
-        </div>
-        <div className="bg-red-600 p-6 rounded-xl text-white">
-          <p className="text-sm opacity-90 mb-2">Overdue</p>
-          <p className="text-3xl font-bold">{loanStats.overdueCount}</p>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
+                <Home className="text-white" size={18} className="sm:w-5 sm:h-5" />
+              </div>
+              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Total Borrowed</p>
+              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+                {formatCurrency(loanStats.totalBorrowed)}
+              </h3>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card variant="glass" className="p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                <Users className="text-white" size={20} />
+              </div>
+              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Total Lent</p>
+              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+                {formatCurrency(loanStats.totalLent)}
+              </h3>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card variant="glass" className="p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                <TrendingUp className="text-white" size={20} />
+              </div>
+              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Monthly EMI</p>
+              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+                {formatCurrency(loanStats.totalEMI)}
+              </h3>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Card variant="mesh-red" className="p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4">
+                <AlertCircle className="text-white" size={20} />
+              </div>
+              <p className="text-white/80 font-medium mb-1 text-sm uppercase tracking-wide">Overdue</p>
+              <h3 className="text-3xl font-display font-bold text-white tracking-tight">
+                {loanStats.overdueCount}
+              </h3>
+            </div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+          </Card>
+        </motion.div>
       </div>
 
       {loanStats.overdueCount > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="text-red-600 flex-shrink-0 mt-1" size={20} />
-          <div>
-            <p className="font-medium text-red-900">Overdue Payments</p>
-            <p className="text-sm text-red-700 mt-1">
-              You have {loanStats.overdueCount} overdue payment{loanStats.overdueCount > 1 ? 's' : ''}. Please make payments to avoid penalties.
-            </p>
-          </div>
-        </div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Card variant="glass" className="p-4 flex items-start gap-3 border-2 border-red-200">
+            <AlertCircle className="text-red-600 flex-shrink-0 mt-1" size={20} />
+            <div>
+              <p className="font-display font-bold text-red-900">Overdue Payments</p>
+              <p className="text-sm text-red-700 mt-1">
+                You have {loanStats.overdueCount} overdue payment{loanStats.overdueCount > 1 ? 's' : ''}. Please make payments to avoid penalties.
+              </p>
+            </div>
+          </Card>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {['borrowed', 'lent', 'emi'].map(type => (
-          <div key={type} className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold mb-4 capitalize">{type} Loans</h3>
-            <div className="space-y-3">
-              {loans
-                .filter(l => l.type === type && l.status === 'active')
-                .map(loan => (
-                  <div key={loan.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{loan.name}</h4>
-                        {loan.contactPerson && (
-                          <p className="text-sm text-gray-500">{loan.contactPerson}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEditClick(loan)}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors text-gray-600"
-                          title="Edit loan"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteLoan(loan.id!, loan.name)}
-                          className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
-                          title="Delete loan"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getLoanStatusColor(loan)}`}>
-                          {loan.status}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {editingLoanId === loan.id ? (
-                      <div className="space-y-3 mb-3">
-                        <input
-                          type="text"
-                          value={editFormData.name}
-                          onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                          placeholder="Loan name"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <input
-                          type="number"
-                          value={editFormData.principalAmount}
-                          onChange={(e) => setEditFormData({ ...editFormData, principalAmount: parseFloat(e.target.value) })}
-                          placeholder="Principal amount"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <input
-                          type="number"
-                          value={editFormData.outstandingBalance}
-                          onChange={(e) => setEditFormData({ ...editFormData, outstandingBalance: parseFloat(e.target.value) })}
-                          placeholder="Outstanding balance"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        {editFormData.emiAmount !== undefined && (
-                          <input
-                            type="number"
-                            value={editFormData.emiAmount}
-                            onChange={(e) => setEditFormData({ ...editFormData, emiAmount: parseFloat(e.target.value) })}
-                            placeholder="EMI amount"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          />
-                        )}
-                        <input
-                          type="date"
-                          value={editFormData.dueDate ? new Date(editFormData.dueDate).toISOString().split('T')[0] : ''}
-                          onChange={(e) => setEditFormData({ ...editFormData, dueDate: e.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                        <div className="flex gap-2">
+      {/* Loans Grid */}
+      {/* Loans Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {['borrowed', 'lent', 'emi'].map((type, idx) => (
+          <motion.div key={type} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.1 }}>
+            <Card variant="glass" className="p-6">
+              <h3 className="text-xl font-display font-bold text-gray-900 mb-4 capitalize">{type === 'emi' ? 'EMI Loans' : `${type} Loans`}</h3>
+              <div className="space-y-3">
+                {loans
+                  .filter(l => l.type === type && l.status === 'active')
+                  .map(loan => (
+                    <motion.div key={loan.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-display font-bold text-gray-900 text-sm">{loan.name}</h4>
+                          {loan.contactPerson && (
+                            <p className="text-xs text-gray-500 mt-1">{loan.contactPerson}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
                           <button
-                            onClick={handleSaveEdit}
-                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700"
+                            onClick={() => handleEditClick(loan)}
+                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
+                            title="Edit loan"
                           >
-                            Save
+                            <Edit2 size={14} />
                           </button>
                           <button
-                            onClick={() => setEditingLoanId(null)}
-                            className="flex-1 px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                            onClick={() => handleDeleteLoan(loan.id!, loan.name)}
+                            className="p-1.5 hover:bg-red-100 rounded-lg transition-colors text-red-600"
+                            title="Delete loan"
                           >
-                            Cancel
+                            <Trash2 size={14} />
                           </button>
+                          <span className={cn("px-2 py-0.5 text-xs font-bold rounded-full", getLoanStatusColor(loan))}>
+                            {loan.status}
+                          </span>
                         </div>
                       </div>
-                    ) : (
+                      
+                      {editingLoanId === loan.id ? (
+                        <div className="space-y-2 mb-3">
+                          <input
+                            type="text"
+                            value={editFormData.name}
+                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                            placeholder="Loan name"
+                            className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
+                          />
+                          <input
+                            type="number"
+                            value={editFormData.principalAmount}
+                            onChange={(e) => setEditFormData({ ...editFormData, principalAmount: parseFloat(e.target.value) })}
+                            placeholder="Principal amount"
+                            className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
+                          />
+                          <input
+                            type="number"
+                            value={editFormData.outstandingBalance}
+                            onChange={(e) => setEditFormData({ ...editFormData, outstandingBalance: parseFloat(e.target.value) })}
+                            placeholder="Outstanding balance"
+                            className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
+                          />
+                          {editFormData.emiAmount !== undefined && (
+                            <input
+                              type="number"
+                              value={editFormData.emiAmount}
+                              onChange={(e) => setEditFormData({ ...editFormData, emiAmount: parseFloat(e.target.value) })}
+                              placeholder="EMI amount"
+                              className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
+                            />
+                          )}
+                          <input
+                            type="date"
+                            value={editFormData.dueDate ? new Date(editFormData.dueDate).toISOString().split('T')[0] : ''}
+                            onChange={(e) => setEditFormData({ ...editFormData, dueDate: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleSaveEdit}
+                              className="flex-1 px-2 py-1 bg-black text-white rounded-lg text-xs font-bold hover:bg-gray-900"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingLoanId(null)}
+                              className="flex-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-200"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                       <>
-                        <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div className="grid grid-cols-2 gap-3 mb-3">
                           <div>
-                            <p className="text-xs text-gray-500">Principal</p>
-                            <p className="font-semibold text-gray-900">{formatCurrency(loan.principalAmount)}</p>
+                            <p className="text-xs text-gray-500 font-medium">Principal</p>
+                            <p className="font-display font-bold text-gray-900 text-sm">{formatCurrency(loan.principalAmount)}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-gray-500">Outstanding</p>
-                            <p className="font-semibold text-gray-900">{formatCurrency(loan.outstandingBalance)}</p>
+                            <p className="text-xs text-gray-500 font-medium">Outstanding</p>
+                            <p className="font-display font-bold text-gray-900 text-sm">{formatCurrency(loan.outstandingBalance)}</p>
                           </div>
                           {loan.emiAmount && (
                             <div>
-                              <p className="text-xs text-gray-500">EMI Amount</p>
-                              <p className="font-semibold text-gray-900">{formatCurrency(loan.emiAmount)}</p>
+                              <p className="text-xs text-gray-500 font-medium">EMI Amount</p>
+                              <p className="font-display font-bold text-gray-900 text-sm">{formatCurrency(loan.emiAmount)}</p>
                             </div>
                           )}
                           {loan.dueDate && (
                             <div>
-                              <p className="text-xs text-gray-500">Due Date</p>
-                              <p className="font-semibold text-gray-900">
+                              <p className="text-xs text-gray-500 font-medium">Due Date</p>
+                              <p className="font-display font-bold text-gray-900 text-sm">
                                 {new Date(loan.dueDate).toLocaleDateString()}
                               </p>
                             </div>
@@ -258,7 +307,7 @@ export const Loans: React.FC = () => {
 
                         <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
                           <div
-                            className="bg-blue-600 h-2 rounded-full transition-all"
+                            className="bg-black h-2 rounded-full transition-all"
                             style={{
                               width: `${((loan.principalAmount - loan.outstandingBalance) / loan.principalAmount) * 100}%`,
                             }}
@@ -267,22 +316,22 @@ export const Loans: React.FC = () => {
 
                         <button
                           onClick={() => setShowPaymentModal(loan.id!)}
-                          className="w-full px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                          className="w-full px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-900 transition-all text-xs font-bold shadow-sm active:scale-95"
                         >
                           Make Payment
                         </button>
                       </>
                     )}
-                  </div>
+                </motion.div>
                 ))}
-              {loans.filter(l => l.type === type && l.status === 'active').length === 0 && (
-                <p className="text-gray-500 text-center py-8">No active {type} loans</p>
-              )}
-            </div>
-          </div>
+                {loans.filter(l => l.type === type && l.status === 'active').length === 0 && (
+                  <p className="text-gray-500 text-center py-8 text-sm">No active {type} loans</p>
+                )}
+              </div>
+            </Card>
+          </motion.div>
         ))}
       </div>
-
 
       {showPaymentModal && (
         <PaymentModal
@@ -304,9 +353,7 @@ export const Loans: React.FC = () => {
           setLoanToDelete(null);
         }}
       />
-
-      </div>
-    </CenteredLayout>
+    </div>
   );
 };
 

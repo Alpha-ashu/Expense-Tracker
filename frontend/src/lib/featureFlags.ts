@@ -12,7 +12,13 @@ export type FeatureKey =
   | 'todoLists'
   | 'transfer'
   | 'taxCalculator'
-  | 'bookAdvisor';
+  | 'bookAdvisor'
+  | 'adminPanel'
+  | 'advisorPanel'
+  | 'notifications'
+  | 'userProfile'
+  | 'settings'
+  | 'dashboard';
 
 export interface FeatureVisibility extends Record<FeatureKey, boolean> {
   accounts: boolean;
@@ -27,6 +33,12 @@ export interface FeatureVisibility extends Record<FeatureKey, boolean> {
   transfer: boolean;
   taxCalculator: boolean;
   bookAdvisor: boolean;
+  adminPanel: boolean;
+  advisorPanel: boolean;
+  notifications: boolean;
+  userProfile: boolean;
+  settings: boolean;
+  dashboard: boolean;
 }
 
 const DEFAULT_FEATURES: FeatureVisibility = {
@@ -42,6 +54,12 @@ const DEFAULT_FEATURES: FeatureVisibility = {
   transfer: true,
   taxCalculator: true,
   bookAdvisor: true,
+  adminPanel: true,
+  advisorPanel: true,
+  notifications: true,
+  userProfile: true,
+  settings: true,
+  dashboard: true,
 };
 
 const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
@@ -58,6 +76,12 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     transfer: true,
     taxCalculator: true,
     bookAdvisor: true,
+    adminPanel: true,
+    advisorPanel: false,
+    notifications: true,
+    userProfile: true,
+    settings: true,
+    dashboard: true,
   },
   advisor: {
     accounts: true,
@@ -72,6 +96,12 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     transfer: true,
     taxCalculator: true,
     bookAdvisor: true,
+    adminPanel: false,
+    advisorPanel: true,
+    notifications: true,
+    userProfile: true,
+    settings: true,
+    dashboard: true,
   },
   user: {
     accounts: true,
@@ -86,6 +116,12 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     transfer: true,
     taxCalculator: true,
     bookAdvisor: true,
+    adminPanel: false,
+    advisorPanel: false,
+    notifications: true,
+    userProfile: true,
+    settings: true,
+    dashboard: true,
   },
 };
 

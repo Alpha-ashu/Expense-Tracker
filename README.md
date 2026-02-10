@@ -1,302 +1,316 @@
-# 💰 Expense Tracker - Personal Finance Management App
+# Expense Tracker
 
-A comprehensive personal finance management application built with React, Vite, Node.js, and PostgreSQL. Track expenses, manage accounts, set financial goals, and monitor investments all in one place with **cloud-based cross-device sync**.
+<div align="center">
 
-**Original Figma Design**: https://www.figma.com/design/YFfOCSQMHx6XmjEezEKAkY/Expense-Tracker-Import-Feature
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6?logo=typescript)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791?logo=postgresql)
 
----
+**A comprehensive, cloud-synced personal finance management platform**
 
-## 🌟 Key Features
+[Quick Start](./docs/QUICK_START.md) · [Features](./docs/FEATURES.md) · [API Docs](./docs/api.md) · [Architecture](./docs/architecture.md)
 
-### Core Financial Management
-- 📊 **Dashboard** - Complete financial overview
-- 💳 **Accounts** - Manage bank accounts, cards, cash wallets
-- 💸 **Transactions** - Track income, expenses, and transfers
-- 🎯 **Goals** - Set and track savings goals
-- 💰 **Loans & EMI** - Manage borrowed/lent money
-- 📈 **Investments** - Track stocks, crypto, gold, forex
-
-### Advanced Features
-- 👥 **Group Expenses** - Split bills with friends
-- 📅 **Calendar** - View transactions by date with real-time updates
-- 📊 **Reports** - Detailed financial analytics
-- 📝 **Todo Lists** - Task management with sharing
-- 🧾 **Tax Calculator** - Estimate tax liability
-- 🔔 **Notifications** - EMI and payment reminders with deep links
-- 🎓 **Finance Advisor System** - Book sessions with financial advisors
-- 💬 **Advisor Chat** - Real-time communication with advisors
-
-### Technical Features
-- 🌐 **Cloud Data Sync** - ✨ NEW: All data persists to PostgreSQL backend
-- 📱 **Cross-Device Sync** - ✨ NEW: Same data visible on mobile, desktop, any device
-- 🔐 **User Data Isolation** - ✨ NEW: Secure JWT authentication, each user only sees their data
-- 📱 **PWA Support** - Install as mobile app
-- 🌙 **Dark Mode** - Eye-friendly interface
-- 🔒 **PIN Protection** - Secure app access
-- 💾 **Offline Support** - Works offline with automatic sync when back online
+</div>
 
 ---
 
-## ☁️ Cloud-Based Data Persistence (NEW)
+## ✨ Overview
 
-Your financial data is now **stored securely in PostgreSQL** and synced across all your devices!
+Expense Tracker is a full-stack financial management application that helps users track expenses, manage accounts, set goals, and gain insights into their financial health. Built with modern technologies and designed for scalability, security, and exceptional user experience.
 
-### How It Works
+### Key Highlights
+
+- 📊 **Real-time Dashboard** - Live financial overview with charts and insights
+- 💳 **Multi-Account Management** - Track bank, cash, card, and wallet accounts
+- 🎤 **AI Voice Input** - Add transactions using natural language
+- 📸 **Receipt Scanner** - OCR-powered receipt digitization
+- 🎯 **Smart Goals** - Set and track financial objectives
+- 📈 **Investment Tracking** - Monitor stocks, crypto, and more
+- 👥 **Group Expenses** - Split bills and track shared costs
+- 🔐 **Bank-Grade Security** - End-to-end encryption and JWT auth
+- ☁️ **Cloud Sync** - Seamless multi-device synchronization
+- 📱 **PWA Ready** - Install on any device, works offline
+
+---
+
+## 🏗️ Architecture
+
 ```
-Login → Data fetches from backend → Same data on all devices
-  ↓
-Create transaction → Saved to backend immediately
-  ↓
-Logout → Data persists in backend (not deleted locally)
-  ↓
-Login from different device → All data syncs automatically
+┌─────────────────────────────────────┐
+│     React + TypeScript (PWA)        │
+│  ┌──────────┐    ┌──────────┐      │
+│  │Components│    │ Contexts │      │
+│  └────┬─────┘    └────┬─────┘      │
+│       │               │             │
+│  ┌────▼───────────────▼────┐       │
+│  │  Dexie (IndexedDB)      │       │
+│  └────┬────────────────┬───┘       │
+└───────┼────────────────┼───────────┘
+        │   Sync Layer    │
+┌───────▼────────────────▼───────────┐
+│  Supabase (PostgreSQL + Auth)      │
+│  ┌──────────┐    ┌──────────┐     │
+│  │ Real-time│    │   RLS    │     │
+│  └──────────┘    └──────────┘     │
+└─────────────────────────────────────┘
 ```
 
-### Benefits
-✅ **Data Never Disappears** - Even after logout, your data is safe in backend  
-✅ **Cross-Device Access** - Login on phone/tablet/desktop, see all your data  
-✅ **Always Backed Up** - PostgreSQL database automatically backs up your data  
-✅ **Secure & Private** - JWT authentication ensures only you can access your data  
-✅ **Real-Time Sync** - Changes sync automatically between devices  
-
-### Getting Started
-See the **[Cloud Persistence Quick Start](docs/QUICK_START.md)** for setup instructions.
-
----
-
-- 📊 **Dashboard** - Complete financial overview
-- 💳 **Accounts** - Manage bank accounts, cards, cash
-- 💸 **Transactions** - Track income, expenses, and transfers
-- 🎯 **Goals** - Set and track savings goals
-- 💰 **Loans & EMI** - Manage borrowed/lent money
-- 📈 **Investments** - Track stocks, crypto, gold, forex
-- 👥 **Group Expenses** - Split bills with friends
-- 📅 **Calendar** - View transactions by date
-- 📊 **Reports** - Detailed financial analytics
-- 📝 **Todo Lists** - Task management with sharing
-- 🧾 **Tax Calculator** - Estimate tax liability
-- 🔔 **Notifications** - EMI and payment reminders
-- 📱 **PWA Support** - Install as mobile app
-- 🌙 **Dark Mode** - Eye-friendly interface
-- 🔒 **PIN Protection** - Secure app access
+**Stack:**
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Vite
+- **Backend**: Node.js, Express, Prisma ORM
+- **Database**: PostgreSQL, Dexie (IndexedDB)
+- **Cloud**: Supabase (auth, real-time, storage)
+- **Deployment**: Vercel (frontend), Docker (backend)
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. **Install Dependencies**
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
+- npm or pnpm
+
+### Installation
 
 ```bash
+# Clone repository
+git clone https://github.com/Alpha-ashu/Expense-Tracker.git
+cd Expense-Tracker
+
+# Install dependencies
 npm install
-```
 
-### 2. **Set Up Supabase Database**
+# Setup environment variables
+cp .env.example .env
+# Edit .env with your credentials
 
-Follow the comprehensive guide: **[supabase/SETUP_INSTRUCTIONS.md](supabase/SETUP_INSTRUCTIONS.md)**
+# Initialize database
+npm run db:migrate
 
-Quick steps:
-1. Open [Supabase Dashboard](https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh)
-2. Go to SQL Editor
-3. Run `supabase/migrations/001_create_tables.sql`
-4. Run `supabase/migrations/002_enable_rls.sql`
-5. *(Optional)* Run `supabase/migrations/003_seed_data.sql` for test data
-
-### 3. **Configure Environment Variables**
-
-The environment variables are already set in:
-- `.env` (root)
-- `frontend/.env.local`
-
-No changes needed! ✅
-
-### 4. **Start Development Server**
-
-```bash
+# Start development server
 npm run dev
 ```
 
-Open http://localhost:5173
+Visit [http://localhost:5173](http://localhost:5173)
+
+📖 **Detailed setup**: See [docs/QUICK_START.md](./docs/QUICK_START.md)
 
 ---
 
-## 📁 Project Structure
+## 📋 Feature Modules
 
+| Module | Description | Status |
+|--------|-------------|--------|
+| 🏠 Dashboard | Financial overview & quick actions | ✅ Complete |
+| 💳 Accounts | Multi-account management | ✅ Complete |
+| 💸 Transactions | Income/expense tracking with AI | ✅ Complete |
+| 🎯 Goals | Savings goals & progress tracking | ✅ Complete |
+| 💰 Loans & EMI | Debt management & EMI schedules | ✅ Complete |
+| 📈 Investments | Portfolio tracking (stocks, crypto) | ✅ Complete |
+| 👥 Groups | Split expenses & settlement | ✅ Complete |
+| 📅 Calendar | Date-based expense visualization | ✅ Complete |
+| 📊 Reports | Analytics, charts & insights | ✅ Complete |
+| 📝 Todo | Task management & collaboration | ✅ Complete |
+| 🧾 Tax Calculator | Income tax estimation | ✅ Complete |
+| 👔 Advisor Booking | Connect with financial advisors | ✅ Complete |
+
+See [docs/FEATURES.md](./docs/FEATURES.md) for detailed specifications.
+
+---
+
+## 🎨 Design System
+
+### Components
+- **UI Library**: Radix UI primitives
+- **Styling**: Tailwind CSS with custom design tokens
+- **Animations**: Framer Motion
+- **Charts**: Recharts
+- **Notifications**: Sonner toasts
+
+### Themes
+- ☀️ Light Mode
+- 🌙 Dark Mode
+- 🎨 Custom color palettes per account type
+
+### Responsive Design
+- 📱 Mobile-first approach
+- 💻 Desktop optimized
+- 📱 Native gestures (swipe, pull-to-refresh)
+
+---
+
+## 🔐 Security Features
+
+- ✅ JWT authentication with refresh tokens
+- ✅ Password hashing (bcrypt)
+- ✅ Row-level security (RLS) in PostgreSQL
+- ✅ PIN lock for sensitive operations
+- ✅ Optional 2FA
+- ✅ Session management & token invalidation
+- ✅ Encrypted local storage
+
+---
+
+## ☁️ Cloud & Sync
+
+- **Real-time sync** across all devices
+- **Offline-first** architecture with queue
+- **Conflict resolution** for concurrent edits
+- **Auto-sync** on network reconnection
+- **Zero data loss** guarantee
+
+---
+
+## 📱 Platform Support
+
+- ✅ **Web** (all modern browsers)
+- ✅ **PWA** (installable on desktop/mobile)
+- ✅ **iOS** (via Capacitor)
+- ✅ **Android** (via Capacitor)
+- ✅ **Offline** mode with background sync
+
+---
+
+## 🛠️ Development
+
+### Project Structure
 ```
+expense-tracker/
 ├── frontend/
 │   ├── src/
 │   │   ├── app/
 │   │   │   ├── components/     # React components
 │   │   │   └── App.tsx         # Main app
 │   │   ├── contexts/           # React contexts
-│   │   ├── lib/                # Utilities & helpers
-│   │   │   ├── supabase-helpers.ts  # Database functions
-│   │   │   ├── database.ts     # IndexedDB (legacy)
-│   │   │   └── ...
-│   │   └── utils/
-│   │       └── supabase/       # Supabase client
-│   └── public/                 # Static assets
-├── supabase/
-│   ├── migrations/             # Database SQL scripts
-│   │   ├── 001_create_tables.sql
-│   │   ├── 002_enable_rls.sql
-│   │   └── 003_seed_data.sql
-│   ├── SETUP_INSTRUCTIONS.md
-│   ├── GET_USER_ID.md
-│   └── README.md
-├── backend/                    # Backend API (optional)
-├── .env                        # Environment variables
-└── package.json
+│   │   ├── hooks/              # Custom hooks
+│   │   ├── lib/                # Utilities
+│   │   └── utils/              # Helpers
+├── backend/
+│   ├── src/
+│   │   ├── modules/            # Feature modules
+│   │   ├── middleware/         # Express middleware
+│   │   └── routes/             # API routes
+│   └── prisma/                 # Database schema
+├── docs/                       # Documentation
+└── tests/                      # Test suites
+```
+
+### Scripts
+
+```bash
+# Development
+npm run dev              # Start dev server
+npm run dev:backend      # Start backend only
+
+# Build
+npm run build            # Production build
+npm run preview          # Preview production build
+
+# Database
+npm run db:migrate       # Run migrations
+npm run db:seed          # Seed database
+npm run db:studio        # Open Prisma Studio
+
+# Testing
+npm run test             # Run tests
+npm run test:watch       # Watch mode
+npm run test:coverage    # Coverage report
+
+# PWA
+npm run build:pwa        # Build with PWA support
 ```
 
 ---
 
-## 🗄️ Database Schema
+## 📚 Documentation
 
-Complete schema with 16 tables:
-
-- **User Management**: profiles
-- **Financial**: accounts, transactions, loans, loan_payments
-- **Goals**: goals, goal_contributions
-- **Social**: friends, group_expenses
-- **Investments**: investments
-- **Productivity**: todo_lists, todo_items, todo_list_shares
-- **Utilities**: notifications, tax_calculations, expense_bills
-
-See **[supabase/README.md](supabase/README.md)** for complete details.
-
----
-
-## 🔐 Security
-
-- ✅ **Row Level Security (RLS)** - Users can only access their own data
-- ✅ **Authentication** - Email/password signup
-- ✅ **Secure Storage** - Files stored in Supabase Storage
-- ✅ **PIN Protection** - App-level security
-- ✅ **Environment Variables** - Sensitive data protected
-
----
-
-## 🛠️ Tech Stack
-
-### **Frontend:**
-- ⚛️ React 18
-- ⚡ Vite 6
-- 🎨 Tailwind CSS 4
-- 🎯 TypeScript
-- 🧩 Material-UI
-- 📊 Recharts
-
-### **Backend:**
-- 🗄️ Supabase (PostgreSQL)
-- 🔐 Supabase Auth
-- 📦 Supabase Storage
-- ⚡ Realtime subscriptions
-
-### **Additional:**
-- 📱 Capacitor (Mobile)
-- 🔄 PWA Support
-- 🗂️ IndexedDB (offline)
-- 🎭 Dexie
-
----
-
-## 📖 Documentation
-
-- **[Supabase Setup Guide](supabase/SETUP_INSTRUCTIONS.md)** - Complete database setup
-- **[Database Schema](supabase/README.md)** - Table structure & relationships
-- **[Get User ID](supabase/GET_USER_ID.md)** - For seed data
-- **[Supabase Connection Guide](SUPABASE_SETUP.md)** - Frontend integration
+- [Architecture Guide](./docs/architecture.md)
+- [API Documentation](./docs/api.md)
+- [Database Setup](./docs/setup/DATABASE_SETUP_GUIDE.md)
+- [Deployment Guide](./docs/deployment.md)
+- [Implementation Status](./docs/implementation/IMPLEMENTATION_STATUS.md)
+- [Feature Flags](./docs/ADMIN_FEATURE_FLAGS.md)
 
 ---
 
 ## 🧪 Testing
 
-### **Test Supabase Connection:**
+```bash
+# Run all tests
+npm test
 
-1. Start dev server: `npm run dev`
-2. Open http://localhost:5173
-3. Look for the **Supabase Connection Test** component
-4. Click "Test Connection"
+# Integration tests
+npm run test:integration
 
-Or run test queries in browser console:
-
-```javascript
-// Import Supabase client
-import supabase from '@/utils/supabase/client';
-
-// Test query
-const { data, error } = await supabase.from('accounts').select('*');
-console.log({ data, error });
+# E2E tests
+npm run test:e2e
 ```
 
 ---
 
-## 🔄 Migration from IndexedDB to Supabase
+## 📦 Deployment
 
-Currently, the app uses IndexedDB (Dexie) for local storage. To migrate to Supabase:
-
-1. ✅ Supabase is connected and configured
-2. ✅ Database tables are created
-3. ✅ Helper functions are available in `lib/supabase-helpers.ts`
-4. 🔄 Update components to use Supabase instead of Dexie
-5. 🔄 Add authentication pages (signup/login)
-6. 🔄 Replace `db.accounts.toArray()` with `getAccounts()`
-
----
-
-## 📱 Build for Production
-
-### **Web:**
+### Frontend (Vercel)
 ```bash
 npm run build
+vercel deploy
 ```
 
-### **PWA:**
+### Backend (Docker)
 ```bash
-npm run build:pwa
+docker-compose up -d
 ```
 
-### **Mobile (Capacitor):**
-```bash
-npm run cap:sync
-npm run cap:open:android  # or ios
-```
+See [docs/deployment.md](./docs/deployment.md) for detailed instructions.
 
 ---
 
 ## 🤝 Contributing
 
+We welcome contributions! Please follow these guidelines:
+
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
 ---
 
-## 📝 License
+## 📄 License
 
-MIT License - feel free to use this project for personal or commercial purposes.
-
----
-
-## 🆘 Support
-
-- **Issues**: Open an issue on GitHub
-- **Supabase Dashboard**: https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh
-- **Documentation**: See docs in `supabase/` folder
+This project is licensed under the MIT License - see LICENSE file for details.
 
 ---
 
-## 🎉 Credits
+## 🙏 Acknowledgments
 
-- Original Design: Figma Expense Tracker
-- Built with React, Vite, and Supabase
-- Icons: Lucide React
-- Charts: Recharts
+- [Radix UI](https://www.radix-ui.com/) - Accessible component primitives
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
+- [Supabase](https://supabase.com/) - Backend-as-a-Service
+- [Prisma](https://www.prisma.io/) - Next-generation ORM
+- [Recharts](https://recharts.org/) - Composable charting library
 
 ---
 
-**Made with ❤️ for better financial management**
+## 📞 Support
 
-  
+- 🐛 Issues: [GitHub Issues](https://github.com/Alpha-ashu/Expense-Tracker/issues)
+- 📖 Docs: [Full Documentation](./docs/)
+- 💬 Discussions: [GitHub Discussions](https://github.com/Alpha-ashu/Expense-Tracker/discussions)
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Expense Tracker Team**
+
+⭐ Star us on GitHub if you find this helpful!
+
+[Report Bug](https://github.com/Alpha-ashu/Expense-Tracker/issues) · [Request Feature](https://github.com/Alpha-ashu/Expense-Tracker/issues)
+
+</div>
+

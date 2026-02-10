@@ -1,13 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
-import { Plus, TrendingUp, TrendingDown, Edit2, Trash2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Edit2, Trash2, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { cn } from '@/lib/utils';
 
-const COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1'];
+const COLORS = ['#000000', '#666666', '#999999', '#CCCCCC', '#E5E5E5', '#F0F0F0'];
 
 export const Investments: React.FC = () => {
   const { investments, currency, setCurrentPage } = useApp();
@@ -66,46 +70,74 @@ export const Investments: React.FC = () => {
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Investments</h2>
-            <p className="text-gray-500 mt-1">Track your investment portfolio</p>
-          </div>
-          <button
-            onClick={() => setCurrentPage('add-investment')}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            Add Investment
-          </button>
-        </div>
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+      <PageHeader
+        title="Investments"
+        subtitle="Track your investment portfolio"
+        icon={<BarChart3 size={20} className="sm:w-6 sm:h-6" />}
+      >
+        <Button
+          onClick={() => setCurrentPage('add-investment')}
+          className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
+        >
+          <Plus size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          Add Investment
+        </Button>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-blue-600 p-6 rounded-xl text-white">
-          <p className="text-sm opacity-90 mb-2">Total Invested</p>
-          <p className="text-3xl font-bold">{formatCurrency(portfolioStats.totalInvested)}</p>
-        </div>
-        <div className="bg-blue-600 p-6 rounded-xl text-white">
-          <p className="text-sm opacity-90 mb-2">Current Value</p>
-          <p className="text-3xl font-bold">{formatCurrency(portfolioStats.currentValue)}</p>
-        </div>
-        <div className={`${portfolioStats.profitLoss >= 0 ? 'bg-green-600' : 'bg-red-600'} p-6 rounded-xl text-white`}>
-          <p className="text-sm opacity-90 mb-2">Profit/Loss</p>
-          <p className="text-3xl font-bold">
-            {portfolioStats.profitLoss >= 0 ? '+' : ''}{formatCurrency(portfolioStats.profitLoss)}
-          </p>
-          <p className="text-sm opacity-90 mt-1">
-            {portfolioStats.profitLoss >= 0 ? '+' : ''}{portfolioStats.profitLossPercent.toFixed(2)}%
-          </p>
-        </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
+                <TrendingUp className="text-white" size={18} className="sm:w-5 sm:h-5" />
+              </div>
+              <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Invested</p>
+              <h3 className="text-xl sm:text-2xl font-display font-bold text-gray-900 tracking-tight">
+                {formatCurrency(portfolioStats.totalInvested)}
+              </h3>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card variant="glass" className="p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+                <BarChart3 className="text-white" size={20} />
+              </div>
+              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Current Value</p>
+              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+                {formatCurrency(portfolioStats.currentValue)}
+              </h3>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card variant={portfolioStats.profitLoss >= 0 ? "mesh-green" : "mesh-red"} className="p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4">
+                {portfolioStats.profitLoss >= 0 ? <TrendingUp className="text-white" size={20} /> : <TrendingDown className="text-white" size={20} />}
+              </div>
+              <p className="text-white/80 font-medium mb-1 text-sm uppercase tracking-wide">Profit/Loss</p>
+              <h3 className="text-2xl font-display font-bold text-white tracking-tight">
+                {portfolioStats.profitLoss >= 0 ? '+' : ''}{formatCurrency(portfolioStats.profitLoss)}
+              </h3>
+              <p className="text-white/80 text-sm mt-1">
+                {portfolioStats.profitLoss >= 0 ? '+' : ''}{portfolioStats.profitLossPercent.toFixed(2)}%
+              </p>
+            </div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+          </Card>
+        </motion.div>
       </div>
 
       {investments.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Asset Allocation</h3>
+          <Card variant="glass" className="p-6">
+            <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Asset Allocation</h3>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
@@ -125,10 +157,10 @@ export const Investments: React.FC = () => {
                 <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </Card>
 
-          <div className="bg-white p-6 rounded-xl border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Top Performers</h3>
+          <Card variant="glass" className="p-6">
+            <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Top Performers</h3>
             <div className="space-y-3">
               {[...investments]
                 .sort((a, b) => ((b.profitLoss / b.totalInvested) - (a.profitLoss / a.totalInvested)))
@@ -136,16 +168,16 @@ export const Investments: React.FC = () => {
                 .map(inv => {
                   const plPercent = (inv.profitLoss / inv.totalInvested) * 100;
                   return (
-                    <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <div>
-                        <p className="font-medium text-gray-900">{inv.assetName}</p>
-                        <p className="text-sm text-gray-500 capitalize">{inv.assetType}</p>
+                        <p className="font-display font-bold text-gray-900 text-sm">{inv.assetName}</p>
+                        <p className="text-xs text-gray-500 capitalize mt-0.5">{inv.assetType}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`font-semibold ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <p className={`font-bold text-sm ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {inv.profitLoss >= 0 ? '+' : ''}{formatCurrency(inv.profitLoss)}
                         </p>
-                        <p className={`text-sm ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <p className={`text-xs ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%
                         </p>
                       </div>
@@ -153,14 +185,14 @@ export const Investments: React.FC = () => {
                   );
                 })}
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <Card variant="glass" className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -213,14 +245,14 @@ export const Investments: React.FC = () => {
                           localStorage.setItem('editingInvestmentId', inv.id.toString());
                           setCurrentPage('edit-investment');
                         }}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        className="text-gray-600 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
                         title="Edit investment"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDeleteInvestment(inv.id!, inv.assetName)}
-                        className="text-red-600 hover:text-red-800 transition-colors"
+                        className="text-red-600 hover:text-red-900 transition-colors p-1.5 hover:bg-red-100 rounded-lg"
                         title="Delete investment"
                       >
                         <Trash2 size={16} />
@@ -232,20 +264,31 @@ export const Investments: React.FC = () => {
             </tbody>
           </table>
         </div>
-        {investments.length === 0 && (
-          <div className="p-12 text-center">
-            <TrendingUp className="mx-auto text-gray-400 mb-4" size={48} />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No investments yet</h3>
-            <p className="text-gray-500 mb-4">Start tracking your investment portfolio</p>
-            <button
+      </Card>
+
+      {investments.length === 0 && (
+        <Card variant="glass" className="p-12 text-center border-2 border-dashed border-gray-300">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="w-20 h-20 bg-black rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <BarChart3 className="text-white" size={32} />
+            </div>
+            <h3 className="text-2xl font-display font-bold text-gray-900 mb-2">No investments yet</h3>
+            <p className="text-gray-500 mb-6 max-w-md mx-auto">Start tracking your investment portfolio today</p>
+            <Button
               onClick={() => setCurrentPage('add-investment')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="rounded-full h-11 px-6 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95"
             >
+              <Plus size={18} className="mr-2" />
               Add Your First Investment
-            </button>
-          </div>
-        )}
-      </div>
+            </Button>
+          </motion.div>
+        </Card>
+      )}
+
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
         title="Delete Investment"
@@ -258,7 +301,6 @@ export const Investments: React.FC = () => {
           setInvestmentToDelete(null);
         }}
       />
-      </div>
-    </CenteredLayout>
+    </div>
   );
 };

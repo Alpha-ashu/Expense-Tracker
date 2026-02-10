@@ -1,68 +1,131 @@
 import bcrypt from 'bcryptjs';
 import { User, RegisterInput, LoginInput, AuthTokens } from './auth.types';
-import { supabase } from '../../db/supabase';
+import { prisma } from '../../db/prisma';
 import { generateTokens } from '../../utils/auth';
 
 export class AuthService {
-  async register(input: RegisterInput): Promise<User> {
+  async register(input: RegisterInput): Promise<AuthTokens> {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (existingUser) {
+      throw new Error('Email already registered');
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(input.password, 10);
-    const { data, error } = await supabase
-      .from('users')
-      .insert([
-        {
-          email: input.email,
-          name: input.name,
-          password: hashedPassword,
-        },
-      ])
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    return data;
+
+    // Determine role and approval status
+    const role = input.role || 'user';
+    const isApproved = role === 'user'; // Users are auto-approved, advisors need admin approval
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email: input.email,
+        name: input.name,
+        password: hashedPassword,
+        role,
+        isApproved,
+      },
+    });
+
+    // Generate tokens
+    return generateTokens(user);
   }
 
   async login(input: LoginInput): Promise<AuthTokens> {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', input.email)
-      .single();
-    if (error || !user) {
+    const user = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (!user) {
       throw new Error('Invalid credentials');
     }
+
     const isPasswordValid = await bcrypt.compare(input.password, user.password);
     if (!isPasswordValid) {
       throw new Error('Invalid credentials');
     }
-    return generateTokens(user.id);
+
+    // Check if user is approved (especially important for advisors)
+    // For now, still allow login even if not approved, but token will indicate status
+    return generateTokens(user);
+  }
+
+  async getUser(userId: string): Promise<User> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return user;
+  }
+
+  async updateUserRole(userId: string, role: 'admin' | 'advisor' | 'user'): Promise<User> {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+
+    return user;
+  }
+
+  async approveAdvisor(advisorId: string): Promise<User> {
+    const user = await prisma.user.update({
+      where: { id: advisorId },
+      data: { isApproved: true },
+    });
+
+    return user;
+  }
+
+  async rejectAdvisor(advisorId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: advisorId },
+      data: { role: 'user', isApproved: false },
+    });
+  }
+
+  async getAdvisors(): Promise<User[]> {
+    const advisors = await prisma.user.findMany({
+      where: { role: 'advisor', isApproved: true },
+    });
+
+    return advisors;
+  }
+
+  // API Keys and Credentials
+  getApiKey(key: string): string | undefined {
+    return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
+  }
+
+  getStripeApiKey(): string | undefined {
+    return this.getApiKey('STRIPE_API_KEY');
+  }
+
+  getOpenAIApiKey(): string | undefined {
+    return this.getApiKey('OPENAI_API_KEY');
+  }
+
+  getGoogleApiKey(): string | undefined {
+    return this.getApiKey('GOOGLE_API_KEY');
+  }
+
+  getFirebaseSecret(): string | undefined {
+    return this.getApiKey('FIREBASE_SECRET');
+  }
+
+  getAwsSecretAccessKey(): string | undefined {
+    return this.getApiKey('AWS_SECRET_ACCESS_KEY');
+  }
+
+  getSendGridApiKey(): string | undefined {
+    return this.getApiKey('SENDGRID_API_KEY');
   }
 }
-
-// API Keys and Credentials
-export const getApiKey = (key: string): string | undefined => {
-  return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
-};
-
-export const getStripeApiKey = (): string | undefined => {
-  return getApiKey('STRIPE_API_KEY');
-};
-
-export const getOpenAIApiKey = (): string | undefined => {
-  return getApiKey('OPENAI_API_KEY');
-};
-
-export const getGoogleApiKey = (): string | undefined => {
-  return getApiKey('GOOGLE_API_KEY');
-};
-
-export const getFirebaseSecret = (): string | undefined => {
-  return getApiKey('FIREBASE_SECRET');
-};
-
-export const getAwsSecretAccessKey = (): string | undefined => {
-  return getApiKey('AWS_SECRET_ACCESS_KEY');
-};
-
-export const getSendGridApiKey = (): string | undefined => {
-  return getApiKey('SENDGRID_API_KEY');
-};

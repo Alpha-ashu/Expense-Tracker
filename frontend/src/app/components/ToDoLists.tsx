@@ -3,7 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Trash2, Share2, Archive, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Share2, Archive, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
@@ -103,14 +103,21 @@ export const ToDoLists: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+        {/* Header with Back Button */}
+        <div className="flex items-center gap-3 pb-2">
+          <button
+            onClick={() => setCurrentPage('dashboard')}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ChevronLeft size={24} className="text-gray-600" />
+          </button>
+          <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900">To-Do Lists</h2>
-            <p className="text-gray-500 mt-1">Manage your tasks and collaborate with others</p>
+            <p className="text-gray-500 mt-1">Create and manage your tasks</p>
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-medium"
           >
             <Plus size={20} />
             New List
@@ -119,12 +126,12 @@ export const ToDoLists: React.FC = () => {
 
         {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md">
-              <h3 className="text-xl font-bold mb-4">Create New List</h3>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-md border border-gray-200 shadow-lg">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Create New List</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     List Name *
                   </label>
                   <input
@@ -132,31 +139,31 @@ export const ToDoLists: React.FC = () => {
                     value={newListName}
                     onChange={(e) => setNewListName(e.target.value)}
                     placeholder="e.g., Weekly Tasks"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Description (Optional)
                   </label>
                   <textarea
                     value={newListDescription}
                     onChange={(e) => setNewListDescription(e.target.value)}
                     placeholder="Add a description for this list"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                     rows={3}
                   />
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setShowCreateModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-medium text-gray-700"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreateList}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex-1 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-medium"
                   >
                     Create List
                   </button>
@@ -168,13 +175,13 @@ export const ToDoLists: React.FC = () => {
 
         {/* Lists Grid */}
         {toDoLists.length === 0 ? (
-          <div className="bg-gray-50 rounded-xl p-12 text-center border-2 border-dashed border-gray-300">
-            <CheckCircle2 size={48} className="mx-auto text-gray-400 mb-4" />
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center border border-gray-200">
+            <CheckCircle2 size={48} className="mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No To-Do Lists Yet</h3>
             <p className="text-gray-500 mb-6">Create your first to-do list to get started</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-medium"
             >
               <Plus size={20} />
               Create First List
@@ -185,7 +192,7 @@ export const ToDoLists: React.FC = () => {
             {toDoLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-all hover:border-gray-300"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -195,34 +202,34 @@ export const ToDoLists: React.FC = () => {
                     )}
                   </div>
                   {list.archived && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                    <span className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-lg font-medium">
                       Archived
                     </span>
                   )}
                 </div>
 
-                <div className="text-sm text-gray-500 mb-4">
-                  Created {new Date(list.createdAt).toLocaleDateString()}
+                <div className="text-xs text-gray-400 mb-4 font-medium">
+                  {new Date(list.createdAt).toLocaleDateString()}
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOpenList(list.id!)}
-                    className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium text-sm"
+                    className="flex-1 px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
                   >
                     Open
                   </button>
                   <button
                     onClick={() => handleShareList(list.id!)}
                     title="Share this list"
-                    className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <Share2 size={18} />
                   </button>
                   <button
                     onClick={() => handleArchiveList(list.id!)}
                     title={list.archived ? 'Unarchive list' : 'Archive list'}
-                    className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <Archive size={18} />
                   </button>

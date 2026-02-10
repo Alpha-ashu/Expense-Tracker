@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { UserRole } from '@/lib/featureFlags';
+import { isAdminEmail } from '@/lib/rbac';
 
 interface AuthContextType {
   user: User | null;
@@ -21,21 +22,45 @@ const parseEmailList = (value?: string) => {
     .filter(Boolean);
 };
 
-const adminEmails = parseEmailList(import.meta.env.VITE_ADMIN_EMAILS);
 const advisorEmails = parseEmailList(import.meta.env.VITE_ADVISOR_EMAILS);
 
+/**
+ * Resolve user role with strict admin email validation
+ * Admin role is ONLY for shaik.job.details@gmail.com
+ */
 const resolveUserRole = (user: User | null): UserRole => {
   if (!user) return 'user';
 
-  const email = (user.email || '').toLowerCase();
-  if (adminEmails.includes(email)) return 'admin';
-  if (advisorEmails.includes(email)) return 'advisor';
-
-  const metadataRole = user.user_metadata?.role;
-  if (metadataRole === 'admin' || metadataRole === 'advisor' || metadataRole === 'user') {
-    return metadataRole;
+  const email = (user.email || '').toLowerCase().trim();
+  
+  // Direct admin email check
+  const adminEmails = ['shaik.job.details@gmail.com'];
+  
+  console.log('🔍 Role check for email:', { 
+    email, 
+    isAdmin: adminEmails.includes(email),
+    adminEmails 
+  });
+  
+  if (adminEmails.includes(email)) {
+    console.log('🔐 Admin role assigned to:', email);
+    return 'admin';
   }
 
+  // Check for advisor role
+  if (advisorEmails.includes(email)) {
+    console.log('👔 Advisor role assigned to:', email);
+    return 'advisor';
+  }
+
+  // Check user metadata as fallback (but NOT for admin - that's always email-based)
+  const metadataRole = user.user_metadata?.role;
+  if (metadataRole === 'advisor') {
+    console.log('👔 Advisor role assigned via metadata:', email);
+    return 'advisor';
+  }
+
+  console.log('👤 User role assigned to:', email);
   return 'user';
 };
 

@@ -9,6 +9,7 @@ import { Header } from '@/app/components/Header';
 import { BottomNav } from '@/app/components/BottomNav';
 import { QuickActionModal } from '@/app/components/QuickActionModal';
 import { PWAInstallPrompt } from '@/app/components/PWAInstallPrompt';
+import { FeatureGate } from '@/app/components/FeatureGate';
 import { Dashboard } from '@/app/components/Dashboard';
 import { Accounts } from '@/app/components/Accounts';
 import { Transactions } from '@/app/components/Transactions';
@@ -25,6 +26,8 @@ import { VoiceReview } from '@/app/components/VoiceReview';
 import { AuthCallback } from '@/app/components/AuthCallback';
 import { AdminDashboard } from '@/app/components/AdminDashboard';
 import { AdvisorWorkspace } from '@/app/components/AdvisorWorkspace';
+import { AdminFeaturePanel } from '@/app/components/AdminFeaturePanel';
+import { AdvisorPanel } from '@/app/components/AdvisorPanel';
 import { BookAdvisor } from '@/app/components/BookAdvisor';
 import { PayEMI } from '@/app/components/PayEMI';
 import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
@@ -40,7 +43,12 @@ import { AddGoal } from '@/app/components/AddGoal';
 import { AddGroup } from '@/app/components/AddGroup';
 import { AddInvestment } from '@/app/components/AddInvestment';
 import { EditInvestment } from '@/app/components/EditInvestment';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { AddLoan } from '@/app/components/AddLoan';
+import { AddGold } from '@/app/components/AddGold';
+import { AddFriends } from '@/app/components/AddFriends';
+import { UserProfile } from '@/app/components/UserProfile';
+import { Notifications } from '@/app/components/Notifications';
+
 import { Toaster } from 'sonner';
 import { initializeDemoData } from '@/lib/demoData';
 import { initializeNotifications } from '@/lib/notifications';
@@ -59,32 +67,9 @@ const AppContent: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
 
-  useEffect(() => {
-    // Check if this is an auth callback from Supabase email verification
-    const hash = window.location.hash;
-    if (hash && hash.includes('access_token') && hash.includes('type=')) {
-      setCurrentPage('auth-callback');
-    }
-    
-    // Initialize app data
-    const initTasks = [initializeNotifications()];
-    
-    // Only initialize demo data if explicitly enabled via env var
-    if (import.meta.env.VITE_ENABLE_DEMO_DATA === 'true') {
-      initTasks.push(initializeDemoData());
-    }
-    
-    Promise.all(initTasks).then(() => {
-      // Initialize real-time sync
-      initializeRealtimeSync();
-      
-      // Start health checks
-      HealthChecker.checkHealth().catch(console.error);
-      HealthChecker.startPeriodicCheck(60000).catch(console.error); // Check every minute
-      
-      setIsInitialized(true);
-    });
 
+  // Static initialization (runs once)
+  useEffect(() => {
     // Setup Capacitor plugins for native platforms
     if (Capacitor.isNativePlatform()) {
       setupNativeFeatures();
@@ -100,7 +85,40 @@ const AppContent: React.FC = () => {
     // Register service worker and setup PWA features
     registerServiceWorker();
     setupPWAInstallPrompt();
-    
+  }, []);
+
+  // User-dependent initialization (runs when user loads)
+  useEffect(() => {
+    // Check if this is an auth callback from Supabase email verification
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token') && hash.includes('type=')) {
+      setCurrentPage('auth-callback');
+    }
+
+    // Initialize app data
+    // Only initialize if user is loaded to support role-based seeding
+    if (user) {
+      const initTasks = [
+        initializeNotifications(),
+        // Pass user email to support forcing admin data
+        initializeDemoData(user.email)
+      ];
+
+      Promise.all(initTasks).then(() => {
+        // Initialize real-time sync
+        initializeRealtimeSync();
+
+        // Start health checks
+        HealthChecker.checkHealth().catch(console.error);
+        HealthChecker.startPeriodicCheck(60000).catch(console.error); // Check every minute
+
+        setIsInitialized(true);
+      });
+    } else if (!authLoading) {
+      // If not logged in, just initialize basics (though we likely redirect to auth anyway)
+      setIsInitialized(true);
+    }
+
     // Setup network listener
     const cleanupNetwork = setupNetworkListener(
       () => toast.success('Back online!'),
@@ -110,7 +128,7 @@ const AppContent: React.FC = () => {
     return () => {
       cleanupNetwork();
     };
-  }, []);
+  }, [user, authLoading]);
 
   const setupNativeFeatures = async () => {
     try {
@@ -192,7 +210,7 @@ const AppContent: React.FC = () => {
 
   // Show auth page if not logged in with Supabase
   if (!user) {
-    return <AuthPage onAuthSuccess={() => setAuthenticated(true)} />;
+    return <AuthPage onAuthSuccess={() => setAuthenticated('true')} />;
   }
 
   // Show PIN authentication if enabled and not authenticated
@@ -228,6 +246,8 @@ const AppContent: React.FC = () => {
         return <AddTransaction />;
       case 'loans':
         return <Loans />;
+      case 'add-loan':
+        return <AddLoan />;
       case 'goals':
         return <Goals />;
       case 'add-goal':
@@ -236,10 +256,14 @@ const AppContent: React.FC = () => {
         return <Groups />;
       case 'add-group':
         return <AddGroup />;
+      case 'add-friends':
+        return <AddFriends />;
       case 'investments':
         return <Investments />;
       case 'add-investment':
         return <AddInvestment />;
+      case 'add-gold':
+        return <AddGold />;
       case 'edit-investment':
         return <EditInvestment />;
       case 'reports':
@@ -261,7 +285,11 @@ const AppContent: React.FC = () => {
       case 'transfer':
         return <Transfer />;
       case 'tax-calculator':
-        return <TaxCalculator />;
+        return <FeatureGate feature="taxCalculator"><TaxCalculator /></FeatureGate>;
+      case 'admin-feature-panel':
+        return <FeatureGate feature="adminPanel"><AdminFeaturePanel /></FeatureGate>;
+      case 'advisor-panel':
+        return <FeatureGate feature="advisorPanel"><AdvisorPanel /></FeatureGate>;
       case 'voice-input':
         return <VoiceInput />;
       case 'voice-review':
@@ -273,27 +301,30 @@ const AppContent: React.FC = () => {
       case 'advisor':
         return <AdvisorWorkspace />;
       case 'book-advisor':
-        return <BookAdvisor />;
+        return <FeatureGate feature="bookAdvisor"><BookAdvisor /></FeatureGate>;
       case 'pay-emi':
         return <PayEMI />;
+      case 'user-profile':
+        return <UserProfile />;
+      case 'notifications':
+        return <Notifications />;
       default:
         return <Dashboard />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden mobile-container">
+    <div className="flex h-screen bg-bg-body text-text-primary overflow-hidden mobile-container font-body selection:bg-black selection:text-white">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block z-50">
         <Sidebar />
       </div>
-      
-      <div className="flex-1 flex flex-col overflow-hidden w-full">
-        <Header />
-        <main className="flex-1 overflow-y-auto scrollbar-hide" style={{paddingBottom: 'var(--bottom-reserved-space)'}}>
-          {renderPage()}
-        </main>
-      </div>
+
+      {/* Header removed as per user request */}
+      {/* {currentPage !== 'dashboard' && <Header />} */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-bg-body">
+        {renderPage()}
+      </main>
 
       {/* Mobile/Tablet Bottom Navigation */}
       <div className="lg:hidden">

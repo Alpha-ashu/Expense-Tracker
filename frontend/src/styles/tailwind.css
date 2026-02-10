@@ -1,4 +1,119 @@
 @import 'tailwindcss' source(none);
 @source '../**/*.{js,ts,jsx,tsx}';
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
 @import 'tw-animate-css';
+
+@theme {
+  --color-bg-body: #F2F4F7;
+  --color-bg-card: #FFFFFF;
+  --color-bg-header: #1A1A1A;
+
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-text-header: #FFFFFF;
+
+  /* Mesh Gradients */
+  --bg-gradient-pink: linear-gradient(135deg, #FF4B91 0%, #FF7676 100%);
+  --bg-gradient-green: linear-gradient(135deg, #00C9A7 0%, #00D2D3 100%);
+  --bg-gradient-purple: linear-gradient(135deg, #845EC2 0%, #D65DB1 100%);
+  --bg-gradient-red: linear-gradient(135deg, #FF3D4D 0%, #FF6B6B 100%);
+  --bg-gradient-mesh-1: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+
+  --color-border-glass: rgba(255, 255, 255, 0.3);
+  --color-border-subtle: #E5E7EB;
+
+  --font-display: 'SF Pro Display', 'Inter', sans-serif;
+  --font-body: 'SF Pro Text', 'Inter', sans-serif;
+
+  --shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --shadow-floating: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+  /* Background Images for utilities */
+  --background-image-mesh-pink: linear-gradient(135deg, #FF4B91 0%, #FF7676 100%);
+  --background-image-mesh-green: linear-gradient(135deg, #00C9A7 0%, #00D2D3 100%);
+  --background-image-mesh-purple: linear-gradient(135deg, #845EC2 0%, #D65DB1 100%);
+
+  /* Colored Shadows */
+  --shadow-colored-pink: 0 10px 40px -10px rgba(255, 75, 145, 0.5);
+  --shadow-colored-green: 0 10px 40px -10px rgba(0, 201, 167, 0.5);
+  --shadow-colored-purple: 0 10px 40px -10px rgba(132, 94, 194, 0.5);
+  --shadow-colored-red: 0 10px 40px -10px rgba(255, 61, 77, 0.5);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-bg-body);
+    color: var(--color-text-primary);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border-glass);
+  }
+
+  .glass-dark {
+    background: rgba(26, 26, 26, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .text-gradient-pink {
+    background: var(--bg-gradient-pink);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Mesh Background Colors */
+  .bg-mesh-pink {
+    background: var(--bg-gradient-pink);
+  }
+
+  .bg-mesh-green {
+    background: var(--bg-gradient-green);
+  }
+
+  .bg-mesh-purple {
+    background: var(--bg-gradient-purple);
+  }
+
+  .bg-mesh-red {
+    background: var(--bg-gradient-red);
+  }
+
+  /* Colored Shadows */
+  .shadow-colored-pink {
+    box-shadow: var(--shadow-colored-pink);
+  }
+
+  .shadow-colored-green {
+    box-shadow: var(--shadow-colored-green);
+  }
+
+  .shadow-colored-purple {
+    box-shadow: var(--shadow-colored-purple);
+  }
+
+  .shadow-colored-red {
+    box-shadow: var(--shadow-colored-red);
+  }
+}

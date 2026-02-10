@@ -401,6 +401,38 @@ export class ProductionDB extends FinanceLifeDB {
       chatConversations: '++id, conversationId, advisorId, userId',
       bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
     });
+    
+    this.version(4).stores({
+      accounts: '++id, type, isActive',
+      friends: '++id, name, createdAt',
+      transactions: '++id, type, accountId, category, date',
+      loans: '++id, type, status, dueDate, friendId',
+      loanPayments: '++id, loanId, date',
+      goals: '++id, isGroupGoal, targetDate',
+      goalContributions: '++id, goalId, date',
+      groupExpenses: '++id, date',
+      investments: '++id, assetType',
+      notifications: '++id, type, userId, isRead, createdAt',
+      logs: 'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups: 'id, timestamp',
+      settings: 'key',
+      categories: 'id, type',
+      budgets: 'id, category, period',
+      groups: 'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills: '++id, transactionId, uploadedAt',
+      toDoLists: '++id, ownerId, createdAt, archived',
+      toDoItems: '++id, listId, completed, dueDate, priority',
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+    });
   }
 }
 

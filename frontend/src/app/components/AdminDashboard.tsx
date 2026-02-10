@@ -20,6 +20,12 @@ const FEATURE_DESCRIPTIONS: Record<FeatureKey, string> = {
   transfer: 'Money transfers between accounts',
   taxCalculator: 'Tax calculation tools',
   bookAdvisor: 'Book and consult with financial advisors',
+  adminPanel: 'Admin panel access for feature flag controls',
+  advisorPanel: 'Advisor workspace and tools',
+  notifications: 'User notifications and alerts',
+  userProfile: 'User profile and account settings',
+  settings: 'Application settings',
+  dashboard: 'Main dashboard view',
 };
 
 export const AdminDashboard: React.FC = () => {

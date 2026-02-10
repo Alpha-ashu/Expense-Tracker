@@ -81,19 +81,19 @@ export const AddGroup: React.FC = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Group Name *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Group Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               placeholder="e.g., Weekend Trip"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Total Amount *</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Total Amount *</label>
             <div className="flex items-center">
               <span className="text-gray-600 mr-3 text-lg">{currency}</span>
               <input
@@ -101,7 +101,7 @@ export const AddGroup: React.FC = () => {
                 step="0.01"
                 value={formData.totalAmount || ''}
                 onChange={(e) => setFormData({ ...formData, totalAmount: parseFloat(e.target.value) || 0 })}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 placeholder="0.00"
                 required
               />
@@ -109,11 +109,11 @@ export const AddGroup: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Category</label>
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             >
               <option value="general">General</option>
               <option value="food">Food & Dining</option>
@@ -125,21 +125,21 @@ export const AddGroup: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Date</label>
             <input
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">Description</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
               placeholder="Add details about this group expense"
               rows={3}
             />
@@ -168,7 +168,7 @@ export const AddGroup: React.FC = () => {
                       newParticipants[index] = e.target.value;
                       setFormData({ ...formData, participants: newParticipants });
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                     placeholder="Enter participant name"
                   />
                   {formData.participants.length > 1 && (
@@ -184,8 +184,8 @@ export const AddGroup: React.FC = () => {
               ))}
             </div>
             {formData.participants.length > 0 && formData.totalAmount > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700 font-medium">
+              <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-700 font-medium">
                   Amount per person: {currency} {(formData.totalAmount / formData.participants.filter(p => p.trim()).length).toFixed(2)}
                 </p>
               </div>
@@ -196,13 +196,13 @@ export const AddGroup: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentPage('groups')}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700 bg-white"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-semibold shadow-lg"
             >
               Create Group Expense
             </button>

@@ -1,11 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '../../lib/database';
-import { Plus, Upload, TrendingUp, TrendingDown, Filter, Search, Camera, Edit2, Trash2 } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet } from 'lucide-react';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { ReceiptScanner } from '@/app/components/ReceiptScanner';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 
 const CATEGORIES = {
@@ -23,11 +27,13 @@ export const Transactions: React.FC = () => {
   const [transactionToDelete, setTransactionToDelete] = useState<{ id: number; description: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Check for quick form type from localStorage
   useEffect(() => {
-    const type = localStorage.getItem('quickFormType') as 'expense' | 'income' | null;
-    if (type) {
+    const type = localStorage.getItem('quickFormType');
+    if (type === 'expense' || type === 'income') {
       setCurrentPage('add-transaction');
+      localStorage.removeItem('quickFormType');
+    } else if (type) {
+      // Remove any other unexpected value
       localStorage.removeItem('quickFormType');
     }
   }, [setCurrentPage]);
@@ -76,247 +82,261 @@ export const Transactions: React.FC = () => {
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Transactions</h2>
-            <p className="text-gray-500 mt-1">Track all your income and expenses</p>
-          </div>
-        <div className="flex gap-3">
-          <button
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+      {/* App Header */}
+      <PageHeader
+        title="Transactions"
+        subtitle="Track your financial activity"
+        icon={<Wallet size={20} className="sm:w-6 sm:h-6" />}
+      />
+
+      {/* Action Buttons */}
+      <div className="flex gap-2 sm:gap-3 flex-wrap">
+          <Button
+            variant="secondary"
             onClick={() => setShowScanModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4"
           >
-            <Camera size={20} />
-            Scan Bill
-          </button>
-          <button
+            <Camera size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Scan Bill</span>
+            <span className="inline sm:hidden">Scan</span>
+          </Button>
+          <Button
             onClick={() => setShowTransactionTypeModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
           >
-            <Plus size={20} />
-            Add Transaction
-          </button>
+            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            Add
+          </Button>
+        </div>
+
+      {/* Stats Board */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+        <Card variant="mesh-green" className="p-4 sm:p-6 relative overflow-hidden group">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3 text-white/80">
+              <div className="p-1 sm:p-1.5 bg-white/20 rounded-lg backdrop-blur-md">
+                <ArrowDownLeft size={14} className="sm:w-4 sm:h-4" />
+              </div>
+              <span className="font-semibold text-xs sm:text-sm">Total Income</span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">{formatCurrency(stats.income)}</p>
+          </div>
+          <div className="absolute -bottom-4 -right-4 w-24 h-24 sm:w-32 sm:h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-110 transition-transform" />
+        </Card>
+
+        <Card variant="mesh-pink" className="p-4 sm:p-6 relative overflow-hidden group">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3 text-white/80">
+              <div className="p-1 sm:p-1.5 bg-white/20 rounded-lg backdrop-blur-md">
+                <ArrowUpRight size={14} className="sm:w-4 sm:h-4" />
+              </div>
+              <span className="font-semibold text-xs sm:text-sm">Total Expense</span>
+            </div>
+            <p className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">{formatCurrency(stats.expenses)}</p>
+          </div>
+          <div className="absolute -bottom-4 -right-4 w-24 h-24 sm:w-32 sm:h-32 bg-white/20 rounded-full blur-2xl group-hover:scale-110 transition-transform" />
+        </Card>
+
+        <Card variant="default" className="p-4 sm:p-6 bg-white border-white/60 relative overflow-hidden">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3 text-gray-500">
+              <div className="p-1 sm:p-1.5 bg-gray-100 rounded-lg">
+                <TrendingUp size={14} className={cn("sm:w-4 sm:h-4", stats.netFlow >= 0 ? "text-emerald-500" : "text-red-500")} />
+              </div>
+              <span className="font-semibold text-xs sm:text-sm">Net Flow</span>
+            </div>
+            <p className={cn(
+              "text-2xl sm:text-3xl font-display font-bold tracking-tight",
+              stats.netFlow >= 0 ? "text-emerald-600" : "text-red-600"
+            )}>
+              {stats.netFlow > 0 ? '+' : ''}{formatCurrency(stats.netFlow)}
+            </p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search transactions..."
+            className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2 sm:py-3 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 text-xs sm:text-sm"
+          />
+        </div>
+        <div className="flex bg-gray-100/50 p-1 rounded-xl">
+          {(['all', 'income', 'expense'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilterType(type)}
+              className={cn(
+                "px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize",
+                filterType === type
+                  ? "bg-white text-black shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {type}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-green-600 p-6 rounded-xl text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp size={20} />
-            <p className="text-sm opacity-90">Total Income</p>
-          </div>
-          <p className="text-3xl font-bold">{formatCurrency(stats.income)}</p>
-        </div>
-        <div className="bg-red-600 p-6 rounded-xl text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingDown size={20} />
-            <p className="text-sm opacity-90">Total Expenses</p>
-          </div>
-          <p className="text-3xl font-bold">{formatCurrency(stats.expenses)}</p>
-        </div>
-        <div className={`${stats.netFlow >= 0 ? 'bg-blue-600' : 'bg-red-600'} p-6 rounded-xl text-white`}>
-          <div className="flex items-center gap-2 mb-2">
-            <Filter size={20} />
-            <p className="text-sm opacity-90">Net Flow</p>
-          </div>
-          <p className="text-3xl font-bold">{formatCurrency(stats.netFlow)}</p>
-        </div>
-      </div>
-
-      <div className="bg-white p-4 rounded-xl border border-gray-200">
-        <div className="flex items-center gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search transactions..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilterType('all')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filterType === 'all' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilterType('income')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filterType === 'income' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              Income
-            </button>
-            <button
-              onClick={() => setFilterType('expense')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filterType === 'expense' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              Expenses
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* Transaction List */}
+      <Card variant="glass" className="overflow-hidden !p-0 min-h-[400px]">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Account
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Account</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                <th className="w-16 sm:w-20"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredTransactions.map(transaction => {
+            <tbody className="divide-y divide-gray-50">
+              {filteredTransactions.map((transaction, i) => {
                 const account = accounts.find(a => a.id === transaction.accountId);
-                // Determine display type: for transfers, use subcategory to show Transfer In as income, Transfer Out as expense
-                const displayType = transaction.type === 'transfer' 
+                const displayType = transaction.type === 'transfer'
                   ? (transaction.subcategory === 'Transfer In' ? 'income' : 'expense')
                   : transaction.type;
+
                 return (
-                  <tr key={transaction.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(transaction.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          displayType === 'income' ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
-                          {displayType === 'income' ? (
-                            <TrendingUp className="text-green-600" size={16} />
-                          ) : (
-                            <TrendingDown className="text-red-600" size={16} />
-                          )}
+                  <motion.tr
+                    key={transaction.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02 }}
+                    className="group hover:bg-gray-50/80 transition-colors"
+                  >
+                    <td className="px-6 py-4 pl-8">
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "w-10 h-10 rounded-2xl flex items-center justify-center text-lg shadow-sm border border-white/50",
+                          displayType === 'income' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                        )}>
+                          {displayType === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
-                          {transaction.merchant && (
-                            <p className="text-xs text-gray-500">{transaction.merchant}</p>
-                          )}
+                          <p className="font-bold text-gray-900 text-sm">{transaction.description}</p>
+                          <p className="text-xs text-gray-400 font-medium">{new Date(transaction.date).toLocaleDateString()}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
                         {transaction.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-500">
                       {account?.name}
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold text-right ${
-                      displayType === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {displayType === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    <td className="px-6 py-4 text-right pr-8">
+                      <span className={cn(
+                        "font-bold text-sm",
+                        displayType === 'income' ? "text-emerald-600" : "text-gray-900"
+                      )}>
+                        {displayType === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-blue-600"
                           onClick={() => {
-                            // Store transaction ID in localStorage for edit page
                             localStorage.setItem('editTransactionId', transaction.id?.toString() || '');
                             setCurrentPage('add-transaction');
                           }}
-                          className="p-1.5 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="Edit"
                         >
-                          <Edit2 size={16} className="text-blue-600" />
-                        </button>
-                        <button
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-gray-400 hover:text-red-600"
                           onClick={() => handleDeleteTransaction(transaction.id!, transaction.description)}
-                          className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Delete"
                         >
-                          <Trash2 size={16} className="text-red-600" />
-                        </button>
+                          <Trash2 size={14} />
+                        </Button>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
-        {filteredTransactions.length === 0 && (
-          <div className="p-12 text-center">
-            <p className="text-gray-500">No transactions found</p>
-          </div>
-        )}
-      </div>
-
-      {/* Transaction Type Selection Modal */}
-      {showTransactionTypeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 w-full max-w-md">
-            <h3 className="text-xl font-bold mb-2">Add Transaction</h3>
-            <p className="text-gray-500 mb-6">Select transaction type</p>
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setShowTransactionTypeModal(false);
-                  localStorage.setItem('quickFormType', 'expense');
-                  setCurrentPage('add-transaction');
-                }}
-                className="w-full p-4 text-left border border-gray-200 rounded-lg hover:bg-blue-50 transition-colors"
-              >
-                <p className="font-semibold text-gray-900">Expense</p>
-                <p className="text-sm text-gray-500">Record money spent</p>
-              </button>
-              <button
-                onClick={() => {
-                  setShowTransactionTypeModal(false);
-                  localStorage.setItem('quickFormType', 'income');
-                  setCurrentPage('add-transaction');
-                }}
-                className="w-full p-4 text-left border border-gray-200 rounded-lg hover:bg-green-50 transition-colors"
-              >
-                <p className="font-semibold text-gray-900">Income</p>
-                <p className="text-sm text-gray-500">Record money received</p>
-              </button>
-              <button
-                onClick={() => {
-                  setShowTransactionTypeModal(false);
-                  setCurrentPage('transfer');
-                }}
-                className="w-full p-4 text-left border border-gray-200 rounded-lg hover:bg-purple-50 transition-colors"
-              >
-                <p className="font-semibold text-gray-900">Transfer</p>
-                <p className="text-sm text-gray-500">Move money between accounts</p>
-              </button>
+          {filteredTransactions.length === 0 && (
+            <div className="py-20 flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                <Search className="text-gray-300" size={32} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">No transactions found</h3>
+              <p className="text-gray-500 text-sm max-w-xs mt-1">Try adjusting your filters or search query to find what you're looking for.</p>
             </div>
-            <button
+          )}
+        </div>
+      </Card>
+
+      {/* Transaction Type Modal */}
+      {showTransactionTypeModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl border border-white/20"
+          >
+            <h3 className="text-2xl font-display font-bold mb-2">New Transaction</h3>
+            <p className="text-gray-500 mb-8">What kind of transaction is this?</p>
+
+            <div className="space-y-3">
+              {[
+                { type: 'expense', label: 'Expense', desc: 'Money spent', color: 'bg-rose-50 text-rose-700 hover:bg-rose-100', icon: ArrowDownLeft },
+                { type: 'income', label: 'Income', desc: 'Money received', color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', icon: ArrowUpRight },
+                { type: 'transfer', label: 'Transfer', desc: 'Move between accounts', color: 'bg-blue-50 text-blue-700 hover:bg-blue-100', icon: Repeat2 },
+              ].map((opt) => (
+                <button
+                  key={opt.type}
+                  onClick={() => {
+                    setShowTransactionTypeModal(false);
+                    if (opt.type === 'transfer') {
+                      // Always open the Transfer page
+                      setCurrentPage('transfer');
+                    } else {
+                      localStorage.setItem('quickFormType', opt.type);
+                      setCurrentPage('add-transaction');
+                    }
+                  }}
+                  className={cn(
+                    "w-full p-4 flex items-center gap-4 rounded-2xl transition-all border border-transparent hover:scale-[1.02]",
+                    opt.color
+                  )}
+                >
+                  <div className="w-12 h-12 bg-white/60 rounded-xl flex items-center justify-center shadow-sm">
+                    <opt.icon size={24} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-lg">{opt.label}</p>
+                    <p className="text-sm opacity-80 font-medium">{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant="ghost"
+              className="w-full mt-6 rounded-xl hover:bg-gray-100"
               onClick={() => setShowTransactionTypeModal(false)}
-              className="w-full mt-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
-            </button>
-          </div>
+            </Button>
+          </motion.div>
         </div>
       )}
 
@@ -336,14 +356,9 @@ export const Transactions: React.FC = () => {
       <ReceiptScanner
         isOpen={showScanModal}
         onClose={() => setShowScanModal(false)}
-        onTransactionCreated={() => {
-          // Optionally refresh or navigate
-          setShowScanModal(false);
-        }}
+        onTransactionCreated={() => setShowScanModal(false)}
       />
-
-      </div>
-    </CenteredLayout>
+    </div>
   );
 };
 
@@ -370,7 +385,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const account = accounts.find(a => a.id === formData.accountId);
     if (!account) {
       toast.error('Please select an account');
@@ -413,22 +428,20 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'expense', category: CATEGORIES.expense[0] })}
-                className={`flex-1 py-2 rounded-lg border-2 transition-colors ${
-                  formData.type === 'expense'
-                    ? 'border-red-500 bg-red-50 text-red-700'
-                    : 'border-gray-200 text-gray-600'
-                }`}
+                className={`flex-1 py-2 rounded-lg border-2 transition-colors ${formData.type === 'expense'
+                  ? 'border-red-500 bg-red-50 text-red-700'
+                  : 'border-gray-200 text-gray-600'
+                  }`}
               >
                 Expense
               </button>
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'income', category: CATEGORIES.income[0] })}
-                className={`flex-1 py-2 rounded-lg border-2 transition-colors ${
-                  formData.type === 'income'
-                    ? 'border-green-500 bg-green-50 text-green-700'
-                    : 'border-gray-200 text-gray-600'
-                }`}
+                className={`flex-1 py-2 rounded-lg border-2 transition-colors ${formData.type === 'income'
+                  ? 'border-green-500 bg-green-50 text-green-700'
+                  : 'border-gray-200 text-gray-600'
+                  }`}
               >
                 Income
               </button>
@@ -442,7 +455,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               step="0.01"
               value={formData.amount || ''}
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
               required
             />
           </div>
@@ -452,7 +465,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
             <select
               value={formData.accountId}
               onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
               required
             >
               {accounts.map(account => (
@@ -466,7 +479,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
               required
             >
               {CATEGORIES[formData.type].map(cat => (
@@ -481,7 +494,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               <select
                 value={formData.subcategory}
                 onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
               >
                 <option value="">Select a subcategory</option>
                 {subcategories.map(subcat => (
@@ -497,7 +510,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
               placeholder="e.g., Grocery shopping"
               required
             />
@@ -509,7 +522,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               type="text"
               value={formData.merchant}
               onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
               placeholder="e.g., Walmart"
             />
           </div>
@@ -520,7 +533,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               type="date"
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
               required
             />
           </div>
@@ -529,13 +542,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
             >
               Add Transaction
             </button>
@@ -560,7 +573,7 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
     if (!file) return;
 
     setIsScanning(true);
-    
+
     // Simulate OCR scanning
     setTimeout(() => {
       setScannedData({
@@ -614,7 +627,7 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-md">
         <h3 className="text-xl font-bold mb-4">Scan Bill</h3>
-        
+
         {!scannedData && !isScanning && (
           <div className="space-y-4">
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -670,13 +683,13 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
             <div className="flex gap-3 pt-4">
               <button
                 onClick={() => setScannedData(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
               >
                 Scan Again
               </button>
               <button
                 onClick={handleSaveScanned}
-                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="flex-1 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
               >
                 Save Transaction
               </button>
@@ -687,7 +700,7 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
         {!isScanning && (
           <button
             onClick={onClose}
-            className="w-full mt-4 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="w-full mt-4 px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
           >
             Cancel
           </button>

@@ -46,7 +46,7 @@ export const BookAdvisor: React.FC = () => {
 
   // Query all available advisors from database
   const advisors = useLiveQuery(
-    () => db.financeAdvisors.where('availability').equals(true).and((advisor) => advisor.verified).toArray(),
+    () => db.financeAdvisors.toArray(),
     []
   ) || [];
 
@@ -157,8 +157,8 @@ export const BookAdvisor: React.FC = () => {
 
         {/* My Active Bookings */}
         {userBookings.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
+            <h3 className="font-semibold text-green-900 mb-4 flex items-center gap-2 text-lg">
               <Calendar size={20} />
               Your Bookings
             </h3>
@@ -166,10 +166,10 @@ export const BookAdvisor: React.FC = () => {
               {userBookings.map((booking) => (
                 <div
                   key={booking.id}
-                  className="bg-white rounded-lg px-4 py-3 border border-blue-100"
+                  className="bg-white rounded-xl px-4 py-4 border border-green-100 hover:border-green-200 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium text-gray-900">{booking.advisorName}</p>
+                    <p className="font-semibold text-gray-900">{booking.advisorName}</p>
                     {getStatusBadge(booking.status)}
                   </div>
                   <div className="text-sm text-gray-600 space-y-1">
@@ -198,28 +198,28 @@ export const BookAdvisor: React.FC = () => {
         <div>
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Advisors</h3>
           {advisors.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <Users size={48} className="mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-600">No advisors available at the moment</p>
+            <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
+              <Users size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-600 font-medium">No advisors available at the moment</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {advisors.map((advisor) => (
                 <div
                   key={advisor.id}
-                  className="bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all p-6"
+                  className="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all p-6"
                 >
                   {/* Profile Header */}
                   <div className="flex items-start gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white text-2xl font-bold">
                       {advisor.name.charAt(0)}
                     </div>
                     <div className="flex-1">
                       <h4 className="text-lg font-semibold text-gray-900">{advisor.name}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex items-center gap-1">
-                          <Star size={16} className="text-yellow-500 fill-current" />
-                          <span className="font-medium text-gray-900">{advisor.rating.toFixed(1)}</span>
+                          <Star size={16} className="text-amber-500 fill-current" />
+                          <span className="font-semibold text-gray-900">{advisor.rating.toFixed(1)}</span>
                           <span className="text-sm text-gray-500">({advisor.totalReviews} reviews)</span>
                         </div>
                       </div>
@@ -233,14 +233,14 @@ export const BookAdvisor: React.FC = () => {
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="bg-gray-50 rounded-xl p-3">
                       <div className="flex items-center gap-2 text-gray-600 mb-1">
                         <Briefcase size={14} />
                         <span className="text-xs font-medium">Experience</span>
                       </div>
                       <p className="font-semibold text-gray-900">{advisor.experience} years</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
+                    <div className="bg-gray-50 rounded-xl p-3">
                       <div className="flex items-center gap-2 text-gray-600 mb-1">
                         <Users size={14} />
                         <span className="text-xs font-medium">Clients</span>
@@ -259,7 +259,7 @@ export const BookAdvisor: React.FC = () => {
                       {advisor.specialization.slice(0, 3).map((spec, idx) => (
                         <span
                           key={idx}
-                          className="text-xs font-medium px-3 py-1 bg-blue-50 text-blue-700 rounded-full"
+                          className="text-xs font-medium px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
                         >
                           {spec}
                         </span>
@@ -280,7 +280,7 @@ export const BookAdvisor: React.FC = () => {
                           href={advisor.socialLinks.linkedin}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 transition-colors"
+                          className="text-gray-400 hover:text-gray-900 transition-colors"
                         >
                           <Linkedin size={18} />
                         </a>
@@ -290,7 +290,7 @@ export const BookAdvisor: React.FC = () => {
                           href={advisor.socialLinks.twitter}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-400 hover:text-blue-500 transition-colors"
+                          className="text-gray-400 hover:text-gray-900 transition-colors"
                         >
                           <Twitter size={18} />
                         </a>
@@ -300,7 +300,7 @@ export const BookAdvisor: React.FC = () => {
                           href={advisor.socialLinks.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-600 hover:text-gray-700 transition-colors"
+                          className="text-gray-400 hover:text-gray-900 transition-colors"
                         >
                           <Globe size={18} />
                         </a>
@@ -313,7 +313,7 @@ export const BookAdvisor: React.FC = () => {
                     <p className="font-semibold text-gray-900">₹{advisor.hourlyRate}/hour</p>
                     <button
                       onClick={() => handleSelectAdvisor(advisor)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
                     >
                       Book Session
                     </button>
@@ -326,8 +326,8 @@ export const BookAdvisor: React.FC = () => {
 
         {/* Booking Modal */}
         {showBookingModal && selectedAdvisor && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-xl font-bold text-gray-900">Book Session with {selectedAdvisor.name}</h3>
                 <p className="text-sm text-gray-600 mt-1">Fill in the details below to request a booking</p>
@@ -336,7 +336,7 @@ export const BookAdvisor: React.FC = () => {
               <div className="p-6 space-y-4">
                 {/* Session Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
                     Session Type
                   </label>
                   <div className="grid grid-cols-3 gap-3">
@@ -351,7 +351,7 @@ export const BookAdvisor: React.FC = () => {
                         }
                         className={`p-3 rounded-lg border-2 capitalize font-medium transition-all ${
                           bookingForm.sessionType === type
-                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                            ? 'border-black bg-gray-100 text-gray-900'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                         }`}
                       >
@@ -376,7 +376,7 @@ export const BookAdvisor: React.FC = () => {
                       }))
                     }
                     placeholder="e.g., Tax planning for 2026"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   />
                 </div>
 
@@ -396,7 +396,7 @@ export const BookAdvisor: React.FC = () => {
                         }))
                       }
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                     />
                   </div>
                   <div>
@@ -412,7 +412,7 @@ export const BookAdvisor: React.FC = () => {
                           preferredTime: e.target.value,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                     />
                   </div>
                 </div>
@@ -432,16 +432,16 @@ export const BookAdvisor: React.FC = () => {
                     }
                     placeholder="Any additional information or questions for the advisor..."
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   />
                 </div>
 
                 {/* Pricing Info */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <p className="text-sm text-gray-900 font-medium">
                     <span className="font-semibold">Rate:</span> ₹{selectedAdvisor.hourlyRate}/hour
                   </p>
-                  <p className="text-xs text-blue-700 mt-1">
+                  <p className="text-xs text-gray-600 mt-1">
                     Final pricing will be confirmed by the advisor based on session duration
                   </p>
                 </div>
@@ -453,14 +453,14 @@ export const BookAdvisor: React.FC = () => {
                     setShowBookingModal(false);
                     setSelectedAdvisor(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  className="px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmitBooking}
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 font-medium"
+                  className="px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 disabled:bg-gray-300 font-medium"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Request'}
                 </button>

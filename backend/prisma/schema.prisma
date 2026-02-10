@@ -6,27 +6,43 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id    String     @id @default(cuid())
-  email String     @unique
-  name  String
-  password String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String     @id @default(cuid())
+  email      String     @unique
+  name       String
+  password   String
+  role       String     @default("user")   // admin, advisor, user
+  isApproved Boolean    @default(false)    // For advisor requests
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
 
   // Relations
-  refreshTokens RefreshToken[]
-  todos         Todo[]
-  transactions  Transaction[]
-  accounts      Account[]
-  goals         Goal[]
-  loans         Loan[]
-  investments   Investment[]
-  settings      UserSettings[]
+  refreshTokens        RefreshToken[]
+  todos                Todo[]
+  transactions         Transaction[]
+  accounts             Account[]
+  goals                Goal[]
+  loans                Loan[]
+  investments          Investment[]
+  settings             UserSettings[]
+  
+  // Advisor relations
+  bookingsAsAdvisor     BookingRequest[]  @relation("AdvisorBookings")
+  bookingsAsClient      BookingRequest[]  @relation("ClientBookings")
+  sessionsAsAdvisor     AdvisorSession[]  @relation("AdvisorSessions")
+  sessionsAsClient      AdvisorSession[]  @relation("ClientSessions")
+  sentMessages          ChatMessage[]
+  advisorAvailability   AdvisorAvailability[]
+  payments              Payment[] @relation("PaymentClient")
+  advisorPayments       Payment[] @relation("PaymentAdvisor")
+  notifications         Notification[]
+
+  @@index([role])
+  @@index([isApproved])
 }
 
 model RefreshToken {
@@ -89,7 +105,7 @@ model Transaction {
   description          String?
   merchant             String?
   date                 DateTime
-  tags                 String[] // stored as array
+  tags                 String? // stored as comma-separated string
   attachment           String?
   transferToAccountId  String?
   transferType         String?  // self-transfer, other-transfer
@@ -209,4 +225,137 @@ model UserSettings {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// Advisor Booking Models
+
+model BookingRequest {
+  id           String   @id @default(cuid())
+  clientId     String
+  advisorId    String
+  sessionType  String          // video, phone, chat, inperson
+  description  String?
+  proposedDate DateTime
+  proposedTime String          // HH:mm format
+  duration     Int             // minutes
+  amount       Float
+  status       String   @default("pending") // pending, accepted, rejected, completed, cancelled
+  rejectionReason String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  client   User            @relation("ClientBookings", fields: [clientId], references: [id], onDelete: Cascade)
+  advisor  User            @relation("AdvisorBookings", fields: [advisorId], references: [id], onDelete: Cascade)
+  session  AdvisorSession?
+
+  @@index([clientId])
+  @@index([advisorId])
+  @@index([status])
+  @@index([proposedDate])
+}
+
+model AdvisorSession {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  advisorId  String
+  clientId   String
+  startTime  DateTime
+  endTime    DateTime?
+  sessionType String        // video, phone, chat, inperson
+  status     String   @default("scheduled") // scheduled, in-progress, completed, cancelled
+  notes      String?
+  rating     Float?        // 1-5 stars
+  feedback   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  booking      BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  advisor      User           @relation("AdvisorSessions", fields: [advisorId], references: [id], onDelete: Cascade)
+  client       User           @relation("ClientSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  chatMessages ChatMessage[]
+  payment      Payment?
+
+  @@index([advisorId])
+  @@index([clientId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  senderId  String
+  message   String
+  timestamp DateTime @default(now())
+
+  // Relations
+  session AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender  User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([senderId])
+  @@index([timestamp])
+}
+
+model AdvisorAvailability {
+  id        String   @id @default(cuid())
+  advisorId String
+  dayOfWeek Int      // 0 = Sunday, 6 = Saturday
+  startTime String   // HH:mm
+  endTime   String   // HH:mm
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  advisor User @relation(fields: [advisorId], references: [id], onDelete: Cascade)
+
+  @@index([advisorId])
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  sessionId      String   @unique
+  clientId       String
+  advisorId      String
+  amount         Float
+  currency       String   @default("USD")
+  status         String   @default("pending") // pending, completed, failed, refunded
+  paymentMethod  String?  // stripe, razorpay, bank_transfer
+  transactionId  String?  // External payment gateway ID
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  session AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  client  User           @relation("PaymentClient", fields: [clientId], references: [id], onDelete: Cascade)
+  advisor User           @relation("PaymentAdvisor", fields: [advisorId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([advisorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  title      String
+  message    String
+  type       String   @default("info") // info, warning, error, success
+  category   String?  // booking, payment, session, system
+  deepLink   String?  // URL to navigate to when clicked
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  readAt     DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }

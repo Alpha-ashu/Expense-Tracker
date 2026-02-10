@@ -1,8 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Calendar, Download } from 'lucide-react';
+import { Calendar, Download, TrendingUp } from 'lucide-react';
+import { Card } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+import { motion } from 'framer-motion';
 
 export const Reports: React.FC = () => {
   const { transactions, accounts, loans, goals, investments, currency } = useApp();
@@ -87,141 +90,141 @@ export const Reports: React.FC = () => {
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Reports & Analytics</h2>
-          <p className="text-gray-500 mt-1">Insights into your financial health</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
-            {(['7d', '30d', '90d', '1y'] as const).map((range) => (
-              <button
-                key={range}
-                onClick={() => setTimeRange(range)}
-                className={`px-3 py-1 rounded text-sm transition-colors ${
-                  timeRange === range
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {range === '1y' ? '1 Year' : range.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Download size={20} />
-            Export
-          </button>
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+      <PageHeader
+        title="Reports & Analytics"
+        subtitle="Insights into your financial health"
+        icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
+      >
+        <Button className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm">
+          <Download size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Export</span>
+        </Button>
+      </PageHeader>
+
+      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
+        <div className="flex items-center gap-1 sm:gap-2 bg-white border-2 border-gray-200 rounded-full p-1 shadow-sm flex-shrink-0">
+          {(['7d', '30d', '90d', '1y'] as const).map((range) => (
+            <button
+              key={range}
+              onClick={() => setTimeRange(range)}
+              className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                timeRange === range
+                  ? 'bg-black text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              {range === '1y' ? '1Y' : range === '7d' ? '7D' : range === '30d' ? '30D' : '90D'}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <p className="text-sm text-gray-500 mb-2">Total Income</p>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(summaryStats.totalIncome)}</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <p className="text-sm text-gray-500 mb-2">Total Expenses</p>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(summaryStats.totalExpenses)}</p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <p className="text-sm text-gray-500 mb-2">Net Savings</p>
-          <p className={`text-2xl font-bold ${summaryStats.netSavings >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-            {formatCurrency(summaryStats.netSavings)}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <p className="text-sm text-gray-500 mb-2">Savings Rate</p>
-          <p className={`text-2xl font-bold ${summaryStats.savingsRate >= 20 ? 'text-green-600' : 'text-orange-600'}`}>
-            {summaryStats.savingsRate.toFixed(1)}%
-          </p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card variant="glass" className="p-4 sm:p-6">
+            <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Income</p>
+            <p className="text-xl sm:text-2xl font-display font-bold text-green-600">{formatCurrency(summaryStats.totalIncome)}</p>
+          </Card>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card variant="glass" className="p-4 sm:p-6">
+            <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Expenses</p>
+            <p className="text-xl sm:text-2xl font-display font-bold text-red-600">{formatCurrency(summaryStats.totalExpenses)}</p>
+          </Card>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <Card variant="glass" className="p-4 sm:p-6">
+            <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Net Savings</p>
+            <p className={`text-xl sm:text-2xl font-display font-bold ${summaryStats.netSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(summaryStats.netSavings)}
+            </p>
+          </Card>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Card variant="glass" className="p-4 sm:p-6">
+            <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Savings Rate</p>
+            <p className={`text-xl sm:text-2xl font-display font-bold ${summaryStats.savingsRate >= 20 ? 'text-green-600' : 'text-orange-600'}`}>
+              {summaryStats.savingsRate.toFixed(1)}%
+            </p>
+          </Card>
+        </motion.div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Cash Flow Trend</h3>
+      <Card variant="glass" className="p-6">
+        <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Cash Flow Trend</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={cashFlowData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="date" stroke="#9ca3af" />
+            <YAxis stroke="#9ca3af" />
             <Tooltip formatter={(value) => formatCurrency(Number(value))} />
             <Legend />
             <Line type="monotone" dataKey="income" stroke="#10B981" strokeWidth={2} name="Income" />
             <Line type="monotone" dataKey="expense" stroke="#EF4444" strokeWidth={2} name="Expenses" />
-            <Line type="monotone" dataKey="net" stroke="#3B82F6" strokeWidth={2} name="Net" />
+            <Line type="monotone" dataKey="net" stroke="#000000" strokeWidth={2} name="Net" />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">Top Expense Categories</h3>
+        <Card variant="glass" className="p-6">
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Top Expense Categories</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={categoryBreakdown}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} stroke="#9ca3af" />
+              <YAxis stroke="#9ca3af" />
               <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Bar dataKey="value" fill="#3B82F6" name="Amount" />
+              <Bar dataKey="value" fill="#000000" name="Amount" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Card>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-200">
-          <h3 className="text-lg font-semibold mb-4">Financial Summary</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-500">Total Active Debt</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(summaryStats.totalDebt)}</p>
-              </div>
+        <Card variant="glass" className="p-6">
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Financial Summary</h3>
+          <div className="space-y-3">
+            <div className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Active Debt</p>
+              <p className="text-xl font-display font-bold text-gray-900 mt-1">{formatCurrency(summaryStats.totalDebt)}</p>
             </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-500">Goals Progress</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(summaryStats.totalGoalsProgress)}</p>
-              </div>
+            <div className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Goals Progress</p>
+              <p className="text-xl font-display font-bold text-gray-900 mt-1">{formatCurrency(summaryStats.totalGoalsProgress)}</p>
             </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-500">Total Invested</p>
-                <p className="text-xl font-bold text-gray-900">{formatCurrency(summaryStats.totalInvested)}</p>
-              </div>
+            <div className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Invested</p>
+              <p className="text-xl font-display font-bold text-gray-900 mt-1">{formatCurrency(summaryStats.totalInvested)}</p>
             </div>
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div>
-                <p className="text-sm text-blue-600">Net Worth</p>
-                <p className="text-xl font-bold text-blue-700">
-                  {formatCurrency(
-                    accounts.reduce((sum, a) => sum + a.balance, 0) +
-                    summaryStats.totalGoalsProgress +
-                    summaryStats.totalInvested -
-                    summaryStats.totalDebt
-                  )}
-                </p>
-              </div>
+            <div className="p-4 bg-black/5 rounded-xl border-2 border-black/10">
+              <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Net Worth</p>
+              <p className="text-xl font-display font-bold text-gray-900 mt-1">
+                {formatCurrency(
+                  accounts.reduce((sum, a) => sum + a.balance, 0) +
+                  summaryStats.totalGoalsProgress +
+                  summaryStats.totalInvested -
+                  summaryStats.totalDebt
+                )}
+              </p>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-200">
-        <h3 className="text-lg font-semibold mb-4">Expense Breakdown</h3>
-        <div className="space-y-2">
+      <Card variant="glass" className="p-6">
+        <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Expense Breakdown</h3>
+        <div className="space-y-3">
           {categoryBreakdown.map((cat) => {
             const percentage = (cat.value / summaryStats.totalExpenses) * 100;
             return (
               <div key={cat.name}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-700">{cat.name}</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(cat.value)} ({percentage.toFixed(1)}%)</span>
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="font-medium text-gray-700">{cat.name}</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(cat.value)} ({percentage.toFixed(1)}%)</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    className="bg-black h-2.5 rounded-full transition-all"
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
@@ -229,8 +232,7 @@ export const Reports: React.FC = () => {
             );
           })}
         </div>
-      </div>
-      </div>
-    </CenteredLayout>
+      </Card>
+    </div>
   );
 };

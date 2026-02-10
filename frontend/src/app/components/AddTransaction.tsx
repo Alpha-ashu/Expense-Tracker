@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ChevronLeft, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 import { BillUpload } from '@/app/components/BillUpload';
+import { Card } from '@/app/components/ui/card';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+import { motion } from 'framer-motion';
 
 const CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
@@ -98,178 +101,179 @@ export const AddTransaction: React.FC = () => {
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setCurrentPage('transactions')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Plus className="text-blue-600" size={28} />
-            Add Transaction
-          </h2>
-          <p className="text-gray-500 mt-1">Record a new income or expense</p>
+    <div className="w-full min-h-screen bg-gray-50 pb-32 lg:pb-8">
+      <div className="max-w-2xl mx-auto px-4 lg:px-0">
+        {/* Header */}
+        <div className="pt-6 lg:pt-10">
+          <PageHeader
+            title="Add Transaction"
+            subtitle="Record a new income or expense"
+            icon={formData.type === 'income' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+          />
         </div>
-      </div>
 
-      {/* Form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Form Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 space-y-6"
+        >
           {/* Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Transaction Type *</label>
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'expense', category: CATEGORIES.expense[0] })}
-                className={`flex-1 py-3 rounded-lg border-2 transition-colors font-medium ${
-                  formData.type === 'expense'
-                    ? 'border-red-500 bg-red-50 text-red-700'
-                    : 'border-gray-300 text-gray-600 hover:border-red-300'
-                }`}
-              >
-                💸 Expense
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'income', category: CATEGORIES.income[0] })}
-                className={`flex-1 py-3 rounded-lg border-2 transition-colors font-medium ${
-                  formData.type === 'income'
-                    ? 'border-green-500 bg-green-50 text-green-700'
-                    : 'border-gray-300 text-gray-600 hover:border-green-300'
-                }`}
-              >
-                💰 Income
-              </button>
-            </div>
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
-            <div className="flex items-center">
-              <span className="text-gray-600 mr-3 text-lg">{currency}</span>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.amount || ''}
-                onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0.00"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Account */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Account *</label>
-            <select
-              value={formData.accountId}
-              onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select an account</option>
-              {accounts.map(account => (
-                <option key={account.id} value={account.id}>{account.name} ({currency} {account.balance.toFixed(2)})</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              {CATEGORIES[formData.type].map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Subcategory */}
-          {subcategories.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Subcategory</label>
-              <select
-                value={formData.subcategory}
-                onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a subcategory</option>
-                {subcategories.map(subcat => (
-                  <option key={subcat} value={subcat}>{subcat}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Grocery shopping at Whole Foods"
-              required
-            />
-          </div>
-
-          {/* Merchant */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Merchant (Optional)</label>
-            <input
-              type="text"
-              value={formData.merchant}
-              onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Whole Foods, Amazon, etc."
-            />
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-4 pt-6">
-            <button
+          <div className="grid grid-cols-2 gap-4">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="button"
-              onClick={() => setCurrentPage('transactions')}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              onClick={() => setFormData({ ...formData, type: 'expense', category: CATEGORIES.expense[0] })}
+              className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${
+                formData.type === 'expense'
+                  ? 'bg-red-50 border-red-300 text-red-700 shadow-lg'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-red-200'
+              }`}
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              <div className="text-2xl mb-1">📉</div>
+              Expense
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => setFormData({ ...formData, type: 'income', category: CATEGORIES.income[0] })}
+              className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${
+                formData.type === 'income'
+                  ? 'bg-green-50 border-green-300 text-green-700 shadow-lg'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-green-200'
+              }`}
             >
-              Add Transaction
-            </button>
+              <div className="text-2xl mb-1">📈</div>
+              Income
+            </motion.button>
           </div>
-        </form>
+
+          <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Amount *</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">{currency}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.amount || ''}
+                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-lg font-semibold"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Account */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Account *</label>
+                <select
+                  value={formData.accountId}
+                  onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  required
+                >
+                  <option value="">Select an account</option>
+                  {accounts.map(account => (
+                    <option key={account.id} value={account.id}>{account.name} ({currency} {account.balance.toFixed(2)})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  required
+                >
+                  {CATEGORIES[formData.type].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subcategory */}
+              {subcategories.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-3">Subcategory</label>
+                  <select
+                    value={formData.subcategory}
+                    onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  >
+                    <option value="">Select a subcategory</option>
+                    {subcategories.map(subcat => (
+                      <option key={subcat} value={subcat}>{subcat}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Description *</label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  placeholder="e.g., Grocery shopping"
+                  required
+                />
+              </div>
+
+              {/* Merchant */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Merchant (Optional)</label>
+                <input
+                  type="text"
+                  value={formData.merchant}
+                  onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  placeholder="e.g., Whole Foods"
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Date *</label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  required
+                />
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-6">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('transactions')}
+                  className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700 bg-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-black hover:bg-gray-900 text-white rounded-xl transition-colors font-semibold shadow-lg"
+                >
+                  Add Transaction
+                </button>
+              </div>
+            </form>
+          </Card>
+        </motion.div>
       </div>
-      </div>
-    </CenteredLayout>
+    </div>
   );
 };

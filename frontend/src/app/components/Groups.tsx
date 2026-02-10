@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { Plus, Users, DollarSign, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Plus, Users, Trash2, Edit2, Check, X } from 'lucide-react';
+import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
@@ -82,24 +83,24 @@ export const Groups: React.FC = () => {
     }
   };
 
-  return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Group Expenses</h2>
-            <p className="text-gray-500 mt-1">Split bills fairly with friends</p>
-          </div>
-        <button
-          onClick={() => setCurrentPage('add-group')}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={20} />
-          Add Group Expense
-        </button>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  return (
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+      <PageHeader
+        title="Group Expenses"
+        subtitle="Split bills fairly with friends"
+        icon={<Users size={20} className="sm:w-6 sm:h-6" />}
+      >
+        <Button
+          onClick={() => setCurrentPage('add-group')}
+          className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+        >
+          <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+          Add Group
+        </Button>
+      </PageHeader>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {groupExpenses.map(expense => {
           const totalPaid = expense.members.filter(m => m.paid).reduce((sum, m) => sum + m.share, 0);
           const totalUnpaid = expense.totalAmount - totalPaid;
@@ -185,9 +186,11 @@ export const Groups: React.FC = () => {
                     title="Click to toggle payment status"
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                        member.paid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                      }`}>
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                          member.paid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                        }`}
+                      >
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
@@ -246,6 +249,6 @@ export const Groups: React.FC = () => {
       />
 
       </div>
-    </CenteredLayout>
+    </div>
   );
 };

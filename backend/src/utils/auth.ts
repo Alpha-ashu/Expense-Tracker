@@ -1,7 +1,7 @@
-import { SignJWT, jwtVerify } from 'jose';
+import jwt from 'jsonwebtoken';
 import { AuthTokens } from '../modules/auth/auth.types';
 
-const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret');
+const secret = process.env.JWT_SECRET || 'fallback-secret';
 
 // API Keys and Credentials
 export const getApiKey = (key: string): string | undefined => {
@@ -32,21 +32,52 @@ export const getSendGridApiKey = (): string | undefined => {
   return getApiKey('SENDGRID_API_KEY');
 };
 
-export const generateTokens = async (userId: string): Promise<AuthTokens> => {
-  const accessToken = await new SignJWT({ userId })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('15m')
-    .sign(secret);
+export const generateTokens = (user: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  isApproved: boolean;
+}): AuthTokens => {
+  const accessToken = jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      isApproved: user.isApproved,
+    },
+    secret,
+    { expiresIn: '15m' }
+  );
 
-  const refreshToken = await new SignJWT({ userId })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('7d')
-    .sign(secret);
+  const refreshToken = jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      isApproved: user.isApproved,
+    },
+    secret,
+    { expiresIn: '7d' }
+  );
 
-  return { accessToken, refreshToken };
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isApproved: user.isApproved,
+    },
+  };
 };
 
-export const verifyToken = async (token: string): Promise<{ userId: string }> => {
-  const { payload } = await jwtVerify(token, secret);
-  return payload as { userId: string };
+export const verifyToken = (token: string): any => {
+  try {
+    return jwt.verify(token, secret);
+  } catch (error) {
+    throw new Error('Invalid token');
+  }
 };

@@ -1,141 +1,87 @@
 import React from 'react';
-import {
-  LayoutDashboard,
-  Wallet,
-  Receipt,
-  CreditCard,
-  Target,
-  Users,
-  TrendingUp,
-  BarChart3,
-  Settings,
-  Calculator,
-  ArrowRightLeft,
-  CalendarDays,
-  BookOpen,
-  Zap,
-  BriefcaseIcon,
-  MessageSquare,
-  Download,
-} from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-
-const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'accounts', label: 'Accounts', icon: Wallet },
-  { id: 'transactions', label: 'Transactions', icon: Receipt },
-  { id: 'loans', label: 'Loans & EMIs', icon: CreditCard },
-  { id: 'goals', label: 'Goals', icon: Target },
-  { id: 'groups', label: 'Group Expenses', icon: Users },
-  { id: 'investments', label: 'Investments', icon: TrendingUp },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
-  { id: 'export-reports', label: 'Export & Reports', icon: Download },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-  { id: 'todo-lists', label: 'To-Do Lists', icon: BookOpen },
-  { id: 'tax-calculator', label: 'Tax Calculator', icon: Calculator },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
+import { sidebarMenuItems } from '@/app/constants/navigation';
 
 export const Sidebar: React.FC = () => {
-  const { currentPage, setCurrentPage, visibleFeatures } = useApp();
+  const { currentPage, setCurrentPage } = useApp();
   const { role } = useAuth();
 
-  const filteredMenuItems = menuItems.filter(item => {
-    const featureMap: Record<string, string> = {
-      'accounts': 'accounts',
-      'transactions': 'transactions',
-      'loans': 'loans',
-      'goals': 'goals',
-      'groups': 'groups',
-      'investments': 'investments',
-      'reports': 'reports',
-      'export-reports': 'reports',
-      'calendar': 'calendar',
-      'todo-lists': 'todoLists',
-      'transfer': 'transfer',
-      'tax-calculator': 'taxCalculator',
-      'settings': 'settings',
-    };
-    const featureKey = featureMap[item.id];
-    if (item.id === 'dashboard' || item.id === 'settings') return true;
-    return visibleFeatures[featureKey] !== false;
+  // Filter menu items based on RBAC
+  const visibleMenuItems = sidebarMenuItems.filter(item => {
+    // If item has role restrictions, only show if user has that role
+    if (item.roles && item.roles.length > 0) {
+      return item.roles.includes(role);
+    }
+    // Otherwise show to everyone
+    return true;
   });
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-screen flex flex-col">
-      <div className="p-4 sm:p-6 border-b border-gray-200">
-        <h1 className="text-2xl font-bold text-blue-600">FinanceLife</h1>
-        <p className="text-sm text-gray-500 mt-1">Your Financial OS</p>
-      </div>
-      
-      <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
-        {role === 'admin' && (
-          <button
-            onClick={() => setCurrentPage('admin')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentPage === 'admin'
-                ? 'bg-yellow-50 text-yellow-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Zap size={20} />
-            <span className="font-medium">Admin</span>
-          </button>
-        )}
-        {role === 'advisor' && (
-          <button
-            onClick={() => setCurrentPage('advisor')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentPage === 'advisor'
-                ? 'bg-purple-50 text-purple-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <BriefcaseIcon size={20} />
-            <span className="font-medium">Your Workspace</span>
-          </button>
-        )}
-        {role === 'user' && (
-          <button
-            onClick={() => setCurrentPage('book-advisor')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentPage === 'book-advisor'
-                ? 'bg-emerald-50 text-emerald-600'
-                : 'text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <MessageSquare size={20} />
-            <span className="font-medium">Book Advisor</span>
-          </button>
-        )}
-        {filteredMenuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentPage(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <Icon size={20} />
-              <span className="font-medium">{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+    <motion.div
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      className="h-full py-6 pl-4 pr-2 flex flex-col z-50"
+    >
+      <div className="flex-1 bg-white/80 backdrop-blur-xl border border-white/20 shadow-floating rounded-[30px] flex flex-col items-center py-6 w-24">
+        <div className="mb-8">
+          <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-xl font-display">V</span>
+          </div>
+        </div>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="bg-blue-600 p-4 rounded-lg text-white">
-          <p className="text-sm font-medium">Privacy First</p>
-          <p className="text-xs mt-1">Your data stays on your device</p>
+        <nav className="flex-1 w-full px-4 space-y-4 flex flex-col items-center overflow-y-auto scrollbar-hide">
+          <TooltipProvider delayDuration={0}>
+            {visibleMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.id;
+
+              return (
+                <Tooltip key={item.id}>
+                  <TooltipTrigger asChild>
+                    <motion.button
+                      onClick={() => setCurrentPage(item.id)}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className={cn(
+                        "w-12 h-12 flex items-center justify-center rounded-2xl transition-all relative group",
+                        isActive
+                          ? "bg-black text-white shadow-lg"
+                          : "text-gray-400 hover:bg-gray-100 hover:text-gray-900"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="absolute inset-0 bg-black rounded-2xl z-0"
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        />
+                      )}
+                      <Icon size={24} className="relative z-10" />
+                    </motion.button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="font-medium bg-black text-white border-none ml-2">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </TooltipProvider>
+        </nav>
+
+        <div className="mt-auto px-4">
+          <button
+            onClick={() => setCurrentPage('settings')}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all"
+          >
+            <Settings size={24} />
+          </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };

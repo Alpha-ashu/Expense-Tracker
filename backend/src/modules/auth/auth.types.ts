@@ -2,6 +2,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  role: string;
+  isApproved: boolean;
   createdAt: Date;
 }
 
@@ -9,6 +11,7 @@ export interface RegisterInput {
   email: string;
   name: string;
   password: string;
+  role?: 'user' | 'advisor'; // Default is 'user'
 }
 
 export interface LoginInput {
@@ -19,4 +22,11 @@ export interface LoginInput {
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    isApproved: boolean;
+  };
 }
