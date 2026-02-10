@@ -13,10 +13,6 @@
       "src": "backend/src/server.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": [
-          "backend/dist/**",
-          "backend/node_modules/**"
-        ],
         "maxDuration": 30
       }
     }
