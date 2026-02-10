@@ -21,6 +21,7 @@ export interface Friend {
   avatar?: string;
   notes?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 export interface Transaction {
