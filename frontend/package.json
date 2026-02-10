@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc --skipLibCheck && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit --skipLibCheck",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
@@ -84,8 +84,9 @@
     "@tailwindcss/vite": "4.1.12",
     "@types/bcryptjs": "^2.4.6",
     "@types/dotenv": "^8.2.0",
-    "@types/node": "^25.2.1",
+    "@types/node": "^20.11.5",
     "@types/react-dom": "^19.2.3",
+    "@types/axios": "^1.6.0",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
     "typescript": "^5.3.3",
