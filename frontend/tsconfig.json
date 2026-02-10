@@ -32,5 +32,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/utils/supabase/middleware.ts", "src/utils/supabase/server.ts"],
   "references": [{ "path": "../tsconfig.node.json" }]
 }

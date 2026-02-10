@@ -117,7 +117,7 @@ export const Loans: React.FC = () => {
           <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
-                <Home className="text-white" size={18} className="sm:w-5 sm:h-5" />
+                <Home className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
               <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Total Borrowed</p>
               <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">

@@ -55,6 +55,7 @@ export interface Transaction {
   // Transfer specific fields
   transferToAccountId?: number;
   transferType?: 'self-transfer' | 'other-transfer'; // self-transfer is between own accounts
+  createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date;
 }
@@ -277,6 +278,16 @@ export interface AdvisorAssignment {
   assignedAt: Date;
   notes?: string;
   status: 'active' | 'inactive';
+}
+
+export interface ChatConversation {
+  id?: number;
+  conversationId: string; // advisorId_userId  
+  advisorId: string;
+  userId: string;
+  lastMessage?: string;
+  lastMessageTime?: Date;
+  unreadCount?: number;
 }
 
 export interface ChatMessage {

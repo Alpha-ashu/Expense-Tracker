@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
 import { realtimeSyncManager, trackChange } from '@/lib/realTime';
 import { useAuth } from '@/contexts/AuthContext';
-import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures } from '@/lib/featureFlags';
+import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
 
 interface AppContextType {
   currentPage: string;
@@ -25,8 +25,8 @@ interface AppContextType {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   updateAccount: (accountId: number, updates: Partial<Account>) => Promise<void>;
   addAccount: (account: Omit<Account, 'id'>) => Promise<void>;
-  visibleFeatures: Record<string, boolean>;
-  setVisibleFeatures: (features: Record<string, boolean>) => void;
+  visibleFeatures: FeatureVisibility;
+  setVisibleFeatures: (features: FeatureVisibility) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -37,7 +37,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [forceUpdate, setForceUpdate] = useState(0);
-  const [visibleFeatures, setVisibleFeaturesState] = useState<Record<string, boolean>>(() => {
+  const [visibleFeatures, setVisibleFeaturesState] = useState<FeatureVisibility>(() => {
     const stored = localStorage.getItem('visibleFeatures');
     const parsed = stored ? JSON.parse(stored) : {};
     return normalizeFeatures(parsed);

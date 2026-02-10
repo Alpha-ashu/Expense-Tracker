@@ -6,7 +6,7 @@ import { ChevronLeft, Plus, Users, Mail, Phone, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Friend {
-  id?: string;
+  id?: number;
   name: string;
   email: string;
   phone: string;

@@ -421,7 +421,7 @@ export class CloudSyncService {
 
   private async getChangedCategories(since: Date): Promise<CategorySync[]> {
     const categories = await db.categories
-      .filter(cat => cat.createdAt > since || cat.updatedAt > since)
+      .filter(cat => (cat as any).createdAt > since || (cat as any).updatedAt > since)
       .toArray();
 
     return categories.map(cat => ({
@@ -430,15 +430,15 @@ export class CloudSyncService {
       type: cat.type,
       color: cat.color,
       icon: cat.icon,
-      createdAt: cat.createdAt,
-      updatedAt: cat.updatedAt || cat.createdAt,
-      deletedAt: cat.deletedAt
+      createdAt: (cat as any).createdAt || new Date(),
+      updatedAt: (cat as any).updatedAt || (cat as any).createdAt || new Date(),
+      deletedAt: (cat as any).deletedAt
     }));
   }
 
   private async getChangedBudgets(since: Date): Promise<BudgetSync[]> {
     const budgets = await db.budgets
-      .filter(budget => budget.createdAt > since || budget.updatedAt > since)
+      .filter(budget => budget.createdAt > since || (budget as any).updatedAt > since)
       .toArray();
 
     return budgets.map(budget => ({
@@ -448,14 +448,14 @@ export class CloudSyncService {
       period: budget.period,
       spent: budget.spent,
       createdAt: budget.createdAt,
-      updatedAt: budget.updatedAt || budget.createdAt,
-      deletedAt: budget.deletedAt
+      updatedAt: (budget as any).updatedAt || budget.createdAt,
+      deletedAt: (budget as any).deletedAt
     }));
   }
 
   private async getChangedGroups(since: Date): Promise<GroupSync[]> {
     const groups = await db.groups
-      .filter(group => group.createdAt > since || group.updatedAt > since)
+      .filter(group => group.createdAt > since || (group as any).updatedAt > since)
       .toArray();
 
     return groups.map(group => ({
@@ -463,8 +463,8 @@ export class CloudSyncService {
       name: group.name,
       members: group.members,
       createdAt: group.createdAt,
-      updatedAt: group.updatedAt || group.createdAt,
-      deletedAt: group.deletedAt
+      updatedAt: (group as any).updatedAt || group.createdAt,
+      deletedAt: (group as any).deletedAt
     }));
   }
 

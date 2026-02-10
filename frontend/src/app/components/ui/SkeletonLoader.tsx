@@ -25,6 +25,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
                 duration: 1.5,
                 ease: "easeInOut"
             }}
+            // @ts-expect-error - motion.div prop conflict
             className={cn(
                 "bg-gray-200/50 backdrop-blur-sm animate-pulse-slow",
                 {

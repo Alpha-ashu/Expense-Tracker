@@ -82,7 +82,6 @@ export const PayEMI: React.FC = () => {
 
       // Create EMI payment transaction
       await db.loanPayments.add({
-        userId: '', // Will be filled from context if available
         loanId: selectedLoanId,
         amount: paymentAmount,
         accountId: paymentAccount.id,

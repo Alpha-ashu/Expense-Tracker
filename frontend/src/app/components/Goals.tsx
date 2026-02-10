@@ -101,7 +101,7 @@ export const Goals: React.FC = () => {
           <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
-                <Target className="text-white" size={18} className="sm:w-5 sm:h-5" />
+                <Target className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
               <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Goals</p>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 tracking-tight">
@@ -115,7 +115,7 @@ export const Goals: React.FC = () => {
           <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
-                <TrendingUp className="text-white" size={18} className="sm:w-5 sm:h-5" />
+                <TrendingUp className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
               <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Saved</p>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 tracking-tight">
@@ -129,7 +129,7 @@ export const Goals: React.FC = () => {
           <Card variant="mesh-purple" className="p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-2 sm:mb-4">
-                <Sparkles className="text-white" size={18} className="sm:w-5 sm:h-5" />
+                <Sparkles className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
               <p className="text-white/80 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Overall Progress</p>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">

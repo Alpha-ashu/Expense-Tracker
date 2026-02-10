@@ -175,16 +175,16 @@ export const getRoleDisplayName = (role: UserRole): string => {
  * Check if user can access admin features
  */
 export const canAccessAdminPanel = (role: UserRole): boolean => {
-  const permissions = ROLE_PERMISSIONS[role] as Record<string, boolean>;
-  return permissions?.canAccessAdminPanel === true;
+  const permissions = ROLE_PERMISSIONS[role];
+  return 'canAccessAdminPanel' in permissions && permissions.canAccessAdminPanel === true;
 };
 
 /**
  * Check if user can access advisor panel
  */
 export const canAccessAdvisorPanel = (role: UserRole): boolean => {
-  const permissions = ROLE_PERMISSIONS[role] as Record<string, boolean>;
-  return permissions?.canAccessAdvisorPanel === true;
+  const permissions = ROLE_PERMISSIONS[role];
+  return 'canAccessAdvisorPanel' in permissions && permissions.canAccessAdvisorPanel === true;
 };
 
 /**
