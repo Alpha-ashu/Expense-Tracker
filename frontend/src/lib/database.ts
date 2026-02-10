@@ -285,9 +285,11 @@ export interface ChatConversation {
   conversationId: string; // advisorId_userId  
   advisorId: string;
   userId: string;
+  advisorInitiated?: boolean;
   lastMessage?: string;
   lastMessageTime?: Date;
   unreadCount?: number;
+  createdAt?: Date;
 }
 
 export interface ChatMessage {

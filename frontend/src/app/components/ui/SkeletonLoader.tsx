@@ -16,18 +16,9 @@ export const Skeleton: React.FC<SkeletonProps> = ({
     ...props
 }) => {
     return (
-        <motion.div
-            initial={{ opacity: 0.5 }}
-            animate={{ opacity: 1 }}
-            transition={{
-                repeat: Infinity,
-                repeatType: "reverse",
-                duration: 1.5,
-                ease: "easeInOut"
-            }}
-            // @ts-expect-error - motion.div prop conflict
+        <div
             className={cn(
-                "bg-gray-200/50 backdrop-blur-sm animate-pulse-slow",
+                "bg-gray-200/50 backdrop-blur-sm animate-pulse",
                 {
                     'rounded-2xl': variant === 'rectangular',
                     'rounded-full': variant === 'circular',

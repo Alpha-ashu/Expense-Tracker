@@ -167,7 +167,7 @@ class DataSyncService {
       for (const txn of unsyncedTransactions) {
         try {
           await backendService.createTransaction({
-            accountId: Number(txn.accountId) || 0,
+            accountId: String(txn.accountId) || '0',
             type: txn.type as 'expense' | 'income' | 'transfer',
             amount: txn.amount,
             category: txn.category,
@@ -176,7 +176,7 @@ class DataSyncService {
             merchant: txn.merchant,
             date: new Date(txn.date),
             tags: txn.tags,
-            transferToAccountId: Number(txn.transferToAccountId),
+            transferToAccountId: txn.transferToAccountId ? String(txn.transferToAccountId) : undefined,
             transferType: txn.transferType,
           });
 

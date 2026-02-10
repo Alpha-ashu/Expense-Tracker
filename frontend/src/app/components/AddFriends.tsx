@@ -53,7 +53,7 @@ export const AddFriends: React.FC = () => {
 
     const newFriend: Friend = {
       ...formData,
-      id: Math.random().toString(36).substr(2, 9),
+      id: Date.now(),
     };
 
     setFriends([...friends, newFriend]);
@@ -92,7 +92,7 @@ export const AddFriends: React.FC = () => {
     }
   };
 
-  const handleRemoveFriend = (id: string | undefined) => {
+  const handleRemoveFriend = (id: number | undefined) => {
     if (id) {
       setFriends(friends.filter(f => f.id !== id));
       toast.success('Friend removed');

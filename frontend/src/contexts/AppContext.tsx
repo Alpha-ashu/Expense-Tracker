@@ -236,7 +236,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('visibleFeatures', JSON.stringify(visibleFeatures));
   }, [visibleFeatures]);
 
-  const setVisibleFeatures = useCallback((features: Record<string, boolean>) => {
+  const setVisibleFeatures = useCallback((features: FeatureVisibility) => {
     const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
     const normalized = normalizeFeatures(features);
     setVisibleFeaturesState(mergeVisibleFeatures(normalized, roleFeatures));
