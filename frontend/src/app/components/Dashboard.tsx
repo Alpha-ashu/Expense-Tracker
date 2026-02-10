@@ -107,7 +107,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn(
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as 'all' | 'bank' | 'card' | 'wallet' | 'cash')} className={cn(
                 'relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
                 isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
               )}>

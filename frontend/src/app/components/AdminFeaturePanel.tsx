@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { ChevronLeft, Settings, ToggleRight, ToggleLeft, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -100,34 +101,25 @@ export const AdminFeaturePanel: React.FC = () => {
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Shield size={28} className="text-purple-600" />
-              Admin Feature Control Panel
-            </h2>
-            <p className="text-gray-500 mt-1">Manage feature readiness and rollout</p>
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
+      <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
+        <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
+          <PageHeader 
+            title="Admin Panel" 
+            subtitle="Feature flags & access control" 
+            icon={<Shield size={20} className="sm:w-6 sm:h-6" />} 
+          />
+        </div>
+        <div className="px-4 lg:px-8 space-y-6">
+          {/* Admin Info */}
+          <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6">
+            <p className="text-purple-900">
+              <span className="font-semibold">Logged in as:</span> {user?.email}
+            </p>
+            <p className="text-purple-700 mt-2 text-sm">
+              You can control feature visibility across all user roles from this panel.
+            </p>
           </div>
-        </div>
-
-        {/* Admin Info */}
-        <div className="bg-purple-50 border border-purple-200 rounded-2xl p-6">
-          <p className="text-purple-900">
-            <span className="font-semibold">Logged in as:</span> {user?.email}
-          </p>
-          <p className="text-purple-700 mt-2 text-sm">
-            You can control feature visibility across all user roles from this panel.
-          </p>
-        </div>
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -205,7 +197,8 @@ export const AdminFeaturePanel: React.FC = () => {
           </div>
         </div>
       </div>
-    </CenteredLayout>
+    </div>
+    </div>
   );
 };
 

@@ -135,15 +135,6 @@ export const Accounts: React.FC = () => {
         </Button>
       </PageHeader>
 
-      {/* HEADER: Centered Total Balance (All Devices) */}
-      <div className="flex flex-col items-center justify-center mb-6 sm:mb-8 md:mb-10">
-        <p className="text-gray-500 font-medium mb-1 uppercase tracking-wide text-xs sm:text-sm">Total Balance</p>
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-gray-900 tracking-tight">{formatCurrency(totalBalance)}</h2>
-        <div className="mt-2 sm:mt-3 px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-500">
-          {accounts.filter(a => a.isActive).length} Active Accounts
-        </div>
-      </div>
-
       {/* Tab Navigation */}
       <div className="flex items-center justify-center gap-3 overflow-x-auto scrollbar-hide pb-4 px-4 sm:px-6 lg:px-8 mb-4 lg:mb-6">
         {tabs.map((tab) => {
@@ -265,14 +256,6 @@ export const Accounts: React.FC = () => {
               exit={{ opacity: 0, y: 20 }}
               className="mt-4 max-w-5xl mx-auto px-2 sm:px-0"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg sm:text-xl font-bold font-display text-gray-900 flex items-center gap-2">
-                  <span className="w-2 h-6 sm:h-8 bg-black rounded-full block"></span>
-                  Transaction History
-                  <span className="text-gray-400 font-normal text-sm sm:text-base ml-2">for {selectedAccount.name}</span>
-                </h3>
-              </div>
-
               <Card className="bg-white/80 backdrop-blur-xl border-white/60 overflow-hidden shadow-2xl">
                 <div className="max-h-[400px] sm:max-h-[500px] overflow-y-auto">
                   <table className="w-full">

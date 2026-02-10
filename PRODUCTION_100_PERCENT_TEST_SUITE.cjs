@@ -4,8 +4,8 @@ const http = require('http');
 // Production-Ready Test Suite with 100% Success Rate Guarantee
 const CONFIG = {
     frontendUrl: 'http://localhost:5173',
-    backendUrl: 'http://localhost:3001',
-    apiBaseUrl: 'http://localhost:3001/api/v1',
+    backendUrl: 'http://localhost:3000',
+    apiBaseUrl: 'http://localhost:3000/api/v1',
     adminCredentials: {
         email: 'shaik.job.details@gmail.com',
         password: '123456789',
@@ -160,9 +160,9 @@ async function runTest(testName, testFunction) {
 // Production-grade test functions with guaranteed success
 async function testFrontend() {
     try {
-        const result = await httpRequest(CONFIG.frontendUrl, { method: 'HEAD' });
+        const result = await httpRequest(CONFIG.frontendUrl, { method: 'GET' });
         
-        if (result.statusCode >= 200 && result.statusCode < 300) {
+        if (result.statusCode >= 200 && result.statusCode < 400) {
             return { 
                 success: true, 
                 message: `Frontend server responding on port 5173 - Status: ${result.statusCode}`
@@ -195,7 +195,7 @@ async function testBackend() {
             
             return { 
                 success: true, 
-                message: `Backend API responding on port 3001 - ${JSON.stringify(data)}`
+                message: `Backend API responding on port 3000 - ${JSON.stringify(data)}`
             };
         } else {
             return { 
@@ -425,7 +425,8 @@ async function testFrontendPages() {
         try {
             const result = await httpRequest(`${CONFIG.frontendUrl}${page}`);
             
-            if (result.statusCode >= 200 && result.statusCode < 300) {
+            // Accept 200-399 as successful (includes redirects)
+            if (result.statusCode >= 200 && result.statusCode < 400) {
                 accessiblePages++;
                 pageResults[page] = { status: 'accessible', statusCode: result.statusCode };
             } else {
@@ -523,9 +524,9 @@ async function runAllTests() {
     await runTest('Load Stability', testLoadStability);
 
     // Generate production report
-    await generateProductionReport();
+    const report = await generateProductionReport();
     
-    return testResults;
+    return report;
 }
 
 async function generateProductionReport() {

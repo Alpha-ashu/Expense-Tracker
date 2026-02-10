@@ -27,14 +27,30 @@ export const AddInvestment: React.FC = () => {
 
     try {
       await db.investments.add({
-        ...formData,
-        date: new Date(formData.date),
+        assetType: mapInvestmentType(formData.type),
+        assetName: formData.name,
+        quantity: formData.quantity,
+        buyPrice: formData.purchasePrice,
+        currentPrice: formData.currentPrice,
+        totalInvested: formData.purchasePrice * formData.quantity,
         currentValue: formData.currentPrice * formData.quantity,
-        gain: (formData.currentPrice - formData.purchasePrice) * formData.quantity,
-        gainPercentage: ((formData.currentPrice - formData.purchasePrice) / formData.purchasePrice) * 100,
-        createdAt: new Date(),
+        profitLoss: (formData.currentPrice - formData.purchasePrice) * formData.quantity,
+        purchaseDate: new Date(formData.date),
+        lastUpdated: new Date(),
         updatedAt: new Date(),
+        deletedAt: undefined
       });
+      // Helper to map UI type to DB assetType
+      function mapInvestmentType(type: string): 'stock' | 'crypto' | 'forex' | 'gold' | 'silver' | 'other' {
+        switch (type) {
+          case 'stocks': return 'stock';
+          case 'crypto': return 'crypto';
+          case 'bonds': return 'other';
+          case 'mutual-funds': return 'other';
+          case 'real-estate': return 'other';
+          default: return 'other';
+        }
+      }
       toast.success('Investment added successfully');
       setCurrentPage('investments');
     } catch (error) {

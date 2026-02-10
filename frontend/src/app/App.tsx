@@ -320,11 +320,11 @@ const AppContent: React.FC = () => {
         <Sidebar />
       </div>
 
-      {/* Header removed as per user request */}
-      {/* {currentPage !== 'dashboard' && <Header />} */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-bg-body">
-        {renderPage()}
-      </main>
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-bg-body">
+          {renderPage()}
+        </main>
+      </div>
 
       {/* Mobile/Tablet Bottom Navigation */}
       <div className="lg:hidden">

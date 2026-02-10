@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
-import { ChevronLeft, Calendar, Clock, CheckCircle, XCircle, DollarSign } from 'lucide-react';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+import { ChevronLeft, Calendar, Clock, CheckCircle, XCircle, DollarSign, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -119,33 +120,27 @@ export const AdvisorPanel: React.FC = () => {
     .reduce((sum, b) => sum + b.amount, 0);
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">Advisor Workspace</h2>
-            <p className="text-gray-500 mt-1">Manage your availability and bookings</p>
-          </div>
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
+      <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
+        <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
+          <PageHeader 
+            title="Advisor Workspace" 
+            subtitle="Manage availability & bookings" 
+            icon={<Briefcase size={20} className="sm:w-6 sm:h-6" />} 
+          />
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-600 text-sm font-medium">Pending Bookings</p>
-                <p className="text-3xl font-bold text-blue-900 mt-2">{pendingBookings.length}</p>
+        <div className="px-4 lg:px-8 space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-600 text-sm font-medium">Pending Bookings</p>
+                  <p className="text-3xl font-bold text-blue-900 mt-2">{pendingBookings.length}</p>
+                </div>
+                <Clock size={32} className="text-blue-300" />
               </div>
-              <Clock size={32} className="text-blue-300" />
             </div>
-          </div>
 
           <div className="bg-green-50 rounded-2xl border border-green-200 p-6">
             <div className="flex items-center justify-between">
@@ -282,7 +277,8 @@ export const AdvisorPanel: React.FC = () => {
           )}
         </div>
       </div>
-    </CenteredLayout>
+    </div>
+    </div>
   );
 };
 

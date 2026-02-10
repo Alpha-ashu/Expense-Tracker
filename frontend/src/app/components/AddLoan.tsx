@@ -64,10 +64,20 @@ export const AddLoan: React.FC = () => {
 
     try {
       await db.loans.add({
-        ...formData,
-        startDate: new Date(formData.startDate),
+        type: 'borrowed',
+        name: formData.lenderName,
+        principalAmount: formData.principalAmount,
+        outstandingBalance: formData.principalAmount,
+        interestRate: formData.interestRate,
+        emiAmount: formData.emiAmount,
+        dueDate: undefined,
+        frequency: 'monthly',
+        status: formData.status === 'active' ? 'active' : (formData.status === 'paid-off' ? 'completed' : 'overdue'),
+        contactPerson: undefined,
+        friendId: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
+        deletedAt: undefined
       });
 
       toast.success(`Loan of ${currency} ${formData.principalAmount} created! EMI: ${currency} ${formData.emiAmount.toFixed(2)}`);

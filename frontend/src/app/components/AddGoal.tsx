@@ -30,11 +30,15 @@ export const AddGoal: React.FC = () => {
 
     try {
       await db.goals.add({
-        ...formData,
-        deadline: new Date(formData.deadline),
+        name: formData.name,
+        category: formData.category,
+        targetAmount: formData.targetAmount,
+        currentAmount: formData.currentAmount,
+        targetDate: new Date(formData.deadline),
+        isGroupGoal: false,
         createdAt: new Date(),
         updatedAt: new Date(),
-        status: 'active' as const,
+        deletedAt: undefined
       });
       toast.success('Goal created successfully');
       setCurrentPage('goals');

@@ -137,7 +137,7 @@ export const Calendar: React.FC = () => {
       const typeInfo = typeColors[transaction.type] || { icon: '💰', color: 'from-gray-500 to-slate-500' };
 
       activities.push({
-        id: transaction.id,
+        id: String(transaction.id),
         type: transaction.type as 'income' | 'expense' | 'transfer',
         title: transaction.description,
         amount: transaction.amount,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
@@ -133,30 +134,21 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Calculator className="text-purple-600" size={28} />
-            Tax Calculator
-          </h2>
-          <p className="text-gray-500 mt-1">Calculate your estimated tax liability</p>
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
+      <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
+        <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
+          <PageHeader 
+            title="Tax Calculator" 
+            subtitle="Estimate your tax liability" 
+            icon={<Calculator size={20} className="sm:w-6 sm:h-6" />} 
+          />
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Input Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-200 p-8">
+        <div className="px-4 lg:px-8 space-y-6">
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Input Form */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-2xl border border-gray-200 p-8">
             <form onSubmit={(e) => { e.preventDefault(); calculateTax(); }} className="space-y-6">
               {/* Year Selection */}
               <div>
@@ -270,8 +262,8 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
           </div>
         </div>
 
-        {/* Results Panel */}
-        <div className="space-y-4">
+            {/* Results Panel */}
+            <div className="space-y-4">
           {taxResult ? (
             <>
               {/* Summary Cards */}
@@ -317,9 +309,12 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
               </p>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </div>
-      </div>
-    </CenteredLayout>
+    </div>
   );
 };
+
+export default TaxCalculator;

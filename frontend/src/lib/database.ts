@@ -1,3 +1,19 @@
+// GoldEntry interface for gold assets
+export interface GoldEntry {
+  id?: number;
+  type: 'gold' | 'jewelry' | 'coin';
+  quantity: number;
+  unit: 'gram' | 'ounce' | 'kg';
+  purchasePrice: number;
+  currentPrice: number;
+  purchaseDate: Date;
+  purityPercentage: number;
+  location: string;
+  certificateNumber?: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+}
 import Dexie, { Table } from 'dexie';
 
 // Database Interfaces
@@ -349,6 +365,7 @@ export class FinanceLifeDB extends Dexie {
 
 // Add additional tables for production features
 export class ProductionDB extends FinanceLifeDB {
+    gold!: Table<GoldEntry>;
   logs!: Table<{ id: string; level: string; message: string; timestamp: Date }>;
   errorReports!: Table<{ id: string; report: string; timestamp: Date }>;
   backups!: Table<{ id: string; data: string; timestamp: Date; size: number }>;
@@ -382,6 +399,7 @@ export class ProductionDB extends FinanceLifeDB {
       groupExpenses: '++id, date',
       investments: '++id, assetType',
       notifications: '++id, type, userId, isRead, createdAt',
+      gold: '++id, type, unit, purchaseDate',
       logs: 'id, level, timestamp',
       errorReports: 'id, timestamp',
       backups: 'id, timestamp',
@@ -414,6 +432,7 @@ export class ProductionDB extends FinanceLifeDB {
       groupExpenses: '++id, date',
       investments: '++id, assetType',
       notifications: '++id, type, userId, isRead, createdAt',
+      gold: '++id, type, unit, purchaseDate',
       logs: 'id, level, timestamp',
       errorReports: 'id, timestamp',
       backups: 'id, timestamp',
