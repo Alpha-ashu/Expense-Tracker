@@ -19,7 +19,7 @@ export const checkAndCreateNotifications = async () => {
   const in7Days = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   // Check loans for upcoming due dates
-  const loans = await db.loans.filter(l => l.status === 'active' && l.dueDate).toArray();
+  const loans = await db.loans.filter(l => l.status === 'active' && !!l.dueDate).toArray();
   
   for (const loan of loans) {
     if (!loan.dueDate) continue;

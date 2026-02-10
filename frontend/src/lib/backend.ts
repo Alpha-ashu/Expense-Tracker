@@ -531,7 +531,7 @@ export class CloudSyncService {
 
   // Backup data to cloud
   async backup(): Promise<BackupResponse> {
-    const backupData = await this.getLocalChanges(new Date(0));
+    const backupData = await this.getLocalChanges();
     const encryptedData = encryptData(backupData, process.env.VITE_DB_ENCRYPTION_KEY || 'default-key');
 
     const response = await fetch(`${this.apiEndpoint}/backup`, {
