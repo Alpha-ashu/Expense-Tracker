@@ -1,25 +1,132 @@
-import React from 'react';
-import { Settings } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { motion } from 'framer-motion';
+import { motion, Reorder, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
-import { sidebarMenuItems } from '@/app/constants/navigation';
+import { sidebarMenuItems, NavigationItem } from '@/app/constants/navigation';
+import { GripVertical } from 'lucide-react';
+
+const SIDEBAR_ORDER_KEY = 'sidebar_menu_order';
+
+interface DraggableSidebarItemProps {
+  item: NavigationItem;
+  isActive: boolean;
+  onNavigate: (id: string) => void;
+}
+
+const DraggableSidebarItem: React.FC<DraggableSidebarItemProps> = ({
+  item,
+  isActive,
+  onNavigate,
+}) => {
+  const Icon = item.icon;
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      className="relative"
+      whileDrag={{ scale: 1.1, zIndex: 50 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+    >
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <motion.div
+            className={cn(
+              "w-12 h-12 flex items-center justify-center rounded-2xl transition-all relative group cursor-pointer",
+              isActive
+                ? "bg-black text-white shadow-lg"
+                : "text-gray-400 hover:bg-gray-100 hover:text-gray-900"
+            )}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onNavigate(item.id)}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute inset-0 bg-black rounded-2xl z-0"
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            )}
+            <Icon size={24} className="relative z-10" />
+            
+            {/* Drag handle - visible on hover */}
+            <motion.div
+              className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
+              <GripVertical size={12} className="text-gray-400" />
+            </motion.div>
+          </motion.div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="font-medium bg-black text-white border-none ml-2">
+          {item.label}
+        </TooltipContent>
+      </Tooltip>
+    </Reorder.Item>
+  );
+};
 
 export const Sidebar: React.FC = () => {
-  const { currentPage, setCurrentPage } = useApp();
+  const { currentPage, setCurrentPage, visibleFeatures } = useApp();
   const { role } = useAuth();
+  const [orderedItems, setOrderedItems] = useState<NavigationItem[]>([]);
 
-  // Filter menu items based on RBAC
-  const visibleMenuItems = sidebarMenuItems.filter(item => {
-    // If item has role restrictions, only show if user has that role
-    if (item.roles && item.roles.length > 0) {
-      return item.roles.includes(role);
+  // Filter menu items based on RBAC and user's feature visibility preferences
+  const visibleMenuItems = useMemo(() => {
+    return sidebarMenuItems.filter(item => {
+      // Check user's feature visibility preference
+      const featureKey = item.feature as keyof typeof visibleFeatures;
+      if (visibleFeatures[featureKey] === false) {
+        return false;
+      }
+      // If item has specific roles defined, check if user's role is in the list
+      if (item.roles && item.roles.length > 0) {
+        return item.roles.includes(role);
+      }
+      // Items without roles are visible to everyone
+      return true;
+    });
+  }, [role, visibleFeatures]);
+
+  // Load saved order from localStorage
+  useEffect(() => {
+    const savedOrder = localStorage.getItem(SIDEBAR_ORDER_KEY);
+    if (savedOrder) {
+      try {
+        const orderIds: string[] = JSON.parse(savedOrder);
+        // Reorder visible items based on saved order
+        const reordered = [...visibleMenuItems].sort((a, b) => {
+          const indexA = orderIds.indexOf(a.id);
+          const indexB = orderIds.indexOf(b.id);
+          // If item not in saved order, put it at the end
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
+        setOrderedItems(reordered);
+      } catch {
+        setOrderedItems(visibleMenuItems);
+      }
+    } else {
+      setOrderedItems(visibleMenuItems);
     }
-    // Otherwise show to everyone
-    return true;
-  });
+  }, [visibleMenuItems]); // Re-run when visible items change (due to role change)
+
+  // Save order to localStorage whenever it changes
+  const handleReorder = useCallback((newOrder: NavigationItem[]) => {
+    setOrderedItems(newOrder);
+    const orderIds = newOrder.map(item => item.id);
+    localStorage.setItem(SIDEBAR_ORDER_KEY, JSON.stringify(orderIds));
+  }, []);
+
+  const handleNavigate = useCallback((id: string) => {
+    setCurrentPage(id);
+  }, [setCurrentPage]);
 
   return (
     <motion.div
@@ -34,53 +141,25 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        <nav className="flex-1 w-full px-4 space-y-4 flex flex-col items-center overflow-y-auto scrollbar-hide">
+        <nav className="flex-1 w-full px-4 flex flex-col items-center overflow-y-auto scrollbar-hide">
           <TooltipProvider delayDuration={0}>
-            {visibleMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentPage === item.id;
-
-              return (
-                <Tooltip key={item.id}>
-                  <TooltipTrigger asChild>
-                    <motion.button
-                      onClick={() => setCurrentPage(item.id)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className={cn(
-                        "w-12 h-12 flex items-center justify-center rounded-2xl transition-all relative group",
-                        isActive
-                          ? "bg-black text-white shadow-lg"
-                          : "text-gray-400 hover:bg-gray-100 hover:text-gray-900"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeTab"
-                          className="absolute inset-0 bg-black rounded-2xl z-0"
-                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                      )}
-                      <Icon size={24} className="relative z-10" />
-                    </motion.button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium bg-black text-white border-none ml-2">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
+            <Reorder.Group
+              axis="y"
+              values={orderedItems}
+              onReorder={handleReorder}
+              className="space-y-4 flex flex-col items-center"
+            >
+              {orderedItems.map((item) => (
+                <DraggableSidebarItem
+                  key={item.id}
+                  item={item}
+                  isActive={currentPage === item.id}
+                  onNavigate={handleNavigate}
+                />
+              ))}
+            </Reorder.Group>
           </TooltipProvider>
         </nav>
-
-        <div className="mt-auto px-4">
-          <button
-            onClick={() => setCurrentPage('settings')}
-            className="w-12 h-12 flex items-center justify-center rounded-2xl text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all"
-          >
-            <Settings size={24} />
-          </button>
-        </div>
       </div>
     </motion.div>
   );

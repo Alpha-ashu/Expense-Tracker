@@ -88,11 +88,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
-        setRole(resolveUserRole(nextUser));
+        const userRole = resolveUserRole(nextUser);
+        setRole(userRole);
         
-        // Initialize permissions from backend
+        // Initialize permissions from backend with local role as fallback
         if (nextUser?.id) {
-          await permissionService.fetchUserPermissions(nextUser.id);
+          await permissionService.fetchUserPermissions(nextUser.id, userRole);
         }
       } catch (error) {
         console.error('Error loading session:', error);
@@ -110,12 +111,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
-        setRole(resolveUserRole(nextUser));
+        const userRole = resolveUserRole(nextUser);
+        setRole(userRole);
         setLoading(false);
         
         // Update permissions on auth change
         if (event === 'SIGNED_IN' && nextUser?.id) {
-          await permissionService.fetchUserPermissions(nextUser.id);
+          await permissionService.fetchUserPermissions(nextUser.id, userRole);
         } else if (event === 'SIGNED_OUT') {
           permissionService.clearPermissions();
         }

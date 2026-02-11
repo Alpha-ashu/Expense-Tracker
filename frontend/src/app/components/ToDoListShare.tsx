@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Send, Trash2, Lock, Edit } from 'lucide-react';
+import { Send, Trash2, Lock, Edit, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const ToDoListShare: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { user } = useAuth();
   const [listId, setListId] = useState<number | null>(null);
   const [toDoList, setToDoList] = useState<any>(null);
   const [sharedUserId, setSharedUserId] = useState('');
@@ -20,7 +21,8 @@ export const ToDoListShare: React.FC = () => {
     { id: 'user-5', name: 'Diana' },
   ];
 
-  const currentUserId = 'user-1'; // Placeholder
+  // Use actual user ID or fallback for demo data
+  const currentUserId = user?.id || 'demo-user';
 
   // Get list ID from localStorage
   useEffect(() => {
@@ -28,6 +30,10 @@ export const ToDoListShare: React.FC = () => {
     if (id) {
       setListId(parseInt(id));
     }
+    // Cleanup on unmount
+    return () => {
+      localStorage.removeItem('sharingToDoListId');
+    };
   }, []);
 
   // Fetch list details
@@ -102,11 +108,6 @@ export const ToDoListShare: React.FC = () => {
     }
   };
 
-  const handleBackToList = () => {
-    localStorage.removeItem('sharingToDoListId');
-    setCurrentPage('todo-lists');
-  };
-
   const getSharedUserName = (userId: string): string => {
     const user = availableUsers.find((u: any) => u.id === userId);
     return user?.name || userId;
@@ -126,18 +127,13 @@ export const ToDoListShare: React.FC = () => {
     <CenteredLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleBackToList}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Share List</h2>
-            <p className="text-gray-500 mt-1">Share "{toDoList.name}" with other users</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Share List"
+          subtitle={`Share "${toDoList.name}" with other users`}
+          icon={<Share2 size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="todo-list-detail"
+        />
 
         {/* Share Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">

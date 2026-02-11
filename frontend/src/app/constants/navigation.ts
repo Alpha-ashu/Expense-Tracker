@@ -12,7 +12,6 @@ import {
   Bell,
   User,
   CheckSquare,
-  Calculator,
   BookOpen,
 } from 'lucide-react';
 
@@ -56,8 +55,6 @@ export const sidebarMenuItems: NavigationItem[] = [
   { id: 'reports', label: 'Reports', icon: BarChart3, feature: 'reports' },
   { id: 'todo-lists', label: 'Todo Lists', icon: CheckSquare, feature: 'todoLists' },
   { id: 'book-advisor', label: 'Book Advisor', icon: BookOpen, feature: 'bookAdvisor' },
-  { id: 'notifications', label: 'Notifications', icon: Bell, feature: 'notifications' },
-  { id: 'user-profile', label: 'Profile', icon: User, feature: 'userProfile' },
   { id: 'settings', label: 'Settings', icon: Settings, feature: 'settings' },
   // Admin-only items
   { id: 'admin-feature-panel', label: 'Admin Panel', icon: BarChart3, feature: 'adminPanel', roles: ['admin'] },

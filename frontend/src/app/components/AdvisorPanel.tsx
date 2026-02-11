@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { ChevronLeft, Calendar, Clock, CheckCircle, XCircle, DollarSign, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
@@ -37,7 +36,7 @@ const HOURS = Array.from({ length: 12 }, (_, i) => {
 
 export const AdvisorPanel: React.FC = () => {
   const { setCurrentPage } = useApp();
-  const { role, user } = useAuth();
+  const { role, user, loading } = useAuth();
   const [availability, setAvailability] = useState<AvailabilitySlot[]>(
     DAYS.map((day) => ({
       day,
@@ -72,17 +71,29 @@ export const AdvisorPanel: React.FC = () => {
     },
   ]);
 
-  // Only allow advisor access
-  if (role !== 'advisor') {
+  // Redirect non-advisors silently to dashboard
+  useEffect(() => {
+    if (!loading && role !== 'advisor' && role !== 'admin') {
+      setCurrentPage('dashboard');
+    }
+  }, [loading, role, setCurrentPage]);
+
+  // Show loading state while auth is loading
+  if (loading) {
     return (
-      <CenteredLayout>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-          <Calendar size={48} className="mx-auto text-red-400 mb-4" />
-          <h2 className="text-2xl font-bold text-red-900 mb-2">Access Denied</h2>
-          <p className="text-red-700">Only advisors can access this panel</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin w-10 h-10 border-4 border-gray-200 border-t-blue-600 rounded-full"></div>
+          </div>
         </div>
-      </CenteredLayout>
+      </div>
     );
+  }
+
+  // Don't render anything for non-advisors (redirect will happen via useEffect)
+  if (role !== 'advisor' && role !== 'admin') {
+    return null;
   }
 
   const handleToggleAvailability = (dayIndex: number) => {
@@ -126,7 +137,9 @@ export const AdvisorPanel: React.FC = () => {
           <PageHeader 
             title="Advisor Workspace" 
             subtitle="Manage availability & bookings" 
-            icon={<Briefcase size={20} className="sm:w-6 sm:h-6" />} 
+            icon={<Briefcase size={20} className="sm:w-6 sm:h-6" />}
+            showBack
+            backTo="dashboard"
           />
         </div>
         <div className="px-4 lg:px-8 space-y-6">

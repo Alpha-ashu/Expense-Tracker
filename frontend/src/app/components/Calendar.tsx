@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { ChevronLeft, ChevronRight, Plus, X, Clock, CheckCircle2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Clock, CheckCircle2, AlertCircle, Calendar as CalendarIcon, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -32,20 +33,43 @@ interface DailyActivityItem {
   time?: string;
   icon: string;
   color: string;
+  accountName?: string;
+  category?: string;
 }
 
 export const Calendar: React.FC = () => {
-  const { transactions, currency } = useApp();
+  const { transactions, currency, accounts } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [timePeriod, setTimePeriod] = useState<TimeFilterPeriod>('monthly');
   const [newReminder, setNewReminder] = useState({
     title: '',
     description: '',
     type: 'task' as const,
     date: new Date(),
   });
+
+  // Filter transactions by selected time period
+  const filteredTransactions = useMemo(() => {
+    return filterByTimePeriod(transactions, timePeriod);
+  }, [transactions, timePeriod]);
+
+  // Calculate summary stats for filtered transactions
+  const summaryStats = useMemo(() => {
+    const income = filteredTransactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = filteredTransactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      income,
+      expense,
+      total: income - expense,
+    };
+  }, [filteredTransactions]);
 
   const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -123,6 +147,22 @@ export const Calendar: React.FC = () => {
     return (transactionsByDate[key]?.length > 0 || remindersByDate[key]?.length > 0);
   };
 
+  const getDailyStats = (date: Date) => {
+    const key = getDateKey(date);
+    const dayTransactions = transactionsByDate[key] || [];
+    const income = dayTransactions
+      .filter((t) => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = dayTransactions
+      .filter((t) => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      income,
+      expense,
+      total: income - expense,
+    };
+  };
+
   const getDailyActivities = (date: Date): DailyActivityItem[] => {
     const key = getDateKey(date);
     const activities: DailyActivityItem[] = [];
@@ -135,6 +175,7 @@ export const Calendar: React.FC = () => {
         transfer: { icon: '🔄', color: 'from-blue-500 to-cyan-500' },
       };
       const typeInfo = typeColors[transaction.type] || { icon: '💰', color: 'from-gray-500 to-slate-500' };
+      const account = accounts.find(a => String(a.id) === String(transaction.accountId));
 
       activities.push({
         id: String(transaction.id),
@@ -144,6 +185,8 @@ export const Calendar: React.FC = () => {
         icon: typeInfo.icon,
         color: typeInfo.color,
         time: new Date(transaction.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        accountName: account?.name,
+        category: transaction.category,
       });
     });
 
@@ -215,8 +258,7 @@ export const Calendar: React.FC = () => {
   const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-3 sm:p-4 md:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
         {/* App Header */}
         <PageHeader
           title="Calendar"
@@ -224,111 +266,172 @@ export const Calendar: React.FC = () => {
           icon={<CalendarIcon size={20} className="sm:w-6 sm:h-6" />}
         />
 
-        {/* Action Buttons */}
-        <div className="flex gap-3 mb-8">
-          <button
-            onClick={handleToday}
-            className="px-4 py-2 rounded-lg bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors text-sm sm:text-base"
-          >
-            Today
-          </button>
-          <button
-            onClick={() => setShowReminderModal(true)}
-            className="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2 text-sm sm:text-base"
+        {/* Time Filter & Actions Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <TimeFilter value={timePeriod} onChange={setTimePeriod} />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToday}
+              className="px-4 py-2.5 rounded-xl bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all border border-gray-200 shadow-sm text-sm"
             >
-              <Plus size={20} /> Add
+              Today
             </button>
+            <button
+              onClick={() => setShowReminderModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-500/25"
+            >
+              <Plus size={18} /> Add Reminder
+            </button>
+          </div>
         </div>
 
-        {/* Month Navigation */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-4 sm:p-6 text-white flex items-center justify-between mb-8 shadow-xl">
-          <button onClick={handlePrevMonth} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-          <h2 className="text-2xl sm:text-3xl font-bold">
-            {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h2>
-          <button onClick={handleNextMonth} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-            <ChevronRight size={24} />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar Grid */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100">
-              {/* Day Headers */}
-              <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-4">
-                {DAYS.map((day) => (
-                  <div key={day} className="text-center font-semibold text-gray-600 text-xs sm:text-sm py-3">
-                    {day}
-                  </div>
-                ))}
+        {/* Summary Stats Row */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <TrendingUp size={16} className="text-green-600" />
               </div>
-
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7 gap-2 sm:gap-3">
-                <AnimatePresence mode="wait">
-                  {calendarDays.map((date, index) => {
-                    const isToday = isCurrentMonth && date.getDate() === today.getDate();
-                    const isSelected = selectedDate && getDateKey(date) === getDateKey(selectedDate);
-                    const isCurrentMonth_ = date.getMonth() === currentDate.getMonth();
-                    const hasAct = hasActivity(date);
-
-                    return (
-                      <motion.button
-                        key={getDateKey(date)}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setSelectedDate(date)}
-                        className={cn(
-                          'aspect-square rounded-xl p-2 sm:p-3 transition-all duration-300 flex flex-col items-center justify-center relative',
-                          isSelected
-                            ? 'bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg scale-105'
-                            : isToday
-                            ? 'bg-gray-900 text-white shadow-md'
-                            : isCurrentMonth_
-                            ? 'bg-gray-50 hover:bg-gray-100 text-gray-900'
-                            : 'bg-gray-50/50 text-gray-400',
-                          'font-semibold text-sm sm:text-base lg:text-lg'
-                        )}
-                      >
-                        {date.getDate()}
-
-                        {/* Activity Dot */}
-                        {hasAct && (
-                          <div className="absolute bottom-2 w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gradient-to-r from-pink-500 to-orange-500 shadow-md" />
-                        )}
-                      </motion.button>
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
+              <span className="text-xs sm:text-sm font-medium text-gray-500">Income</span>
             </div>
+            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              {formatCurrency(summaryStats.income)}
+            </p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                <TrendingDown size={16} className="text-red-600" />
+              </div>
+              <span className="text-xs sm:text-sm font-medium text-gray-500">Expense</span>
+            </div>
+            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+              {formatCurrency(summaryStats.expense)}
+            </p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center",
+                summaryStats.total >= 0 ? "bg-blue-100" : "bg-orange-100"
+              )}>
+                <span className={cn(
+                  "text-sm font-bold",
+                  summaryStats.total >= 0 ? "text-blue-600" : "text-orange-600"
+                )}>=</span>
+              </div>
+              <span className="text-xs sm:text-sm font-medium text-gray-500">Balance</span>
+            </div>
+            <p className={cn(
+              "text-lg sm:text-xl lg:text-2xl font-bold",
+              summaryStats.total >= 0 ? "text-green-600" : "text-red-600"
+            )}>
+              {summaryStats.total >= 0 ? '+' : ''}{formatCurrency(summaryStats.total)}
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Calendar Card */}
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Month Navigation */}
+          <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 py-4 flex items-center justify-between">
+            <button 
+              onClick={handlePrevMonth} 
+              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+              title="Previous month"
+            >
+              <ChevronLeft size={20} className="text-white" />
+            </button>
+            <div className="text-center">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                {MONTHS[currentDate.getMonth()]}
+              </h2>
+              <p className="text-xs text-gray-400 mt-0.5">{currentDate.getFullYear()}</p>
+            </div>
+            <button 
+              onClick={handleNextMonth} 
+              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+              title="Next month"
+            >
+              <ChevronRight size={20} className="text-white" />
+            </button>
           </div>
 
-          {/* Summary Stats */}
-          <div className="space-y-4">
-            <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-6 border border-red-100">
-              <h3 className="text-sm font-semibold text-red-900 mb-2">Total Expenses</h3>
-              <p className="text-2xl sm:text-3xl font-bold text-red-700">
-                {formatCurrency(transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0))}
-              </p>
+          {/* Calendar Grid */}
+          <div className="p-4 sm:p-6">
+            {/* Day Headers */}
+            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-3">
+              {DAYS.map((day) => (
+                <div key={day} className="text-center font-medium text-gray-400 text-xs py-2">
+                  {day}
+                </div>
+              ))}
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
-              <h3 className="text-sm font-semibold text-green-900 mb-2">Total Income</h3>
-              <p className="text-2xl sm:text-3xl font-bold text-green-700">
-                {formatCurrency(transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0))}
-              </p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-100">
-              <h3 className="text-sm font-semibold text-blue-900 mb-2">Transfers</h3>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-700">{transactions.filter((t) => t.type === 'transfer').length}</p>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border border-purple-100">
-              <h3 className="text-sm font-semibold text-purple-900 mb-2">Reminders</h3>
-              <p className="text-2xl sm:text-3xl font-bold text-purple-700">{reminders.length}</p>
+
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              <AnimatePresence mode="wait">
+                {calendarDays.map((date, index) => {
+                  const isToday = isCurrentMonth && date.getDate() === today.getDate();
+                  const isSelected = selectedDate && getDateKey(date) === getDateKey(selectedDate);
+                  const isCurrentMonth_ = date.getMonth() === currentDate.getMonth();
+                  const hasAct = hasActivity(date);
+
+                  // Only render current month dates
+                  if (!isCurrentMonth_) {
+                    return null;
+                  }
+
+                  return (
+                    <motion.button
+                      key={getDateKey(date)}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      onClick={() => setSelectedDate(date)}
+                      className={cn(
+                        'aspect-square rounded-xl transition-all duration-200 flex flex-col items-center justify-center relative group',
+                        isSelected
+                          ? 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/30 scale-105 z-10'
+                          : isToday
+                          ? 'bg-gray-900 text-white shadow-md'
+                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 hover:scale-105',
+                        'font-semibold text-sm sm:text-base'
+                      )}
+                    >
+                      {date.getDate()}
+
+                      {/* Activity Indicator */}
+                      {hasAct && !isSelected && (
+                        <div className="absolute bottom-1.5 sm:bottom-2 flex gap-0.5">
+                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-pink-500" />
+                        </div>
+                      )}
+                      {hasAct && isSelected && (
+                        <div className="absolute bottom-1.5 sm:bottom-2 flex gap-0.5">
+                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white/70" />
+                        </div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -339,129 +442,133 @@ export const Calendar: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="mt-8 bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-100"
+              exit={{ opacity: 0, y: -20 }}
+              className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                    {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">Daily Activity Timeline</p>
-                </div>
-                <button
-                  onClick={() => setSelectedDate(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {getDailyActivities(selectedDate).length > 0 ? (
-                <div className="space-y-4">
-                  {getDailyActivities(selectedDate).map((activity, idx) => (
-                    <motion.div
-                      key={activity.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.1 }}
-                      className={cn(
-                        'flex items-start gap-4 p-4 rounded-xl border-2',
-                        activity.type === 'reminder'
-                          ? 'bg-gradient-to-r ' + activity.color + ' bg-opacity-10 border-' + activity.color.split('-')[1] + '-300'
-                          : 'bg-white border-gray-200'
-                      )}
-                    >
-                      <div className={cn('text-2xl flex-shrink-0')}>{activity.icon}</div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{activity.title}</h3>
-                            {activity.description && <p className="text-sm text-gray-600 mt-1">{activity.description}</p>}
-                            {activity.status && (
-                              <p className="text-xs mt-2 font-medium uppercase tracking-wide">
-                                Status:{' '}
-                                <span
-                                  className={cn(
-                                    'capitalize',
-                                    activity.status === 'completed'
-                                      ? 'text-green-600'
-                                      : activity.status === 'in-progress'
-                                      ? 'text-blue-600'
-                                      : 'text-yellow-600'
-                                  )}
-                                >
-                                  {activity.status}
-                                </span>
-                              </p>
-                            )}
-                          </div>
-                          {activity.amount && (
-                            <div className="text-right flex-shrink-0">
-                              <p className={cn('font-bold text-lg', activity.type === 'expense' ? 'text-red-600' : 'text-green-600')}>
-                                {activity.type === 'expense' ? '-' : '+'}
-                                {formatCurrency(activity.amount)}
-                              </p>
-                              {activity.time && <p className="text-xs text-gray-500 mt-1">{activity.time}</p>}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Reminder Actions */}
-                        {activity.type === 'reminder' && (
-                          <div className="flex gap-2 mt-3 flex-wrap">
-                            {activity.status !== 'completed' && (
-                              <>
-                                {activity.status !== 'in-progress' && (
-                                  <button
-                                    onClick={() => updateReminderStatus(activity.id, 'in-progress')}
-                                    className="text-xs px-3 py-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-1"
-                                  >
-                                    <Clock size={14} /> Start
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => updateReminderStatus(activity.id, 'completed')}
-                                  className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors flex items-center gap-1"
-                                >
-                                  <CheckCircle2 size={14} /> Complete
-                                </button>
-                              </>
-                            )}
-                            <button
-                              onClick={() => {
-                                const newDate = prompt('Reschedule to (YYYY-MM-DD):');
-                                if (newDate) {
-                                  rescheduleReminder(activity.id, new Date(newDate));
-                                }
-                              }}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-purple-500 text-white hover:bg-purple-600 transition-colors flex items-center gap-1"
-                            >
-                              <AlertCircle size={14} /> Reschedule
-                            </button>
-                            <button
-                              onClick={() => deleteReminder(activity.id)}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors ml-auto"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <p className="text-lg">No activities scheduled for this day</p>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-gray-50 to-white px-4 sm:px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                      {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-0.5">Activity Summary</p>
+                  </div>
                   <button
-                    onClick={() => setShowReminderModal(true)}
-                    className="mt-4 px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors inline-flex items-center gap-2"
+                    onClick={() => setSelectedDate(null)}
+                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                    title="Close"
                   >
-                    <Plus size={18} /> Add Reminder
+                    <X size={18} className="text-gray-500" />
                   </button>
                 </div>
-              )}
+              </div>
+
+              <div className="p-4 sm:p-6">
+                {/* Daily Stats Summary */}
+                {(() => {
+                  const dailyStats = getDailyStats(selectedDate);
+                  return (
+                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+                      <div className="bg-green-50 rounded-xl p-3 text-center">
+                        <p className="text-xs text-green-600 font-medium mb-1">Income</p>
+                        <p className="text-sm sm:text-base font-bold text-green-700">
+                          +{formatCurrency(dailyStats.income)}
+                        </p>
+                      </div>
+                      <div className="bg-red-50 rounded-xl p-3 text-center">
+                        <p className="text-xs text-red-600 font-medium mb-1">Expense</p>
+                        <p className="text-sm sm:text-base font-bold text-red-700">
+                          -{formatCurrency(dailyStats.expense)}
+                        </p>
+                      </div>
+                      <div className={cn(
+                        "rounded-xl p-3 text-center",
+                        dailyStats.total >= 0 ? "bg-blue-50" : "bg-orange-50"
+                      )}>
+                        <p className={cn(
+                          "text-xs font-medium mb-1",
+                          dailyStats.total >= 0 ? "text-blue-600" : "text-orange-600"
+                        )}>Net</p>
+                        <p className={cn(
+                          "text-sm sm:text-base font-bold",
+                          dailyStats.total >= 0 ? "text-blue-700" : "text-orange-700"
+                        )}>
+                          {dailyStats.total >= 0 ? '+' : ''}{formatCurrency(dailyStats.total)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Transactions List */}
+                {getDailyActivities(selectedDate).length > 0 ? (
+                  <div className="space-y-3">
+                    {getDailyActivities(selectedDate).map((activity, idx) => (
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className={cn(
+                          'flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-colors',
+                          activity.type === 'reminder'
+                            ? 'bg-purple-50 border border-purple-100'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        )}
+                      >
+                        <div className={cn(
+                          'w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0',
+                          activity.type === 'expense' ? 'bg-red-100' :
+                          activity.type === 'income' ? 'bg-green-100' :
+                          activity.type === 'transfer' ? 'bg-blue-100' : 'bg-purple-100'
+                        )}>
+                          {activity.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">{activity.title}</p>
+                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                            {activity.category && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-white text-gray-600 border border-gray-200">
+                                {activity.category}
+                              </span>
+                            )}
+                            {activity.accountName && (
+                              <span className="text-xs text-gray-400">• {activity.accountName}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          {activity.amount && (
+                            <p className={cn(
+                              'font-bold text-sm sm:text-base',
+                              activity.type === 'expense' ? 'text-red-600' : 'text-green-600'
+                            )}>
+                              {activity.type === 'expense' ? '-' : '+'}{formatCurrency(activity.amount)}
+                            </p>
+                          )}
+                          {activity.time && (
+                            <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                      <CalendarIcon size={24} className="text-gray-400" />
+                    </div>
+                    <p className="text-gray-500 font-medium">No activities for this day</p>
+                    <button
+                      onClick={() => setShowReminderModal(true)}
+                      className="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2 text-sm"
+                    >
+                      <Plus size={16} /> Add Reminder
+                    </button>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -555,7 +662,6 @@ export const Calendar: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
     </div>
   );
 };

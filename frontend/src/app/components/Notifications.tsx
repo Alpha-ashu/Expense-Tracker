@@ -181,6 +181,8 @@ export const Notifications: React.FC = () => {
             title="Notifications"
             subtitle={`You have ${unreadCount} unread notifications`}
             icon={<Bell size={20} className="sm:w-6 sm:h-6" />}
+            showBack
+            backTo="dashboard"
           />
         </div>
 

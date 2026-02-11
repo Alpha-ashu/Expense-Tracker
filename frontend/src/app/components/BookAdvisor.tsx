@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
-import { useApp } from '@/contexts/AppContext';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, FinanceAdvisor } from '@/lib/database';
 import {
-  ChevronLeft,
   Star,
   Calendar,
   Clock,
@@ -32,7 +31,6 @@ interface BookingForm {
 }
 
 export const BookAdvisor: React.FC = () => {
-  const { setCurrentPage } = useApp();
   const { user, role } = useAuth();
   const [selectedAdvisor, setSelectedAdvisor] = useState<FinanceAdvisor | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
@@ -142,18 +140,13 @@ export const BookAdvisor: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Book a Financial Advisor</h2>
-            <p className="text-gray-500 mt-1">Connect with verified financial experts</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Book a Financial Advisor"
+          subtitle="Connect with verified financial experts"
+          icon={<Users size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="dashboard"
+        />
 
         {/* My Active Bookings */}
         {userBookings.length > 0 && (

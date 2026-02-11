@@ -126,6 +126,8 @@ export const UserProfile: React.FC = () => {
             title="User Profile"
             subtitle="Manage your personal information"
             icon={<User size={20} className="sm:w-6 sm:h-6" />}
+            showBack
+            backTo="dashboard"
           />
         </div>
 

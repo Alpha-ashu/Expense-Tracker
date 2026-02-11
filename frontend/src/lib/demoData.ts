@@ -14,12 +14,16 @@ export const initializeDemoData = async (userEmail?: string) => {
       db.loans.clear(),
       db.goals.clear(),
       db.investments.clear(),
-      db.notifications.clear()
+      db.notifications.clear(),
+      db.toDoLists.clear(),
+      db.toDoItems.clear(),
     ]);
   } else {
     // Normal behavior: Skip if data exists
     const existingAccounts = await db.accounts.count();
     if (existingAccounts > 0) {
+      // Still seed todo lists if they don't exist
+      await seedToDoListsIfNeeded();
       return;
     }
   }
@@ -241,6 +245,147 @@ export const initializeDemoData = async (userEmail?: string) => {
     lastUpdated: new Date(),
   });
 
+  // Add demo todo lists
+  const personalListId = await db.toDoLists.add({
+    name: 'Personal Tasks',
+    description: 'Daily personal tasks and errands',
+    ownerId: 'demo-user',
+    createdAt: new Date('2026-01-15'),
+    archived: false,
+  });
+
+  const financeListId = await db.toDoLists.add({
+    name: 'Financial Goals',
+    description: 'Money management and investment tasks',
+    ownerId: 'demo-user',
+    createdAt: new Date('2026-01-20'),
+    archived: false,
+  });
+
+  const workListId = await db.toDoLists.add({
+    name: 'Work Projects',
+    description: 'Professional tasks and deadlines',
+    ownerId: 'demo-user',
+    createdAt: new Date('2026-02-01'),
+    archived: false,
+  });
+
+  // Add demo todo items
+  await db.toDoItems.bulkAdd([
+    // Personal Tasks
+    {
+      listId: personalListId as number,
+      title: 'Pay electricity bill',
+      description: 'Monthly electricity payment due',
+      completed: false,
+      priority: 'high',
+      dueDate: new Date('2026-02-15'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+    },
+    {
+      listId: personalListId as number,
+      title: 'Schedule dentist appointment',
+      description: 'Annual dental checkup',
+      completed: false,
+      priority: 'medium',
+      dueDate: new Date('2026-02-20'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-02'),
+    },
+    {
+      listId: personalListId as number,
+      title: 'Gym workout - 30 min cardio',
+      completed: true,
+      priority: 'low',
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-05'),
+      completedAt: new Date('2026-02-05'),
+    },
+    {
+      listId: personalListId as number,
+      title: 'Buy groceries',
+      description: 'Vegetables, fruits, milk',
+      completed: false,
+      priority: 'medium',
+      dueDate: new Date('2026-02-12'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-08'),
+    },
+    // Financial Goals
+    {
+      listId: financeListId as number,
+      title: 'Review monthly budget',
+      description: 'Analyze spending vs budget targets',
+      completed: false,
+      priority: 'high',
+      dueDate: new Date('2026-02-28'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+    },
+    {
+      listId: financeListId as number,
+      title: 'Set up automatic savings',
+      description: 'Transfer ₹5000 monthly to savings',
+      completed: true,
+      priority: 'high',
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-01-20'),
+      completedAt: new Date('2026-01-25'),
+    },
+    {
+      listId: financeListId as number,
+      title: 'Research mutual funds',
+      description: 'Compare top performing SIP options',
+      completed: false,
+      priority: 'medium',
+      dueDate: new Date('2026-02-18'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-05'),
+    },
+    {
+      listId: financeListId as number,
+      title: 'File tax returns',
+      description: 'Gather documents and file ITR',
+      completed: false,
+      priority: 'high',
+      dueDate: new Date('2026-03-31'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+    },
+    // Work Projects
+    {
+      listId: workListId as number,
+      title: 'Complete quarterly report',
+      description: 'Q4 performance analysis',
+      completed: true,
+      priority: 'high',
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+      completedAt: new Date('2026-02-08'),
+    },
+    {
+      listId: workListId as number,
+      title: 'Team meeting preparation',
+      description: 'Prepare slides for Monday standup',
+      completed: false,
+      priority: 'medium',
+      dueDate: new Date('2026-02-14'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-10'),
+    },
+    {
+      listId: workListId as number,
+      title: 'Client proposal review',
+      description: 'Review and finalize project proposal',
+      completed: false,
+      priority: 'high',
+      dueDate: new Date('2026-02-16'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-09'),
+    },
+  ]);
+
   if (isAdmin) {
     localStorage.setItem('admin_data_seeded_v2', 'true');
     console.log('Admin data seeded successfully');
@@ -248,3 +393,116 @@ export const initializeDemoData = async (userEmail?: string) => {
     console.log('Demo data initialized (Standard)');
   }
 };
+
+// Helper function to seed todo lists independently
+async function seedToDoListsIfNeeded() {
+  const existingLists = await db.toDoLists.count();
+  if (existingLists > 0) {
+    return; // Already have todo lists
+  }
+
+  console.log('Seeding todo lists for existing user...');
+
+  // Add demo todo lists
+  const personalListId = await db.toDoLists.add({
+    name: 'Personal Tasks',
+    description: 'Daily personal tasks and errands',
+    ownerId: 'demo-user',
+    createdAt: new Date('2026-01-15'),
+    archived: false,
+  });
+
+  const financeListId = await db.toDoLists.add({
+    name: 'Financial Goals',
+    description: 'Money management and investment tasks',
+    ownerId: 'demo-user',
+    createdAt: new Date('2026-01-20'),
+    archived: false,
+  });
+
+  const workListId = await db.toDoLists.add({
+    name: 'Work Projects',
+    description: 'Professional tasks and deadlines',
+    ownerId: 'demo-user',
+    createdAt: new Date('2026-02-01'),
+    archived: false,
+  });
+
+  // Add demo todo items
+  await db.toDoItems.bulkAdd([
+    // Personal Tasks
+    {
+      listId: personalListId as number,
+      title: 'Pay electricity bill',
+      description: 'Monthly electricity payment due',
+      completed: false,
+      priority: 'high',
+      dueDate: new Date('2026-02-15'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+    },
+    {
+      listId: personalListId as number,
+      title: 'Schedule dentist appointment',
+      description: 'Annual dental checkup',
+      completed: false,
+      priority: 'medium',
+      dueDate: new Date('2026-02-20'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-02'),
+    },
+    {
+      listId: personalListId as number,
+      title: 'Gym workout - 30 min cardio',
+      completed: true,
+      priority: 'low',
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-05'),
+      completedAt: new Date('2026-02-05'),
+    },
+    // Financial Goals
+    {
+      listId: financeListId as number,
+      title: 'Review monthly budget',
+      description: 'Analyze spending vs budget targets',
+      completed: false,
+      priority: 'high',
+      dueDate: new Date('2026-02-28'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+    },
+    {
+      listId: financeListId as number,
+      title: 'Set up automatic savings',
+      description: 'Transfer ₹5000 monthly to savings',
+      completed: true,
+      priority: 'high',
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-01-20'),
+      completedAt: new Date('2026-01-25'),
+    },
+    // Work Projects
+    {
+      listId: workListId as number,
+      title: 'Complete quarterly report',
+      description: 'Q4 performance analysis',
+      completed: true,
+      priority: 'high',
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-01'),
+      completedAt: new Date('2026-02-08'),
+    },
+    {
+      listId: workListId as number,
+      title: 'Team meeting preparation',
+      description: 'Prepare slides for Monday standup',
+      completed: false,
+      priority: 'medium',
+      dueDate: new Date('2026-02-14'),
+      createdBy: 'demo-user',
+      createdAt: new Date('2026-02-10'),
+    },
+  ]);
+
+  console.log('Todo lists seeded successfully');
+}

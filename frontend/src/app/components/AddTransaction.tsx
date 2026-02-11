@@ -110,6 +110,8 @@ export const AddTransaction: React.FC = () => {
             title="Add Transaction"
             subtitle="Record a new income or expense"
             icon={formData.type === 'income' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+            showBack
+            backTo="transactions"
           />
         </div>
 

@@ -106,6 +106,8 @@ export const Settings: React.FC = () => {
         icon={<SettingsIcon size={24} className="sm:w-8 sm:h-8" />}
         title="Settings"
         subtitle="Manage your data and preferences"
+        showBack
+        backTo="dashboard"
       />
 
       {/* Account Section */}
@@ -113,9 +115,8 @@ export const Settings: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="space-y-0"
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
-        <Card variant="glass">
           <div className="p-4 sm:p-6 border-b border-white/10">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">Account</h3>
             <p className="text-sm text-gray-500 mt-1">Manage your account settings</p>
@@ -148,16 +149,14 @@ export const Settings: React.FC = () => {
               </div>
             </div>
           </div>
-        </Card>
       </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="space-y-0"
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
-        <Card variant="glass">
           <div className="p-6 border-b border-white/10">
             <h3 className="text-lg font-semibold text-gray-900">System</h3>
             <p className="text-sm text-gray-500 mt-1">Diagnostics and environment checks</p>
@@ -186,16 +185,14 @@ export const Settings: React.FC = () => {
               </div>
             </div>
           </div>
-        </Card>
       </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="space-y-0"
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
-        <Card variant="glass">
           <div className="p-6 border-b border-white/10">
             <h3 className="text-lg font-semibold text-gray-900">Data Management</h3>
             <p className="text-sm text-gray-500 mt-1">Import, export, and manage your financial data</p>
@@ -327,16 +324,14 @@ export const Settings: React.FC = () => {
             </div>
           </div>
         </div>
-      </Card>
       </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="space-y-0"
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
-        <Card variant="glass">
           <div className="p-6 border-b border-white/10">
             <h3 className="text-lg font-semibold text-gray-900">Preferences</h3>
             <p className="text-sm text-gray-500 mt-1">Customize your app experience</p>
@@ -413,16 +408,14 @@ export const Settings: React.FC = () => {
               </div>
             </div>
           </div>
-        </Card>
       </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="space-y-0"
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
-        <Card variant="glass">
           <div className="p-6 border-b border-white/10">
             <h3 className="text-lg font-semibold text-gray-900">Feature Visibility</h3>
             <p className="text-sm text-gray-500 mt-1">Select which features you want to see in your app</p>
@@ -431,6 +424,7 @@ export const Settings: React.FC = () => {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
+                { key: 'dashboard', label: 'Dashboard', icon: '🏠' },
                 { key: 'accounts', label: 'Accounts', icon: '🏦' },
                 { key: 'transactions', label: 'Transactions', icon: '💳' },
                 { key: 'loans', label: 'Loans & EMIs', icon: '📊' },
@@ -440,18 +434,18 @@ export const Settings: React.FC = () => {
                 { key: 'reports', label: 'Reports', icon: '📋' },
                 { key: 'calendar', label: 'Calendar', icon: '📅' },
                 { key: 'todoLists', label: 'To-Do Lists', icon: '✅' },
-                { key: 'transfer', label: 'Transfer Money', icon: '🔄' },
-                { key: 'taxCalculator', label: 'Tax Calculator', icon: '🧮' },
-                { key: 'financeAdvisor', label: 'Finance Advisor', icon: '💼' },
+                { key: 'bookAdvisor', label: 'Book Advisor', icon: '💼' },
+                { key: 'notifications', label: 'Notifications', icon: '🔔' },
               ].map(feature => (
                 <button
                   key={feature.key}
                   onClick={() => toggleFeature(feature.key)}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                  className={cn(
+                    "p-4 rounded-2xl border-2 transition-all text-left backdrop-blur-sm",
                     visibleFeatures[feature.key]
-                      ? 'border-black bg-black/5'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
+                      ? 'border-black/20 bg-white/80 shadow-sm'
+                      : 'border-gray-200/50 bg-gray-50/60'
+                  )}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -464,7 +458,7 @@ export const Settings: React.FC = () => {
                       </div>
                     </div>
                     {visibleFeatures[feature.key] ? (
-                      <Eye size={20} className="text-black" />
+                      <Eye size={20} className="text-gray-700" />
                     ) : (
                       <EyeOff size={20} className="text-gray-400" />
                     )}
@@ -473,16 +467,14 @@ export const Settings: React.FC = () => {
               ))}
             </div>
           </div>
-        </Card>
       </motion.div>
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="space-y-0"
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
-        <Card variant="glass">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">About FinanceLife</h3>
             <div className="space-y-2 text-sm text-gray-600">
@@ -492,7 +484,6 @@ export const Settings: React.FC = () => {
               <p><strong>Offline:</strong> Works completely offline, no internet required</p>
             </div>
           </div>
-        </Card>
       </motion.div>
     </div>
   );

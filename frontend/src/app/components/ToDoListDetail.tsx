@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronLeft, Plus, Trash2, CheckCircle, Circle } from 'lucide-react';
+import { Plus, Trash2, CheckCircle, Circle, ListTodo } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ToDoItem } from '@/lib/database';
 
 export const ToDoListDetail: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { user } = useAuth();
   const [listId, setListId] = useState<number | null>(null);
   const [toDoList, setToDoList] = useState<any>(null);
   const [newItemTitle, setNewItemTitle] = useState('');
@@ -16,7 +17,8 @@ export const ToDoListDetail: React.FC = () => {
   const [newItemPriority, setNewItemPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [newItemDueDate, setNewItemDueDate] = useState('');
 
-  const currentUserId = 'user-1'; // Placeholder
+  // Use actual user ID or fallback for demo data
+  const currentUserId = user?.id || 'demo-user';
 
   // Get list ID from localStorage
   useEffect(() => {
@@ -24,6 +26,10 @@ export const ToDoListDetail: React.FC = () => {
     if (id) {
       setListId(parseInt(id));
     }
+    // Cleanup on unmount
+    return () => {
+      localStorage.removeItem('viewingToDoListId');
+    };
   }, []);
 
   const items: any[] = (useLiveQuery(
@@ -98,11 +104,6 @@ export const ToDoListDetail: React.FC = () => {
     }
   };
 
-  const handleBackToLists = () => {
-    localStorage.removeItem('viewingToDoListId');
-    setCurrentPage('todo-lists');
-  };
-
   const completedCount = items.filter((i) => i.completed).length;
   const priorityColors = {
     low: 'bg-green-100 text-green-700',
@@ -124,23 +125,13 @@ export const ToDoListDetail: React.FC = () => {
     <CenteredLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleBackToLists}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">{toDoList.name}</h2>
-            {toDoList.description && (
-              <p className="text-gray-500 mt-1">{toDoList.description}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-2">
-              {completedCount} of {items.length} tasks completed
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title={toDoList.name}
+          subtitle={`${toDoList.description ? toDoList.description + ' • ' : ''}${completedCount} of ${items.length} tasks completed`}
+          icon={<ListTodo size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="todo-lists"
+        />
 
         {/* Progress Bar */}
         {items.length > 0 && (

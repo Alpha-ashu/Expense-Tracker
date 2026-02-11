@@ -33,7 +33,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentPage, setCurrentPage] = useState('accounts');
-  const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'USD');
+  const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'INR');
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [forceUpdate, setForceUpdate] = useState(0);

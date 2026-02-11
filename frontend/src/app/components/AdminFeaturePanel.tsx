@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { ChevronLeft, Settings, ToggleRight, ToggleLeft, Shield } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,11 +18,68 @@ interface FeatureControl {
 }
 
 const FEATURES: FeatureControl[] = [
+  // Core Navigation Features
   {
-    name: 'Book Advisor',
-    key: 'bookAdvisor',
+    name: 'Dashboard',
+    key: 'dashboard',
     readiness: 'released',
-    description: 'Users can book financial advisors for sessions',
+    description: 'Main overview with financial summary and quick actions',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Accounts',
+    key: 'accounts',
+    readiness: 'released',
+    description: 'Bank accounts, wallets, and financial account management',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Transactions',
+    key: 'transactions',
+    readiness: 'released',
+    description: 'Income and expense tracking with categorization',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Loans & EMIs',
+    key: 'loans',
+    readiness: 'released',
+    description: 'Loan tracking, EMI calculations, and payment schedules',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Goals',
+    key: 'goals',
+    readiness: 'released',
+    description: 'Financial goal setting and progress tracking',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Group Expenses',
+    key: 'groups',
+    readiness: 'released',
+    description: 'Split bills and manage shared expenses with friends',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Investments',
+    key: 'investments',
+    readiness: 'released',
+    description: 'Portfolio tracking for stocks, crypto, and mutual funds',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Calendar',
+    key: 'calendar',
+    readiness: 'released',
+    description: 'Visual calendar view of transactions and recurring payments',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Reports',
+    key: 'reports',
+    readiness: 'released',
+    description: 'Financial reports and analytics with charts',
     lastUpdated: new Date(),
   },
   {
@@ -33,6 +89,35 @@ const FEATURES: FeatureControl[] = [
     description: 'Task management and collaboration features',
     lastUpdated: new Date(),
   },
+  {
+    name: 'Book Advisor',
+    key: 'bookAdvisor',
+    readiness: 'released',
+    description: 'Users can book financial advisors for sessions',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Notifications',
+    key: 'notifications',
+    readiness: 'released',
+    description: 'Alerts for bills, budgets, and financial reminders',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'User Profile',
+    key: 'userProfile',
+    readiness: 'released',
+    description: 'Personal profile and account settings',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Settings',
+    key: 'settings',
+    readiness: 'released',
+    description: 'App preferences, currency, and theme settings',
+    lastUpdated: new Date(),
+  },
+  // Advanced Features
   {
     name: 'Tax Calculator',
     key: 'taxCalculator',
@@ -54,24 +139,57 @@ const FEATURES: FeatureControl[] = [
     description: 'AI-powered spending insights and recommendations',
     lastUpdated: new Date(),
   },
+  {
+    name: 'Data Export',
+    key: 'dataExport',
+    readiness: 'released',
+    description: 'Export transactions and reports to CSV/PDF',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Recurring Transactions',
+    key: 'recurringTransactions',
+    readiness: 'released',
+    description: 'Automatic recurring income and expense entries',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Budget Alerts',
+    key: 'budgetAlerts',
+    readiness: 'released',
+    description: 'Notifications when spending exceeds budget limits',
+    lastUpdated: new Date(),
+  },
 ];
 
 export const AdminFeaturePanel: React.FC = () => {
   const { setCurrentPage } = useApp();
-  const { role, user } = useAuth();
+  const { role, user, loading } = useAuth();
   const [features, setFeatures] = useState<FeatureControl[]>(FEATURES);
 
-  // Only allow admin access
-  if (role !== 'admin') {
+  // Redirect non-admins silently to dashboard
+  useEffect(() => {
+    if (!loading && role !== 'admin') {
+      setCurrentPage('dashboard');
+    }
+  }, [loading, role, setCurrentPage]);
+
+  // Show loading state while auth is loading
+  if (loading) {
     return (
-      <CenteredLayout>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-          <Shield size={48} className="mx-auto text-red-400 mb-4" />
-          <h2 className="text-2xl font-bold text-red-900 mb-2">Access Denied</h2>
-          <p className="text-red-700">Only administrators can access this panel</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin w-10 h-10 border-4 border-gray-200 border-t-purple-600 rounded-full"></div>
+          </div>
         </div>
-      </CenteredLayout>
+      </div>
     );
+  }
+
+  // Don't render anything for non-admins (redirect will happen via useEffect)
+  if (role !== 'admin') {
+    return null;
   }
 
   const handleToggleFeature = (key: string, newReadiness: FeatureControl['readiness']) => {
@@ -107,7 +225,9 @@ export const AdminFeaturePanel: React.FC = () => {
           <PageHeader 
             title="Admin Panel" 
             subtitle="Feature flags & access control" 
-            icon={<Shield size={20} className="sm:w-6 sm:h-6" />} 
+            icon={<Shield size={20} className="sm:w-6 sm:h-6" />}
+            showBack
+            backTo="dashboard"
           />
         </div>
         <div className="px-4 lg:px-8 space-y-6">

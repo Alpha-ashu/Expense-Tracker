@@ -26,29 +26,24 @@ export const Accounts: React.FC = () => {
 
   // Function to scroll a card to center
   const scrollToCenter = useCallback((accountId: number) => {
-    const carousel = carouselRef.current;
     const cardEl = cardRefs.current[accountId];
-    if (!carousel || !cardEl) return;
+    if (!cardEl) return;
 
-    const carouselRect = carousel.getBoundingClientRect();
-    const cardRect = cardEl.getBoundingClientRect();
-    
-    // Calculate the scroll position to center the card
-    const cardCenterOffset = cardEl.offsetLeft + cardRect.width / 2;
-    const carouselVisibleCenter = carouselRect.width / 2;
-    const scrollTo = cardCenterOffset - carouselVisibleCenter;
-
-    carousel.scrollTo({
-      left: scrollTo,
-      behavior: 'smooth'
+    // Use scrollIntoView which works better with scroll-snap
+    cardEl.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
     });
   }, []);
 
   // Handle card selection with scroll to center
   const handleCardSelect = useCallback((accountId: number) => {
     setSelectedAccountId(accountId);
-    // Small delay to ensure refs are updated
-    setTimeout(() => scrollToCenter(accountId), 50);
+    // Use requestAnimationFrame for smoother timing
+    requestAnimationFrame(() => {
+      scrollToCenter(accountId);
+    });
   }, [scrollToCenter]);
 
   // Filter accounts based on active tab
@@ -62,12 +57,21 @@ export const Accounts: React.FC = () => {
     if (filteredAccounts.length > 0) {
       const firstAccount = filteredAccounts[0];
       setSelectedAccountId(firstAccount.id!);
-      // Delay to ensure DOM is updated with new filtered accounts
-      setTimeout(() => scrollToCenter(firstAccount.id!), 100);
+      // Use setTimeout to ensure DOM is updated, then scroll
+      setTimeout(() => {
+        const cardEl = cardRefs.current[firstAccount.id!];
+        if (cardEl) {
+          cardEl.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      }, 50);
     } else {
       setSelectedAccountId(null);
     }
-  }, [activeTab, filteredAccounts.length, scrollToCenter]);
+  }, [activeTab]);
 
   const tabs = [
     { id: 'all', label: 'All Assets', icon: TrendingUp },
@@ -210,10 +214,8 @@ export const Accounts: React.FC = () => {
         {/* Carousel Container */}
         <div
           ref={carouselRef}
-          className="overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide"
+          className="overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide scroll-smooth"
           style={{
-            scrollBehavior: 'smooth',
-            scrollSnapType: 'x mandatory',
             WebkitOverflowScrolling: 'touch',
           }}
         >

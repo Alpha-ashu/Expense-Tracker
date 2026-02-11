@@ -1,18 +1,65 @@
-import React, { useState } from 'react';
-import { Bell, Search, Menu, X } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Bell, Search, Menu, X, GripVertical } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureAccess } from '@/hooks/useRBAC';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
-import { headerMenuItems } from '@/app/constants/navigation';
+import { headerMenuItems, NavigationItem } from '@/app/constants/navigation';
+import { Reorder, useDragControls } from 'framer-motion';
+
+const MOBILE_MENU_ORDER_KEY = 'sidebar_menu_order'; // Share order with sidebar
+
+interface DraggableMobileMenuItemProps {
+  item: NavigationItem;
+  isActive: boolean;
+  onNavigate: (id: string) => void;
+}
+
+const DraggableMobileMenuItem: React.FC<DraggableMobileMenuItemProps> = ({
+  item,
+  isActive,
+  onNavigate,
+}) => {
+  const Icon = item.icon;
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={dragControls}
+      className="relative"
+      whileDrag={{ scale: 1.02, zIndex: 50, backgroundColor: 'rgba(255,255,255,0.1)' }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+    >
+      <button
+        onClick={() => onNavigate(item.id)}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${isActive
+          ? 'bg-accent-secondary/10 text-accent-secondary'
+          : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
+        }`}
+      >
+        <div
+          className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-2"
+          onPointerDown={(e) => dragControls.start(e)}
+        >
+          <GripVertical size={16} className="text-text-muted" />
+        </div>
+        <Icon size={20} />
+        <span className="font-medium">{item.label}</span>
+      </button>
+    </Reorder.Item>
+  );
+};
 
 export const Header: React.FC = () => {
-  const { totalBalance, currency, currentPage, setCurrentPage } = useApp();
+  const { totalBalance, currency, currentPage, setCurrentPage, visibleFeatures } = useApp();
   const { role } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [orderedItems, setOrderedItems] = useState<NavigationItem[]>([]);
 
   const unreadNotifications = useLiveQuery(
     () => db.notifications.filter(n => !n.isRead).count(),
@@ -24,15 +71,53 @@ export const Header: React.FC = () => {
     []
   ) || [];
 
-  // Filter menu items based on RBAC
-  const visibleMenuItems = headerMenuItems.filter(item => {
-    // If item has role restrictions, only show if user has that role
-    if (item.roles && item.roles.length > 0) {
-      return item.roles.includes(role);
+  // Filter menu items based on RBAC and user's feature visibility preferences
+  const visibleMenuItems = useMemo(() => {
+    return headerMenuItems.filter(item => {
+      // Check user's feature visibility preference
+      const featureKey = item.feature as keyof typeof visibleFeatures;
+      if (visibleFeatures[featureKey] === false) {
+        return false;
+      }
+      // If item has role restrictions, only show if user has that role
+      if (item.roles && item.roles.length > 0) {
+        return item.roles.includes(role);
+      }
+      // Otherwise accessible to all
+      return true;
+    });
+  }, [role, visibleFeatures]);
+
+  // Load saved order from localStorage
+  useEffect(() => {
+    const savedOrder = localStorage.getItem(MOBILE_MENU_ORDER_KEY);
+    if (savedOrder) {
+      try {
+        const orderIds: string[] = JSON.parse(savedOrder);
+        // Reorder visible items based on saved order
+        const reordered = [...visibleMenuItems].sort((a, b) => {
+          const indexA = orderIds.indexOf(a.id);
+          const indexB = orderIds.indexOf(b.id);
+          // If item not in saved order, put it at the end
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        });
+        setOrderedItems(reordered);
+      } catch {
+        setOrderedItems(visibleMenuItems);
+      }
+    } else {
+      setOrderedItems(visibleMenuItems);
     }
-    // Otherwise check feature access
-    return true;
-  });
+  }, [visibleMenuItems]);
+
+  // Save order to localStorage whenever it changes
+  const handleReorder = useCallback((newOrder: NavigationItem[]) => {
+    setOrderedItems(newOrder);
+    const orderIds = newOrder.map(item => item.id);
+    localStorage.setItem(MOBILE_MENU_ORDER_KEY, JSON.stringify(orderIds));
+  }, []);
 
   const handleMarkAsRead = async (notification: any) => {
     // Mark as read
@@ -92,24 +177,22 @@ export const Header: React.FC = () => {
             </div>
 
             <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
-              {visibleMenuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentPage === item.id;
-
-                return (
-                  <button
+              <p className="text-xs text-text-muted mb-3 px-2">Drag to reorder menu items</p>
+              <Reorder.Group
+                axis="y"
+                values={orderedItems}
+                onReorder={handleReorder}
+                className="space-y-1"
+              >
+                {orderedItems.map((item) => (
+                  <DraggableMobileMenuItem
                     key={item.id}
-                    onClick={() => handleMenuItemClick(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${isActive
-                      ? 'bg-accent-secondary/10 text-accent-secondary'
-                      : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
-                      }`}
-                  >
-                    <Icon size={20} />
-                    <span className="font-medium">{item.label}</span>
-                  </button>
-                );
-              })}
+                    item={item}
+                    isActive={currentPage === item.id}
+                    onNavigate={handleMenuItemClick}
+                  />
+                ))}
+              </Reorder.Group>
             </nav>
 
             <div className="p-4 border-t border-white/10">

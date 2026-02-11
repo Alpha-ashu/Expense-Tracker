@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
+import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 
 const CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
@@ -22,6 +23,7 @@ export const Transactions: React.FC = () => {
   const { accounts, transactions, currency, setCurrentPage } = useApp();
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [timePeriod, setTimePeriod] = useState<TimeFilterPeriod>('monthly');
   const [showTransactionTypeModal, setShowTransactionTypeModal] = useState(false);
   const [showScanModal, setShowScanModal] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -40,19 +42,24 @@ export const Transactions: React.FC = () => {
   }, [setCurrentPage]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions
+    // First filter by time period
+    const timeFiltered = filterByTimePeriod(transactions, timePeriod);
+    // Then filter by type and search
+    return timeFiltered
       .filter(t => filterType === 'all' || t.type === filterType)
       .filter(t =>
         t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         t.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
-  }, [transactions, filterType, searchQuery]);
+  }, [transactions, filterType, searchQuery, timePeriod]);
 
   const stats = useMemo(() => {
-    const expenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    // Stats based on time-filtered transactions
+    const timeFiltered = filterByTimePeriod(transactions, timePeriod);
+    const expenses = timeFiltered.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const income = timeFiltered.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     return { expenses, income, netFlow: income - expenses };
-  }, [transactions]);
+  }, [transactions, timePeriod]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -110,6 +117,12 @@ export const Transactions: React.FC = () => {
             Add
           </Button>
         </div>
+
+      {/* Time Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <TimeFilter value={timePeriod} onChange={setTimePeriod} />
+        <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
+      </div>
 
       {/* Stats Board */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, Trash2, Share2, Archive, CheckCircle2, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Share2, Archive, CheckCircle2, ListTodo } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
 export const ToDoLists: React.FC = () => {
   const { setCurrentPage } = useApp();
+  const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
@@ -16,11 +19,13 @@ export const ToDoLists: React.FC = () => {
   const [listToDelete, setListToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Get current user (simplified - in real app would use auth context)
-  const currentUserId = 'user-1'; // Placeholder
+  // Use actual user ID or fallback for demo data
+  const currentUserId = user?.id || 'demo-user';
 
   const toDoLists = useLiveQuery(
-    () => db.toDoLists.where('ownerId').equals(currentUserId).toArray(),
+    () => db.toDoLists.filter(list => 
+      list.ownerId === currentUserId || list.ownerId === 'demo-user'
+    ).toArray(),
     [currentUserId]
   ) || [];
 
@@ -104,17 +109,13 @@ export const ToDoLists: React.FC = () => {
     <CenteredLayout>
       <div className="space-y-6">
         {/* Header with Back Button */}
-        <div className="flex items-center gap-3 pb-2">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">To-Do Lists</h2>
-            <p className="text-gray-500 mt-1">Create and manage your tasks</p>
-          </div>
+        <PageHeader
+          title="To-Do Lists"
+          subtitle="Create and manage your tasks"
+          icon={<ListTodo size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="dashboard"
+        >
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-medium"
@@ -122,7 +123,7 @@ export const ToDoLists: React.FC = () => {
             <Plus size={20} />
             New List
           </button>
-        </div>
+        </PageHeader>
 
         {/* Create Modal */}
         {showCreateModal && (

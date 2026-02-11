@@ -42,6 +42,8 @@ export const AddAccount: React.FC = () => {
             title="Add New Account"
             subtitle="Create a new account to track your finances"
             icon={<Wallet size={20} />}
+            showBack
+            backTo="accounts"
           />
         </div>
 

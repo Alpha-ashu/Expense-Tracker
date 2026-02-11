@@ -15,6 +15,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { motion } from 'framer-motion';
 import { AnimatePresence } from 'framer-motion';
+import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 
 interface DashboardProps {
   setCurrentPage?: (page: string) => void;
@@ -23,23 +24,29 @@ interface DashboardProps {
 export function Dashboard({ setCurrentPage }: DashboardProps) {
   const { accounts, transactions, currency } = useApp();
   const [activeTab, setActiveTab] = useState<'all' | 'bank' | 'card' | 'wallet' | 'cash'>('all');
+  const [timePeriod, setTimePeriod] = useState<TimeFilterPeriod>('monthly');
 
   const filteredAccounts = useMemo(() => {
     if (activeTab === 'all') return accounts;
     return accounts.filter(a => a.type === activeTab);
   }, [accounts, activeTab]);
 
+  // Filter transactions by time period
+  const timeFilteredTransactions = useMemo(() => {
+    return filterByTimePeriod(transactions, timePeriod);
+  }, [transactions, timePeriod]);
+
   const filteredTransactions = useMemo(() => {
-    if (activeTab === 'all') return transactions;
+    if (activeTab === 'all') return timeFilteredTransactions;
     const accountIds = filteredAccounts.map(a => a.id);
-    return transactions.filter(t => accountIds.includes(t.accountId));
-  }, [transactions, filteredAccounts, activeTab]);
+    return timeFilteredTransactions.filter(t => accountIds.includes(t.accountId));
+  }, [timeFilteredTransactions, filteredAccounts, activeTab]);
 
   const stats = useMemo(() => ({
     totalBalance: filteredAccounts.reduce((sum, a) => sum + a.balance, 0),
-    monthlyIncome: 4321.65,
-    monthlyExpense: 2500.00,
-  }), [filteredAccounts]);
+    monthlyIncome: filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+    monthlyExpense: filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+  }), [filteredAccounts, filteredTransactions]);
 
   const chartData = [
     { name: 'Jan', value: 1200 },
@@ -73,6 +80,14 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
       <div className="max-w-[1600px] mx-auto pb-32 lg:pb-24 w-full">
         <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
           <PageHeader title="Dashboard" subtitle="Manage your financial overview" icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />} />
+        </div>
+
+        {/* Time Filter */}
+        <div className="px-4 lg:px-8 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <TimeFilter value={timePeriod} onChange={setTimePeriod} />
+            <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
+          </div>
         </div>
 
         <div className="flex justify-center px-4 lg:px-8 mb-6 lg:mb-8">

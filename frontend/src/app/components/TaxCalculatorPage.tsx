@@ -140,7 +140,9 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
           <PageHeader 
             title="Tax Calculator" 
             subtitle="Estimate your tax liability" 
-            icon={<Calculator size={20} className="sm:w-6 sm:h-6" />} 
+            icon={<Calculator size={20} className="sm:w-6 sm:h-6" />}
+            showBack
+            backTo="dashboard"
           />
         </div>
         <div className="px-4 lg:px-8 space-y-6">

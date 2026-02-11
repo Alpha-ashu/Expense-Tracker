@@ -49,7 +49,7 @@ class PermissionService {
   /**
    * Fetch user permissions from backend
    */
-  async fetchUserPermissions(userId: string): Promise<UserPermissions> {
+  async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<UserPermissions> {
     try {
       console.log('🔐 Fetching permissions for user:', userId);
 
@@ -60,12 +60,22 @@ class PermissionService {
 
       if (error) {
         console.error('❌ Error fetching permissions:', error);
-        throw error;
+        // Use fallback role if provided, otherwise default to 'user'
+        const role = fallbackRole || 'user';
+        console.log('🔄 Using fallback permissions for role:', role);
+        const fallback = this.getDefaultPermissions(role);
+        this.permissions = fallback;
+        this.notifyListeners();
+        return fallback;
       }
 
       if (!data) {
         console.warn('⚠️ No permissions data returned, using defaults');
-        return this.getDefaultPermissions('user');
+        const role = fallbackRole || 'user';
+        const fallback = this.getDefaultPermissions(role);
+        this.permissions = fallback;
+        this.notifyListeners();
+        return fallback;
       }
 
       const permissions: UserPermissions = {
@@ -82,8 +92,10 @@ class PermissionService {
       return permissions;
     } catch (error) {
       console.error('❌ Failed to fetch permissions:', error);
-      // Fallback to default permissions
-      const fallback = this.getDefaultPermissions('user');
+      // Use fallback role if provided, otherwise default to 'user'
+      const role = fallbackRole || 'user';
+      console.log('🔄 Using fallback permissions for role:', role);
+      const fallback = this.getDefaultPermissions(role);
       this.permissions = fallback;
       this.notifyListeners();
       return fallback;

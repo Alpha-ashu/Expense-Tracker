@@ -242,7 +242,7 @@ const AppContent: React.FC = () => {
         // Get account ID from URL or context if needed
         return <EditAccount />;
       case 'book-advisor':
-        return <FeatureVisibility feature="bookAdvisor"><BookAdvisor /></FeatureVisibility>;
+        return <BookAdvisor />;
       case 'add-transaction':
         return <AddTransaction />;
       case 'loans':
@@ -290,9 +290,9 @@ const AppContent: React.FC = () => {
       case 'auth-callback':
         return <AuthCallback />;
       case 'admin-feature-panel':
-        return <FeatureVisibility feature="adminPanel"><AdminFeaturePanel /></FeatureVisibility>;
+        return <AdminFeaturePanel />;
       case 'advisor-panel':
-        return <FeatureVisibility feature="advisorPanel"><AdvisorPanel /></FeatureVisibility>;
+        return <AdvisorPanel />;
       case 'admin':
         return <AdminDashboard />;
       case 'advisor':
@@ -303,6 +303,8 @@ const AppContent: React.FC = () => {
         return <VoiceReview />;
       case 'pay-emi':
         return <PayEMI />;
+      case 'transfer':
+        return <Transfer />;
       default:
         return <Dashboard />;
     }

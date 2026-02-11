@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { Button } from '@/app/components/ui/button';
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, ChevronLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
 import { headerMenuItems } from '@/app/constants/navigation';
 import { NotificationPopup } from '@/app/components/ui/NotificationPopup';
@@ -12,9 +12,11 @@ interface PageHeaderProps {
     subtitle?: string;
     icon?: React.ReactNode;
     children?: React.ReactNode; // For custom actions like "Add Account" if we choose to put them here
+    showBack?: boolean; // Show back button
+    backTo?: string; // Page to navigate to when back is clicked
 }
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, children }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, children, showBack = false, backTo = 'dashboard' }) => {
     const { currentPage, setCurrentPage } = useApp();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
@@ -207,10 +209,19 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, c
                 {/* Left: Title Section */}
                 <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
+                        {showBack && (
+                            <button
+                                onClick={() => setCurrentPage(backTo)}
+                                className="p-2 -ml-2 hover:bg-gray-100 rounded-xl transition-colors"
+                                aria-label="Go back"
+                            >
+                                <ChevronLeft size={24} className="text-gray-900" />
+                            </button>
+                        )}
                         {icon && <div className="text-gray-900">{icon}</div>}
                         <h1 className="text-2xl lg:text-3xl font-display font-bold text-gray-900 tracking-tight">{title}</h1>
                     </div>
-                    {subtitle && <p className="text-gray-500 font-medium text-sm lg:text-base">{subtitle}</p>}
+                    {subtitle && <p className={`text-gray-500 font-medium text-sm lg:text-base ${showBack ? 'ml-10' : ''}`}>{subtitle}</p>}
                 </div>
 
                 {/* Right: Action Button */}
