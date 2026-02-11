@@ -49,10 +49,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip caching for dev resources in development
+  if (request.url.includes('/@vite') || request.url.includes('/@react') || request.url.includes('/node_modules')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Cache successful responses
+        // Only cache successful responses
         if (response && response.status === 200) {
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -62,15 +68,28 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        // Return cached response if fetch fails
-        return caches.match(request).then((response) => {
-          if (response) {
-            return response;
+        // Try to return cached response if fetch fails
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
           }
+          
           // Return offline page for navigation requests
           if (request.destination === 'document' || request.mode === 'navigate') {
             return caches.match(OFFLINE_URL);
           }
+          
+          // For other requests, return a basic offline response
+          return new Response(
+            JSON.stringify({ error: 'Network request failed' }),
+            {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: new Headers({
+                'Content-Type': 'application/json'
+              })
+            }
+          );
         });
       })
   );

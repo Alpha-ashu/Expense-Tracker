@@ -12,6 +12,17 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    cssCodeSplit: false,
+  },
+  optimizeDeps: {
+    include: ['@/styles/index.css'],
+  },
   server: {
     port: 5173,
     host: true,

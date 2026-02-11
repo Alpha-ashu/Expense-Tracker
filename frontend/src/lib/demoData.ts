@@ -155,6 +155,78 @@ export const initializeDemoData = async (userEmail?: string) => {
     createdAt: new Date('2026-01-01'),
   });
 
+  // Add demo finance advisors
+  await db.financeAdvisors.bulkAdd([
+    {
+      userId: 'advisor-1',
+      name: 'Sarah Johnson',
+      email: 'sarah.johnson@financelife.com',
+      phone: '+1-555-0123',
+      photo: '/api/placeholder/150/150',
+      bio: 'Specialized in helping clients build long-term wealth through strategic investment planning and tax optimization. Focus on retirement planning and wealth preservation strategies.',
+      specialization: ['Investment Planning', 'Retirement Planning', 'Tax Optimization'],
+      experience: 15,
+      qualifications: ['MBA in Finance', 'CFP®', 'Series 7', 'Series 66'],
+      rating: 4.8,
+      totalReviews: 127,
+      clientsCompleted: 892,
+      activeClients: 45,
+      verified: true,
+      socialLinks: {
+        linkedin: 'https://linkedin.com/in/sarahjohnson-cfp',
+        twitter: 'https://twitter.com/sarahjohnson'
+      },
+      availability: true,
+      hourlyRate: 150,
+      createdAt: new Date('2023-01-15')
+    },
+    {
+      userId: 'advisor-2',
+      name: 'Michael Chen',
+      email: 'michael.chen@financelife.com',
+      phone: '+1-555-0124',
+      photo: '/api/placeholder/150/150',
+      bio: 'Expert in complex tax planning, estate structuring, and business tax strategies. Help high-net-worth individuals minimize tax burden while ensuring compliance.',
+      specialization: ['Tax Planning', 'Estate Planning', 'Business Strategy'],
+      experience: 12,
+      qualifications: ['JD', 'LLM in Taxation', 'EA'],
+      rating: 4.9,
+      totalReviews: 203,
+      clientsCompleted: 1456,
+      activeClients: 67,
+      verified: true,
+      socialLinks: {
+        linkedin: 'https://linkedin.com/in/michaelchen-tax',
+        website: 'https://michaelchentax.com'
+      },
+      availability: true,
+      hourlyRate: 175,
+      createdAt: new Date('2023-03-20')
+    },
+    {
+      userId: 'advisor-3',
+      name: 'Emily Rodriguez',
+      email: 'emily.rodriguez@financelife.com',
+      phone: '+1-555-0125',
+      photo: '/api/placeholder/150/150',
+      bio: 'Passionate about helping individuals achieve financial freedom through effective debt management strategies and credit improvement. Specialized in debt consolidation and financial education.',
+      specialization: ['Debt Management', 'Credit Repair', 'Financial Education'],
+      experience: 8,
+      qualifications: ['BS in Finance', 'Certified Credit Counselor', 'CCC'],
+      rating: 4.7,
+      totalReviews: 89,
+      clientsCompleted: 623,
+      activeClients: 28,
+      verified: true,
+      socialLinks: {
+        linkedin: 'https://linkedin.com/in/emilyrodriguez-finance'
+      },
+      availability: true,
+      hourlyRate: 95,
+      createdAt: new Date('2023-06-10')
+    }
+  ]);
+
   // Add demo investment
   await db.investments.add({
     assetType: 'stock',

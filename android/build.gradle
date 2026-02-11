@@ -24,6 +24,43 @@ allprojects {
     }
 }
 
+// Configure Java compilation for all projects/modules to use Java 17
+// Use configureEach to avoid unnecessary configuration of tasks that don't exist yet
+tasks.withType(JavaCompile).configureEach {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+// Also enforce for all subprojects to catch JavaCompile tasks created within them and
+// set Android module compileOptions to Java 17 (to override module-level settings like VERSION_21)
+subprojects {
+    afterEvaluate { proj ->
+        try {
+            if (proj.extensions.findByName('android')) {
+                proj.android.compileOptions.sourceCompatibility = JavaVersion.VERSION_17
+                proj.android.compileOptions.targetCompatibility = JavaVersion.VERSION_17
+            }
+        } catch (ignored) {
+            // some projects may not have android extension; ignore
+        }
+
+        // Also ensure any JavaCompile tasks use Java 17
+        proj.tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+        }
+
+        // Ensure Kotlin compile tasks use JVM target 17 to match Java
+        try {
+            proj.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                kotlinOptions.jvmTarget = '17'
+            }
+        } catch (ignored) {
+            // If Kotlin plugin isn't applied, there will be no KotlinCompile tasks; ignore
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

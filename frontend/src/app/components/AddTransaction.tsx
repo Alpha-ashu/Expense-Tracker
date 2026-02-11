@@ -8,6 +8,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } fr
 import { BillUpload } from '@/app/components/BillUpload';
 import { Card } from '@/app/components/ui/card';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 import { motion } from 'framer-motion';
 
 const CATEGORIES = {
@@ -187,17 +188,13 @@ export const AddTransaction: React.FC = () => {
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
-                <select
+                <CategoryDropdown
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  onChange={(value) => setFormData({ ...formData, category: value, subcategory: '' })}
+                  options={CATEGORIES[formData.type]}
+                  label="Category"
                   required
-                >
-                  {CATEGORIES[formData.type].map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+                />
               </div>
 
               {/* Subcategory */}

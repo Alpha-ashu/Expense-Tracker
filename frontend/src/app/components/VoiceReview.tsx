@@ -5,6 +5,7 @@ import { db } from '@/lib/database';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/expenseCategories';
 import { toast } from 'sonner';
 import { ArrowRightLeft, Check, ChevronLeft, Trash2 } from 'lucide-react';
+import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 
 const STORAGE_KEY = 'voiceBatchDraft';
 
@@ -257,17 +258,11 @@ export const VoiceReview: React.FC = () => {
                       {item.intent === 'transfer' ? (
                         <div className="px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500">Transfer</div>
                       ) : (
-                        <select
+                        <CategoryDropdown
                           value={item.category || ''}
-                          onChange={(event) => handleUpdate(index, { category: event.target.value })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        >
-                          {categoryList.map((category) => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(value) => handleUpdate(index, { category: value })}
+                          options={categoryList}
+                        />
                       )}
                     </div>
 

@@ -5,17 +5,28 @@ import { db } from '@/lib/database';
 import { ChevronLeft, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
-export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId }) => {
+export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propAccountId }) => {
   const { setCurrentPage, currency } = useApp();
   const [account, setAccount] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Get accountId from prop or localStorage
+  const accountId = propAccountId || Number(localStorage.getItem('editAccountId'));
+
   useEffect(() => {
-    if (!accountId) return;
+    if (!accountId) {
+      setLoading(false);
+      return;
+    }
     db.accounts.get(accountId).then((acc) => {
       setAccount(acc);
       setLoading(false);
     });
+    
+    // Cleanup localStorage on unmount
+    return () => {
+      localStorage.removeItem('editAccountId');
+    };
   }, [accountId]);
 
   const handleSubmit = async (e: React.FormEvent) => {

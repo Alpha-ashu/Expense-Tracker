@@ -4,6 +4,7 @@ import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { UserRole } from '@/lib/featureFlags';
 import { isAdminEmail } from '@/lib/rbac';
+import { permissionService } from '@/services/permissionService';
 
 interface AuthContextType {
   user: User | null;
@@ -88,6 +89,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const nextUser = session?.user ?? null;
         setUser(nextUser);
         setRole(resolveUserRole(nextUser));
+        
+        // Initialize permissions from backend
+        if (nextUser?.id) {
+          await permissionService.fetchUserPermissions(nextUser.id);
+        }
       } catch (error) {
         console.error('Error loading session:', error);
       } finally {
@@ -106,6 +112,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(nextUser);
         setRole(resolveUserRole(nextUser));
         setLoading(false);
+        
+        // Update permissions on auth change
+        if (event === 'SIGNED_IN' && nextUser?.id) {
+          await permissionService.fetchUserPermissions(nextUser.id);
+        } else if (event === 'SIGNED_OUT') {
+          permissionService.clearPermissions();
+        }
       }
     );
 
@@ -121,6 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(null);
       setSession(null);
       setRole('user');
+      permissionService.clearPermissions();
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;

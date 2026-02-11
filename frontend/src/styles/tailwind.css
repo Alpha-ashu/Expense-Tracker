@@ -1,7 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
 @import 'tailwindcss' source(none);
 @source '../**/*.{js,ts,jsx,tsx}';
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @import 'tw-animate-css';
 
@@ -79,6 +79,7 @@
 
   .text-gradient-pink {
     background: var(--bg-gradient-pink);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }

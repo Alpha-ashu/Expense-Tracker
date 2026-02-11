@@ -11,36 +11,141 @@
   /* Total space needed for bottom nav + safe area */
   --bottom-reserved-space: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
   --header-height: 64px;
+  
+  /* Responsive breakpoints */
+  --mobile-max: 640px;
+  --tablet-max: 1024px;
+  --desktop-min: 1025px;
+  
+  /* Container max widths */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
 }
 
-/* Mobile Optimizations */
-@media (max-width: 1023px) {
+/* Universal responsive container */
+.responsive-container {
+  width: 100%;
+  max-width: min(100vw, var(--container-2xl));
+  margin: 0 auto;
+  padding-left: max(1rem, calc((100vw - var(--container-2xl)) / 2));
+  padding-right: max(1rem, calc((100vw - var(--container-2xl)) / 2));
+}
+
+/* Mobile First Approach - Base Styles */
+@media (max-width: 640px) {
   :root {
     --bottom-nav-height: 64px;
+    font-size: 14px;
   }
-}
-
-@media (min-width: 1024px) {
-  :root {
-    --bottom-nav-height: 0px;
-  }
-}
-
-@media (max-width: 640px) {
+  
   body {
     font-size: 14px;
     -webkit-text-size-adjust: 100%;
+    line-height: 1.5;
   }
   
   /* Ensure buttons are touch-friendly (min 44px) */
   button, [role="button"], input[type="button"], input[type="submit"] {
     min-height: 44px;
     min-width: 44px;
+    padding: 0.5rem 1rem;
   }
   
   /* Fix text selection on mobile */
   input, textarea, select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Mobile-specific adjustments */
+  .mobile-container {
+    padding: 0.5rem;
+  }
+  
+  .responsive-container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Hide desktop elements */
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  :root {
+    --bottom-nav-height: 64px;
+  }
+  
+  body {
+    font-size: 15px;
+  }
+  
+  .responsive-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  
+  /* Tablet-specific adjustments */
+  .tablet-container {
+    padding: 1rem;
+  }
+  
+  /* Adjust button sizes for tablet */
+  button, [role="button"], input[type="button"], input[type="submit"] {
+    min-height: 40px;
+    padding: 0.625rem 1.25rem;
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 1025px) {
+  :root {
+    --bottom-nav-height: 0px;
+  }
+  
+  body {
     font-size: 16px;
+  }
+  
+  .responsive-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  /* Desktop-specific adjustments */
+  .desktop-container {
+    padding: 2rem;
+  }
+  
+  /* Hide mobile elements */
+  .mobile-only {
+    display: none !important;
+  }
+  
+  /* Show desktop elements */
+  .desktop-only {
+    display: block !important;
+  }
+}
+
+/* Large Desktop Styles */
+@media (min-width: 1280px) {
+  .responsive-container {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+/* Ultra-wide Desktop Styles */
+@media (min-width: 1536px) {
+  .responsive-container {
+    padding-left: 4rem;
+    padding-right: 4rem;
   }
 }
 
@@ -53,8 +158,16 @@
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
+.safe-area-inset-left {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+}
+
+.safe-area-inset-right {
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+
 /* Main content container - respect bottom nav */
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
   main {
     max-height: calc(100vh - var(--header-height) - var(--bottom-reserved-space));
     overflow-y: auto;
@@ -62,16 +175,90 @@
   }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1025px) {
   main {
     max-height: calc(100vh - var(--header-height));
   }
 }
 
-/* Smooth scrolling with bounce on iOS */
+/* Responsive Grid System */
+.responsive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (min-width: 641px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1025px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+  }
+}
+
+/* Responsive Flex System */
+.responsive-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 641px) {
+  .responsive-flex {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+}
+
+/* Responsive Typography */
+.responsive-text-xs { font-size: clamp(0.75rem, 2vw, 0.875rem); }
+.responsive-text-sm { font-size: clamp(0.875rem, 2.5vw, 1rem); }
+.responsive-text-base { font-size: clamp(1rem, 3vw, 1.125rem); }
+.responsive-text-lg { font-size: clamp(1.125rem, 3.5vw, 1.25rem); }
+.responsive-text-xl { font-size: clamp(1.25rem, 4vw, 1.5rem); }
+.responsive-text-2xl { font-size: clamp(1.5rem, 5vw, 2rem); }
+.responsive-text-3xl { font-size: clamp(2rem, 6vw, 3rem); }
+
+/* Responsive Spacing */
+.responsive-p-1 { padding: clamp(0.25rem, 2vw, 0.5rem); }
+.responsive-p-2 { padding: clamp(0.5rem, 3vw, 1rem); }
+.responsive-p-4 { padding: clamp(1rem, 4vw, 2rem); }
+.responsive-p-6 { padding: clamp(1.5rem, 5vw, 3rem); }
+
+.responsive-m-1 { margin: clamp(0.25rem, 2vw, 0.5rem); }
+.responsive-m-2 { margin: clamp(0.5rem, 3vw, 1rem); }
+.responsive-m-4 { margin: clamp(1rem, 4vw, 2rem); }
+.responsive-m-6 { margin: clamp(1.5rem, 5vw, 3rem); }
+
+/* Responsive Images */
+.responsive-img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  object-fit: cover;
+}
+
+/* Universal scrollbar hiding - Hide scrollbars from all elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Hide scrollbars from all scrollable elements */
 *::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 0px;
+  height: 0px;
+  background: transparent;
 }
 
 *::-webkit-scrollbar-track {
@@ -79,17 +266,99 @@
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  background: transparent;
+}
+
+/* Firefox scrollbar hiding */
+* {
+  scrollbar-width: none;
+}
+
+/* IE scrollbar hiding */
+* {
+  -ms-overflow-style: none;
 }
 
 /* Disable zoom on iOS */
 html {
   -webkit-user-scalable: yes;
   -webkit-touch-callout: none;
+  /* Prevent horizontal overflow */
+  overflow-x: hidden;
 }
 
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Sharper text on high DPI displays */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Landscape mobile optimizations */
+@media (max-width: 1024px) and (orientation: landscape) {
+  :root {
+    --bottom-nav-height: 56px; /* Smaller nav in landscape */
+  }
+  
+  .responsive-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .responsive-container {
+    max-width: none;
+    padding: 0;
+  }
+}
+
+/* Desktop horizontal scrolling fix */
+@media (min-width: 1025px) {
+  /* Ensure smooth horizontal scrolling */
+  .horizontal-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Make first item reachable */
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+  }
+  
+  .scroll-snap-x > * {
+    scroll-snap-align: start;
+    min-width: fit-content;
+  }
 }

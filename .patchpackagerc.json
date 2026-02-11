@@ -1,0 +1,5 @@
+{
+  "allowEmpty": false,
+  "exclude": "\.git",
+  "patchDir": "patches"
+}

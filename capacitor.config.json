@@ -39,11 +39,11 @@
     "webContentsDebuggingEnabled": false,
     "backgroundColor": "#ffffff",
     "buildOptions": {
-      "keystorePath": "",
+      "keystorePath": "finance-life-release.keystore",
       "keystorePassword": "",
-      "keystoreAlias": "",
+      "keystoreAlias": "finance-life",
       "keystoreAliasPassword": "",
-      "releaseType": "APK"
+      "releaseType": "AAB"
     }
   },
   "ios": {

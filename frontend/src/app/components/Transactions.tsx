@@ -11,6 +11,7 @@ import { Button } from '@/app/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
+import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 
 const CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
@@ -475,17 +476,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-            <select
+            <CategoryDropdown
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: '' })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
+              onChange={(value) => setFormData({ ...formData, category: value, subcategory: '' })}
+              options={CATEGORIES[formData.type]}
+              label="Category"
               required
-            >
-              {CATEGORIES[formData.type].map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            />
           </div>
 
           {subcategories.length > 0 && (

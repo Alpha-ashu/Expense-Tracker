@@ -9,7 +9,7 @@ import { Header } from '@/app/components/Header';
 import { BottomNav } from '@/app/components/BottomNav';
 import { QuickActionModal } from '@/app/components/QuickActionModal';
 import { PWAInstallPrompt } from '@/app/components/PWAInstallPrompt';
-import { FeatureGate } from '@/app/components/FeatureGate';
+import { FeatureVisibility } from '@/components/ui/FeatureVisibility';
 import { Dashboard } from '@/app/components/Dashboard';
 import { Accounts } from '@/app/components/Accounts';
 import { Transactions } from '@/app/components/Transactions';
@@ -30,7 +30,6 @@ import { AdminFeaturePanel } from '@/app/components/AdminFeaturePanel';
 import { AdvisorPanel } from '@/app/components/AdvisorPanel';
 import { BookAdvisor } from '@/app/components/BookAdvisor';
 import { PayEMI } from '@/app/components/PayEMI';
-import { TaxCalculator } from '@/app/components/TaxCalculatorPage';
 import { Diagnostics } from '@/app/components/Diagnostics';
 import { ExportReports } from '@/app/components/ExportReports';
 import { ToDoLists } from '@/app/components/ToDoLists';
@@ -235,13 +234,15 @@ const AppContent: React.FC = () => {
         return <Dashboard />;
       case 'accounts':
         return <Accounts />;
+      case 'transactions':
+        return <Transactions />;
       case 'add-account':
         return <AddAccount />;
       case 'edit-account':
         // Get account ID from URL or context if needed
         return <EditAccount />;
-      case 'transactions':
-        return <Transactions />;
+      case 'book-advisor':
+        return <FeatureVisibility feature="bookAdvisor"><BookAdvisor /></FeatureVisibility>;
       case 'add-transaction':
         return <AddTransaction />;
       case 'loans':
@@ -280,54 +281,50 @@ const AppContent: React.FC = () => {
         return <ToDoListShare />;
       case 'settings':
         return <Settings />;
+      case 'notifications':
+        return <Notifications />;
+      case 'user-profile':
+        return <UserProfile />;
       case 'diagnostics':
         return <Diagnostics />;
-      case 'transfer':
-        return <Transfer />;
-      case 'tax-calculator':
-        return <FeatureGate feature="taxCalculator"><TaxCalculator /></FeatureGate>;
-      case 'admin-feature-panel':
-        return <FeatureGate feature="adminPanel"><AdminFeaturePanel /></FeatureGate>;
-      case 'advisor-panel':
-        return <FeatureGate feature="advisorPanel"><AdvisorPanel /></FeatureGate>;
-      case 'voice-input':
-        return <VoiceInput />;
-      case 'voice-review':
-        return <VoiceReview />;
       case 'auth-callback':
         return <AuthCallback />;
+      case 'admin-feature-panel':
+        return <FeatureVisibility feature="adminPanel"><AdminFeaturePanel /></FeatureVisibility>;
+      case 'advisor-panel':
+        return <FeatureVisibility feature="advisorPanel"><AdvisorPanel /></FeatureVisibility>;
       case 'admin':
         return <AdminDashboard />;
       case 'advisor':
         return <AdvisorWorkspace />;
-      case 'book-advisor':
-        return <FeatureGate feature="bookAdvisor"><BookAdvisor /></FeatureGate>;
+      case 'voice-input':
+        return <VoiceInput />;
+      case 'voice-review':
+        return <VoiceReview />;
       case 'pay-emi':
         return <PayEMI />;
-      case 'user-profile':
-        return <UserProfile />;
-      case 'notifications':
-        return <Notifications />;
       default:
         return <Dashboard />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-bg-body text-text-primary overflow-hidden mobile-container font-body selection:bg-black selection:text-white">
+    <div className="flex h-screen bg-bg-body text-text-primary overflow-hidden font-body selection:bg-black selection:text-white">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block z-50">
+      <div className="hidden lg:block z-50 desktop-only">
         <Sidebar />
       </div>
 
       <div className="flex flex-col flex-1 overflow-hidden">
         <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-bg-body">
-          {renderPage()}
+          <div className="responsive-container">
+            {renderPage()}
+          </div>
         </main>
       </div>
 
       {/* Mobile/Tablet Bottom Navigation */}
-      <div className="lg:hidden">
+      <div className="lg:hidden mobile-only">
         <BottomNav onQuickAdd={() => setShowQuickAction(true)} />
       </div>
 
