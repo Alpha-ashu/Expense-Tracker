@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { useApp } from '@/contexts/AppContext';import { CenteredLayout } from '@/app/components/CenteredLayout';import { db } from '@/lib/database';
-import { ChevronLeft, Plus, TrendingUp } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
+import { db } from '@/lib/database';
+import { TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddInvestment: React.FC = () => {
@@ -66,22 +68,13 @@ export const AddInvestment: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setCurrentPage('investments')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <TrendingUp className="text-blue-600" size={28} />
-            Add Investment
-          </h2>
-          <p className="text-gray-500 mt-1">Track your investment portfolio</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Add Investment"
+        subtitle="Track your investment portfolio"
+        icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
+        showBack
+        backTo="investments"
+      />
 
       {/* Form */}
       <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">

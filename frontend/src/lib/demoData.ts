@@ -5,6 +5,14 @@ export const initializeDemoData = async (userEmail?: string) => {
   const isAdmin = userEmail?.toLowerCase() === targetAdminEmail;
   const hasSeededAdmin = localStorage.getItem('admin_data_seeded_v2') === 'true';
 
+  // Only admin gets demo data - new users start with blank data
+  if (!isAdmin) {
+    console.log('Non-admin user - skipping demo data seeding');
+    // Still seed todo lists for non-admin users
+    await seedToDoListsIfNeeded();
+    return;
+  }
+
   if (isAdmin && !hasSeededAdmin) {
     console.log('Forcing demo data reset for Admin:', userEmail);
     // Clear existing data for a fresh start
@@ -19,7 +27,7 @@ export const initializeDemoData = async (userEmail?: string) => {
       db.toDoItems.clear(),
     ]);
   } else {
-    // Normal behavior: Skip if data exists
+    // Admin with existing data: Skip if data exists
     const existingAccounts = await db.accounts.count();
     if (existingAccounts > 0) {
       // Still seed todo lists if they don't exist

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { ChevronLeft, Plus, Users, Mail, Phone, X } from 'lucide-react';
+import { Users, Mail, Phone, X, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Friend {
@@ -102,22 +103,13 @@ export const AddFriends: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCurrentPage('groups')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Users className="text-blue-600" size={28} />
-              Add Friends
-            </h2>
-            <p className="text-gray-500 mt-1">Manage friends for group expenses and bill splitting</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Add Friends"
+          subtitle="Manage friends for group expenses and bill splitting"
+          icon={<Users size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="groups"
+        />
 
         <div className="grid lg:grid-cols-2 gap-6 max-w-4xl">
           {/* Add Friend Form */}

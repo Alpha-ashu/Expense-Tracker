@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { CreditCard, UserPlus, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddLoan: React.FC = () => {
-  const { setCurrentPage, currency, accounts } = useApp();
+  const { setCurrentPage, currency, accounts, friends } = useApp();
+  const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [formData, setFormData] = useState({
     lenderName: '',
     loanType: 'personal' as 'personal' | 'home' | 'auto' | 'education' | 'business',
@@ -93,22 +95,13 @@ export const AddLoan: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCurrentPage('loans')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Plus className="text-blue-600" size={28} />
-              Add New Loan
-            </h2>
-            <p className="text-gray-500 mt-1">Track your loans and manage EMI payments</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Add New Loan"
+          subtitle="Track your loans and manage EMI payments"
+          icon={<CreditCard size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="loans"
+        />
 
         {/* Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
@@ -124,6 +117,59 @@ export const AddLoan: React.FC = () => {
                 placeholder="e.g., Bank Name, Lender Name"
                 required
               />
+              
+              {/* Add Friend Button */}
+              {friends && friends.length > 0 && (
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowFriendPicker(!showFriendPicker)}
+                    className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 transition-colors flex items-center gap-1"
+                  >
+                    <UserPlus size={14} />
+                    Select from Friends
+                  </button>
+                </div>
+              )}
+              
+              {/* Friend Picker */}
+              {showFriendPicker && friends && friends.length > 0 && (
+                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-green-800">Select a friend:</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowFriendPicker(false)}
+                      className="text-green-600 hover:text-green-800"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {friends.map((friend) => {
+                      const isSelected = formData.lenderName === friend.name;
+                      return (
+                        <button
+                          key={friend.id}
+                          type="button"
+                          onClick={() => {
+                            handleFieldChange('lenderName', friend.name);
+                            setShowFriendPicker(false);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition-colors ${
+                            isSelected 
+                              ? 'bg-green-600 text-white' 
+                              : 'bg-white text-green-700 hover:bg-green-100 border border-green-300'
+                          }`}
+                        >
+                          {isSelected && <Check size={14} />}
+                          {friend.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Loan Type */}

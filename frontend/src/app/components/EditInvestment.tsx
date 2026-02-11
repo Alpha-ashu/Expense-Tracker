@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { ArrowLeft } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const EditInvestment: React.FC = () => {
@@ -71,21 +72,16 @@ export const EditInvestment: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="max-w-2xl mx-auto">
-      <button
-        onClick={() => {
-          localStorage.removeItem('editingInvestmentId');
-          setCurrentPage('investments');
-        }}
-        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6"
-      >
-        <ArrowLeft size={20} />
-        Back to Investments
-      </button>
+      <PageHeader
+        title="Edit Investment"
+        subtitle="Update your investment details"
+        icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
+        showBack
+        backTo="investments"
+        onBack={() => localStorage.removeItem('editingInvestmentId')}
+      />
 
       <div className="bg-white rounded-xl border border-gray-200 p-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Investment</h1>
-        <p className="text-gray-500 mb-6">Update your investment details</p>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Asset Type</label>

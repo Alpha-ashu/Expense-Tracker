@@ -52,6 +52,7 @@ export const sidebarMenuItems: NavigationItem[] = [
   { id: 'investments', label: 'Investments', icon: TrendingUp, feature: 'investments' },
   { id: 'loans', label: 'Loans', icon: CreditCard, feature: 'loans' },
   { id: 'goals', label: 'Goals', icon: Target, feature: 'goals' },
+  { id: 'groups', label: 'Group Expenses', icon: Users, feature: 'groups' },
   { id: 'reports', label: 'Reports', icon: BarChart3, feature: 'reports' },
   { id: 'todo-lists', label: 'Todo Lists', icon: CheckSquare, feature: 'todoLists' },
   { id: 'book-advisor', label: 'Book Advisor', icon: BookOpen, feature: 'bookAdvisor' },

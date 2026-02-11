@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
-import { ArrowRightLeft, ChevronLeft } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import type { Account } from '@/lib/database';
 
 export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
@@ -146,22 +147,14 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <ArrowRightLeft className="text-blue-600" size={28} />
-            Transfer Money
-          </h2>
-          <p className="text-gray-500 mt-1">Move money between your own accounts</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Transfer Money"
+        subtitle="Move money between your own accounts"
+        icon={<ArrowRightLeft size={20} className="sm:w-6 sm:h-6" />}
+        showBack
+        backTo="accounts"
+        onBack={onBack}
+      />
 
       {/* Form Card */}
       <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">

@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { useApp } from '@/contexts/AppContext';
-import { ChevronLeft, Download, FileJson, FileText, FileSpreadsheet } from 'lucide-react';
+import { Download, FileJson, FileText, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ExportOptions {
@@ -164,19 +165,13 @@ export const ExportReports: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Export & Reports</h2>
-            <p className="text-gray-500 mt-1">Export your financial data in multiple formats</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Export & Reports"
+          subtitle="Export your financial data in multiple formats"
+          icon={<Download size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="dashboard"
+        />
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

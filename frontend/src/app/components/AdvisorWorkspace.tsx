@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';
-import { ChevronLeft, MessageCircle, Clock, CheckCircle, AlertCircle, Send, XCircle, RotateCw, Power } from 'lucide-react';
+import { Briefcase, MessageCircle, Clock, CheckCircle, AlertCircle, Send, XCircle, RotateCw, Power } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AdvisorWorkspace: React.FC = () => {
@@ -184,18 +185,13 @@ export const AdvisorWorkspace: React.FC = () => {
     <CenteredLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage('dashboard')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ChevronLeft size={24} className="text-gray-600" />
-            </button>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Advisor Workspace</h2>
-              <p className="text-gray-500 mt-1">Manage your clients and consultations</p>
-            </div>
-          </div>
+          <PageHeader
+            title="Advisor Workspace"
+            subtitle="Manage your clients and consultations"
+            icon={<Briefcase size={20} className="sm:w-6 sm:h-6" />}
+            showBack
+            backTo="dashboard"
+          />
 
           {/* Availability Toggle */}
           {advisorProfile && (

@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useApp } from '@/contexts/AppContext';
-import { useAuth } from '@/contexts/AuthContext';
+import React from 'react';
 import { motion, Reorder, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
-import { sidebarMenuItems, NavigationItem } from '@/app/constants/navigation';
+import { NavigationItem } from '@/app/constants/navigation';
+import { useSharedMenu } from '@/hooks/useSharedMenu';
 import { GripVertical } from 'lucide-react';
-
-const SIDEBAR_ORDER_KEY = 'sidebar_menu_order';
 
 interface DraggableSidebarItemProps {
   item: NavigationItem;
@@ -72,61 +69,7 @@ const DraggableSidebarItem: React.FC<DraggableSidebarItemProps> = ({
 };
 
 export const Sidebar: React.FC = () => {
-  const { currentPage, setCurrentPage, visibleFeatures } = useApp();
-  const { role } = useAuth();
-  const [orderedItems, setOrderedItems] = useState<NavigationItem[]>([]);
-
-  // Filter menu items based on RBAC and user's feature visibility preferences
-  const visibleMenuItems = useMemo(() => {
-    return sidebarMenuItems.filter(item => {
-      // Check user's feature visibility preference
-      const featureKey = item.feature as keyof typeof visibleFeatures;
-      if (visibleFeatures[featureKey] === false) {
-        return false;
-      }
-      // If item has specific roles defined, check if user's role is in the list
-      if (item.roles && item.roles.length > 0) {
-        return item.roles.includes(role);
-      }
-      // Items without roles are visible to everyone
-      return true;
-    });
-  }, [role, visibleFeatures]);
-
-  // Load saved order from localStorage
-  useEffect(() => {
-    const savedOrder = localStorage.getItem(SIDEBAR_ORDER_KEY);
-    if (savedOrder) {
-      try {
-        const orderIds: string[] = JSON.parse(savedOrder);
-        // Reorder visible items based on saved order
-        const reordered = [...visibleMenuItems].sort((a, b) => {
-          const indexA = orderIds.indexOf(a.id);
-          const indexB = orderIds.indexOf(b.id);
-          // If item not in saved order, put it at the end
-          if (indexA === -1) return 1;
-          if (indexB === -1) return -1;
-          return indexA - indexB;
-        });
-        setOrderedItems(reordered);
-      } catch {
-        setOrderedItems(visibleMenuItems);
-      }
-    } else {
-      setOrderedItems(visibleMenuItems);
-    }
-  }, [visibleMenuItems]); // Re-run when visible items change (due to role change)
-
-  // Save order to localStorage whenever it changes
-  const handleReorder = useCallback((newOrder: NavigationItem[]) => {
-    setOrderedItems(newOrder);
-    const orderIds = newOrder.map(item => item.id);
-    localStorage.setItem(SIDEBAR_ORDER_KEY, JSON.stringify(orderIds));
-  }, []);
-
-  const handleNavigate = useCallback((id: string) => {
-    setCurrentPage(id);
-  }, [setCurrentPage]);
+  const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
 
   return (
     <motion.div

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { ChevronLeft, Users } from 'lucide-react';
+import { Users, UserPlus, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddGroup: React.FC = () => {
-  const { setCurrentPage, currency } = useApp();
+  const { setCurrentPage, currency, friends } = useApp();
+  const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -19,6 +21,26 @@ export const AddGroup: React.FC = () => {
 
   const handleAddParticipant = () => {
     setFormData({ ...formData, participants: [...formData.participants, ''] });
+  };
+
+  const handleAddFriend = (friendName: string) => {
+    // Check if friend is already added
+    if (formData.participants.some(p => p.toLowerCase() === friendName.toLowerCase())) {
+      toast.error(`${friendName} is already added`);
+      return;
+    }
+    
+    // If the first participant slot is empty, fill it; otherwise add new slot
+    const emptyIndex = formData.participants.findIndex(p => p.trim() === '');
+    if (emptyIndex !== -1) {
+      const newParticipants = [...formData.participants];
+      newParticipants[emptyIndex] = friendName;
+      setFormData({ ...formData, participants: newParticipants });
+    } else {
+      setFormData({ ...formData, participants: [...formData.participants, friendName] });
+    }
+    setShowFriendPicker(false);
+    toast.success(`${friendName} added to group`);
   };
 
   const handleRemoveParticipant = (index: number) => {
@@ -60,22 +82,13 @@ export const AddGroup: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setCurrentPage('groups')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="text-blue-600" size={28} />
-            Create Group Expense
-          </h2>
-          <p className="text-gray-500 mt-1">Split expenses with friends and family</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Create Group Expense"
+        subtitle="Split expenses with friends and family"
+        icon={<Users size={20} className="sm:w-6 sm:h-6" />}
+        showBack
+        backTo="groups"
+      />
 
       {/* Form */}
       <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
@@ -149,14 +162,73 @@ export const AddGroup: React.FC = () => {
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="block text-sm font-medium text-gray-700">Participants *</label>
-              <button
-                type="button"
-                onClick={handleAddParticipant}
-                className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition-colors"
-              >
-                + Add Participant
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (friends && friends.length > 0) {
+                      setShowFriendPicker(!showFriendPicker);
+                    } else {
+                      setCurrentPage('add-friends');
+                    }
+                  }}
+                  className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 transition-colors flex items-center gap-1"
+                >
+                  <UserPlus size={14} />
+                  {friends && friends.length > 0 ? 'Add Friend' : 'Add Friends First'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddParticipant}
+                  className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition-colors"
+                >
+                  + Add Participant
+                </button>
+              </div>
             </div>
+            
+            {/* Friend Picker Dropdown */}
+            {showFriendPicker && friends && friends.length > 0 && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-green-800">Select a friend:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowFriendPicker(false)}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {friends.map((friend) => {
+                    const isAlreadyAdded = formData.participants.some(
+                      p => p.toLowerCase() === friend.name.toLowerCase()
+                    );
+                    return (
+                      <button
+                        key={friend.id}
+                        type="button"
+                        onClick={() => !isAlreadyAdded && handleAddFriend(friend.name)}
+                        disabled={isAlreadyAdded}
+                        className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition-colors ${
+                          isAlreadyAdded 
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                            : 'bg-white text-green-700 hover:bg-green-100 border border-green-300'
+                        }`}
+                      >
+                        {isAlreadyAdded && <Check size={14} />}
+                        {friend.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {friends.length === 0 && (
+                  <p className="text-sm text-green-600">No friends added yet. Add friends from the Loans page.</p>
+                )}
+              </div>
+            )}
+            
             <div className="space-y-2">
               {formData.participants.map((participant, index) => (
                 <div key={index} className="flex gap-2">

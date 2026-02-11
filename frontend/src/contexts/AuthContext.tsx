@@ -28,9 +28,14 @@ const advisorEmails = parseEmailList(import.meta.env.VITE_ADVISOR_EMAILS);
 /**
  * Resolve user role with strict admin email validation
  * Admin role is ONLY for shaik.job.details@gmail.com
+ * Demo mode (no user) gets admin access for testing purposes
  */
 const resolveUserRole = (user: User | null): UserRole => {
-  if (!user) return 'user';
+  // Demo mode - give admin access for testing all features
+  if (!user) {
+    console.log('🎭 Demo mode - admin role assigned for testing');
+    return 'admin';
+  }
 
   const email = (user.email || '').toLowerCase().trim();
   

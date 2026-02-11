@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
-import { ArrowLeft, CreditCard, Calendar, DollarSign, AlertCircle } from 'lucide-react';
+import { CreditCard, AlertCircle } from 'lucide-react';
 
 export const PayEMI: React.FC = () => {
   const { currency, setCurrentPage } = useApp();
@@ -121,19 +122,13 @@ export const PayEMI: React.FC = () => {
   return (
     <CenteredLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => setCurrentPage('dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft size={24} className="text-gray-700" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Pay EMI</h2>
-            <p className="text-gray-500 mt-1">Make scheduled EMI payments</p>
-          </div>
-        </div>
+        <PageHeader
+          title="Pay EMI"
+          subtitle="Make scheduled EMI payments"
+          icon={<CreditCard size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="dashboard"
+        />
 
         {loans.length === 0 ? (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">

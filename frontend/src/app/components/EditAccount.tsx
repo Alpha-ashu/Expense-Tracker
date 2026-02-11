@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { ChevronLeft, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propAccountId }) => {
@@ -67,22 +68,13 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
   return (
     <CenteredLayout>
       <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setCurrentPage('accounts')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ChevronLeft size={24} className="text-gray-600" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Edit className="text-blue-600" size={28} />
-            Edit Account
-          </h2>
-          <p className="text-gray-500 mt-1">Update your account details</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Edit Account"
+        subtitle="Update your account details"
+        icon={<Edit size={20} className="sm:w-6 sm:h-6" />}
+        showBack
+        backTo="accounts"
+      />
 
       {/* Form */}
       <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">

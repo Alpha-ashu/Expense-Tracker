@@ -1,11 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { Button } from '@/app/components/ui/button';
-import { Search, Bell, Menu, ChevronLeft } from 'lucide-react';
+import { Search, Bell, Menu, ChevronLeft, GripVertical } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
-import { headerMenuItems } from '@/app/constants/navigation';
+import { NavigationItem } from '@/app/constants/navigation';
 import { NotificationPopup } from '@/app/components/ui/NotificationPopup';
-import { motion } from 'framer-motion';
+import { useSharedMenu } from '@/hooks/useSharedMenu';
+import { motion, Reorder, useDragControls } from 'framer-motion';
+
+interface DraggablePageMenuItemProps {
+    item: NavigationItem;
+    isActive: boolean;
+    onNavigate: (id: string) => void;
+}
+
+const DraggablePageMenuItem: React.FC<DraggablePageMenuItemProps> = ({
+    item,
+    isActive,
+    onNavigate,
+}) => {
+    const Icon = item.icon;
+    const dragControls = useDragControls();
+
+    return (
+        <Reorder.Item
+            value={item}
+            dragListener={false}
+            dragControls={dragControls}
+            className="relative"
+            whileDrag={{ scale: 1.02, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.05)' }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        >
+            <button
+                onClick={() => onNavigate(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${isActive
+                    ? 'bg-black text-white shadow-lg'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+            >
+                <div
+                    className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-2"
+                    onPointerDown={(e) => dragControls.start(e)}
+                >
+                    <GripVertical size={16} className="text-gray-400" />
+                </div>
+                <Icon size={20} />
+                <span className="font-bold text-sm">{item.label}</span>
+            </button>
+        </Reorder.Item>
+    );
+};
 
 interface PageHeaderProps {
     title: string;
@@ -17,7 +60,8 @@ interface PageHeaderProps {
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, children, showBack = false, backTo = 'dashboard' }) => {
-    const { currentPage, setCurrentPage } = useApp();
+    const { setCurrentPage } = useApp();
+    const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(3);
@@ -101,7 +145,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, c
     };
 
     const handleMenuItemClick = (itemId: string) => {
-        setCurrentPage(itemId);
+        handleNavigate(itemId);
         setMobileMenuOpen(false);
     };
 
@@ -136,24 +180,22 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, c
                                 </div>
 
                                 <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
-                                    {headerMenuItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = currentPage === item.id;
-
-                                        return (
-                                            <button
+                                    <p className="text-xs text-gray-400 mb-3 px-2">Drag to reorder menu items</p>
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={orderedItems}
+                                        onReorder={handleReorder}
+                                        className="space-y-1"
+                                    >
+                                        {orderedItems.map((item) => (
+                                            <DraggablePageMenuItem
                                                 key={item.id}
-                                                onClick={() => handleMenuItemClick(item.id)}
-                                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${isActive
-                                                    ? 'bg-black text-white shadow-lg'
-                                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                                                    }`}
-                                            >
-                                                <Icon size={20} />
-                                                <span className="font-bold text-sm">{item.label}</span>
-                                            </button>
-                                        );
-                                    })}
+                                                item={item}
+                                                isActive={currentPage === item.id}
+                                                onNavigate={handleMenuItemClick}
+                                            />
+                                        ))}
+                                    </Reorder.Group>
                                 </nav>
                             </div>
                         </SheetContent>

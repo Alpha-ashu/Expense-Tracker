@@ -156,78 +156,90 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Listen for changes to feature flags from admin panel (both same-tab and cross-tab)
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'featureFlagsOverride' && e.storageArea === localStorage) {
-        // Force a re-read of feature flags from storage
+    // BroadcastChannel for cross-tab real-time sync
+    let broadcastChannel: BroadcastChannel | null = null;
+    try {
+      broadcastChannel = new BroadcastChannel('feature_settings_channel');
+    } catch {
+      // BroadcastChannel not supported
+    }
+
+    const applyAdminFeatureSettings = () => {
+      const adminSettings = localStorage.getItem('admin_global_feature_settings');
+      if (!adminSettings) return;
+
+      try {
+        const parsed = JSON.parse(adminSettings);
         const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
-        
-        const overrideFlags = localStorage.getItem('featureFlagsOverride');
-        let finalFeatures = roleFeatures;
-        
-        if (overrideFlags) {
-          try {
-            const parsed = JSON.parse(overrideFlags);
-            const overrides: Record<string, boolean> = {};
-            
-            Object.entries(parsed).forEach(([feature, roleFlags]: [string, any]) => {
-              if (roleFlags[role]) {
-                overrides[feature] = true;
-              } else {
-                overrides[feature] = false;
-              }
-            });
-            
-            finalFeatures = {
-              ...roleFeatures,
-              ...overrides,
-            };
-          } catch (error) {
-            console.error('Failed to parse feature flag overrides:', error);
+        const newVisibility: Record<string, boolean> = { ...roleFeatures };
+
+        Object.entries(parsed).forEach(([key, value]: [string, any]) => {
+          const readiness = value.readiness;
+          let isVisible = false;
+
+          switch (readiness) {
+            case 'unreleased':
+              isVisible = role === 'admin';
+              break;
+            case 'beta':
+              isVisible = role === 'admin' || role === 'advisor';
+              break;
+            case 'released':
+              isVisible = true;
+              break;
+            case 'deprecated':
+              isVisible = false;
+              break;
+            default:
+              isVisible = roleFeatures[key as keyof typeof roleFeatures] ?? true;
           }
-        }
-        
-        setVisibleFeaturesState(finalFeatures);
+
+          newVisibility[key] = isVisible;
+        });
+
+        console.log('🎛️ AppContext applying admin feature settings:', { role, newVisibility });
+        setVisibleFeaturesState(newVisibility as FeatureVisibility);
+      } catch (e) {
+        console.error('Failed to apply admin feature settings:', e);
+      }
+    };
+
+    // Apply on mount
+    applyAdminFeatureSettings();
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'admin_global_feature_settings' || e.key === 'featureFlagsOverride') {
+        console.log('💾 Storage change detected for feature settings');
+        applyAdminFeatureSettings();
       }
     };
     
-    const handleFeatureFlagsChanged = (event: any) => {
-      // Handle custom event from same-tab feature flag changes
-      const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
-      
-      const overrideFlags = localStorage.getItem('featureFlagsOverride');
-      let finalFeatures = roleFeatures;
-      
-      if (overrideFlags) {
-        try {
-          const parsed = JSON.parse(overrideFlags);
-          const overrides: Record<string, boolean> = {};
-          
-          Object.entries(parsed).forEach(([feature, roleFlags]: [string, any]) => {
-            if (roleFlags[role]) {
-              overrides[feature] = true;
-            } else {
-              overrides[feature] = false;
-            }
-          });
-          
-          finalFeatures = {
-            ...roleFeatures,
-            ...overrides,
-          };
-        } catch (error) {
-          console.error('Failed to parse feature flag overrides:', error);
-        }
-      }
-      
-      setVisibleFeaturesState(finalFeatures);
+    const handleAdminFeatureUpdate = (event: CustomEvent) => {
+      console.log('📡 Admin feature update event received:', event.detail);
+      applyAdminFeatureSettings();
     };
 
+    const handleBroadcastMessage = (event: MessageEvent) => {
+      if (event.data.type === 'FEATURE_UPDATE') {
+        console.log('📡 Broadcast feature update received:', event.data);
+        applyAdminFeatureSettings();
+      }
+    };
+
+    if (broadcastChannel) {
+      broadcastChannel.addEventListener('message', handleBroadcastMessage);
+    }
+
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('featureFlagsChanged', handleFeatureFlagsChanged);
+    window.addEventListener('adminFeatureUpdate', handleAdminFeatureUpdate as EventListener);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('featureFlagsChanged', handleFeatureFlagsChanged);
+      window.removeEventListener('adminFeatureUpdate', handleAdminFeatureUpdate as EventListener);
+      if (broadcastChannel) {
+        broadcastChannel.removeEventListener('message', handleBroadcastMessage);
+        broadcastChannel.close();
+      }
     };
   }, [role]);
 

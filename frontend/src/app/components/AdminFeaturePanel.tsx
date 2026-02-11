@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { ChevronLeft, Settings, ToggleRight, ToggleLeft, Shield } from 'lucide-react';
+import { ChevronLeft, Settings, ToggleRight, ToggleLeft, Shield, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Storage key for admin feature settings (shared globally)
+const ADMIN_FEATURE_SETTINGS_KEY = 'admin_global_feature_settings';
+const FEATURE_BROADCAST_CHANNEL = 'feature_settings_channel';
 
 /**
  * Admin Feature Control Panel
  * Only accessible to admin role (shake.job.atgmail.com)
+ * Changes here immediately propagate to all users via BroadcastChannel
  */
 interface FeatureControl {
   name: string;
@@ -163,9 +168,110 @@ const FEATURES: FeatureControl[] = [
 ];
 
 export const AdminFeaturePanel: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { setCurrentPage, visibleFeatures, setVisibleFeatures } = useApp();
   const { role, user, loading } = useAuth();
-  const [features, setFeatures] = useState<FeatureControl[]>(FEATURES);
+  const [features, setFeatures] = useState<FeatureControl[]>(() => {
+    // Load saved settings from localStorage
+    const saved = localStorage.getItem(ADMIN_FEATURE_SETTINGS_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return FEATURES.map(f => ({
+          ...f,
+          readiness: parsed[f.key]?.readiness || f.readiness,
+          lastUpdated: parsed[f.key]?.lastUpdated ? new Date(parsed[f.key].lastUpdated) : f.lastUpdated
+        }));
+      } catch {
+        return FEATURES;
+      }
+    }
+    return FEATURES;
+  });
+  
+  // Create broadcast channel for real-time sync across tabs/sessions
+  const broadcastChannel = React.useMemo(() => {
+    try {
+      return new BroadcastChannel(FEATURE_BROADCAST_CHANNEL);
+    } catch {
+      return null; // BroadcastChannel not supported
+    }
+  }, []);
+
+  // Listen for changes from other tabs/sessions
+  useEffect(() => {
+    if (!broadcastChannel) return;
+    
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'FEATURE_UPDATE') {
+        console.log('📡 Received feature update broadcast:', event.data);
+        setFeatures(event.data.features);
+        // Also update the app context visible features
+        applyFeatureVisibility(event.data.features);
+        toast.info('Feature settings updated by admin');
+      }
+    };
+    
+    broadcastChannel.addEventListener('message', handleMessage);
+    return () => broadcastChannel.removeEventListener('message', handleMessage);
+  }, [broadcastChannel]);
+
+  // Also listen for storage changes (for cross-session sync)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ADMIN_FEATURE_SETTINGS_KEY && e.newValue) {
+        console.log('💾 Storage change detected:', e.newValue);
+        try {
+          const parsed = JSON.parse(e.newValue);
+          const updatedFeatures = FEATURES.map(f => ({
+            ...f,
+            readiness: parsed[f.key]?.readiness || f.readiness,
+            lastUpdated: parsed[f.key]?.lastUpdated ? new Date(parsed[f.key].lastUpdated) : f.lastUpdated
+          }));
+          setFeatures(updatedFeatures);
+          applyFeatureVisibility(updatedFeatures);
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Apply feature visibility based on readiness and user role
+  const applyFeatureVisibility = useCallback((featureList: FeatureControl[]) => {
+    const newVisibility: Record<string, boolean> = {};
+    
+    featureList.forEach(feature => {
+      // Determine visibility based on readiness
+      // - unreleased: only admin
+      // - beta: admin and advisor
+      // - released: everyone
+      // - deprecated: no one  
+      let isVisible = false;
+      
+      switch (feature.readiness) {
+        case 'unreleased':
+          isVisible = role === 'admin';
+          break;
+        case 'beta':
+          isVisible = role === 'admin' || role === 'advisor';
+          break;
+        case 'released':
+          isVisible = true;
+          break;
+        case 'deprecated':
+          isVisible = false;
+          break;
+      }
+      
+      newVisibility[feature.key] = isVisible;
+    });
+    
+    console.log('🎛️ Applying feature visibility:', { role, newVisibility });
+    setVisibleFeatures({ ...visibleFeatures, ...newVisibility } as any);
+  }, [role, setVisibleFeatures, visibleFeatures]);
 
   // Redirect non-admins silently to dashboard
   useEffect(() => {
@@ -193,14 +299,42 @@ export const AdminFeaturePanel: React.FC = () => {
   }
 
   const handleToggleFeature = (key: string, newReadiness: FeatureControl['readiness']) => {
-    setFeatures(
-      features.map((f) =>
-        f.key === key
-          ? { ...f, readiness: newReadiness, lastUpdated: new Date() }
-          : f
-      )
+    const updatedFeatures = features.map((f) =>
+      f.key === key
+        ? { ...f, readiness: newReadiness, lastUpdated: new Date() }
+        : f
     );
-    toast.success(`Feature "${key}" updated to "${newReadiness}"`);
+    
+    setFeatures(updatedFeatures);
+    
+    // Save to localStorage for persistence
+    const settingsToSave = updatedFeatures.reduce((acc, f) => {
+      acc[f.key] = { readiness: f.readiness, lastUpdated: f.lastUpdated.toISOString() };
+      return acc;
+    }, {} as Record<string, { readiness: string; lastUpdated: string }>);
+    
+    localStorage.setItem(ADMIN_FEATURE_SETTINGS_KEY, JSON.stringify(settingsToSave));
+    console.log('💾 Saved feature settings to localStorage:', settingsToSave);
+    
+    // Broadcast to other tabs/sessions immediately
+    if (broadcastChannel) {
+      broadcastChannel.postMessage({ 
+        type: 'FEATURE_UPDATE', 
+        features: updatedFeatures,
+        timestamp: new Date().toISOString()
+      });
+      console.log('📡 Broadcasted feature update');
+    }
+    
+    // Dispatch custom event for same-tab listeners (like sidebar/menu)
+    window.dispatchEvent(new CustomEvent('adminFeatureUpdate', { 
+      detail: { features: updatedFeatures, key, newReadiness } 
+    }));
+    
+    // Apply visibility changes immediately
+    applyFeatureVisibility(updatedFeatures);
+    
+    toast.success(`Feature "${key}" updated to "${newReadiness}" - Changes applied to all users!`);
   };
 
   const getReadinessBadgeColor = (readiness: FeatureControl['readiness']) => {
