@@ -25,7 +25,7 @@ export const initializeDemoData = async (userEmail?: string) => {
   }
 
   // Add demo accounts
-  const accountIds = await db.accounts.bulkAdd([
+  await db.accounts.bulkAdd([
     {
       name: 'Chase Checking',
       type: 'bank',

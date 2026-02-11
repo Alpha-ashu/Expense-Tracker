@@ -357,11 +357,11 @@ export class CloudSyncService {
   // Similar methods for other entities...
   private async getChangedLoans(since: Date): Promise<LoanSync[]> {
     const loans = await db.loans
-      .filter(loan => loan.createdAt > since || loan.updatedAt > since)
+      .filter(loan => loan.createdAt > since || (loan.updatedAt && loan.updatedAt > since))
       .toArray();
 
     return loans.map(loan => ({
-      id: loan.id.toString(),
+      id: loan.id?.toString() || '',
       type: loan.type,
       name: loan.name,
       principalAmount: loan.principalAmount,
@@ -381,11 +381,11 @@ export class CloudSyncService {
 
   private async getChangedGoals(since: Date): Promise<GoalSync[]> {
     const goals = await db.goals
-      .filter(goal => goal.createdAt > since || goal.updatedAt > since)
+      .filter(goal => goal.createdAt > since || (goal.updatedAt && goal.updatedAt > since))
       .toArray();
 
     return goals.map(goal => ({
-      id: goal.id.toString(),
+      id: goal.id?.toString() || '',
       name: goal.name,
       targetAmount: goal.targetAmount,
       currentAmount: goal.currentAmount,
@@ -404,7 +404,7 @@ export class CloudSyncService {
       .toArray();
 
     return investments.map(inv => ({
-      id: inv.id.toString(),
+      id: inv.id?.toString() || '',
       assetType: inv.assetType,
       assetName: inv.assetName,
       quantity: inv.quantity,
