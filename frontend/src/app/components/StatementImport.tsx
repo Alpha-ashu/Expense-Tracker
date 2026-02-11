@@ -154,10 +154,22 @@ export const StatementImport: React.FC<StatementImportProps> = ({
   };
 
   const formatCurrency = (amount: number) => {
+    if (isNaN(amount)) return '₹0.00';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR'
     }).format(Math.abs(amount));
+  };
+
+  const formatDate = (date: Date) => {
+    if (!date || isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
   };
 
   const getTransactionTypeColor = (type: string) => {
@@ -330,7 +342,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                         <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
                           <div>
                             <p className="font-medium text-gray-900">
-                              {transaction.transaction_date.toLocaleDateString()}
+                              {formatDate(transaction.transaction_date)}
                             </p>
                             <p className="text-gray-500">
                               {transaction.payment_channel}

@@ -4,6 +4,10 @@
  */
 
 import { db, Transaction } from '@/lib/database';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export interface ParsedTransaction {
   transaction_date: Date;
@@ -156,18 +160,31 @@ class StatementImportService {
    * Parse PDF statement
    */
   private async parsePDF(file: File, errors: string[]): Promise<ParsedTransaction[]> {
-    // For now, simulate PDF parsing
-    // In production, use pdfplumber or similar library
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // Simulate extracted text from PDF
-        const mockText = this.getMockPDFText();
-        const transactions = this.extractTransactionsFromText(mockText, errors);
-        resolve(transactions);
-      };
-      reader.readAsText(file);
-    });
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let fullText = '';
+      
+      // Extract text from all pages
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+      
+      console.log('Extracted PDF text:', fullText);
+      
+      const transactions = this.extractTransactionsFromText(fullText, errors);
+      return transactions;
+    } catch (error) {
+      console.error('PDF parsing error:', error);
+      errors.push(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return [];
+    }
   }
 
   /**
@@ -255,28 +272,159 @@ class StatementImportService {
    * Parse single transaction line
    */
   private parseTransactionLine(line: string): ParsedTransaction | null {
-    // Mock parsing logic - in production, use proper regex/patterns
-    const patterns = [
-      // UPI pattern: UPI/983746/GPay/HPCL PETROL BUNK/2500
-      /(\d{2}\/\d{2}\/\d{4}).*?(\d+(?:\.\d{2})?).*?(?:UPI|IMPS|NEFT).*?([A-Z]+).*?([A-Z\s]+)/gi,
-      // General pattern with amount
-      /(\d{2}\/\d{2}\/\d{4}).*?(\d+(?:\.\d{2})?).*?([A-Z\s]+)/gi
+    // Skip empty or header lines
+    if (!line.trim() || line.toLowerCase().includes('opening balance') || 
+        line.toLowerCase().includes('closing balance') || line.toLowerCase().includes('statement')) {
+      return null;
+    }
+
+    // Try to extract date and amount from the line
+    const dateResult = this.extractDate(line);
+    const amountResult = this.extractAmount(line);
+    
+    if (!dateResult || !amountResult) {
+      return null;
+    }
+
+    return {
+      transaction_date: dateResult,
+      raw_description: line.trim(),
+      cleaned_description: this.cleanDescription(line),
+      amount: amountResult.amount,
+      transaction_type: amountResult.isCredit ? 'income' : 'expense',
+      payment_channel: this.extractPaymentChannel(line),
+      merchant_name: this.extractMerchantName(line)
+    };
+  }
+
+  /**
+   * Extract date from transaction line - handles multiple formats
+   */
+  private extractDate(line: string): Date | null {
+    const datePatterns = [
+      // DD/MM/YYYY or DD-MM-YYYY
+      /(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/,
+      // YYYY/MM/DD or YYYY-MM-DD
+      /(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/,
+      // DD MMM YYYY (01 Jan 2024)
+      /(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})/i,
+      // MMM DD, YYYY (Jan 01, 2024)
+      /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i,
+      // DD.MM.YYYY
+      /(\d{1,2})\.(\d{1,2})\.(\d{4})/,
+      // MM DD YYYY format (02 15 2024)
+      /(\d{2})\s+(\d{2})\s+(\d{4})/,
     ];
 
-    for (const pattern of patterns) {
+    const monthMap: Record<string, number> = {
+      'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+      'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+    };
+
+    for (const pattern of datePatterns) {
       const match = line.match(pattern);
       if (match) {
-        const [, dateStr, amount, channel, merchant] = match;
-        
-        return {
-          transaction_date: new Date(dateStr),
-          raw_description: line.trim(),
-          cleaned_description: this.cleanDescription(line),
-          amount: parseFloat(amount),
-          transaction_type: this.determineTransactionType(line),
-          payment_channel: this.extractPaymentChannel(line),
-          merchant_name: merchant?.trim()
-        };
+        let year: number, month: number, day: number;
+
+        if (pattern.source.includes('Jan|Feb|Mar')) {
+          // MMM format
+          if (pattern.source.startsWith('(Jan')) {
+            // MMM DD, YYYY
+            month = monthMap[match[1].toLowerCase().substring(0, 3)];
+            day = parseInt(match[2]);
+            year = parseInt(match[3]);
+          } else {
+            // DD MMM YYYY
+            day = parseInt(match[1]);
+            month = monthMap[match[2].toLowerCase().substring(0, 3)];
+            year = parseInt(match[3]);
+          }
+        } else if (pattern.source.startsWith('(\\d{4})')) {
+          // YYYY/MM/DD
+          year = parseInt(match[1]);
+          month = parseInt(match[2]) - 1;
+          day = parseInt(match[3]);
+        } else {
+          // DD/MM/YYYY or similar
+          day = parseInt(match[1]);
+          month = parseInt(match[2]) - 1;
+          year = parseInt(match[3]);
+        }
+
+        // Validate date
+        if (year >= 2000 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
+          return new Date(year, month, day);
+        }
+      }
+    }
+
+    // Try to find just month/year and use 1st of month
+    const monthYearMatch = line.match(/(\d{1,2})[\s\/\-](\d{4})/);
+    if (monthYearMatch) {
+      const month = parseInt(monthYearMatch[1]) - 1;
+      const year = parseInt(monthYearMatch[2]);
+      if (year >= 2000 && year <= 2100 && month >= 0 && month <= 11) {
+        return new Date(year, month, 1);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract amount from transaction line - handles multiple formats
+   */
+  private extractAmount(line: string): { amount: number; isCredit: boolean } | null {
+    // Clean the line for amount extraction
+    const cleanLine = line.replace(/,/g, ''); // Remove thousands separators
+    
+    // Look for currency symbols and amounts
+    const amountPatterns = [
+      // Amount with currency symbol: ₹15,000.00 or Rs.15000 or $1500.00
+      /(?:₹|Rs\.?|INR|\$|USD)\s*(-?\d+(?:\.\d{1,2})?)/i,
+      // Amount with Dr/Cr suffix: 15000.00 Dr or 15000.00 Cr
+      /(\d+(?:\.\d{1,2})?)\s*(Dr|Cr|DR|CR)?\b/,
+      // Negative amount: -15000.00
+      /(-\d+(?:\.\d{1,2})?)/,
+      // Plain amount at end of line (common in bank statements)
+      /\b(\d+(?:\.\d{1,2})?)$/,
+      // Amount with spaces (like 15 000.00)
+      /\b(\d{1,3}(?:\s\d{3})*(?:\.\d{1,2})?)\b/,
+    ];
+
+    // Check for credit indicators
+    const isCreditLine = /credit|salary|received|refund|cashback|deposit/i.test(line) ||
+                         /\bCr\b/i.test(line) ||
+                         /\+\s*\d/.test(line);
+    
+    // Check for debit indicators
+    const isDebitLine = /debit|withdrawal|transfer|payment|purchase|spent/i.test(line) ||
+                        /\bDr\b/i.test(line) ||
+                        /-\s*\d/.test(line);
+
+    for (const pattern of amountPatterns) {
+      const matches = cleanLine.match(new RegExp(pattern.source, 'gi'));
+      if (matches) {
+        for (const matchStr of matches) {
+          const numMatch = matchStr.match(/(-?\d[\d\s]*(?:\.\d{1,2})?)/);
+          if (numMatch) {
+            let amountStr = numMatch[1].replace(/\s/g, '');
+            let amount = parseFloat(amountStr);
+            
+            // Only accept reasonable transaction amounts (0.01 to 10,000,000)
+            if (amount > 0 && amount < 10000000) {
+              // Determine if credit or debit
+              const drCrMatch = matchStr.match(/\b(Dr|Cr|DR|CR)\b/);
+              let isCredit = isCreditLine;
+              
+              if (drCrMatch) {
+                isCredit = drCrMatch[1].toLowerCase() === 'cr';
+              }
+
+              return { amount, isCredit };
+            }
+          }
+        }
       }
     }
 
