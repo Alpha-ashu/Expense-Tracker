@@ -384,17 +384,7 @@ class StatementImportService {
     };
   }
 
-  /**
-   * Clean description for display and categorization
-   */
-  private cleanDescription(text: string): string {
-    return text
-      .split(/\s+/)
-      .filter(word => !/^\d+$/.test(word)) // Remove standalone numbers
-      .join(' ')
-      .replace(/[^a-zA-Z0-9\s&.-]/g, '') // Remove special chars
-      .trim();
-  }
+
 
   /**
    * Extract amounts from a segment

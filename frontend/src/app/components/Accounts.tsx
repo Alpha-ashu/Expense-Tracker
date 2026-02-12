@@ -388,7 +388,8 @@ export const Accounts: React.FC = () => {
                                           variant="outline"
                                           onClick={() => {
                                             setTransactionModalOpen(false);
-                                            setCurrentPage('add-transaction', { type: 'expense' });
+                                            setCurrentPage('add-transaction');
+                                            // Pass type info via context, state, or URL if needed
                                           }}
                                         >
                                           Expense
@@ -397,7 +398,8 @@ export const Accounts: React.FC = () => {
                                           variant="outline"
                                           onClick={() => {
                                             setTransactionModalOpen(false);
-                                            setCurrentPage('add-transaction', { type: 'income' });
+                                            setCurrentPage('add-transaction');
+                                            // Pass type info via context, state, or URL if needed
                                           }}
                                         >
                                           Income
@@ -406,7 +408,8 @@ export const Accounts: React.FC = () => {
                                           variant="outline"
                                           onClick={() => {
                                             setTransactionModalOpen(false);
-                                            setCurrentPage('add-transaction', { type: 'transfer' });
+                                            setCurrentPage('add-transaction');
+                                            // Pass type info via context, state, or URL if needed
                                           }}
                                         >
                                           Transfer
