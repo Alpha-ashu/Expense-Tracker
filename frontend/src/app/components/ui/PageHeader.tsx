@@ -13,6 +13,16 @@ interface DraggablePageMenuItemProps {
     onNavigate: (id: string) => void;
 }
 
+export interface PageHeaderProps {
+    title: string;
+    subtitle?: string;
+    icon?: React.ReactNode;
+    children?: React.ReactNode;
+    showBack?: boolean;
+    backTo?: string;
+    onBack?: () => void;
+}
+
 const DraggablePageMenuItem: React.FC<DraggablePageMenuItemProps> = ({
     item,
     isActive,
@@ -50,23 +60,22 @@ const DraggablePageMenuItem: React.FC<DraggablePageMenuItemProps> = ({
     );
 };
 
-interface PageHeaderProps {
-    title: string;
-    subtitle?: string;
-    icon?: React.ReactNode;
-    children?: React.ReactNode; // For custom actions like "Add Account" if we choose to put them here
-    showBack?: boolean; // Show back button
-    backTo?: string; // Page to navigate to when back is clicked
-}
 
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, children, showBack = false, backTo = 'dashboard' }) => {
+export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, children, showBack = false, backTo = 'dashboard', onBack }) => {
     const { setCurrentPage } = useApp();
     const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
     const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(3);
 
-    // Mock recent notifications
+    const handleBackClick = () => {
+        if (onBack) {
+            onBack();
+        } else {
+            setCurrentPage(backTo);
+        }
+    };
+
     const [recentNotifications] = useState([
         {
             id: '1',
@@ -253,7 +262,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, c
                     <div className="flex items-center gap-3 mb-1">
                         {showBack && (
                             <button
-                                onClick={() => setCurrentPage(backTo)}
+                                onClick={handleBackClick}
                                 className="p-2 -ml-2 hover:bg-gray-100 rounded-xl transition-colors"
                                 aria-label="Go back"
                             >

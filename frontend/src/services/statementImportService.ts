@@ -4,10 +4,17 @@
  */
 
 import { db, Transaction } from '@/lib/database';
-import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore
+import * as pdfjsLib from 'pdfjs-dist/build/pdf';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker from local public folder
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+
+// We're disabling standard font loading here because it causes issues in some environments.
+// PDF.js will fall back to system fonts or embedded fonts which usually works for text extraction.
+// If needed, delete the line below or make sure the detailed path is perfectly correct.
+// pdfjsLib.GlobalWorkerOptions.standardFontDataUrl = '/standard_fonts/'; 
+
 
 export interface ParsedTransaction {
   transaction_date: Date;
@@ -162,21 +169,29 @@ class StatementImportService {
   private async parsePDF(file: File, errors: string[]): Promise<ParsedTransaction[]> {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      // Use disableFontFace to prevent font loading errors during text extraction
+      const pdf = await pdfjsLib.getDocument({ 
+        data: arrayBuffer,
+        disableFontFace: true
+      }).promise;
       
       let fullText = '';
       
       // Extract text from all pages
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
+        // Use simpler getTextContent call to avoid font issues
+        const textContent = await page.getTextContent({
+           disableCombineTextItems: false,
+           includeMarkedContent: false
+        });
         const pageText = textContent.items
           .map((item: any) => item.str)
           .join(' ');
         fullText += pageText + '\n';
       }
       
-      console.log('Extracted PDF text:', fullText);
+      // console.log('Extracted PDF text:', fullText);
       
       const transactions = this.extractTransactionsFromText(fullText, errors);
       return transactions;
@@ -223,21 +238,259 @@ class StatementImportService {
    * Extract transactions from text
    */
   private extractTransactionsFromText(text: string, errors: string[]): ParsedTransaction[] {
-    const lines = text.split('\n').filter(line => line.trim());
     const transactions: ParsedTransaction[] = [];
-
-    for (const line of lines) {
-      try {
-        const transaction = this.parseTransactionLine(line);
-        if (transaction) {
-          transactions.push(transaction);
+    
+    // For PDF text that comes as continuous string, split by date patterns
+    // Common date patterns: DD-MM-YYYY, DD/MM/YYYY, DD MM YYYY
+    const datePattern = /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})/gi;
+    
+    // Find all date occurrences to split the text into transaction segments
+    const dateMatches = [...text.matchAll(datePattern)];
+    
+    if (dateMatches.length > 0) {
+      // Process each segment starting with a date
+      for (let i = 0; i < dateMatches.length; i++) {
+        const startIdx = dateMatches[i].index!;
+        // The end index is the start of the next date match, OR the end of text
+        const endIdx = i < dateMatches.length - 1 ? dateMatches[i + 1].index! : text.length;
+        
+        let segment = text.substring(startIdx, endIdx).trim();
+        
+        // Clean up: remove "Page x of y" artifacts if they got stuck inside
+        segment = segment.replace(/Page\s+\d+\s+of\s+\d+/gi, ' ');
+        
+        // Skip header rows and non-transaction segments
+        if (this.isSkippableSegment(segment)) {
+          continue;
         }
-      } catch (error) {
-        errors.push(`Failed to parse line: ${line}`);
+
+        // Special handling for rows that might be table headers but start with date (unlikely but possible)
+        // If segment is very short (< 15 chars), skip
+        if (segment.length < 15) continue;
+        
+        try {
+          const transaction = this.parseTransactionSegment(segment);
+          if (transaction) {
+            transactions.push(transaction);
+          }
+        } catch (error) {
+          errors.push(`Failed to parse segment: ${segment.substring(0, 50)}...`);
+        }
+      }
+    } else {
+      // Fallback: try line-by-line parsing
+      const lines = text.split('\n').filter(line => line.trim());
+      for (const line of lines) {
+        try {
+          const transaction = this.parseTransactionLine(line);
+          if (transaction) {
+            transactions.push(transaction);
+          }
+        } catch (error) {
+          errors.push(`Failed to parse line: ${line}`);
+        }
       }
     }
 
     return transactions;
+  }
+
+  /**
+   * Check if a segment should be skipped (headers, footers, etc.)
+   */
+  private isSkippableSegment(segment: string): boolean {
+    const skipPatterns = [
+      /closing\s*balance/i,
+      /brought\s*forward/i,
+      /carried\s*forward/i,
+      /statement\s*period/i,
+      /txn\s*date/i,
+      /transaction\s*date/i,
+      /date\s*of\s*statement/i,
+      /account\s*statement/i,
+      /page\s*\d+/i,
+      /^date\s+description/i,
+      /total\s*debits/i,
+      /total\s*credits/i,
+    ];
+    
+    return skipPatterns.some(pattern => pattern.test(segment));
+  }
+
+  /**
+   * Parse a transaction segment (text between two dates)
+   */
+  private parseTransactionSegment(segment: string): ParsedTransaction | null {
+    // Extract the date from the beginning
+    const dateResult = this.extractDate(segment);
+    if (!dateResult) return null;
+    
+    // Extract amounts - look for number patterns
+    const amounts = this.extractAmountsFromSegment(segment);
+    if (!amounts || amounts.length === 0) return null;
+    
+    // Get description (text between date and first amount)
+    const description = this.extractDescriptionFromSegment(segment);
+    
+    // Determine transaction type and amount
+    // In bank statements: Debit column = expense, Credit column = income
+    let amount = amounts[0];
+    let isCredit = false;
+    
+    // Check if this looks like a credit transaction
+    if (/salary|credit|deposit|received|refund|cashback|cr(?:\.|\s|$)|opening\s*balance/i.test(segment)) {
+      isCredit = true;
+    }
+    
+    // Explicitly check for "dr" or "debit"
+    if (/dr(?:\.|\s|$)|debit/i.test(segment)) {
+      isCredit = false;
+    }
+    
+    // Heuristic: If description contains "payment" or "purchase" or "sent" -> Expense
+    if (/payment|purchase|sent|paid|withdrawn|to\s/i.test(segment) && !/reversal|refund/i.test(segment)) {
+      isCredit = false;
+    }
+
+    // Default to expense if ambiguous, unless amount implies credit (not reliable without balance math)
+    
+    // If there are multiple amounts (debit, credit, balance columns)
+    // Common pattern: [amount] [balance]
+    // If balance > amount, or balance < amount, usually amount is first number found in the segment after the date.
+    if (amounts.length >= 2) {
+      // Default to first amount found as transaction amount
+      amount = amounts[0];
+      
+      // If we are very confident the second number is balance (e.g. it's explicitly labeled or much larger and at end)
+      // But simple heuristic: Bank statements are chronologically listed. 
+      // Amount is usually the first monetary value after description.
+    }
+    
+    const cleanedDescription = this.cleanDescription(segment);
+    // Prefer extracted description if available, else clean the whole segment
+    const finalDescription = description || cleanedDescription;
+    
+    // Ensure amount is signed correctly based on type
+    const finalAmount = Math.abs(amount);
+
+    return {
+      transaction_date: dateResult,
+      raw_description: segment.trim(),
+      cleaned_description: finalDescription,
+      amount: finalAmount,
+      transaction_type: isCredit ? 'income' : 'expense',
+      payment_channel: this.extractPaymentChannel(segment),
+      merchant_name: this.extractMerchantName(segment)
+    };
+  }
+
+  /**
+   * Clean description for display and categorization
+   */
+  private cleanDescription(text: string): string {
+    return text
+      .split(/\s+/)
+      .filter(word => !/^\d+$/.test(word)) // Remove standalone numbers
+      .join(' ')
+      .replace(/[^a-zA-Z0-9\s&.-]/g, '') // Remove special chars
+      .trim();
+  }
+
+  /**
+   * Extract amounts from a segment
+   */
+  private extractAmountsFromSegment(segment: string): number[] {
+    const amounts: number[] = [];
+    
+    // Remove date from segment to avoid picking it as amount
+    const withoutDate = segment.replace(/\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}/g, '');
+    
+    // Find all number patterns (with optional thousands separator and decimal)
+    const amountPattern = /(?:₹|Rs\.?|INR)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/g;
+    let match;
+    
+    while ((match = amountPattern.exec(withoutDate)) !== null) {
+      const fullMatch = match[0];
+      const numStr = match[1].replace(/,/g, '');
+      const num = parseFloat(numStr);
+      
+      // Get the index where the actual number starts (skipping matched whitespace/currency)
+      // This is crucial because match.index points to start of *pattern* (including leading space)
+      const numStartOffset = fullMatch.indexOf(match[1]);
+      const actualNumberIdx = match.index + numStartOffset;
+
+      // Check if char before is alphanumeric (like A-Z or 0-9) - indicates part of ID
+      const charBefore = actualNumberIdx > 0 ? withoutDate[actualNumberIdx - 1] : '';
+      const isAttachedToWord = /[a-zA-Z0-9]/.test(charBefore);
+
+      // Filter out unreasonable amounts and likely reference numbers
+      if (!isAttachedToWord && num > 0 && num < 10000000 && !this.isLikelyRefNumber(withoutDate, actualNumberIdx, num)) {
+        amounts.push(num);
+      }
+    }
+    
+    return amounts;
+  }
+
+  /**
+   * Check if a number is likely a reference number rather than amount
+   */
+  private isLikelyRefNumber(fullText: string, index: number, num: number): boolean {
+    // extract text before the number
+    const contextBefore = fullText.substring(0, index);
+    
+    // Check if preceded by Ref/Txn identifiers
+    if (/(?:ref|txn|id|no\.|number|upi|imps|neft)[\s:\-]*$/i.test(contextBefore)) {
+      return true;
+    }
+    
+    // Check if the number looks like a date component (e.g. year 2024, 2025) 
+    // and is close to other date components, although we stripped dates earlier
+    // But sometimes partial dates remain.
+    
+    // Numbers longer than 8 digits with no decimal are likely ref numbers
+    if (String(num).length > 8 && !String(num).includes('.')) {
+      return true;
+    }
+
+    // Check if it looks like a year (2020-2030) and is not clearly a currency amount
+    // And also check we don't accidentally filter out legitimate amounts like 2026
+    if (num >= 2000 && num <= 2035 && Number.isInteger(num)) {
+       // It could be a year.
+       // If it has decimal like 2026.50, it's money. Checked by isInteger.
+       
+       // Check context: if preceded by "year" or "date" or just looks like a year in a date string
+       // But wait, we stripped dates earlier. However, sometimes dates are in description too.
+       // Let's be careful. If it looks like a year, treated as ref unless valid amount context (currency symbol).
+       const hasCurrencySymbol = contextBefore.trim().match(/[₹$€£Rs\.?]/);
+       if (!hasCurrencySymbol) {
+         return true; // Treat standalone 2026 as year/ref
+       }
+    }
+    
+    return false;
+  }
+
+  /**
+   * Extract description from segment
+   */
+  private extractDescriptionFromSegment(segment: string): string {
+    // Remove date from beginning
+    let desc = segment.replace(/^\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}\s*/i, '');
+    
+    // Remove amounts from end
+    desc = desc.replace(/\s*[\d,]+(?:\.\d{1,2})?\s*$/g, '');
+    desc = desc.replace(/\s*[\d,]+(?:\.\d{1,2})?\s*$/g, '');
+    desc = desc.replace(/\s*[\d,]+(?:\.\d{1,2})?\s*$/g, '');
+    
+    // Remove reference numbers
+    desc = desc.replace(/\s*TXN\d+\s*/gi, ' ');
+    desc = desc.replace(/\s*Ref\.?\s*:?\s*\w+/gi, ' ');
+    
+    // Clean up
+    desc = desc.replace(/\s+/g, ' ').trim();
+    
+    return desc || 'Transaction';
   }
 
   /**
@@ -658,14 +911,41 @@ class StatementImportService {
   /**
    * Generate transaction hash for deduplication
    */
-  private generateTransactionHash(transaction: ParsedTransaction): string {
-    if (!transaction.transaction_date || isNaN(transaction.transaction_date.getTime())) {
+  private generateTransactionHash(transaction: ParsedTransaction | any): string {
+    // Handle property differences between ParsedTransaction and DB Transaction schema
+    // ParsedTransaction: transaction_date, raw_description
+    // DB Transaction: date, rawDescription (or description)
+    const tDate = transaction.transaction_date || transaction.date;
+    const tRawDesc = transaction.raw_description || transaction.rawDescription;
+    // Fallback to cleaned description if raw is missing (legacy records)
+    const tDesc = tRawDesc || transaction.description || '';
+    
+    if (!tDate) {
       return '';
     }
-    const date = transaction.transaction_date.toISOString().split('T')[0];
-    const amount = Math.abs(transaction.amount).toFixed(2);
-    const description = transaction.raw_description.substring(0, 50);
     
+    // Ensure we have a valid date object
+    const dateObj = tDate instanceof Date ? tDate : new Date(tDate);
+    if (isNaN(dateObj.getTime())) {
+      return '';
+    }
+
+    const date = dateObj.toISOString().split('T')[0];
+    const amount = Math.abs(transaction.amount).toFixed(2);
+    
+    // Create normalized description string for fuzzy matching
+    // 1. Convert to lowercase
+    // 2. Replace multiple spaces with single space
+    // 3. Remove all non-alphanumeric characters (ignore punctuation differences)
+    // 4. Take first 50 chars which usually contain the merchant info
+    const description = String(tDesc)
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[^a-z0-9]/g, '')
+      .substring(0, 50);
+    
+    // Using base64 to keep the hash clean, but the content is what matters
     return btoa(`${date}|${amount}|${description}`).replace(/[^a-zA-Z0-9]/g, '');
   }
 

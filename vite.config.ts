@@ -28,7 +28,8 @@ export default defineConfig({
     hmr: {
       protocol: 'ws',
       host: 'localhost',
-      port: 5173,
+      // Remove hardcoded port so it follows the server port if 5173 is taken
+      // port: 5173, 
     },
   },
 })

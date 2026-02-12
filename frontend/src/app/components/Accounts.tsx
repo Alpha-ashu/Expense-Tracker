@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/app/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/app/components/ui/PageHeader';
@@ -21,6 +22,7 @@ export const Accounts: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<AssetType>('all');
   const [statementImportOpen, setStatementImportOpen] = useState<{ accountId: number; accountName: string; accountType: string } | null>(null);
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -363,7 +365,7 @@ export const Accounts: React.FC = () => {
                               variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setCurrentPage('add-transaction');
+                                setTransactionModalOpen(true);
                               }}
                               className={cn(
                                 "h-8 px-3 rounded-full text-xs font-semibold border-0 transition-all",
@@ -375,6 +377,48 @@ export const Accounts: React.FC = () => {
                               <Plus size={12} className="mr-1" />
                               Transaction
                             </Button>
+                                  {/* Transaction Type Modal */}
+                                  <Dialog open={transactionModalOpen} onOpenChange={setTransactionModalOpen}>
+                                    <DialogContent title="Select Transaction Type">
+                                      <DialogHeader>
+                                        <DialogTitle>Select Transaction Type</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="flex flex-col gap-4 py-2">
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            setTransactionModalOpen(false);
+                                            setCurrentPage('add-transaction', { type: 'expense' });
+                                          }}
+                                        >
+                                          Expense
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            setTransactionModalOpen(false);
+                                            setCurrentPage('add-transaction', { type: 'income' });
+                                          }}
+                                        >
+                                          Income
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => {
+                                            setTransactionModalOpen(false);
+                                            setCurrentPage('add-transaction', { type: 'transfer' });
+                                          }}
+                                        >
+                                          Transfer
+                                        </Button>
+                                      </div>
+                                      <DialogFooter>
+                                        <DialogClose asChild>
+                                          <Button variant="ghost">Cancel</Button>
+                                        </DialogClose>
+                                      </DialogFooter>
+                                    </DialogContent>
+                                  </Dialog>
                             <Button
                               size="sm"
                               onClick={(e) => {

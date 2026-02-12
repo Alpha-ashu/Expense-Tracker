@@ -5,7 +5,7 @@ import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
-import { CreditCard, AlertCircle } from 'lucide-react';
+import { CreditCard, AlertCircle, DollarSign, Calendar } from 'lucide-react';
 
 export const PayEMI: React.FC = () => {
   const { currency, setCurrentPage } = useApp();

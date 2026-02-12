@@ -198,7 +198,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
 
         console.log('🎛️ AppContext applying admin feature settings:', { role, newVisibility });
-        setVisibleFeaturesState(newVisibility as FeatureVisibility);
+        setVisibleFeaturesState(newVisibility as unknown as FeatureVisibility);
       } catch (e) {
         console.error('Failed to apply admin feature settings:', e);
       }
