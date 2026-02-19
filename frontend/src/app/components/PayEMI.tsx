@@ -147,6 +147,7 @@ export const PayEMI: React.FC = () => {
                 value={selectedLoanId || ''}
                 onChange={(e) => setSelectedLoanId(Number(e.target.value) || null)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                aria-label="Select loan"
                 required
               >
                 <option value="">Choose a loan...</option>
@@ -219,6 +220,7 @@ export const PayEMI: React.FC = () => {
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                aria-label="Payment date"
               />
             </div>
 

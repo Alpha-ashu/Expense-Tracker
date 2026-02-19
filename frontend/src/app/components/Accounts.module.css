@@ -1,7 +1,3 @@
-.webkitOverflowScrollingTouch {
-  -webkit-overflow-scrolling: touch;
-}
-
 .carouselPadding {
   padding-left: calc(50vw - 160px);
   padding-right: calc(50vw - 160px);

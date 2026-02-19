@@ -60,7 +60,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onQuickAdd }) => {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pointer-events-none"
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden pointer-events-none safe-area-padding"
       style={{
         paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
         display: 'flex',

@@ -116,6 +116,8 @@ export const Groups: React.FC = () => {
                         value={editedName}
                         onChange={(e) => setEditedName(e.target.value)}
                         className="flex-1 px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold"
+                        placeholder="Enter expense name"
+                        aria-label="Expense name"
                       />
                       <button
                         onClick={() => handleSaveEdit(expense.id!)}
@@ -171,7 +173,9 @@ export const Groups: React.FC = () => {
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-blue-600 h-2 rounded-full transition-all"
-                    style={{ width: `${(totalPaid / expense.totalAmount) * 100}%` }}
+                    style={{ 
+                      width: `calc(${(totalPaid / expense.totalAmount) * 100}% - 4px)`
+                    }}
                   />
                 </div>
               </div>

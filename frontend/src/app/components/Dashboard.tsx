@@ -141,7 +141,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 <div className="relative">
                   {/* Mobile: 2 cards per row, centered */}
                   <div className="lg:hidden">
-                    <div className="flex gap-3 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide" style={{ scrollBehavior: 'smooth', scrollSnapType: 'x mandatory' }}>
+                    <div className="flex gap-3 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth">
                       {filteredAccounts.map((account, index) => (
                         <div
                           key={account.id}
@@ -206,7 +206,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
 
                   {/* Desktop: All cards in one row with smooth scrolling */}
                   <div className="hidden lg:block">
-                    <div className="flex gap-4 overflow-x-auto pb-8 px-8 snap-x snap-mandatory scrollbar-hide" style={{ scrollBehavior: 'smooth', scrollSnapType: 'x mandatory' }}>
+                    <div className="flex gap-4 overflow-x-auto pb-8 px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth">
                       {filteredAccounts.map((account, index) => (
                         <div
                           key={account.id}

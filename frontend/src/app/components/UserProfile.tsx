@@ -148,6 +148,7 @@ export const UserProfile: React.FC = () => {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors shadow-lg"
+                aria-label="Upload profile picture"
               >
                 <Upload size={16} />
               </button>
@@ -157,6 +158,7 @@ export const UserProfile: React.FC = () => {
                 accept="image/*"
                 onChange={handlePhotoUpload}
                 className="hidden"
+                aria-label="Upload profile picture"
               />
             </div>
           </motion.div>
@@ -196,6 +198,8 @@ export const UserProfile: React.FC = () => {
                       value={tempData.firstName}
                       onChange={(e) => setTempData({ ...tempData, firstName: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter first name"
+                      aria-label="First name"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">{profileData.firstName}</p>
@@ -211,6 +215,8 @@ export const UserProfile: React.FC = () => {
                       value={tempData.lastName}
                       onChange={(e) => setTempData({ ...tempData, lastName: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter last name"
+                      aria-label="Last name"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">{profileData.lastName}</p>
@@ -229,6 +235,7 @@ export const UserProfile: React.FC = () => {
                       value={tempData.dateOfBirth}
                       onChange={(e) => setTempData({ ...tempData, dateOfBirth: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      aria-label="Date of birth"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">
@@ -252,6 +259,7 @@ export const UserProfile: React.FC = () => {
                       value={tempData.jobType}
                       onChange={(e) => setTempData({ ...tempData, jobType: e.target.value as any })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      aria-label="Select job type"
                     >
                       <option value="">Select job type</option>
                       <option value="salaried">Salaried</option>

@@ -180,6 +180,7 @@ export const VoiceReview: React.FC = () => {
           <button
             onClick={() => setCurrentPage('voice-input')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Go back to voice input"
           >
             <ChevronLeft size={24} className="text-gray-600" />
           </button>
@@ -195,6 +196,7 @@ export const VoiceReview: React.FC = () => {
             value={accountId}
             onChange={(event) => setAccountId(Number(event.target.value))}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Select account for transactions"
           >
             <option value={0}>Select an account</option>
             {accounts.map((account) => (
@@ -221,6 +223,7 @@ export const VoiceReview: React.FC = () => {
                         value={item.intent}
                         onChange={(event) => handleIntentChange(index, event.target.value as DraftIntent)}
                         className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        aria-label="Select transaction type"
                       >
                         <option value="expense">Expense</option>
                         <option value="income">Income</option>
@@ -248,7 +251,9 @@ export const VoiceReview: React.FC = () => {
                           step="0.01"
                           value={item.amount || ''}
                           onChange={(event) => handleUpdate(index, { amount: Number(event.target.value) })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="0.00"
+                          aria-label="Amount"
                         />
                       </div>
                     </div>
@@ -273,6 +278,8 @@ export const VoiceReview: React.FC = () => {
                         value={item.description}
                         onChange={(event) => handleUpdate(index, { description: event.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        placeholder="Enter description"
+                        aria-label="Description"
                       />
                     </div>
                   </div>

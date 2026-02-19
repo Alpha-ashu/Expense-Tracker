@@ -148,6 +148,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
           <button
             onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close receipt scanner"
           >
             <X size={24} className="text-gray-600" />
           </button>
@@ -184,14 +185,15 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                 accept="image/*"
                 onChange={handleFileSelect}
                 className="hidden"
+                aria-label="Upload receipt image"
               />
               <input
                 ref={cameraInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
+                aria-label="Take photo with camera"
               />
             </div>
           ) : !scanResult ? (
@@ -267,6 +269,8 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                       setScanResult({ ...scanResult, merchantName: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter merchant name"
+                    aria-label="Merchant name"
                   />
                 </div>
 
@@ -283,6 +287,8 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                         }
                         step="0.01"
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="0.00"
+                        aria-label="Amount"
                       />
                     </div>
                   </div>
@@ -312,6 +318,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                       setScanResult({ ...scanResult, category: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label="Select category"
                   >
                     <option value="">Select a category</option>
                     <option value="Shopping">Shopping</option>
@@ -350,6 +357,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                   value={selectedAccountId || ''}
                   onChange={(e) => setSelectedAccountId(parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Select account to charge"
                 >
                   <option value="">Select an account</option>
                   {accounts.map((acc) => (

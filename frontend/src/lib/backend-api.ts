@@ -1,7 +1,8 @@
 // Backend API Service - Replaces local-only storage with cloud-based persistence
 import axios, { AxiosInstance } from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+// Use a default API URL for development, can be overridden by environment variables
+const API_BASE_URL = 'http://localhost:5000/api/v1';
 
 class BackendService {
   // ===== GOLD =====

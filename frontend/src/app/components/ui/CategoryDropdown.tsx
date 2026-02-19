@@ -134,7 +134,9 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
                     {isSelected && (
                       <div 
                         className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: bgColor }}
+                        style={{ 
+                          backgroundColor: bgColor 
+                        }}
                       >
                         <Check className="w-4 h-4 text-white" />
                       </div>

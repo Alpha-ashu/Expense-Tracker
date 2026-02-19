@@ -470,6 +470,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               value={formData.amount || ''}
               onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
               className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
+              placeholder="0.00"
+              aria-label="Transaction amount"
               required
             />
           </div>
@@ -480,6 +482,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               value={formData.accountId}
               onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
               className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
+              aria-label="Select account"
               required
             >
               {accounts.map(account => (
@@ -505,6 +508,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
                 value={formData.subcategory}
                 onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
+                aria-label="Select subcategory"
               >
                 <option value="">Select a subcategory</option>
                 {subcategories.map(subcat => (
@@ -544,6 +548,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
+              aria-label="Transaction date"
               required
             />
           </div>

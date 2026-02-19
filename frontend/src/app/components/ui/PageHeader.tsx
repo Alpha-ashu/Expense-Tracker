@@ -175,7 +175,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, c
                     {/* Mobile Menu Button */}
                     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                         <SheetTrigger asChild>
-                            <button className="lg:hidden p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors">
+                            <button className="lg:hidden p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open navigation menu">
                                 <Menu size={24} className="text-gray-900" />
                             </button>
                         </SheetTrigger>

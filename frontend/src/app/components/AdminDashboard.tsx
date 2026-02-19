@@ -33,6 +33,13 @@ export const AdminDashboard: React.FC = () => {
   const { role } = useAuth();
   const { flags, toggleFeature, resetToDefaults, getFeatureStatus } = useFeatureFlags();
 
+  const handleReset = () => {
+    if (confirm('Reset all feature flags to defaults? This cannot be undone.')) {
+      resetToDefaults();
+      toast.success('Feature flags reset to defaults');
+    }
+  };
+
   // Only admins can access this
   if (role !== 'admin') {
     return (
@@ -45,19 +52,11 @@ export const AdminDashboard: React.FC = () => {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Go to Dashboard
-          <button
-            className="..."
-            onClick={...}
-            title="Admin Action"
-          >
-            <Icon ... />
           </button>
-  const handleReset = () => {
-    if (confirm('Reset all feature flags to defaults? This cannot be undone.')) {
-      resetToDefaults();
-      toast.success('Feature flags reset to defaults');
-    }
-  };
+        </div>
+      </CenteredLayout>
+    );
+  }
 
   const featureKeys = Object.keys(FEATURE_DESCRIPTIONS) as FeatureKey[];
 
@@ -68,6 +67,7 @@ export const AdminDashboard: React.FC = () => {
           <button
             onClick={() => setCurrentPage('settings')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Go back to settings"
           >
             <ChevronLeft size={24} className="text-gray-600" />
           </button>

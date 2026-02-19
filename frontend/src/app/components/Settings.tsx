@@ -375,6 +375,7 @@ export const Settings: React.FC = () => {
                     toast.success(`Currency changed to ${e.target.value}`);
                   }}
                   className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  aria-label="Select currency"
                 >
                   <option value="USD">USD - US Dollar</option>
                   <option value="EUR">EUR - Euro</option>
@@ -410,6 +411,7 @@ export const Settings: React.FC = () => {
                     toast.success(`Language changed to ${e.target.value}`);
                   }}
                   className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  aria-label="Select language"
                 >
                   <option value="en">English</option>
                   <option value="es">Español (Spanish)</option>

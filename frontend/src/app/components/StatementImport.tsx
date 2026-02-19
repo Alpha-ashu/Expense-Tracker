@@ -197,6 +197,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
           <button
             onClick={onCancel}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Cancel statement import"
           >
             <XCircle size={20} className="text-gray-500" />
           </button>
@@ -242,6 +243,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                 accept=".pdf,.csv,.xlsx,.xls"
                 onChange={handleFileSelect}
                 className="hidden"
+                aria-label="Upload statement file"
               />
             </div>
           )}

@@ -161,6 +161,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                   value={year}
                   onChange={(e) => setYear(parseInt(e.target.value))}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                  aria-label="Select tax year"
                 >
                   {[2024, 2023, 2022, 2021].map((y) => (
                     <option key={y} value={y}>{y}</option>
@@ -180,6 +181,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                     setFilingStatus(e.target.value === 'India' ? 'standard' : 'single');
                   }}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                  aria-label="Select country"
                 >
                   <option value="India">India</option>
                   <option value="US">United States</option>
@@ -195,6 +197,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                   value={filingStatus}
                   onChange={(e) => setFilingStatus(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                  aria-label="Select filing status"
                 >
                   {country === 'India' ? (
                     <option value="standard">Standard</option>

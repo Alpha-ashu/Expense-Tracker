@@ -147,6 +147,7 @@ export const ToDoListShare: React.FC = () => {
                 value={sharedUserId}
                 onChange={(e) => setSharedUserId(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Select user to share with"
               >
                 <option value="">Choose a user...</option>
                 {availableUsers.map((user: any) => (
@@ -165,6 +166,7 @@ export const ToDoListShare: React.FC = () => {
                 value={permission}
                 onChange={(e) => setPermission(e.target.value as 'view' | 'edit')}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Select permission level"
               >
                 <option value="view">View Only</option>
                 <option value="edit">Can Edit</option>

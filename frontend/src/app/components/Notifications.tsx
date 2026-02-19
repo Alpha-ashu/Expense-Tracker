@@ -270,6 +270,7 @@ export const Notifications: React.FC = () => {
                           <button
                             onClick={() => handleDelete(notification.id)}
                             className="text-gray-400 hover:text-red-600 transition-colors mt-2"
+                            aria-label="Delete notification"
                           >
                             <Trash2 size={16} />
                           </button>
