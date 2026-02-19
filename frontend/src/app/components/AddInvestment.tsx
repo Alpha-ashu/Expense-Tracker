@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,20 +29,6 @@ export const AddInvestment: React.FC = () => {
     }
 
     try {
-      await db.investments.add({
-        assetType: mapInvestmentType(formData.type),
-        assetName: formData.name,
-        quantity: formData.quantity,
-        buyPrice: formData.purchasePrice,
-        currentPrice: formData.currentPrice,
-        totalInvested: formData.purchasePrice * formData.quantity,
-        currentValue: formData.currentPrice * formData.quantity,
-        profitLoss: (formData.currentPrice - formData.purchasePrice) * formData.quantity,
-        purchaseDate: new Date(formData.date),
-        lastUpdated: new Date(),
-        updatedAt: new Date(),
-        deletedAt: undefined
-      });
       // Helper to map UI type to DB assetType
       function mapInvestmentType(type: string): 'stock' | 'crypto' | 'forex' | 'gold' | 'silver' | 'other' {
         switch (type) {
@@ -53,6 +40,22 @@ export const AddInvestment: React.FC = () => {
           default: return 'other';
         }
       }
+      await backendService.createInvestment({
+        assetType: mapInvestmentType(formData.type),
+        assetName: formData.name,
+        quantity: formData.quantity,
+        buyPrice: formData.purchasePrice,
+        currentPrice: formData.currentPrice,
+        totalInvested: formData.purchasePrice * formData.quantity,
+        currentValue: formData.currentPrice * formData.quantity,
+        profitLoss: (formData.currentPrice - formData.purchasePrice) * formData.quantity,
+        purchaseDate: new Date(formData.date),
+        lastUpdated: new Date(),
+        updatedAt: new Date(),
+        deletedAt: undefined,
+        broker: formData.broker,
+        description: formData.description,
+      });
       toast.success('Investment added successfully');
       setCurrentPage('investments');
     } catch (error) {
@@ -97,6 +100,8 @@ export const AddInvestment: React.FC = () => {
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+              aria-label="Investment Type"
+              title="Investment Type"
             >
               <option value="stocks">Stocks</option>
               <option value="bonds">Bonds</option>
@@ -173,6 +178,9 @@ export const AddInvestment: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               required
+              aria-label="Investment Date"
+              title="Investment Date"
+              placeholder="Investment Date"
             />
           </div>
 

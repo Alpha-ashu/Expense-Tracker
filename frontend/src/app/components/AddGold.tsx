@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { ChevronLeft, Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -52,7 +53,7 @@ export const AddGold: React.FC = () => {
     }
 
     try {
-      await db.gold.add({
+      await backendService.createGold({
         ...formData,
         purchaseDate: new Date(formData.purchaseDate),
         createdAt: new Date(),
@@ -81,6 +82,8 @@ export const AddGold: React.FC = () => {
           <button
             onClick={() => setCurrentPage('investments')}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Back to Investments"
+            title="Back to Investments"
           >
             <ChevronLeft size={24} className="text-gray-600" />
           </button>
@@ -103,6 +106,8 @@ export const AddGold: React.FC = () => {
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-50"
+                aria-label="Gold Type"
+                title="Gold Type"
               >
                 <option value="gold">Pure Gold</option>
                 <option value="jewelry">Gold Jewelry</option>
@@ -130,6 +135,8 @@ export const AddGold: React.FC = () => {
                   value={formData.unit}
                   onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-50"
+                  aria-label="Gold Unit"
+                  title="Gold Unit"
                 >
                   <option value="gram">Gram</option>
                   <option value="ounce">Ounce</option>
@@ -203,6 +210,9 @@ export const AddGold: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-50"
                 required
+                aria-label="Gold Purchase Date"
+                title="Gold Purchase Date"
+                placeholder="Gold Purchase Date"
               />
             </div>
 
@@ -213,6 +223,8 @@ export const AddGold: React.FC = () => {
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-gray-50"
+                aria-label="Gold Location"
+                title="Gold Location"
               >
                 <option value="safe-deposit-box">Safe Deposit Box</option>
                 <option value="home-safe">Home Safe</option>

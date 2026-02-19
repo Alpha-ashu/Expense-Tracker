@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { db } from '@/lib/database';
+import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { ChevronLeft, Plus, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
@@ -77,7 +78,8 @@ export const AddTransaction: React.FC = () => {
     }
 
     try {
-      await db.transactions.add({
+
+      await saveTransactionWithBackendSync({
         ...formData,
         date: new Date(formData.date),
         tags: [],
@@ -180,6 +182,7 @@ export const AddTransaction: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                   required
+                  title="Select account"
                 >
                   <option value="">Select an account</option>
                   {accounts.map(account => (
@@ -207,6 +210,7 @@ export const AddTransaction: React.FC = () => {
                     value={formData.subcategory}
                     onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                    title="Select subcategory"
                   >
                     <option value="">Select a subcategory</option>
                     {subcategories.map(subcat => (
@@ -250,6 +254,8 @@ export const AddTransaction: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                   required
+                  title="Select date"
+                  placeholder="Select date"
                 />
               </div>
 

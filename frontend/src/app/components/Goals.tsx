@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
+import { saveGoalWithBackendSync } from '@/lib/auth-sync-integration';
+import { backendService } from '@/lib/backend-api';
 import { Plus, Target, Calendar, TrendingUp, Edit2, Trash2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
@@ -39,7 +41,7 @@ export const Goals: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingGoalId) return;
     try {
-      await db.goals.update(editingGoalId, {
+      await backendService.updateGoal(editingGoalId, {
         name: editFormData.name,
         targetAmount: editFormData.targetAmount,
         currentAmount: editFormData.currentAmount,
@@ -63,7 +65,7 @@ export const Goals: React.FC = () => {
     if (!goalToDelete) return;
     setIsDeleting(true);
     try {
-      await db.goals.delete(goalToDelete.id);
+      await backendService.deleteGoal(goalToDelete.id);
       toast.success('Goal deleted successfully');
       setDeleteModalOpen(false);
       setGoalToDelete(null);
@@ -171,6 +173,7 @@ export const Goals: React.FC = () => {
                         onClick={() => handleEditClick(goal)}
                         className="p-1 sm:p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
                         title="Edit goal"
+                        aria-label={`Edit goal ${goal.name}`}
                       >
                         <Edit2 size={14} className="sm:w-4 sm:h-4" />
                       </button>
@@ -178,6 +181,7 @@ export const Goals: React.FC = () => {
                         onClick={() => handleDeleteGoal(goal.id!, goal.name)}
                         className="p-1 sm:p-1.5 hover:bg-red-100 rounded-lg transition-colors text-red-600"
                         title="Delete goal"
+                        aria-label={`Delete goal ${goal.name}`}
                       >
                         <Trash2 size={14} className="sm:w-4 sm:h-4" />
                       </button>
@@ -201,6 +205,8 @@ export const Goals: React.FC = () => {
                         value={editFormData.name}
                         onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                         placeholder="Goal name"
+                        aria-label="Goal name"
+                        title="Goal name"
                         className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                       />
                       <input
@@ -208,6 +214,8 @@ export const Goals: React.FC = () => {
                         value={editFormData.targetAmount}
                         onChange={(e) => setEditFormData({ ...editFormData, targetAmount: parseFloat(e.target.value) })}
                         placeholder="Target amount"
+                        aria-label="Target amount"
+                        title="Target amount"
                         className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                       />
                       <input
@@ -215,12 +223,16 @@ export const Goals: React.FC = () => {
                         value={editFormData.currentAmount}
                         onChange={(e) => setEditFormData({ ...editFormData, currentAmount: parseFloat(e.target.value) })}
                         placeholder="Current amount"
+                        aria-label="Current amount"
+                        title="Current amount"
                         className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                       />
                       <input
                         type="date"
                         value={editFormData.targetDate ? new Date(editFormData.targetDate).toISOString().split('T')[0] : ''}
                         onChange={(e) => setEditFormData({ ...editFormData, targetDate: e.target.value })}
+                        aria-label="Target date"
+                        title="Target date"
                         className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                       />
                       <div className="flex gap-2">
@@ -294,6 +306,8 @@ export const Goals: React.FC = () => {
                       <button
                         onClick={() => setShowContributeModal(goal.id!)}
                         className="w-full px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
+                        aria-label={`Add contribution to ${goal.name}`}
+                        title={`Add contribution to ${goal.name}`}
                       >
                         Add Contribution
                       </button>
@@ -322,6 +336,8 @@ export const Goals: React.FC = () => {
             <Button
               onClick={() => setCurrentPage('add-goal')}
               className="rounded-full h-11 px-6 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95"
+              aria-label="Create your first goal"
+              title="Create your first goal"
             >
               <Plus size={18} className="mr-2" />
               Create Your First Goal
@@ -376,9 +392,10 @@ const ContributeModal: React.FC<{
       date: new Date(),
     });
 
-    await db.goals.update(goalId, {
+    await backendService.updateGoal(goalId, {
       currentAmount: goal.currentAmount + amount,
     });
+    // TODO: Sync goalContributions to backend if not already implemented
 
     const account = accounts.find(a => a.id === accountId);
     if (account) {
@@ -412,6 +429,9 @@ const ContributeModal: React.FC<{
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 font-medium"
               required
               autoFocus
+              aria-label="Contribution amount"
+              title="Contribution amount"
+              placeholder="Enter contribution amount"
             />
           </div>
 
@@ -421,6 +441,8 @@ const ContributeModal: React.FC<{
               value={accountId}
               onChange={(e) => setAccountId(parseInt(e.target.value))}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 font-medium appearance-none bg-white"
+              aria-label="Select account"
+              title="Select account"
             >
               {accounts.map(acc => (
                 <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -433,12 +455,16 @@ const ContributeModal: React.FC<{
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
+              aria-label="Cancel contribution"
+              title="Cancel contribution"
             >
               Cancel
             </button>
             <button
               type="submit"
               className="flex-1 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
+              aria-label="Add contribution"
+              title="Add contribution"
             >
               Add Contribution
             </button>

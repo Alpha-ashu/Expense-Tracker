@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { Upload, Trash2, Download, FileText, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ExpenseBill } from '@/lib/database';
@@ -14,10 +15,15 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const bills = useLiveQuery(
-    () => db.expenseBills.where('transactionId').equals(transactionId).toArray(),
-    [transactionId]
-  ) || [];
+  // Replace with backendService call for bills
+  const [bills, setBills] = useState<ExpenseBill[]>([]);
+  useEffect(() => {
+    const fetchBills = async () => {
+      const backendBills = await backendService.getExpenseBills(transactionId);
+      setBills(backendBills || []);
+    };
+    fetchBills();
+  }, [transactionId]);
 
   useEffect(() => {
     if (onBillsChange) {
@@ -46,7 +52,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
           continue;
         }
 
-        await db.expenseBills.add({
+        await backendService.uploadExpenseBill({
           transactionId,
           fileName: file.name,
           fileType: file.type,
@@ -57,6 +63,9 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
 
         toast.success(`${file.name} uploaded`);
       }
+      // Refresh bills after upload
+      const backendBills = await backendService.getExpenseBills(transactionId);
+      setBills(backendBills || []);
     } catch (error) {
       console.error('Failed to upload bill:', error);
       toast.error('Failed to upload bill');
@@ -67,8 +76,11 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
 
   const handleDeleteBill = async (billId: number) => {
     try {
-      await db.expenseBills.delete(billId);
+      await backendService.deleteExpenseBill(billId);
       toast.success('Bill deleted');
+      // Refresh bills after delete
+      const backendBills = await backendService.getExpenseBills(transactionId);
+      setBills(backendBills || []);
     } catch (error) {
       console.error('Failed to delete bill:', error);
       toast.error('Failed to delete bill');
@@ -143,6 +155,8 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
             onChange={(e) => handleFileSelect(e.target.files)}
             disabled={uploading}
             className="hidden"
+            aria-label="Select bill files"
+            title="Select bill files"
           />
           <span
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -150,6 +164,8 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
             }`}
+            aria-label="Select Files"
+            title="Select Files"
           >
             <Upload size={18} />
             {uploading ? 'Uploading...' : 'Select Files'}
@@ -183,6 +199,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
                   <button
                     onClick={() => handleDownloadBill(bill)}
                     title="Download bill"
+                    aria-label="Download bill"
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <Download size={18} />
@@ -190,6 +207,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
                   <button
                     onClick={() => handleDeleteBill(bill.id!)}
                     title="Delete bill"
+                    aria-label="Delete bill"
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} />

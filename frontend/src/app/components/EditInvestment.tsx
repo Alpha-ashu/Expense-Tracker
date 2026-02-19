@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,7 +52,7 @@ export const EditInvestment: React.FC = () => {
     const profitLoss = currentValue - totalInvested;
 
     try {
-      await db.investments.update(selectedId, {
+      await backendService.updateInvestment(selectedId, {
         ...formData,
         totalInvested,
         currentValue,
@@ -89,6 +90,8 @@ export const EditInvestment: React.FC = () => {
               value={formData.assetType}
               onChange={(e) => setFormData({ ...formData, assetType: e.target.value as any })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Asset Type"
+              title="Asset Type"
             >
               <option value="stock">Stock</option>
               <option value="crypto">Cryptocurrency</option>
@@ -108,6 +111,8 @@ export const EditInvestment: React.FC = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g., AAPL, Bitcoin, Gold Bar"
               required
+              aria-label="Asset Name"
+              title="Asset Name"
             />
           </div>
 
@@ -121,6 +126,8 @@ export const EditInvestment: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                aria-label="Quantity"
+                title="Quantity"
               />
             </div>
             <div>
@@ -132,6 +139,8 @@ export const EditInvestment: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, buyPrice: parseFloat(e.target.value) || 0 })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+                aria-label="Buy Price"
+                title="Buy Price"
               />
             </div>
           </div>
@@ -145,6 +154,8 @@ export const EditInvestment: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, currentPrice: parseFloat(e.target.value) || 0 })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
+              aria-label="Current Price"
+              title="Current Price"
             />
           </div>
 
@@ -156,6 +167,9 @@ export const EditInvestment: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
+              aria-label="Purchase Date"
+              title="Purchase Date"
+              placeholder="Purchase Date"
             />
           </div>
 
@@ -179,12 +193,16 @@ export const EditInvestment: React.FC = () => {
                 setCurrentPage('investments');
               }}
               className="flex-1 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              aria-label="Cancel"
+              title="Cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
               className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              aria-label="Update Investment"
+              title="Update Investment"
             >
               Update Investment
             </button>

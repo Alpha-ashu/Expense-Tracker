@@ -3,6 +3,8 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import styles from './AddFriends.module.css';
+import { backendService } from '@/lib/backend-api';
 import { Users, Mail, Phone, X, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -78,7 +80,7 @@ export const AddFriends: React.FC = () => {
 
     try {
       for (const friend of friends) {
-        await db.friends.add({
+        await backendService.createFriend({
           ...friend,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -138,6 +140,8 @@ export const AddFriends: React.FC = () => {
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                     placeholder="e.g., John Doe"
                     required
+                    aria-label="Friend Name"
+                    title="Friend Name"
                   />
                 </div>
 
@@ -153,6 +157,8 @@ export const AddFriends: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                     placeholder="john@example.com"
+                    aria-label="Friend Email"
+                    title="Friend Email"
                   />
                 </div>
 
@@ -168,6 +174,8 @@ export const AddFriends: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                     placeholder="+91 98765 43210"
+                    aria-label="Friend Phone"
+                    title="Friend Phone"
                   />
                 </div>
 
@@ -178,6 +186,8 @@ export const AddFriends: React.FC = () => {
                     value={formData.relationship}
                     onChange={(e) => setFormData({ ...formData, relationship: e.target.value as any })}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                    aria-label="Relationship"
+                    title="Relationship"
                   >
                     <option value="friend">Friend</option>
                     <option value="family">Family</option>
@@ -196,12 +206,21 @@ export const AddFriends: React.FC = () => {
                         key={color}
                         type="button"
                         onClick={() => setFormData({ ...formData, color })}
-                        className={`w-10 h-10 rounded-full transition-transform ring-2 ring-offset-2 ${
-                          formData.color === color
-                            ? 'ring-gray-400 scale-110'
-                            : 'ring-transparent hover:scale-105'
-                        }`}
-                        style={{ backgroundColor: color }}
+                        className={
+                          `${styles.colorCircle} ` +
+                          (formData.color === color ? styles.selectedColor : styles.unselectedColor) + ' ' +
+                          (color === '#3b82f6' ? styles.colorBlue :
+                            color === '#ef4444' ? styles.colorRed :
+                            color === '#10b981' ? styles.colorGreen :
+                            color === '#f59e0b' ? styles.colorAmber :
+                            color === '#8b5cf6' ? styles.colorPurple :
+                            color === '#ec4899' ? styles.colorPink :
+                            color === '#06b6d4' ? styles.colorCyan :
+                            color === '#f97316' ? styles.colorOrange :
+                            '')
+                        }
+                        aria-label={`Select color ${color}`}
+                        title={`Select color ${color}`}
                       />
                     ))}
                   </div>
@@ -212,6 +231,8 @@ export const AddFriends: React.FC = () => {
                   <button
                     type="submit"
                     className="flex-1 bg-black hover:bg-gray-900 text-white py-3 rounded-xl font-semibold transition-colors shadow-lg"
+                    aria-label="Add Friend"
+                    title="Add Friend"
                   >
                     Add Friend
                   </button>
@@ -220,6 +241,8 @@ export const AddFriends: React.FC = () => {
                       type="button"
                       onClick={() => setIsAddingFriend(false)}
                       className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-colors"
+                      aria-label="Done Adding"
+                      title="Done Adding"
                     >
                       Done Adding
                     </button>
@@ -243,8 +266,18 @@ export const AddFriends: React.FC = () => {
                     className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
                   >
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ backgroundColor: friend.color }}
+                      className={
+                        styles.friendAvatar + ' ' +
+                        (friend.color === '#3b82f6' ? styles.colorBlue :
+                          friend.color === '#ef4444' ? styles.colorRed :
+                          friend.color === '#10b981' ? styles.colorGreen :
+                          friend.color === '#f59e0b' ? styles.colorAmber :
+                          friend.color === '#8b5cf6' ? styles.colorPurple :
+                          friend.color === '#ec4899' ? styles.colorPink :
+                          friend.color === '#06b6d4' ? styles.colorCyan :
+                          friend.color === '#f97316' ? styles.colorOrange :
+                          '')
+                      }
                     >
                       {friend.name.charAt(0).toUpperCase()}
                     </div>
@@ -259,6 +292,8 @@ export const AddFriends: React.FC = () => {
                     <button
                       onClick={() => handleRemoveFriend(friend.id)}
                       className="text-gray-400 hover:text-red-600 transition-colors"
+                      aria-label="Remove Friend"
+                      title="Remove Friend"
                     >
                       <X size={18} />
                     </button>
@@ -284,12 +319,16 @@ export const AddFriends: React.FC = () => {
             <button
               onClick={handleSaveFriends}
               className="flex-1 bg-black hover:bg-gray-900 text-white py-3 rounded-xl font-semibold transition-colors shadow-lg"
+              aria-label="Save Friends and Continue"
+              title="Save Friends and Continue"
             >
               Save Friends & Continue
             </button>
             <button
               onClick={() => setCurrentPage('groups')}
               className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-colors"
+              aria-label="Cancel"
+              title="Cancel"
             >
               Cancel
             </button>

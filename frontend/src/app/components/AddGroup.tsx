@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { Users, UserPlus, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -65,11 +66,16 @@ export const AddGroup: React.FC = () => {
     }
 
     try {
-      await db.groups.add({
+      await backendService.createGroup({
         id: Date.now().toString(),
         name: formData.name,
         members: validParticipants,
         createdAt: new Date(),
+        description: formData.description,
+        totalAmount: formData.totalAmount,
+        amountPerPerson: formData.amountPerPerson,
+        category: formData.category,
+        date: new Date(formData.date),
       });
       toast.success('Group expense created successfully');
       setCurrentPage('groups');
@@ -127,6 +133,8 @@ export const AddGroup: React.FC = () => {
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-label="Group Category"
+                title="Group Category"
             >
               <option value="general">General</option>
               <option value="food">Food & Dining</option>
@@ -144,6 +152,9 @@ export const AddGroup: React.FC = () => {
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-label="Group Date"
+                title="Group Date"
+                placeholder="Group Date"
             />
           </div>
 
@@ -173,14 +184,16 @@ export const AddGroup: React.FC = () => {
                     }
                   }}
                   className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 transition-colors flex items-center gap-1"
+                  title="Add Friend"
                 >
                   <UserPlus size={14} />
                   {friends && friends.length > 0 ? 'Add Friend' : 'Add Friends First'}
                 </button>
                 <button
                   type="button"
-                  onClick={handleAddParticipant}
                   className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 transition-colors"
+                  title="Add Participant"
+                  onClick={() => {/* Add participant logic here */}}
                 >
                   + Add Participant
                 </button>
@@ -196,6 +209,7 @@ export const AddGroup: React.FC = () => {
                     type="button"
                     onClick={() => setShowFriendPicker(false)}
                     className="text-green-600 hover:text-green-800"
+                    title="Close Friend Picker"
                   >
                     <X size={16} />
                   </button>

@@ -280,6 +280,9 @@ export const Calendar: React.FC = () => {
               onClick={() => setShowReminderModal(true)}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-500/25"
             >
+                <button
+                  title="Calendar Action"
+                >
               <Plus size={18} /> Add Reminder
             </button>
           </div>
@@ -626,6 +629,9 @@ export const Calendar: React.FC = () => {
                       onChange={(e) => setNewReminder({ ...newReminder, type: e.target.value as any })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
                     >
+                        <select
+                          title="Select calendar option"
+                        >
                       <option value="task">Task</option>
                       <option value="event">Event</option>
                       <option value="reminder">Reminder</option>
@@ -641,6 +647,12 @@ export const Calendar: React.FC = () => {
                       onChange={(e) => setNewReminder({ ...newReminder, date: new Date(e.target.value) })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
+                      <input
+                        type="text"
+                        title="Calendar input"
+                        placeholder="Enter value"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      />
                   </div>
 
                   <div className="flex gap-3 pt-4">

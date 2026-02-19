@@ -236,6 +236,8 @@ export const ExportReports: React.FC = () => {
                       ? 'border-blue-500 bg-blue-50 text-blue-600'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                   }`}
+                  aria-label={`Export ${option.label} data`}
+                  title={`Export ${option.label} data`}
                 >
                   {option.label}
                 </button>
@@ -268,6 +270,8 @@ export const ExportReports: React.FC = () => {
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                   }`}
                   disabled={option.value === 'pdf'}
+                  aria-label={`Select ${option.label} format`}
+                  title={`Select ${option.label} format`}
                 >
                   {option.icon}
                   <span className="text-sm font-medium">{option.label}</span>
@@ -301,6 +305,8 @@ export const ExportReports: React.FC = () => {
                       ? 'border-blue-500 bg-blue-50 text-blue-600'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                   }`}
+                  aria-label={`Select ${option.label} date range`}
+                  title={`Select ${option.label} date range`}
                 >
                   {option.label}
                 </button>
@@ -325,6 +331,9 @@ export const ExportReports: React.FC = () => {
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="Start date"
+                  title="Start date"
+                  placeholder="Select start date"
                 />
               </div>
               <div>
@@ -341,6 +350,9 @@ export const ExportReports: React.FC = () => {
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-label="End date"
+                  title="End date"
+                  placeholder="Select end date"
                 />
               </div>
             </div>
@@ -351,6 +363,8 @@ export const ExportReports: React.FC = () => {
             onClick={handleExport}
             disabled={isExporting}
             className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 font-medium transition-colors flex items-center justify-center gap-2"
+            aria-label={`Export as ${exportOptions.format.toUpperCase()}`}
+            title={`Export as ${exportOptions.format.toUpperCase()}`}
           >
             <Download size={20} />
             {isExporting ? 'Exporting...' : `Export as ${exportOptions.format.toUpperCase()}`}

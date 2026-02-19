@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { db, Friend } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { useApp } from '@/contexts/AppContext';
 import { UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -36,15 +37,19 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
       return;
     }
 
-    const friendId = await db.friends.add({
-      ...newFriend,
-      createdAt: new Date(),
-    });
-
-    setFormData({ ...formData, friendId: friendId as number, contactPerson: newFriend.name });
-    setNewFriend({ name: '', email: '', phone: '', notes: '' });
-    setShowAddFriend(false);
-    toast.success('Friend added successfully');
+    try {
+      // Save friend to backend
+      const savedFriend = await backendService.createFriend({
+        ...newFriend,
+        createdAt: new Date(),
+      });
+      setFormData({ ...formData, friendId: savedFriend.id, contactPerson: newFriend.name });
+      setNewFriend({ name: '', email: '', phone: '', notes: '' });
+      setShowAddFriend(false);
+      toast.success('Friend added successfully');
+    } catch (error) {
+      toast.error('Failed to add friend');
+    }
   };
 
   const handleFriendSelect = (friendId: number) => {
@@ -62,18 +67,20 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
     e.preventDefault();
 
     const { friendId, ...loanData } = formData;
-
-    await db.loans.add({
-      ...loanData,
-      friendId,
-      outstandingBalance: formData.principalAmount,
-      status: 'active',
-      dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
-      createdAt: new Date(),
-    });
-
-    toast.success('Loan added successfully');
-    onClose();
+    try {
+      await backendService.createLoan({
+        ...loanData,
+        friendId,
+        outstandingBalance: formData.principalAmount,
+        status: 'active',
+        dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
+        createdAt: new Date(),
+      });
+      toast.success('Loan added successfully');
+      onClose();
+    } catch (error) {
+      toast.error('Failed to add loan');
+    }
   };
 
   return (
@@ -204,6 +211,7 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
                 </div>
               ) : (
                 <select
+                  aria-label="Select Friend"
                   value={formData.friendId || ''}
                   onChange={(e) => handleFriendSelect(parseInt(e.target.value))}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
@@ -231,6 +239,8 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
                 onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Bank, Person, or Institution"
+                aria-label="Contact Person or Institution"
+                title="Contact Person or Institution"
               />
             </div>
           )}
@@ -269,6 +279,9 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
               value={formData.dueDate}
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
+              placeholder="Due Date"
+              aria-label="Due Date"
+              title="Due Date"
             />
           </div>
 

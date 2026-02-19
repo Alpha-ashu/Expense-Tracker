@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { CreditCard, UserPlus, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -65,7 +66,7 @@ export const AddLoan: React.FC = () => {
     }
 
     try {
-      await db.loans.add({
+      await backendService.createLoan({
         type: 'borrowed',
         name: formData.lenderName,
         principalAmount: formData.principalAmount,
@@ -125,49 +126,19 @@ export const AddLoan: React.FC = () => {
                     type="button"
                     onClick={() => setShowFriendPicker(!showFriendPicker)}
                     className="text-xs bg-green-50 text-green-600 px-3 py-1 rounded hover:bg-green-100 transition-colors flex items-center gap-1"
+                    title="Select from Friends"
+                    aria-label="Select from Friends"
                   >
                     <UserPlus size={14} />
                     Select from Friends
                   </button>
-                </div>
-              )}
-              
-              {/* Friend Picker */}
-              {showFriendPicker && friends && friends.length > 0 && (
-                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-green-800">Select a friend:</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFriendPicker(false)}
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {friends.map((friend) => {
-                      const isSelected = formData.lenderName === friend.name;
-                      return (
-                        <button
-                          key={friend.id}
-                          type="button"
-                          onClick={() => {
-                            handleFieldChange('lenderName', friend.name);
-                            setShowFriendPicker(false);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-1 transition-colors ${
-                            isSelected 
-                              ? 'bg-green-600 text-white' 
-                              : 'bg-white text-green-700 hover:bg-green-100 border border-green-300'
-                          }`}
-                        >
-                          {isSelected && <Check size={14} />}
-                          {friend.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-3 px-6 bg-black text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+                    title="Add Loan"
+                  >
+                    {isLoading ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
+                  </button>
                 </div>
               )}
             </div>
@@ -179,6 +150,8 @@ export const AddLoan: React.FC = () => {
                 value={formData.loanType}
                 onChange={(e) => handleFieldChange('loanType', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-label="Loan Type"
+                title="Loan Type"
               >
                 <option value="personal">Personal Loan</option>
                 <option value="home">Home Loan</option>
@@ -248,6 +221,9 @@ export const AddLoan: React.FC = () => {
                 onChange={(e) => handleFieldChange('startDate', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 required
+                aria-label="Start Date"
+                title="Start Date"
+                placeholder="Start Date"
               />
             </div>
 
@@ -258,6 +234,8 @@ export const AddLoan: React.FC = () => {
                 value={formData.accountId}
                 onChange={(e) => handleFieldChange('accountId', parseInt(e.target.value))}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-label="Account"
+                title="Account"
               >
                 {accounts.map(account => (
                   <option key={account.id} value={account.id}>{account.name}</option>
@@ -273,6 +251,8 @@ export const AddLoan: React.FC = () => {
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
                 rows={3}
+                          aria-label={`Select friend ${friend.name}`}
+                          title={`Select friend ${friend.name}`}
                 placeholder="Add any notes about this loan..."
               />
             </div>

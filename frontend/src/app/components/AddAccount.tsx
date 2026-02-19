@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
+import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/app/components/ui/card';
@@ -18,7 +19,7 @@ export const AddAccount: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await db.accounts.add({
+      await saveAccountWithBackendSync({
         ...formData,
         currency,
         isActive: true,
@@ -79,17 +80,15 @@ export const AddAccount: React.FC = () => {
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  title="Select account type"
+                  aria-label="Select account type"
                 >
                   <option value="bank">🏦 Bank Account</option>
                   <option value="card">💳 Credit/Debit Card</option>
                   <option value="cash">💵 Cash</option>
                   <option value="wallet">📱 Digital Wallet</option>
                 </select>
-              </div>
-
-              {/* Opening Balance */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">
+                <label className="block text-sm font-semibold text-gray-900 mb-3 mt-6">
                   Opening Balance
                 </label>
                 <div className="relative">

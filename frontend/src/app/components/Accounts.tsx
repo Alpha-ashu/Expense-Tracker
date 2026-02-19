@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
+import styles from './Accounts.module.css';
+import { backendService } from '@/lib/backend-api';
 import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, X, Receipt, TrendingUp, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
@@ -137,7 +139,7 @@ export const Accounts: React.FC = () => {
     if (!accountToDelete) return;
     setIsDeleting(true);
     try {
-      await db.accounts.delete(accountToDelete.id);
+      await backendService.deleteAccount(accountToDelete.id);
       toast.success('Account deleted successfully');
       setDeleteModalOpen(false);
       setAccountToDelete(null);
@@ -194,6 +196,8 @@ export const Accounts: React.FC = () => {
               className={`relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base ${
                 isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}
+              aria-label={tab.label}
+              title={tab.label}
             >
               {isActive && (
                 <motion.div
@@ -216,19 +220,11 @@ export const Accounts: React.FC = () => {
         {/* Carousel Container */}
         <div
           ref={carouselRef}
-          className="overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide scroll-smooth"
-          style={{
-            WebkitOverflowScrolling: 'touch',
-          }}
+          className={"overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide scroll-smooth " + styles.webkitOverflowScrollingTouch}
         >
           <AnimatePresence>
             <motion.div 
-              className="flex gap-5 md:gap-7 lg:gap-8 w-max"
-              style={{
-                // Add padding to allow first and last cards to be centered
-                paddingLeft: 'calc(50vw - 160px)',
-                paddingRight: 'calc(50vw - 160px)',
-              }}
+              className={"flex gap-5 md:gap-7 lg:gap-8 w-max " + styles.carouselPadding}
             >
               {filteredAccounts.map((account) => {
                 const isActive = selectedAccountId === account.id;
@@ -323,6 +319,7 @@ export const Accounts: React.FC = () => {
                                   isActive ? "hover:bg-white/20 text-white/80 hover:text-white" : "hover:bg-white text-gray-500 hover:text-blue-600"
                                 )}
                                 title="Edit account"
+                                aria-label="Edit account"
                               >
                                 <Edit2 size={16} />
                               </button>
@@ -336,6 +333,7 @@ export const Accounts: React.FC = () => {
                                   isActive ? "hover:bg-white/20 text-white/80 hover:text-white" : "hover:bg-white text-gray-500 hover:text-red-600"
                                 )}
                                 title="Delete account"
+                                aria-label="Delete account"
                               >
                                 <Trash2 size={16} />
                               </button>

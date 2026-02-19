@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -35,7 +36,7 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
     if (!account) return;
     
     try {
-      await db.accounts.update(account.id, {
+      await backendService.updateAccount(account.id, {
         name: account.name,
         type: account.type,
         balance: account.balance,
@@ -89,6 +90,8 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
               onChange={(e) => setAccount({ ...account, name: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
+              aria-label="Account Name"
+              title="Account Name"
             />
           </div>
 
@@ -100,6 +103,8 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
               value={account.type}
               onChange={(e) => setAccount({ ...account, type: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Account Type"
+              title="Account Type"
             >
               <option value="bank">Bank Account</option>
               <option value="card">Credit/Debit Card</option>
@@ -120,6 +125,8 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
                 value={account.balance || ''}
                 onChange={(e) => setAccount({ ...account, balance: parseFloat(e.target.value) || 0 })}
                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Current Balance"
+                title="Current Balance"
               />
             </div>
           </div>
@@ -129,12 +136,16 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
               type="button"
               onClick={() => setCurrentPage('accounts')}
               className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              aria-label="Cancel"
+              title="Cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              aria-label="Save Changes"
+              title="Save Changes"
             >
               Save Changes
             </button>

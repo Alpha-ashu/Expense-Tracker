@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
 import { ArrowRightLeft } from 'lucide-react';
@@ -74,7 +75,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
       }
 
       // Create expense transaction in source account (outflow)
-      await db.transactions.add({
+      await saveTransactionWithBackendSync({
         type: 'transfer',
         amount: formData.amount,
         accountId: formData.fromAccountId,
@@ -88,7 +89,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
       });
 
       // Create income transaction in destination account (inflow)
-      await db.transactions.add({
+      await saveTransactionWithBackendSync({
         type: 'transfer',
         amount: formData.amount,
         accountId: formData.toAccountId,
@@ -169,6 +170,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
               From Account
             </label>
             <select
+              aria-label="From Account"
               value={formData.fromAccountId}
               onChange={(e) =>
                 setFormData({ ...formData, fromAccountId: parseInt(e.target.value) })
@@ -191,6 +193,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
               To Account
             </label>
             <select
+              aria-label="To Account"
               value={formData.toAccountId}
               onChange={(e) =>
                 setFormData({ ...formData, toAccountId: parseInt(e.target.value) })

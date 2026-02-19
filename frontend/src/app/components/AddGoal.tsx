@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { Target } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,7 +32,7 @@ export const AddGoal: React.FC = () => {
     }
 
     try {
-      await db.goals.add({
+      await backendService.createGoal({
         name: formData.name,
         category: formData.category,
         targetAmount: formData.targetAmount,
@@ -82,6 +83,8 @@ export const AddGoal: React.FC = () => {
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+              aria-label="Goal Category"
+              title="Goal Category"
             >
               <option value="savings">Savings</option>
               <option value="investment">Investment</option>
@@ -131,6 +134,9 @@ export const AddGoal: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               required
+              aria-label="Goal Deadline"
+              title="Goal Deadline"
+              placeholder="Goal Deadline"
             />
           </div>
 
@@ -140,6 +146,8 @@ export const AddGoal: React.FC = () => {
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+              aria-label="Goal Priority"
+              title="Goal Priority"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>

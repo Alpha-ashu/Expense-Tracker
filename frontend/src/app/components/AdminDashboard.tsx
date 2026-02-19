@@ -45,12 +45,13 @@ export const AdminDashboard: React.FC = () => {
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Go to Dashboard
+          <button
+            className="..."
+            onClick={...}
+            title="Admin Action"
+          >
+            <Icon ... />
           </button>
-        </div>
-      </CenteredLayout>
-    );
-  }
-
   const handleReset = () => {
     if (confirm('Reset all feature flags to defaults? This cannot be undone.')) {
       resetToDefaults();

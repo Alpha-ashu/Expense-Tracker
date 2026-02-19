@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+// import { getCountryAndCurrencySymbol } from '@/lib/countryCurrency';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { TrendingUp, CreditCard, Wallet, Banknote, Smartphone, ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react';
@@ -158,7 +159,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                           >
                             <div className="flex justify-between items-start">
                               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
-                                {activeTab === 'cash' ? <Banknote className="text-white w-4 h-4 sm:w-5 sm:h-5" /> : <span className="font-bold text-white text-sm sm:text-lg">V</span>}
+                                {activeTab === 'cash' ? <Banknote className="text-white w-4 h-4 sm:w-5 sm:h-5" /> : <span className="font-bold text-white text-lg sm:text-2xl">$</span>}
                               </div>
                               <div className="bg-white/20 px-2 py-0.5 sm:py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
                             </div>
@@ -187,7 +188,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                         >
                           <div className="flex justify-between items-start">
                             <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
-                              {activeTab === 'cash' ? <Banknote className="text-white w-5 h-5" /> : <span className="font-bold text-white text-lg">V</span>}
+                              {activeTab === 'cash' ? <Banknote className="text-white w-5 h-5" /> : <span className="font-bold text-white text-2xl">$</span>}
                             </div>
                             <div className="bg-white/20 px-2 py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
                           </div>

@@ -5,6 +5,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import { Briefcase, MessageCircle, Clock, CheckCircle, AlertCircle, Send, XCircle, RotateCw, Power } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -36,34 +37,49 @@ export const AdvisorWorkspace: React.FC = () => {
   }
 
   // Query advisor's own profile for availability status
-  const advisorProfile = useLiveQuery(
-    () => db.financeAdvisors.where('userId').equals(user?.id || '').first(),
-    [user?.id]
-  );
+  // Replace with backendService call for advisor profile
+  // (Assume backendService.getAdvisorProfile returns a promise)
+  const [advisorProfile, setAdvisorProfile] = useState<any>(null);
+  React.useEffect(() => {
+    if (user?.id) {
+      backendService.getAdvisorProfile(user.id).then(setAdvisorProfile);
+    }
+  }, [user?.id]);
 
   // Query assigned users
-  const assignments = useLiveQuery(
-    () => db.advisorAssignments.where('advisorId').equals(user?.id || '').toArray(),
-    [user?.id]
-  ) || [];
+  // Replace with backendService call for assignments
+  const [assignments, setAssignments] = useState<any[]>([]);
+  React.useEffect(() => {
+    if (user?.id) {
+      backendService.getAdvisorAssignments(user.id).then(setAssignments);
+    }
+  }, [user?.id]);
 
   // Query pending booking requests
-  const bookingRequests = useLiveQuery(
-    () => db.bookingRequests.where('advisorId').equals(user?.id || '').and((req) => req.status === 'pending').toArray(),
-    [user?.id]
-  ) || [];
+  // Replace with backendService call for booking requests
+  const [bookingRequests, setBookingRequests] = useState<any[]>([]);
+  React.useEffect(() => {
+    if (user?.id) {
+      backendService.getAdvisorBookingRequests(user.id).then(setBookingRequests);
+    }
+  }, [user?.id]);
 
   // Query chat messages for selected conversation
-  const chatMessages = useLiveQuery(
-    () => selectedChat ? db.chatMessages.where('conversationId').equals(selectedChat).toArray() : Promise.resolve([]),
-    [selectedChat]
-  ) || [];
+  // Replace with backendService call for chat messages
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  React.useEffect(() => {
+    if (selectedChat) {
+      backendService.getChatMessages(selectedChat).then(setChatMessages);
+    } else {
+      setChatMessages([]);
+    }
+  }, [selectedChat]);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedChat || !user) return;
 
     try {
-      await db.chatMessages.add({
+      await backendService.sendChatMessage({
         conversationId: selectedChat,
         senderId: user.id,
         senderRole: 'advisor',
@@ -74,6 +90,8 @@ export const AdvisorWorkspace: React.FC = () => {
 
       setMessageInput('');
       toast.success('Message sent');
+      // Refresh chat messages
+      backendService.getChatMessages(selectedChat).then(setChatMessages);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -86,10 +104,10 @@ export const AdvisorWorkspace: React.FC = () => {
     setIsTogglingAvailability(true);
     try {
       const newStatus = !advisorProfile.availability;
-      await db.financeAdvisors.update(advisorProfile.id, {
-        availability: newStatus,
-      });
+      await backendService.updateAdvisorAvailability(advisorProfile.id, newStatus);
       toast.success(`You are now ${newStatus ? 'available' : 'unavailable'} for bookings`);
+      // Refresh profile
+      backendService.getAdvisorProfile(user.id).then(setAdvisorProfile);
     } catch (error) {
       console.error('Error toggling availability:', error);
       toast.error('Failed to update availability');
@@ -101,26 +119,20 @@ export const AdvisorWorkspace: React.FC = () => {
   const handleAcceptBooking = async (bookingId: number, booking: any) => {
     try {
       const conversationId = `${user?.id}_${booking.userId}`;
-      // Create or update chat conversation
-      const existing = await db.chatConversations.where('conversationId').equals(conversationId).first();
-      if (!existing) {
-        await db.chatConversations.add({
-          conversationId,
-          advisorId: user!.id,
-          userId: booking.userId,
-          advisorInitiated: true,
-          createdAt: new Date(),
-        });
-      }
+      await backendService.createOrUpdateChatConversation({
+        conversationId,
+        advisorId: user!.id,
+        userId: booking.userId,
+        advisorInitiated: true,
+        createdAt: new Date(),
+      });
 
-      // Update booking status
-      await db.bookingRequests.update(bookingId, {
+      await backendService.updateBookingRequest(bookingId, {
         status: 'accepted',
         respondedAt: new Date(),
       });
-      
-      // Create notification for user with deepLink to calendar
-      await db.notifications.add({
+
+      await backendService.createNotification({
         type: 'booking',
         title: 'Booking Accepted',
         message: `Your session with ${user!.email} has been accepted! Check your calendar for details.`,
@@ -129,8 +141,10 @@ export const AdvisorWorkspace: React.FC = () => {
         deepLink: '/calendar?session=' + bookingId,
         createdAt: new Date(),
       });
-      
+
       toast.success('Booking accepted! Chat has been unlocked.');
+      // Refresh booking requests
+      backendService.getAdvisorBookingRequests(user.id).then(setBookingRequests);
     } catch (error) {
       console.error('Error accepting booking:', error);
       toast.error('Failed to accept booking');
@@ -139,11 +153,13 @@ export const AdvisorWorkspace: React.FC = () => {
 
   const handleRejectBooking = async (bookingId: number) => {
     try {
-      await db.bookingRequests.update(bookingId, {
+      await backendService.updateBookingRequest(bookingId, {
         status: 'rejected',
         respondedAt: new Date(),
       });
       toast.success('Booking rejected');
+      // Refresh booking requests
+      if (user?.id) backendService.getAdvisorBookingRequests(user.id).then(setBookingRequests);
     } catch (error) {
       console.error('Error rejecting booking:', error);
       toast.error('Failed to reject booking');
@@ -152,18 +168,17 @@ export const AdvisorWorkspace: React.FC = () => {
 
   const handleRescheduleBooking = async (bookingId: number, newDate: string, newTime: string) => {
     try {
-      const booking = await db.bookingRequests.get(bookingId);
+      const booking = await backendService.getBookingRequest(bookingId);
       if (!booking) return;
-      
-      await db.bookingRequests.update(bookingId, {
+
+      await backendService.updateBookingRequest(bookingId, {
         status: 'reschedule',
         respondedAt: new Date(),
         responseMessage: `Advisor proposed new time: ${newDate} at ${newTime}`,
         preferredTime: `${newDate} ${newTime}`,
       });
-      
-      // Create notification for user with deepLink to calendar
-      await db.notifications.add({
+
+      await backendService.createNotification({
         type: 'booking',
         title: 'Session Rescheduled',
         message: `Your advisor has proposed a new time: ${newDate} at ${newTime}. Check your calendar to confirm.`,
@@ -172,9 +187,11 @@ export const AdvisorWorkspace: React.FC = () => {
         deepLink: '/calendar?session=' + bookingId,
         createdAt: new Date(),
       });
-      
+
       toast.success('Reschedule request sent to user');
       setRescheduleModal(null);
+      // Refresh booking requests
+      if (user?.id) backendService.getAdvisorBookingRequests(user.id).then(setBookingRequests);
     } catch (error) {
       console.error('Error rescheduling booking:', error);
       toast.error('Failed to reschedule booking');
@@ -232,36 +249,42 @@ export const AdvisorWorkspace: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="flex gap-2 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`px-4 py-3 font-medium transition-colors ${
-              activeTab === 'users'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Assigned Users ({assignments.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`px-4 py-3 font-medium transition-colors ${
-              activeTab === 'bookings'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Booking Requests ({bookingRequests.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`px-4 py-3 font-medium transition-colors ${
-              activeTab === 'chat'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Messages
-          </button>
+                  <button
+                    onClick={() => setActiveTab('users')}
+                    className={`px-4 py-3 font-medium transition-colors ${
+                      activeTab === 'users'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    aria-label="Assigned Users"
+                    title="Assigned Users"
+                  >
+                    Assigned Users ({assignments.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('bookings')}
+                    className={`px-4 py-3 font-medium transition-colors ${
+                      activeTab === 'bookings'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    aria-label="Booking Requests"
+                    title="Booking Requests"
+                  >
+                    Booking Requests ({bookingRequests.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('chat')}
+                    className={`px-4 py-3 font-medium transition-colors ${
+                      activeTab === 'chat'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                    aria-label="Messages"
+                    title="Messages"
+                  >
+                    Messages
+                  </button>
         </div>
 
         {/* Assigned Users Tab */}
@@ -291,6 +314,8 @@ export const AdvisorWorkspace: React.FC = () => {
                         setActiveTab('chat');
                       }}
                       className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      aria-label="Message"
+                      title="Message"
                     >
                       <MessageCircle size={16} />
                       Message
@@ -343,6 +368,8 @@ export const AdvisorWorkspace: React.FC = () => {
                     <button
                       onClick={() => handleAcceptBooking(booking.id!, booking)}
                       className="flex items-center justify-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      aria-label="Accept"
+                      title="Accept"
                     >
                       <CheckCircle size={16} />
                       Accept
@@ -350,6 +377,8 @@ export const AdvisorWorkspace: React.FC = () => {
                     <button
                       onClick={() => setRescheduleModal({ id: booking.id!, date: '', time: '' })}
                       className="flex items-center justify-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      aria-label="Reschedule"
+                      title="Reschedule"
                     >
                       <RotateCw size={16} />
                       Reschedule
@@ -357,6 +386,8 @@ export const AdvisorWorkspace: React.FC = () => {
                     <button
                       onClick={() => handleRejectBooking(booking.id!)}
                       className="flex items-center justify-center gap-2 px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      aria-label="Reject"
+                      title="Reject"
                     >
                       <XCircle size={16} />
                       Reject
@@ -384,6 +415,8 @@ export const AdvisorWorkspace: React.FC = () => {
                   <button
                     onClick={() => setSelectedChat(null)}
                     className="text-gray-500 hover:text-gray-700"
+                    aria-label="Close Chat"
+                    title="Close Chat"
                   >
                     ✕
                   </button>
@@ -427,11 +460,15 @@ export const AdvisorWorkspace: React.FC = () => {
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Type your message..."
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    aria-label="Message Input"
+                    title="Message Input"
                   />
                   <button
                     onClick={handleSendMessage}
                     disabled={!messageInput.trim()}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 transition-colors flex items-center gap-2"
+                    aria-label="Send Message"
+                    title="Send Message"
                   >
                     <Send size={16} />
                   </button>
@@ -458,6 +495,8 @@ export const AdvisorWorkspace: React.FC = () => {
                     onChange={(e) => setRescheduleModal({ ...rescheduleModal, date: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select new date"
+                    placeholder="Select date"
                   />
                 </div>
 
@@ -470,6 +509,8 @@ export const AdvisorWorkspace: React.FC = () => {
                     value={rescheduleModal.time}
                     onChange={(e) => setRescheduleModal({ ...rescheduleModal, time: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    title="Select new time"
+                    placeholder="Select time"
                   />
                 </div>
 
@@ -482,6 +523,8 @@ export const AdvisorWorkspace: React.FC = () => {
                 <button
                   onClick={() => setRescheduleModal(null)}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+                  aria-label="Cancel"
+                  title="Cancel"
                 >
                   Cancel
                 </button>
@@ -489,6 +532,8 @@ export const AdvisorWorkspace: React.FC = () => {
                   onClick={() => handleRescheduleBooking(rescheduleModal.id, rescheduleModal.date, rescheduleModal.time)}
                   disabled={!rescheduleModal.date || !rescheduleModal.time}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 font-medium"
+                  aria-label="Propose Time"
+                  title="Propose Time"
                 >
                   Propose Time
                 </button>

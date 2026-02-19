@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+// import { getCountryAndCurrencySymbol } from '@/lib/countryCurrency';
 import { Bell, Search, Menu, X, GripVertical } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -52,6 +53,7 @@ const DraggableMobileMenuItem: React.FC<DraggableMobileMenuItemProps> = ({
 };
 
 export const Header: React.FC = () => {
+  // const { icon } = getCountryAndCurrencySymbol();
   const { totalBalance, currency, setCurrentPage } = useApp();
   const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -108,10 +110,12 @@ export const Header: React.FC = () => {
 
   return (
     <div className="h-16 bg-bg-card/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-3 sm:px-4 lg:px-6 sticky top-0 z-40">
+      {/* Dynamic Logo */}
+      <span className="h-10 w-10 mr-3 inline-block flex items-center justify-center text-3xl font-bold text-blue-600 font-display">$</span>
       {/* Mobile Menu Button */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
-          <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Open navigation menu">
             <Menu size={24} className="text-text-primary" />
           </button>
         </SheetTrigger>
@@ -191,6 +195,7 @@ export const Header: React.FC = () => {
                 <button
                   onClick={() => setNotificationsOpen(false)}
                   className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                  title="Close notifications"
                 >
                   <X size={18} className="text-text-secondary" />
                 </button>
@@ -238,6 +243,7 @@ export const Header: React.FC = () => {
                   <button
                     onClick={handleClearAll}
                     className="w-full py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-white/5 rounded-lg transition-colors font-medium"
+                    title="Clear all notifications"
                   >
                     Clear All
                   </button>

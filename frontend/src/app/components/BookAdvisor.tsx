@@ -4,6 +4,7 @@ import { PageHeader } from '@/app/components/ui/PageHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, FinanceAdvisor } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
 import {
   Star,
   Calendar,
@@ -78,7 +79,7 @@ export const BookAdvisor: React.FC = () => {
 
     try {
       const nextSequence = Math.max(...userBookings.map((b) => b.sequenceNumber || 0), 0) + 1;
-      const bookingId = await db.bookingRequests.add({
+      const bookingId = await backendService.createBookingRequest({
         advisorId: bookingForm.advisorId,
         userId: user.id,
         advisorName: selectedAdvisor.name,
@@ -93,7 +94,7 @@ export const BookAdvisor: React.FC = () => {
       });
 
       // Create notification for advisor with deepLink to workspace
-      await db.notifications.add({
+      await backendService.createNotification({
         type: 'booking',
         title: 'New Booking Request',
         message: `You have a new booking request from ${user.email}. Session: ${bookingForm.topic || 'Consultation'}`,
@@ -274,6 +275,8 @@ export const BookAdvisor: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-gray-400 hover:text-gray-900 transition-colors"
+                          title="LinkedIn Profile"
+                          aria-label="LinkedIn Profile"
                         >
                           <Linkedin size={18} />
                         </a>
@@ -284,6 +287,8 @@ export const BookAdvisor: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-gray-400 hover:text-gray-900 transition-colors"
+                          title="Twitter Profile"
+                          aria-label="Twitter Profile"
                         >
                           <Twitter size={18} />
                         </a>
@@ -294,6 +299,8 @@ export const BookAdvisor: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-gray-400 hover:text-gray-900 transition-colors"
+                          title="Website"
+                          aria-label="Website"
                         >
                           <Globe size={18} />
                         </a>
@@ -307,6 +314,8 @@ export const BookAdvisor: React.FC = () => {
                     <button
                       onClick={() => handleSelectAdvisor(advisor)}
                       className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
+                      aria-label="Book Session"
+                      title="Book Session"
                     >
                       Book Session
                     </button>
@@ -347,6 +356,8 @@ export const BookAdvisor: React.FC = () => {
                             ? 'border-black bg-gray-100 text-gray-900'
                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                         }`}
+                        aria-label={type + ' session'}
+                        title={type + ' session'}
                       >
                         {type}
                       </button>
@@ -370,6 +381,8 @@ export const BookAdvisor: React.FC = () => {
                     }
                     placeholder="e.g., Tax planning for 2026"
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                    aria-label="Topic"
+                    title="Topic"
                   />
                 </div>
 
@@ -390,6 +403,8 @@ export const BookAdvisor: React.FC = () => {
                       }
                       min={new Date().toISOString().split('T')[0]}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                      aria-label="Preferred Date"
+                      title="Preferred Date"
                     />
                   </div>
                   <div>
@@ -406,6 +421,8 @@ export const BookAdvisor: React.FC = () => {
                         }))
                       }
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                      aria-label="Preferred Time"
+                      title="Preferred Time"
                     />
                   </div>
                 </div>
@@ -426,6 +443,8 @@ export const BookAdvisor: React.FC = () => {
                     placeholder="Any additional information or questions for the advisor..."
                     rows={4}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                    aria-label="Message"
+                    title="Message"
                   />
                 </div>
 
@@ -447,6 +466,8 @@ export const BookAdvisor: React.FC = () => {
                     setSelectedAdvisor(null);
                   }}
                   className="px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium"
+                  aria-label="Cancel"
+                  title="Cancel"
                 >
                   Cancel
                 </button>
@@ -454,6 +475,8 @@ export const BookAdvisor: React.FC = () => {
                   onClick={handleSubmitBooking}
                   disabled={isSubmitting}
                   className="px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 disabled:bg-gray-300 font-medium"
+                  aria-label="Submit Request"
+                  title="Submit Request"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Request'}
                 </button>

@@ -1,0 +1,39 @@
+.colorBlue { background-color: #3b82f6; }
+.colorRed { background-color: #ef4444; }
+.colorGreen { background-color: #10b981; }
+.colorAmber { background-color: #f59e0b; }
+.colorPurple { background-color: #8b5cf6; }
+.colorPink { background-color: #ec4899; }
+.colorCyan { background-color: #06b6d4; }
+.colorOrange { background-color: #f97316; }
+.colorCircle {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  transition: transform 0.2s;
+  ring-width: 2px;
+  ring-offset-width: 2px;
+  display: inline-block;
+  border: none;
+  outline: none;
+}
+
+.selectedColor {
+  box-shadow: 0 0 0 2px #a3a3a3;
+  transform: scale(1.1);
+}
+
+.unselectedColor {
+  box-shadow: none;
+}
+
+.friendAvatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+}

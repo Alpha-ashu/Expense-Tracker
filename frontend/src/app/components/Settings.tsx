@@ -4,6 +4,7 @@ import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSig
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSecurity } from '@/contexts/SecurityContext';
 import { motion } from 'framer-motion';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -21,6 +22,7 @@ import {
 export const Settings: React.FC = () => {
   const { currency, setCurrency, language, setLanguage, setCurrentPage, visibleFeatures, setVisibleFeatures } = useApp();
   const { user, signOut } = useAuth();
+  const { logout: securityLogout } = useSecurity();
   const [showImportModal, setShowImportModal] = useState(false);
   const [backups, setBackups] = useState<Array<any>>([]);
   const [showBackups, setShowBackups] = useState(false);
@@ -36,9 +38,24 @@ export const Settings: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
+      // 1. Sign out from Supabase
       await signOut();
-      toast.success('Signed out successfully');
-      // App will automatically redirect to login page via AuthContext
+      // 2. Clear security state (PIN, encryption, etc.)
+      if (typeof securityLogout === 'function') {
+        await securityLogout();
+      }
+      // 3. Clear all local data
+      if (window.indexedDB) {
+        // Delete all IndexedDB databases (Dexie)
+        const dbs = await window.indexedDB.databases();
+        for (const db of dbs) {
+          if (db.name) window.indexedDB.deleteDatabase(db.name);
+        }
+      }
+      localStorage.clear();
+      sessionStorage.clear();
+      // 4. Reload app
+      window.location.reload();
     } catch (error) {
       toast.error('Failed to sign out');
     }

@@ -4,6 +4,76 @@ import axios, { AxiosInstance } from 'axios';
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
 
 class BackendService {
+  // ===== GOLD =====
+  async createGold(gold: {
+    type: string;
+    quantity: number;
+    unit: string;
+    purchasePrice: number;
+    currentPrice: number;
+    purchaseDate: Date;
+    purityPercentage: number;
+    location: string;
+    certificateNumber?: string;
+    notes?: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    const response = await this.api.post('/gold', {
+      ...gold,
+      purchaseDate: gold.purchaseDate.toISOString(),
+      createdAt: gold.createdAt.toISOString(),
+      updatedAt: gold.updatedAt.toISOString(),
+    });
+    return response.data;
+  }
+
+  // ===== GROUPS =====
+  async createGroup(group: {
+    id?: string;
+    name: string;
+    members: string[];
+    createdAt: Date;
+    description?: string;
+    totalAmount?: number;
+    amountPerPerson?: number;
+    category?: string;
+    date?: Date;
+  }) {
+    const response = await this.api.post('/groups', {
+      ...group,
+      createdAt: group.createdAt.toISOString(),
+      date: group.date ? group.date.toISOString() : undefined,
+    });
+    return response.data;
+  }
+
+  // ===== INVESTMENTS =====
+  async createInvestment(investment: {
+    assetType: string;
+    assetName: string;
+    quantity: number;
+    buyPrice: number;
+    currentPrice: number;
+    totalInvested: number;
+    currentValue: number;
+    profitLoss: number;
+    purchaseDate: Date;
+    lastUpdated: Date;
+    updatedAt: Date;
+    deletedAt?: Date;
+    broker?: string;
+    description?: string;
+  }) {
+    const response = await this.api.post('/investments', {
+      ...investment,
+      purchaseDate: investment.purchaseDate.toISOString(),
+      lastUpdated: investment.lastUpdated.toISOString(),
+      updatedAt: investment.updatedAt.toISOString(),
+      deletedAt: investment.deletedAt ? investment.deletedAt.toISOString() : undefined,
+    });
+    return response.data;
+  }
   private api: AxiosInstance;
   private token: string | null = null;
 

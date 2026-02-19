@@ -1,4 +1,5 @@
 import React from 'react';
+// import { getCountryAndCurrencySymbol } from '@/lib/countryCurrency';
 import { motion, Reorder, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/components/ui/tooltip';
@@ -80,7 +81,7 @@ export const Sidebar: React.FC = () => {
       <div className="flex-1 bg-white/80 backdrop-blur-xl border border-white/20 shadow-floating rounded-[30px] flex flex-col items-center py-6 w-24">
         <div className="mb-8">
           <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-xl font-display">V</span>
+            <span className="text-white font-bold text-2xl font-display">$</span>
           </div>
         </div>
 
