@@ -1,14 +1,11 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
-import styles from './Accounts.module.css';
-import { backendService } from '@/lib/backend-api';
 import { Plus, Wallet, CreditCard, Banknote, Smartphone, Edit2, Trash2, X, Receipt, TrendingUp, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/app/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/app/components/ui/PageHeader';
@@ -24,58 +21,14 @@ export const Accounts: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<AssetType>('all');
   const [statementImportOpen, setStatementImportOpen] = useState<{ accountId: number; accountName: string; accountType: string } | null>(null);
-  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
-
-  // Function to scroll a card to center
-  const scrollToCenter = useCallback((accountId: number) => {
-    const cardEl = cardRefs.current[accountId];
-    if (!cardEl) return;
-
-    // Use scrollIntoView which works better with scroll-snap
-    cardEl.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center'
-    });
-  }, []);
-
-  // Handle card selection with scroll to center
-  const handleCardSelect = useCallback((accountId: number) => {
-    setSelectedAccountId(accountId);
-    // Use requestAnimationFrame for smoother timing
-    requestAnimationFrame(() => {
-      scrollToCenter(accountId);
-    });
-  }, [scrollToCenter]);
 
   // Filter accounts based on active tab
   const filteredAccounts = useMemo(() => {
     if (activeTab === 'all') return accounts;
     return accounts.filter(a => a.type === activeTab);
   }, [accounts, activeTab]);
-
-  // Auto-select and center first card when tab changes or filtered accounts change
-  useEffect(() => {
-    if (filteredAccounts.length > 0) {
-      const firstAccount = filteredAccounts[0];
-      setSelectedAccountId(firstAccount.id!);
-      // Use setTimeout to ensure DOM is updated, then scroll
-      setTimeout(() => {
-        const cardEl = cardRefs.current[firstAccount.id!];
-        if (cardEl) {
-          cardEl.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest',
-            inline: 'center'
-          });
-        }
-      }, 50);
-    } else {
-      setSelectedAccountId(null);
-    }
-  }, [activeTab]);
 
   const tabs = [
     { id: 'all', label: 'All Assets', icon: TrendingUp },
@@ -139,7 +92,7 @@ export const Accounts: React.FC = () => {
     if (!accountToDelete) return;
     setIsDeleting(true);
     try {
-      await backendService.deleteAccount(accountToDelete.id);
+      await db.accounts.delete(accountToDelete.id);
       toast.success('Account deleted successfully');
       setDeleteModalOpen(false);
       setAccountToDelete(null);
@@ -196,8 +149,6 @@ export const Accounts: React.FC = () => {
               className={`relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base ${
                 isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
               }`}
-              aria-label={tab.label}
-              title={tab.label}
             >
               {isActive && (
                 <motion.div
@@ -220,231 +171,107 @@ export const Accounts: React.FC = () => {
         {/* Carousel Container */}
         <div
           ref={carouselRef}
-          className={"overflow-x-auto pb-8 snap-x snap-mandatory scrollbar-hide scroll-smooth " + styles.webkitOverflowScrollingTouch}
+          className="flex gap-3 md:gap-4 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide"
+          style={{
+            scrollBehavior: 'smooth',
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
+          }}
         >
           <AnimatePresence>
-            <motion.div 
-              className={"flex gap-5 md:gap-7 lg:gap-8 w-max " + styles.carouselPadding}
-            >
+            <motion.div className="flex gap-3 md:gap-4">
               {filteredAccounts.map((account) => {
                 const isActive = selectedAccountId === account.id;
-                // Dynamic gradient based on account type
-                const getCardGradient = (type: string, active: boolean) => {
-                  if (!active) return 'bg-gradient-to-br from-gray-100 to-gray-200';
-                  switch (type) {
-                    case 'bank': return 'bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700';
-                    case 'card': return 'bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600';
-                    case 'cash': return 'bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700';
-                    case 'wallet': return 'bg-gradient-to-br from-orange-400 via-orange-500 to-rose-500';
-                    default: return 'bg-gradient-to-br from-slate-500 to-slate-700';
-                  }
-                };
                 return (
-                  <motion.div
+                  <div
                     key={account.id}
                     ref={(el) => {
                       if (el) cardRefs.current[account.id!] = el;
                     }}
-                    className="snap-center shrink-0 cursor-pointer"
+                    className="snap-center shrink-0"
                     style={{
                       scrollSnapAlign: 'center',
                       scrollSnapStop: 'always',
                     }}
-                    onClick={() => handleCardSelect(account.id!)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
                   >
-                    <motion.div
-                      animate={{
-                        scale: isActive ? 1 : 0.92,
-                        opacity: isActive ? 1 : 0.6,
+                    <div
+                      style={{
+                        transition: 'all 0.3s ease-in-out',
+                        transform: isActive ? 'scale(1)' : 'scale(0.9)',
+                        opacity: isActive ? 1 : 0.5,
                       }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                     >
-                      <div
+                      <Card
+                        variant="glass"
                         className={cn(
-                          "w-[320px] sm:w-[340px] h-[200px] relative overflow-hidden shrink-0 rounded-[24px] transition-all duration-300",
-                          getCardGradient(account.type, isActive),
+                          "w-[400px] h-[175px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[20px]",
                           isActive
-                            ? "shadow-[0_20px_50px_rgba(0,0,0,0.25)] ring-4 ring-white/30"
-                            : "shadow-[0_10px_30px_rgba(0,0,0,0.1)]",
-                          !account.isActive && "opacity-50 grayscale"
+                            ? "border-2 border-blue-600 shadow-[0_15px_35px_rgba(37,99,235,0.15)] bg-white"
+                            : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
+                          !account.isActive && "opacity-60 grayscale"
                         )}
                       >
-                        {/* Decorative circles */}
-                        <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10" />
-                        <div className="absolute -right-4 top-16 w-20 h-20 rounded-full bg-white/5" />
-                        <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-black/10" />
-
-                        <div className="p-5 h-full flex flex-col justify-between relative z-10">
-                          {/* Top row - icon + type badge + actions */}
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={cn(
-                                  "w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-sm transition-colors",
-                                  isActive ? "bg-white/20 text-white" : "bg-white/80 text-gray-600"
-                                )}
-                              >
-                                {getAccountIcon(account.type)}
-                              </div>
-                              <div>
-                                <span className={cn(
-                                  "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
-                                  isActive ? "bg-white/20 text-white" : "bg-gray-300 text-gray-600"
-                                )}>
-                                  {account.type}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {isActive && (
-                                <motion.div
-                                  initial={{ opacity: 0, scale: 0.8 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  exit={{ opacity: 0, scale: 0.8 }}
-                                  className="bg-white text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full mr-1"
-                                >
-                                  SELECTED
-                                </motion.div>
+                        <div className="p-[16px] h-full grid grid-rows-[44px_1fr_40px]">
+                          {/* Top row - icon + badge */}
+                          <div className="flex justify-between items-center">
+                            <div
+                              className={cn(
+                                "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm",
+                                isActive ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-600"
                               )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  localStorage.setItem('editAccountId', String(account.id));
-                                  setCurrentPage('edit-account');
-                                }}
-                                className={cn(
-                                  "p-2 rounded-full transition-all",
-                                  isActive ? "hover:bg-white/20 text-white/80 hover:text-white" : "hover:bg-white text-gray-500 hover:text-blue-600"
-                                )}
-                                title="Edit account"
-                                aria-label="Edit account"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteAccount(account.id!, account.name);
-                                }}
-                                className={cn(
-                                  "p-2 rounded-full transition-all",
-                                  isActive ? "hover:bg-white/20 text-white/80 hover:text-white" : "hover:bg-white text-gray-500 hover:text-red-600"
-                                )}
-                                title="Delete account"
-                                aria-label="Delete account"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                            >
+                              {getAccountIcon(account.type)}
                             </div>
+                            {isActive && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="bg-blue-600 text-white text-[10px] font-bold px-3 py-1 rounded-full"
+                              >
+                                ACTIVE
+                              </motion.div>
+                            )}
                           </div>
 
-                          {/* Middle - name + balance */}
-                          <div className="flex-1 flex flex-col justify-center py-2">
-                            <h3 className={cn(
-                              "font-semibold text-base truncate mb-1",
-                              isActive ? "text-white/80" : "text-gray-600"
-                            )}>
+                          {/* Middle row - name + balance */}
+                          <div className="flex flex-col justify-center">
+                            <h3 className="font-medium text-gray-600 text-sm truncate mb-1">
                               {account.name}
                             </h3>
-                            <p className={cn(
-                              "text-3xl font-display font-bold tracking-tight",
-                              isActive ? "text-white" : "text-gray-800"
-                            )}>
+                            <p className="text-2xl font-display font-bold text-gray-900">
                               {formatCurrency(account.balance)}
                             </p>
                           </div>
 
-                          {/* Bottom row - action buttons */}
-                          <div className="flex gap-2 items-center">
+                          {/* Bottom row - buttons */}
+                          <div className="flex gap-2.5 items-end">
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setTransactionModalOpen(true);
-                              }}
-                              className={cn(
-                                "h-8 px-3 rounded-full text-xs font-semibold border-0 transition-all",
-                                isActive 
-                                  ? "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm" 
-                                  : "bg-white text-gray-700 hover:bg-gray-100"
-                              )}
+                              onClick={() => setCurrentPage('add-transaction')}
+                              className="h-9 px-4 rounded-full text-xs font-medium"
                             >
-                              <Plus size={12} className="mr-1" />
-                              Transaction
+                              <Plus size={12} className="mr-1.5" />
+                              Add Transaction
                             </Button>
-                                  {/* Transaction Type Modal */}
-                                  <Dialog open={transactionModalOpen} onOpenChange={setTransactionModalOpen}>
-                                    <DialogContent title="Select Transaction Type">
-                                      <DialogHeader>
-                                        <DialogTitle>Select Transaction Type</DialogTitle>
-                                      </DialogHeader>
-                                      <div className="flex flex-col gap-4 py-2">
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => {
-                                            setTransactionModalOpen(false);
-                                            setCurrentPage('add-transaction');
-                                            // Pass type info via context, state, or URL if needed
-                                          }}
-                                        >
-                                          Expense
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => {
-                                            setTransactionModalOpen(false);
-                                            setCurrentPage('add-transaction');
-                                            // Pass type info via context, state, or URL if needed
-                                          }}
-                                        >
-                                          Income
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => {
-                                            setTransactionModalOpen(false);
-                                            setCurrentPage('add-transaction');
-                                            // Pass type info via context, state, or URL if needed
-                                          }}
-                                        >
-                                          Transfer
-                                        </Button>
-                                      </div>
-                                      <DialogFooter>
-                                        <DialogClose asChild>
-                                          <Button variant="ghost">Cancel</Button>
-                                        </DialogClose>
-                                      </DialogFooter>
-                                    </DialogContent>
-                                  </Dialog>
                             <Button
                               size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setStatementImportOpen({
-                                  accountId: account.id!,
-                                  accountName: account.name,
-                                  accountType: account.type
-                                });
-                              }}
-                              className={cn(
-                                "h-8 px-3 rounded-full text-xs font-semibold border-0 transition-all",
-                                isActive 
-                                  ? "bg-white text-blue-600 hover:bg-white/90" 
-                                  : "bg-gray-800 text-white hover:bg-gray-900"
-                              )}
+                              onClick={() => setStatementImportOpen({
+                                accountId: account.id!,
+                                accountName: account.name,
+                                accountType: account.type
+                              })}
+                              className="h-9 px-4 rounded-full text-xs font-medium bg-blue-600 text-white hover:bg-blue-700"
                             >
-                              <Upload size={12} className="mr-1" />
-                              Import
+                              <Upload size={12} className="mr-1.5" />
+                              Upload Statement
                             </Button>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  </motion.div>
+                      </Card>
+                    </div>
+                  </div>
                 );
               })}
             </motion.div>
