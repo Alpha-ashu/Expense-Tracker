@@ -52,7 +52,7 @@ export const EditInvestment: React.FC = () => {
     const profitLoss = currentValue - totalInvested;
 
     try {
-      await backendService.updateInvestment(selectedId, {
+      await backendService.updateInvestment(String(selectedId), {
         ...formData,
         totalInvested,
         currentValue,

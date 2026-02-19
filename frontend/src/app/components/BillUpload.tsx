@@ -19,7 +19,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
   const [bills, setBills] = useState<ExpenseBill[]>([]);
   useEffect(() => {
     const fetchBills = async () => {
-      const backendBills = await backendService.getExpenseBills(transactionId);
+      const backendBills = await backendService.getExpenseBills(String(transactionId));
       setBills(backendBills || []);
     };
     fetchBills();
@@ -64,7 +64,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
         toast.success(`${file.name} uploaded`);
       }
       // Refresh bills after upload
-      const backendBills = await backendService.getExpenseBills(transactionId);
+      const backendBills = await backendService.getExpenseBills(String(transactionId));
       setBills(backendBills || []);
     } catch (error) {
       console.error('Failed to upload bill:', error);
@@ -76,10 +76,10 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
 
   const handleDeleteBill = async (billId: number) => {
     try {
-      await backendService.deleteExpenseBill(billId);
+      await backendService.deleteExpenseBill(String(billId));
       toast.success('Bill deleted');
       // Refresh bills after delete
-      const backendBills = await backendService.getExpenseBills(transactionId);
+      const backendBills = await backendService.getExpenseBills(String(transactionId));
       setBills(backendBills || []);
     } catch (error) {
       console.error('Failed to delete bill:', error);

@@ -42,6 +42,7 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
       const savedFriend = await backendService.createFriend({
         ...newFriend,
         createdAt: new Date(),
+        updatedAt: new Date(),
       });
       setFormData({ ...formData, friendId: savedFriend.id, contactPerson: newFriend.name });
       setNewFriend({ name: '', email: '', phone: '', notes: '' });
@@ -70,7 +71,7 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
     try {
       await backendService.createLoan({
         ...loanData,
-        friendId,
+        friendId: String(friendId),
         outstandingBalance: formData.principalAmount,
         status: 'active',
         dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,

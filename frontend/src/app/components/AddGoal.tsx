@@ -34,14 +34,10 @@ export const AddGoal: React.FC = () => {
     try {
       await backendService.createGoal({
         name: formData.name,
-        category: formData.category,
         targetAmount: formData.targetAmount,
-        currentAmount: formData.currentAmount,
+        currentAmount: 0,
         targetDate: new Date(formData.deadline),
         isGroupGoal: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: undefined
       });
       toast.success('Goal created successfully');
       setCurrentPage('goals');

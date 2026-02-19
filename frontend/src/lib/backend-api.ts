@@ -312,8 +312,9 @@ class BackendService {
   }
 
   // ===== BILLS =====
-  async getExpenseBills() {
-    const response = await this.api.get('/bills');
+  async getExpenseBills(transactionId?: string) {
+    const url = transactionId ? `/bills?transactionId=${transactionId}` : '/bills';
+    const response = await this.api.get(url);
     return response.data;
   }
 
@@ -327,18 +328,21 @@ class BackendService {
   }
 
   // ===== ADVISOR =====
-  async getAdvisorProfile() {
-    const response = await this.api.get('/advisor/profile');
+  async getAdvisorProfile(advisorId?: string) {
+    const url = advisorId ? `/advisor/profile/${advisorId}` : '/advisor/profile';
+    const response = await this.api.get(url);
     return response.data;
   }
 
-  async getAdvisorAssignments() {
-    const response = await this.api.get('/advisor/assignments');
+  async getAdvisorAssignments(advisorId?: string) {
+    const url = advisorId ? `/advisor/assignments/${advisorId}` : '/advisor/assignments';
+    const response = await this.api.get(url);
     return response.data;
   }
 
-  async getAdvisorBookingRequests() {
-    const response = await this.api.get('/advisor/bookings');
+  async getAdvisorBookingRequests(advisorId?: string) {
+    const url = advisorId ? `/advisor/bookings/${advisorId}` : '/advisor/bookings';
+    const response = await this.api.get(url);
     return response.data;
   }
 
@@ -357,28 +361,33 @@ class BackendService {
     return response.data;
   }
 
-  async getChatMessages(conversationId: string) {
-    const response = await this.api.get(`/advisor/chat/${conversationId}`);
+  async getChatMessages(conversationId: string, advisorId?: string) {
+    const url = advisorId ? `/advisor/chat/${conversationId}?advisorId=${advisorId}` : `/advisor/chat/${conversationId}`;
+    const response = await this.api.get(url);
     return response.data;
   }
 
-  async sendChatMessage(conversationId: string, message: any) {
-    const response = await this.api.post(`/advisor/chat/${conversationId}`, message);
+  async sendChatMessage(conversationId: string, message: any, advisorId?: string) {
+    const url = advisorId ? `/advisor/chat/${conversationId}?advisorId=${advisorId}` : `/advisor/chat/${conversationId}`;
+    const response = await this.api.post(url, message);
     return response.data;
   }
 
-  async createOrUpdateChatConversation(conversation: any) {
-    const response = await this.api.post('/advisor/chat', conversation);
+  async createOrUpdateChatConversation(conversation: any, advisorId?: string) {
+    const url = advisorId ? `/advisor/chat?advisorId=${advisorId}` : '/advisor/chat';
+    const response = await this.api.post(url, conversation);
     return response.data;
   }
 
-  async updateAdvisorAvailability(availability: any) {
-    const response = await this.api.put('/advisor/availability', availability);
+  async updateAdvisorAvailability(availability: any, advisorId?: string) {
+    const url = advisorId ? `/advisor/availability/${advisorId}` : '/advisor/availability';
+    const response = await this.api.put(url, availability);
     return response.data;
   }
 
-  async createNotification(notification: any) {
-    const response = await this.api.post('/notifications', notification);
+  async createNotification(notification: any, advisorId?: string) {
+    const url = advisorId ? `/notifications/${advisorId}` : '/notifications';
+    const response = await this.api.post(url, notification);
     return response.data;
   }
 }
