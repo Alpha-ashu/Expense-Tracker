@@ -79,8 +79,7 @@ export const AdvisorWorkspace: React.FC = () => {
     if (!messageInput.trim() || !selectedChat || !user) return;
 
     try {
-      await backendService.sendChatMessage({
-        conversationId: selectedChat,
+      await backendService.sendChatMessage(selectedChat, {
         senderId: user.id,
         senderRole: 'advisor',
         message: messageInput.trim(),
@@ -104,7 +103,7 @@ export const AdvisorWorkspace: React.FC = () => {
     setIsTogglingAvailability(true);
     try {
       const newStatus = !advisorProfile.availability;
-      await backendService.updateAdvisorAvailability(advisorProfile.id, newStatus);
+      await backendService.updateAdvisorAvailability({ available: newStatus }, String(advisorProfile.id));
       toast.success(`You are now ${newStatus ? 'available' : 'unavailable'} for bookings`);
       // Refresh profile
       backendService.getAdvisorProfile(user.id).then(setAdvisorProfile);
@@ -127,7 +126,7 @@ export const AdvisorWorkspace: React.FC = () => {
         createdAt: new Date(),
       });
 
-      await backendService.updateBookingRequest(bookingId, {
+      await backendService.updateBookingRequest(String(bookingId), {
         status: 'accepted',
         respondedAt: new Date(),
       });
@@ -153,7 +152,7 @@ export const AdvisorWorkspace: React.FC = () => {
 
   const handleRejectBooking = async (bookingId: number) => {
     try {
-      await backendService.updateBookingRequest(bookingId, {
+      await backendService.updateBookingRequest(String(bookingId), {
         status: 'rejected',
         respondedAt: new Date(),
       });
@@ -168,10 +167,10 @@ export const AdvisorWorkspace: React.FC = () => {
 
   const handleRescheduleBooking = async (bookingId: number, newDate: string, newTime: string) => {
     try {
-      const booking = await backendService.getBookingRequest(bookingId);
+      const booking = await backendService.getBookingRequest(String(bookingId));
       if (!booking) return;
 
-      await backendService.updateBookingRequest(bookingId, {
+      await backendService.updateBookingRequest(String(bookingId), {
         status: 'reschedule',
         respondedAt: new Date(),
         responseMessage: `Advisor proposed new time: ${newDate} at ${newTime}`,
