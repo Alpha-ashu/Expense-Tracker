@@ -194,6 +194,7 @@ class BackendService {
   async createGoal(goal: {
     name: string;
     targetAmount: number;
+    currentAmount?: number;
     targetDate: Date;
     category?: string;
     isGroupGoal?: boolean;
@@ -229,11 +230,17 @@ class BackendService {
     type: string;
     name: string;
     principalAmount: number;
+    outstandingBalance?: number;
     interestRate?: number;
     emiAmount?: number;
     dueDate?: Date;
     frequency?: string;
     contactPerson?: string;
+    friendId?: string;
+    status?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+    deletedAt?: Date;
   }) {
     const response = await this.api.post('/loans', {
       ...loan,
@@ -279,6 +286,99 @@ class BackendService {
     settings?: Record<string, any>;
   }) {
     const response = await this.api.put('/settings', settings);
+    return response.data;
+  }
+
+  // ===== FRIENDS =====
+  async createFriend(friend: {
+    name: string;
+    email?: string;
+    phone?: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    const response = await this.api.post('/friends', {
+      ...friend,
+      createdAt: friend.createdAt.toISOString(),
+      updatedAt: friend.updatedAt.toISOString(),
+    });
+    return response.data;
+  }
+
+  // ===== INVESTMENTS =====
+  async updateInvestment(id: string, updates: any) {
+    const response = await this.api.put(`/investments/${id}`, updates);
+    return response.data;
+  }
+
+  // ===== BILLS =====
+  async getExpenseBills() {
+    const response = await this.api.get('/bills');
+    return response.data;
+  }
+
+  async uploadExpenseBill(bill: any) {
+    const response = await this.api.post('/bills', bill);
+    return response.data;
+  }
+
+  async deleteExpenseBill(id: string) {
+    await this.api.delete(`/bills/${id}`);
+  }
+
+  // ===== ADVISOR =====
+  async getAdvisorProfile() {
+    const response = await this.api.get('/advisor/profile');
+    return response.data;
+  }
+
+  async getAdvisorAssignments() {
+    const response = await this.api.get('/advisor/assignments');
+    return response.data;
+  }
+
+  async getAdvisorBookingRequests() {
+    const response = await this.api.get('/advisor/bookings');
+    return response.data;
+  }
+
+  async getBookingRequest(id: string) {
+    const response = await this.api.get(`/advisor/bookings/${id}`);
+    return response.data;
+  }
+
+  async updateBookingRequest(id: string, updates: any) {
+    const response = await this.api.put(`/advisor/bookings/${id}`, updates);
+    return response.data;
+  }
+
+  async createBookingRequest(booking: any) {
+    const response = await this.api.post('/advisor/bookings', booking);
+    return response.data;
+  }
+
+  async getChatMessages(conversationId: string) {
+    const response = await this.api.get(`/advisor/chat/${conversationId}`);
+    return response.data;
+  }
+
+  async sendChatMessage(conversationId: string, message: any) {
+    const response = await this.api.post(`/advisor/chat/${conversationId}`, message);
+    return response.data;
+  }
+
+  async createOrUpdateChatConversation(conversation: any) {
+    const response = await this.api.post('/advisor/chat', conversation);
+    return response.data;
+  }
+
+  async updateAdvisorAvailability(availability: any) {
+    const response = await this.api.put('/advisor/availability', availability);
+    return response.data;
+  }
+
+  async createNotification(notification: any) {
+    const response = await this.api.post('/notifications', notification);
     return response.data;
   }
 }

@@ -41,7 +41,7 @@ export const Goals: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingGoalId) return;
     try {
-      await backendService.updateGoal(editingGoalId, {
+      await backendService.updateGoal(String(editingGoalId), {
         name: editFormData.name,
         targetAmount: editFormData.targetAmount,
         currentAmount: editFormData.currentAmount,
@@ -65,7 +65,7 @@ export const Goals: React.FC = () => {
     if (!goalToDelete) return;
     setIsDeleting(true);
     try {
-      await backendService.deleteGoal(goalToDelete.id);
+      await backendService.deleteGoal(String(goalToDelete.id));
       toast.success('Goal deleted successfully');
       setDeleteModalOpen(false);
       setGoalToDelete(null);
@@ -392,7 +392,7 @@ const ContributeModal: React.FC<{
       date: new Date(),
     });
 
-    await backendService.updateGoal(goalId, {
+    await backendService.updateGoal(String(goalId), {
       currentAmount: goal.currentAmount + amount,
     });
     // TODO: Sync goalContributions to backend if not already implemented

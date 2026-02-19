@@ -4,12 +4,13 @@ import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
-import { CreditCard, UserPlus, X, Check } from 'lucide-react';
+import { CreditCard, UserPlus, X, Check, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddLoan: React.FC = () => {
   const { setCurrentPage, currency, accounts, friends } = useApp();
   const [showFriendPicker, setShowFriendPicker] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     lenderName: '',
     loanType: 'personal' as 'personal' | 'home' | 'auto' | 'education' | 'business',
@@ -137,7 +138,7 @@ export const AddLoan: React.FC = () => {
                     className="w-full py-3 px-6 bg-black text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
                     title="Add Loan"
                   >
-                    {isLoading ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
+                    {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={20} />}
                   </button>
                 </div>
               )}
@@ -251,8 +252,8 @@ export const AddLoan: React.FC = () => {
                 onChange={(e) => handleFieldChange('description', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
                 rows={3}
-                          aria-label={`Select friend ${friend.name}`}
-                          title={`Select friend ${friend.name}`}
+                aria-label="Loan description"
+                title="Loan description"
                 placeholder="Add any notes about this loan..."
               />
             </div>

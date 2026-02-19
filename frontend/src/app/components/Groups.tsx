@@ -91,13 +91,22 @@ export const Groups: React.FC = () => {
         subtitle="Split bills fairly with friends"
         icon={<Users size={20} className="sm:w-6 sm:h-6" />}
       >
-        <Button
-          onClick={() => setCurrentPage('add-group')}
-          className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
-        >
-          <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-          Add Group
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setCurrentPage('add-friends')}
+            className="shadow-lg bg-gray-600 text-white hover:bg-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+          >
+            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            Add Friend
+          </Button>
+          <Button
+            onClick={() => setCurrentPage('add-group')}
+            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+          >
+            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            Add Group
+          </Button>
+        </div>
       </PageHeader>
       <div className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
