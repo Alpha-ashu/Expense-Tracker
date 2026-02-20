@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { pinService } from '../../services/pinService';
+import { pinService, PinService } from '../../services/pinService';
 
 interface OnboardingStep3Props {
   data: {
@@ -26,7 +26,7 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
 
     if (!data.pin) {
       newErrors.pin = 'PIN is required';
-    } else if (!pinService.validatePinFormat(data.pin)) {
+    } else if (!PinService.validatePinFormat(data.pin)) {
       newErrors.pin = 'PIN must be exactly 6 digits';
     }
 
@@ -60,7 +60,7 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
   };
 
   const generateRandomPin = () => {
-    const randomPin = pinService.generateRandomPin();
+    const randomPin = PinService.generateRandomPin();
     onUpdate({ pin: randomPin, confirmPin: randomPin });
   };
 

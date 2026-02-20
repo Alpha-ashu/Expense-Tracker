@@ -229,3 +229,4 @@ class PinService {
 }
 
 export const pinService = new PinService();
+export { PinService };
