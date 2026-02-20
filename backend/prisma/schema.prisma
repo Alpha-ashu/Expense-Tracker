@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -17,6 +17,13 @@ model User {
   password   String
   role       String     @default("user")   // admin, advisor, user
   isApproved Boolean    @default(false)    // For advisor requests
+  firstName  String?                     // New fields for profile
+  lastName   String?
+  salary     Float?
+  dateOfBirth DateTime?
+  jobType    String?
+  lastSynced DateTime?
+  syncToken  String?
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
@@ -29,6 +36,8 @@ model User {
   loans                Loan[]
   investments          Investment[]
   settings             UserSettings[]
+  devices              Device[]
+  userPin              UserPin?
   
   // Advisor relations
   bookingsAsAdvisor     BookingRequest[]  @relation("AdvisorBookings")
@@ -77,11 +86,13 @@ model Todo {
 model Account {
   id        String   @id @default(cuid())
   userId    String
+  deviceId  String?  // Device that created this record
   name      String
   type      String   @default("bank") // bank, card, cash, wallet
   balance   Float    @default(0)
   currency  String   @default("USD")
   isActive  Boolean  @default(true)
+  syncStatus String  @default("synced") // synced, pending, conflict
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
@@ -92,11 +103,13 @@ model Account {
 
   @@index([userId])
   @@index([isActive])
+  @@index([syncStatus])
 }
 
 model Transaction {
   id                   String   @id @default(cuid())
   userId               String
+  deviceId             String?  // Device that created this record
   accountId            String
   type                 String   // expense, income, transfer
   amount               Float
@@ -110,6 +123,7 @@ model Transaction {
   transferToAccountId  String?
   transferType         String?  // self-transfer, other-transfer
   synced               Boolean  @default(false)
+  syncStatus           String   @default("synced") // synced, pending, conflict
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   deletedAt            DateTime?
@@ -122,17 +136,20 @@ model Transaction {
   @@index([accountId])
   @@index([date])
   @@index([category])
+  @@index([syncStatus])
 }
 
 model Goal {
   id            String   @id @default(cuid())
   userId        String
+  deviceId      String?  // Device that created this record
   name          String
   targetAmount  Float
   currentAmount Float    @default(0)
   targetDate    DateTime
   category      String?
   isGroupGoal   Boolean  @default(false)
+  syncStatus    String   @default("synced") // synced, pending, conflict
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   deletedAt     DateTime?
@@ -142,11 +159,13 @@ model Goal {
 
   @@index([userId])
   @@index([targetDate])
+  @@index([syncStatus])
 }
 
 model Loan {
   id                  String   @id @default(cuid())
   userId              String
+  deviceId            String?  // Device that created this record
   type                String   // borrowed, lent, emi
   name                String
   principalAmount     Float
@@ -157,6 +176,7 @@ model Loan {
   frequency           String?  // monthly, weekly, custom
   status              String   @default("active") // active, overdue, completed
   contactPerson       String?
+  syncStatus          String   @default("synced") // synced, pending, conflict
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   deletedAt           DateTime?
@@ -168,6 +188,7 @@ model Loan {
   @@index([userId])
   @@index([status])
   @@index([dueDate])
+  @@index([syncStatus])
 }
 
 model LoanPayment {
@@ -357,5 +378,69 @@ model Notification {
 
   @@index([userId])
   @@index([isRead])
+  @@index([createdAt])
+}
+
+// Device Management Model
+model Device {
+  id           String   @id @default(cuid())
+  userId       String
+  deviceId     String   @unique  // Unique device identifier
+  deviceName   String?           // User-friendly device name
+  deviceType   String?           // mobile, desktop, tablet
+  platform     String?           // ios, android, windows, macos, linux, web
+  appVersion   String?
+  isActive     Boolean  @default(true)
+  lastSeenAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([isActive])
+}
+
+// User PIN Management Model
+model UserPin {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  pinHash      String   // Hashed 6-digit PIN
+  expiresAt    DateTime // PIN expiry (90 days)
+  isActive     Boolean  @default(true)
+  failedAttempts Int    @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isActive])
+}
+
+// Sync Queue Model
+model SyncQueue {
+  id           String   @id @default(cuid())
+  userId       String
+  deviceId     String
+  entityType   String   // account, transaction, goal, loan, etc.
+  entityId     String
+  operation    String   // create, update, delete
+  data         String?  // JSON string of entity data
+  status       String   @default("pending") // pending, processing, completed, failed
+  errorMessage String?
+  retryCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  processedAt  DateTime?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([status])
+  @@index([entityType])
   @@index([createdAt])
 }

@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { authRoutes } from '../modules/auth/auth.routes';
+import { syncRoutes } from '../modules/sync/sync.routes';
+import { pinRoutes } from '../modules/pin/pin.routes';
 import { transactionRoutes } from '../modules/transactions/transaction.routes';
 import { accountRoutes } from '../modules/accounts/account.routes';
 import { goalRoutes } from '../modules/goals/goal.routes';
@@ -16,6 +18,10 @@ const router = Router();
 
 // Authentication routes (public)
 router.use('/auth', authRoutes);
+
+// Sync and PIN routes (protected)
+router.use('/sync', syncRoutes);
+router.use('/pin', pinRoutes);
 
 // Protected API routes
 router.use('/transactions', transactionRoutes);

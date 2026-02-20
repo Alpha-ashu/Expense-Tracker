@@ -4,7 +4,13 @@ import { prisma } from '../../db/prisma';
 import { generateTokens } from '../../utils/auth';
 
 export class AuthService {
-  async register(input: RegisterInput): Promise<AuthTokens> {
+  async register(input: RegisterInput & {
+    firstName?: string;
+    lastName?: string;
+    salary?: number;
+    dateOfBirth?: Date;
+    jobType?: string;
+  }): Promise<AuthTokens> {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: input.email },
@@ -21,7 +27,7 @@ export class AuthService {
     const role = input.role || 'user';
     const isApproved = role === 'user'; // Users are auto-approved, advisors need admin approval
 
-    // Create user
+    // Create user with profile information
     const user = await prisma.user.create({
       data: {
         email: input.email,
@@ -29,11 +35,31 @@ export class AuthService {
         password: hashedPassword,
         role,
         isApproved,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        salary: input.salary,
+        dateOfBirth: input.dateOfBirth,
+        jobType: input.jobType,
       },
     });
 
     // Generate tokens
     return generateTokens(user);
+  }
+
+  async completeProfile(userId: string, profileData: {
+    firstName: string;
+    lastName: string;
+    salary: number;
+    dateOfBirth: Date;
+    jobType: string;
+  }): Promise<User> {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: profileData,
+    });
+
+    return user;
   }
 
   async login(input: LoginInput): Promise<AuthTokens> {
