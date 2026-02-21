@@ -17,22 +17,51 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate email format
+    if (!/\S+@\S+\.\S+/.test(input.email)) {
+      return res.status(400).json({ 
+        error: 'Invalid email format',
+        code: 'INVALID_EMAIL'
+      });
+    }
+
+    // Validate password length
+    if (input.password.length < 8) {
+      return res.status(400).json({ 
+        error: 'Password must be at least 8 characters long',
+        code: 'PASSWORD_TOO_SHORT'
+      });
+    }
+
     const tokens = await authService.register(input);
     res.status(201).json({
       message: 'Registration successful',
       ...tokens
     });
   } catch (error: any) {
+    console.error('Registration error:', error);
+    
     let statusCode = 400;
     let errorCode = 'REGISTRATION_FAILED';
+    let errorMessage = error.message || 'Registration failed';
     
-    if (error.message === 'Email already registered') {
+    // Handle specific database errors
+    if (error.message && error.message.includes('UNIQUE constraint failed')) {
       statusCode = 409;
       errorCode = 'EMAIL_EXISTS';
+      errorMessage = 'This email is already registered. Please use a different email or try signing in.';
+    } else if (error.message === 'Email already registered') {
+      statusCode = 409;
+      errorCode = 'EMAIL_EXISTS';
+      errorMessage = 'This email is already registered. Please use a different email or try signing in.';
+    } else if (error.message && error.message.includes('database')) {
+      statusCode = 500;
+      errorCode = 'DATABASE_ERROR';
+      errorMessage = 'Database error occurred. Please try again later.';
     }
     
     res.status(statusCode).json({ 
-      error: error.message || 'Registration failed',
+      error: errorMessage,
       code: errorCode
     });
   }
@@ -50,21 +79,37 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate email format
+    if (!/\S+@\S+\.\S+/.test(input.email)) {
+      return res.status(400).json({ 
+        error: 'Invalid email format',
+        code: 'INVALID_EMAIL'
+      });
+    }
+
     const tokens = await authService.login(input);
     res.json({
       message: 'Login successful',
       ...tokens
     });
   } catch (error: any) {
+    console.error('Login error:', error);
+    
     let statusCode = 401;
     let errorCode = 'LOGIN_FAILED';
+    let errorMessage = error.message || 'Login failed';
     
     if (error.message === 'Invalid credentials') {
       errorCode = 'INVALID_CREDENTIALS';
+      errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+    } else if (error.message && error.message.includes('database')) {
+      statusCode = 500;
+      errorCode = 'DATABASE_ERROR';
+      errorMessage = 'Database error occurred. Please try again later.';
     }
     
     res.status(statusCode).json({ 
-      error: error.message || 'Login failed',
+      error: errorMessage,
       code: errorCode
     });
   }

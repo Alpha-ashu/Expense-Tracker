@@ -69,7 +69,13 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => {
+        // If JSON parsing fails, try to get text and create a generic error
+        return response.text().then(text => ({
+          error: text || 'Server error occurred',
+          code: 'PARSE_ERROR'
+        }));
+      });
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.accessToken);
@@ -87,6 +93,14 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
           errorMessage = 'This email is already registered. Please use a different email or try signing in.';
         } else if (data.code === 'MISSING_FIELDS') {
           errorMessage = 'Please fill in all required fields.';
+        } else if (data.code === 'INVALID_EMAIL') {
+          errorMessage = 'Please enter a valid email address.';
+        } else if (data.code === 'PASSWORD_TOO_SHORT') {
+          errorMessage = 'Password must be at least 8 characters long.';
+        } else if (data.code === 'DATABASE_ERROR') {
+          errorMessage = 'Database error occurred. Please try again later.';
+        } else if (data.code === 'PARSE_ERROR') {
+          errorMessage = 'Server response error. Please try again.';
         }
         
         setErrors({ 

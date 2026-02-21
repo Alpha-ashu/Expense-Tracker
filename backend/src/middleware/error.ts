@@ -11,11 +11,12 @@ export const errorHandler = (
   next: NextFunction
 ) => {
   const statusCode = err.statusCode || 500;
+  
+  // Ensure we always return a proper JSON response
   res.status(statusCode).json({
-    error: {
-      message: err.message || 'Internal Server Error',
-      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-    },
+    error: err.message || 'Internal Server Error',
+    code: statusCode === 500 ? 'INTERNAL_ERROR' : 'SERVER_ERROR',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };
 
