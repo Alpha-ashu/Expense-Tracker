@@ -11,40 +11,61 @@ export class AuthService {
     dateOfBirth?: Date;
     jobType?: string;
   }): Promise<AuthTokens> {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: input.email },
+    console.log('AuthService.register called with:', {
+      email: input.email,
+      name: input.name,
+      hasPassword: !!input.password
     });
 
-    if (existingUser) {
-      throw new Error('Email already registered');
+    try {
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: input.email },
+      });
+
+      console.log('Existing user check result:', !!existingUser);
+
+      if (existingUser) {
+        console.log('User already exists, throwing error');
+        throw new Error('Email already registered');
+      }
+
+      // Hash password
+      console.log('Hashing password...');
+      const hashedPassword = await bcrypt.hash(input.password, 10);
+
+      // Determine role and approval status
+      const role = input.role || 'user';
+      const isApproved = role === 'user'; // Users are auto-approved, advisors need admin approval
+
+      console.log('Creating user with role:', role, 'approved:', isApproved);
+
+      // Create user with profile information
+      const user = await prisma.user.create({
+        data: {
+          email: input.email,
+          name: input.name,
+          password: hashedPassword,
+          role,
+          isApproved,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          salary: input.salary,
+          dateOfBirth: input.dateOfBirth,
+          jobType: input.jobType,
+        },
+      });
+
+      console.log('User created successfully with ID:', user.id);
+
+      // Generate tokens
+      const tokens = generateTokens(user);
+      console.log('Tokens generated successfully');
+      return tokens;
+    } catch (error) {
+      console.error('Error in AuthService.register:', error);
+      throw error;
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(input.password, 10);
-
-    // Determine role and approval status
-    const role = input.role || 'user';
-    const isApproved = role === 'user'; // Users are auto-approved, advisors need admin approval
-
-    // Create user with profile information
-    const user = await prisma.user.create({
-      data: {
-        email: input.email,
-        name: input.name,
-        password: hashedPassword,
-        role,
-        isApproved,
-        firstName: input.firstName,
-        lastName: input.lastName,
-        salary: input.salary,
-        dateOfBirth: input.dateOfBirth,
-        jobType: input.jobType,
-      },
-    });
-
-    // Generate tokens
-    return generateTokens(user);
   }
 
   async completeProfile(userId: string, profileData: {

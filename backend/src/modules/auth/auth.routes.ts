@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth';
-import { register, login, getProfile } from './auth.controller';
+import { register, login, getProfile, debugAuth } from './auth.controller';
 
 const router = Router();
+
+// Debug endpoint
+router.get('/debug', debugAuth);
 
 router.post('/register', register);
 router.post('/login', login);

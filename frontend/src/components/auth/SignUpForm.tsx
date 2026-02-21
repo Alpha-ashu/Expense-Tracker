@@ -69,13 +69,17 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         }),
       });
 
-      const data = await response.json().catch(() => {
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
         // If JSON parsing fails, try to get text and create a generic error
-        return response.text().then(text => ({
+        const text = await response.text();
+        data = {
           error: text || 'Server error occurred',
           code: 'PARSE_ERROR'
-        }));
-      });
+        };
+      }
 
       if (response.ok) {
         localStorage.setItem('auth_token', data.accessToken);

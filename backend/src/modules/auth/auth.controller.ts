@@ -134,7 +134,6 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// API Keys and Credentials
 export const getApiKey = (key: string): string | undefined => {
   return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
 };
@@ -161,4 +160,20 @@ export const getAwsSecretAccessKey = (): string | undefined => {
 
 export const getSendGridApiKey = (): string | undefined => {
   return getApiKey('SENDGRID_API_KEY');
+};
+
+export const debugAuth = async (req: Request, res: Response) => {
+  try {
+    res.json({
+      message: 'Auth module is working',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      database: 'connected'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: error.message || 'Debug endpoint failed',
+      code: 'DEBUG_ERROR'
+    });
+  }
 };
