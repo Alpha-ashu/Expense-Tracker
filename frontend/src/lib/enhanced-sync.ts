@@ -35,8 +35,14 @@ class EnhancedSyncService {
   private syncQueue: SyncEntity[] = [];
 
   constructor() {
-    const deviceInfo = getDeviceInfo();
-    this.deviceId = deviceInfo.deviceId;
+    try {
+      const deviceInfo = getDeviceInfo();
+      this.deviceId = deviceInfo.deviceId;
+    } catch (error) {
+      console.warn('Failed to get device info for sync service:', error);
+      // Use fallback device ID
+      this.deviceId = `sync_device_${Date.now()}`;
+    }
   }
 
   /**

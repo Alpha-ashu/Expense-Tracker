@@ -1,17 +1,8 @@
 import React, { useMemo, useState } from 'react';
-// import { getCountryAndCurrencySymbol } from '@/lib/countryCurrency';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { TrendingUp, CreditCard, Wallet, Banknote, Smartphone, ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react';
+import { TrendingUp, CreditCard, Wallet, Banknote, Smartphone, ArrowUpRight, ArrowDownLeft, Plus, Calendar, Target, Users, TrendingDown, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { motion } from 'framer-motion';
@@ -23,7 +14,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ setCurrentPage }: DashboardProps) {
-  const { accounts, transactions, currency } = useApp();
+  const { accounts, transactions, goals, loans, investments, currency } = useApp();
   const [activeTab, setActiveTab] = useState<'all' | 'bank' | 'card' | 'wallet' | 'cash'>('all');
   const [timePeriod, setTimePeriod] = useState<TimeFilterPeriod>('monthly');
 
@@ -44,25 +35,35 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   }, [timeFilteredTransactions, filteredAccounts, activeTab]);
 
   const stats = useMemo(() => ({
-    totalBalance: filteredAccounts.reduce((sum, a) => sum + a.balance, 0),
-    monthlyIncome: filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
-    monthlyExpense: filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
-  }), [filteredAccounts, filteredTransactions]);
+    totalBalance: accounts.filter(a => a.isActive).reduce((sum, a) => sum + a.balance, 0),
+    monthlyIncome: timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+    monthlyExpense: timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+    savingsRate: timeFilteredTransactions.length > 0 
+      ? ((timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) - 
+         timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)) /
+        timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)) * 100
+      : 0,
+  }), [accounts, timeFilteredTransactions]);
 
-  const chartData = [
-    { name: 'Jan', value: 1200 },
-    { name: 'Feb', value: 1900 },
-    { name: 'Mar', value: 1500 },
-    { name: 'Apr', value: 2200 },
-    { name: 'May', value: 1800 },
-    { name: 'Jun', value: 2400 },
-    { name: 'Jul', value: 2100 },
-    { name: 'Aug', value: 3800 },
-    { name: 'Sep', value: 2600 },
-    { name: 'Oct', value: 2900 },
-    { name: 'Nov', value: 2300 },
-    { name: 'Dec', value: 2800 },
-  ];
+  const recentTransactions = useMemo(() => {
+    return filteredTransactions.slice(0, 5);
+  }, [filteredTransactions]);
+
+  const upcomingBills = useMemo(() => {
+    // Filter for recurring expenses and upcoming bills
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return transactions.filter(t => 
+      t.type === 'expense' && 
+      t.date >= now && 
+      t.date <= thirtyDaysFromNow &&
+      (t.category === 'bills' || t.category === 'subscriptions' || t.description.toLowerCase().includes('emi'))
+    ).slice(0, 3);
+  }, [transactions]);
+
+  const activeGoals = useMemo(() => {
+    return goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3);
+  }, [goals]);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', {
     style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0
@@ -75,6 +76,24 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     { id: 'wallet', label: 'Digital', icon: Smartphone },
     { id: 'cash', label: 'Cash', icon: Banknote },
   ];
+
+  const EmptyState = ({ title, description, icon: Icon, action }: { 
+    title: string; 
+    description: string; 
+    icon: React.ElementType;
+    action?: { label: string; onClick: () => void };
+  }) => (
+    <Card className="p-8 text-center">
+      <Icon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-500 mb-4">{description}</p>
+      {action && (
+        <Button onClick={action.onClick} className="rounded-full">
+          {action.label}
+        </Button>
+      )}
+    </Card>
+  );
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-gray-50">
@@ -91,264 +110,270 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           </div>
         </div>
 
+        {/* Financial Health Overview */}
         <div className="flex justify-center px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <Card variant="mesh-pink" className="w-full max-w-md lg:max-w-lg p-6 lg:p-8 relative overflow-hidden">
             <div className="relative z-10">
               <p className="text-white/80 font-medium mb-1 text-sm text-center">Total Net Worth</p>
-              <h2 className="text-3xl lg:text-4xl font-display font-bold text-white tracking-tight mb-6 text-center">{formatCurrency(stats.totalBalance)}</h2>
+              <h2 className="text-3xl lg:text-4xl font-display font-bold text-white tracking-tight mb-6 text-center">
+                {formatCurrency(stats.totalBalance)}
+              </h2>
 
-              <div className="flex gap-3 lg:gap-4">
-                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3 flex-1">
+              <div className="grid grid-cols-2 gap-3 lg:gap-4">
+                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-1 opacity-80">
                     <TrendingUp size={14} className="text-white" />
                     <span className="text-xs font-bold text-white">Income</span>
                   </div>
                   <p className="text-white font-bold text-sm lg:text-base">{formatCurrency(stats.monthlyIncome)}</p>
                 </div>
-                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3 flex-1">
+                <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-1 opacity-80">
-                    <CreditCard size={14} className="text-white" />
+                    <TrendingDown size={14} className="text-white" />
                     <span className="text-xs font-bold text-white">Expense</span>
                   </div>
                   <p className="text-white font-bold text-sm lg:text-base">{formatCurrency(stats.monthlyExpense)}</p>
                 </div>
               </div>
+              
+              {stats.monthlyIncome > 0 && (
+                <div className="mt-4 bg-white/20 backdrop-blur-md rounded-2xl p-3">
+                  <div className="flex items-center gap-2 mb-1 opacity-80">
+                    <Target size={14} className="text-white" />
+                    <span className="text-xs font-bold text-white">Savings Rate</span>
+                  </div>
+                  <p className="text-white font-bold text-sm lg:text-base">{stats.savingsRate.toFixed(1)}%</p>
+                </div>
+              )}
             </div>
             <div className="absolute top-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-white/10 rounded-full blur-3xl -mr-16 sm:-mr-32 -mt-16 sm:-mt-32 pointer-events-none" />
           </Card>
         </div>
 
+        {/* Asset Type Tabs */}
         <div className="flex items-center justify-center gap-3 overflow-x-auto scrollbar-hide pb-4 px-4 sm:px-6 lg:px-8 xl:px-12 mb-4 lg:mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as 'all' | 'bank' | 'card' | 'wallet' | 'cash')} className={cn(
-                'relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
-                isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
-              )}>
-                {isActive && <motion.div layoutId="activeTabPill" className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full" transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }} />}
-                <span className="relative z-10 flex items-center gap-1 sm:gap-2"><Icon size={14} className="sm:w-4 sm:h-4 lg:w-[18px] lg:h-[18px]" /><span className="inline">{tab.label}</span></span>
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id as 'all' | 'bank' | 'card' | 'wallet' | 'cash')} 
+                className={cn(
+                  'relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
+                  isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
+                )}
+              >
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeTabPill" 
+                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full" 
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} 
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1 sm:gap-2">
+                  <Icon size={14} className="sm:w-4 sm:h-4 lg:w-[18px] lg:h-[18px]" />
+                  <span className="inline">{tab.label}</span>
+                </span>
               </button>
             );
           })}
         </div>
 
-        <div className="mb-6 lg:mb-8">
+        {/* Accounts Section */}
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Accounts</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentPage?.('accounts')}
+              className="rounded-full"
+            >
+              View All
+            </Button>
+          </div>
+          
           <AnimatePresence mode="wait">
-            <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
-              {filteredAccounts.length > 0 ? (
-                <div className="relative">
-                  {/* Mobile: 2 cards per row, centered */}
-                  <div className="lg:hidden">
-                    <div className="flex gap-3 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 snap-x snap-mandatory scrollbar-hide scroll-smooth">
-                      {filteredAccounts.map((account, index) => (
-                        <div
-                          key={account.id}
-                          className="snap-center shrink-0"
-                          style={{
-                            scrollSnapAlign: filteredAccounts.length === 1 ? 'center' : index % 2 === 0 ? 'start' : 'end',
-                            scrollSnapStop: 'always',
-                            width: filteredAccounts.length === 1 ? '100%' : 'calc(50% - 6px)',
-                          }}
-                        >
-                          <Card 
-                            variant={index % 2 === 0 ? 'mesh-pink' : index % 3 === 0 ? 'mesh-purple' : 'mesh-green'} 
-                            onClick={() => setCurrentPage('accounts')} 
-                            className="w-full h-[180px] sm:h-[190px] p-5 sm:p-6 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
-                          >
-                            <div className="flex justify-between items-start">
-                              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
-                                {activeTab === 'cash' ? <Banknote className="text-white w-4 h-4 sm:w-5 sm:h-5" /> : <span className="font-bold text-white text-lg sm:text-2xl">$</span>}
-                              </div>
-                              <div className="bg-white/20 px-2 py-0.5 sm:py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
-                            </div>
-                            <div className="space-y-2 sm:space-y-3">
-                              <p className="font-display text-xl sm:text-2xl tracking-widest text-shadow-sm truncate text-white">{formatCurrency(account.balance)}</p>
-                              <div className="flex justify-between items-end text-xs sm:text-sm font-medium text-white/80">
-                                <span className="truncate max-w-[120px] sm:max-w-[150px]">{account.name}</span>
-                                <span className="flex-shrink-0">Exp 09/29</span>
-                              </div>
-                            </div>
-                          </Card>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tablet: Auto-adjust based on count */}
-                  <div className="hidden lg:hidden">
-                    <div className="grid gap-4 px-4 md:px-6">
-                      {filteredAccounts.map((account, index) => (
-                        <Card 
-                          key={account.id}
-                          variant={index % 2 === 0 ? 'mesh-pink' : index % 3 === 0 ? 'mesh-purple' : 'mesh-green'} 
-                          onClick={() => setCurrentPage('accounts')} 
-                          className="h-[190px] p-6 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
-                              {activeTab === 'cash' ? <Banknote className="text-white w-5 h-5" /> : <span className="font-bold text-white text-2xl">$</span>}
-                            </div>
-                            <div className="bg-white/20 px-2 py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
-                          </div>
-                          <div className="space-y-3">
-                            <p className="font-display text-2xl tracking-widest text-shadow-sm truncate text-white">{formatCurrency(account.balance)}</p>
-                            <div className="flex justify-between items-end text-sm font-medium text-white/80">
-                              <span className="truncate max-w-[150px]">{account.name}</span>
-                              <span className="flex-shrink-0">Exp 09/29</span>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Desktop: Grid layout with proper responsive sizing */}
-                  <div className="hidden lg:block">
-                    <div className="px-8 xl:px-12">
-                      <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-fr">
-                        {filteredAccounts.map((account, index) => (
-                          <div
-                            key={account.id}
-                            className="w-full"
-                          >
-                            <Card 
-                              variant={index % 2 === 0 ? 'mesh-pink' : index % 3 === 0 ? 'mesh-purple' : 'mesh-green'} 
-                              onClick={() => setCurrentPage('accounts')} 
-                              className="h-[200px] p-6 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
-                            >
-                              <div className="flex justify-between items-start">
-                                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
-                                  {activeTab === 'cash' ? <Banknote className="text-white w-5 h-5" /> : <span className="font-bold text-white text-lg">$</span>}
-                                </div>
-                                <div className="bg-white/20 px-2 py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
-                              </div>
-                              <div className="space-y-4">
-                                <p className="font-display text-3xl tracking-widest text-shadow-sm truncate text-white">{formatCurrency(account.balance)}</p>
-                                <div className="flex justify-between items-end text-sm font-medium text-white/80">
-                                  <span className="truncate max-w-[150px]">{account.name}</span>
-                                  <span className="flex-shrink-0">Exp 09/29</span>
-                                </div>
-                              </div>
-                            </Card>
-                          </div>
-                        ))}
+            {filteredAccounts.length > 0 ? (
+              <motion.div 
+                key={activeTab} 
+                initial={{ opacity: 0, x: 20 }} 
+                animate={{ opacity: 1, x: 0 }} 
+                exit={{ opacity: 0, x: -20 }} 
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              >
+                {filteredAccounts.slice(0, 4).map((account) => (
+                  <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                        account.type === 'bank' ? "bg-blue-100 text-blue-600" :
+                        account.type === 'card' ? "bg-purple-100 text-purple-600" :
+                        account.type === 'wallet' ? "bg-green-100 text-green-600" :
+                        "bg-gray-100 text-gray-600"
+                      )}>
+                        {account.type === 'bank' && <Wallet size={20} />}
+                        {account.type === 'card' && <CreditCard size={20} />}
+                        {account.type === 'wallet' && <Smartphone size={20} />}
+                        {account.type === 'cash' && <Banknote size={20} />}
                       </div>
+                      {!account.isActive && (
+                        <span className="text-xs text-gray-500">Inactive</span>
+                      )}
                     </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto bg-white/20 rounded-full flex items-center justify-center mb-4">
-                    <Wallet size={32} className="text-white opacity-50" />
-                  </div>
-                  <p className="text-white/80 font-medium mb-2 text-sm sm:text-base">No {activeTab === 'all' ? 'accounts' : activeTab} accounts found</p>
-                  <Button variant="ghost" className="text-pink-200 hover:text-pink-100 hover:bg-white/10 text-sm sm:text-base">Add New Account</Button>
-                </div>
-              )}
-            </motion.div>
+                    <h4 className="font-medium text-gray-900 truncate mb-1">{account.name}</h4>
+                    <p className="text-xl font-bold text-gray-900">{formatCurrency(account.balance)}</p>
+                  </Card>
+                ))}
+              </motion.div>
+            ) : (
+              <EmptyState
+                title="No accounts yet"
+                description="Add your first account to start tracking your finances"
+                icon={Wallet}
+                action={{ label: "Add Account", onClick: () => setCurrentPage?.('add-account') }}
+              />
+            )}
           </AnimatePresence>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 space-y-6 lg:space-y-0">
-            <div className="lg:col-span-1 space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                  <button onClick={() => setCurrentPage('transactions')} className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors">View All →</button>
-                </div>
-
-                <Card className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                  <div className="block lg:hidden">
-                    {filteredTransactions.slice(0, 5).map((t, i) => (
-                      <div key={i} className="flex items-center justify-between gap-3 p-4 border-b border-gray-100 last:border-none hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${t.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                            {t.type === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm">{t.description}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{t.category} • {new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</p>
-                          </div>
-                        </div>
-                        <span className={`font-semibold text-sm whitespace-nowrap flex-shrink-0 ${t.type === 'income' ? 'text-green-600' : 'text-gray-900'}`}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span>
+        {/* Recent Transactions */}
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setCurrentPage?.('transactions')}
+              className="rounded-full"
+            >
+              View All
+            </Button>
+          </div>
+          
+          <AnimatePresence>
+            {recentTransactions.length > 0 ? (
+              <Card className="divide-y divide-gray-100">
+                {recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center",
+                        transaction.type === 'income' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                      )}>
+                        {transaction.type === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
                       </div>
-                    ))}
-                    {filteredTransactions.length === 0 && <div className="p-8 text-center text-gray-400 text-sm">No transactions found.</div>}
-                  </div>
-
-                  <div className="hidden lg:block overflow-x-auto">
-                    <table className="w-full min-w-max">
-                      <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50">
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Transaction</th>
-                          <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Type</th>
-                          <th className="text-left py-3 px-3 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Date</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredTransactions.slice(0, 5).map((t, i) => (
-                          <tr key={i} className="group hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-none">
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${t.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                                  {t.type === 'income' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                                </div>
-                                <div className="min-w-0"><p className="font-semibold text-gray-900 text-xs truncate">{t.description}</p><p className="text-xs text-gray-500 truncate">{t.category}</p></div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-3"><span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${t.type === 'income' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>{t.type === 'income' ? 'Income' : 'Expense'}</span></td>
-                            <td className="py-3 px-3 text-xs text-gray-500 font-medium whitespace-nowrap">{new Date(t.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</td>
-                            <td className="py-3 px-4 text-right"><span className={`font-semibold text-xs whitespace-nowrap ${t.type === 'income' ? 'text-green-600' : 'text-gray-900'}`}>{t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}</span></td>
-                          </tr>
-                        ))}
-                        {filteredTransactions.length === 0 && <tr><td colSpan={4} className="py-6 text-center text-gray-400 text-xs">No transactions found for this category.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            <div className="lg:col-span-1 space-y-6">
-              <div>
-                <Card className="bg-white border border-gray-200 rounded-2xl overflow-hidden p-6">
-                  <div className="flex items-center justify-between mb-6"><h3 className="font-semibold text-gray-900">Monthly Analytics</h3></div>
-                  <div className="h-[200px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} barSize={20}>
-                        <Tooltip cursor={{ fill: 'transparent' }} content={({ active, payload }) => (active && payload && payload.length ? <div className="bg-black text-white text-xs px-3 py-1.5 rounded-lg font-semibold shadow-xl">${payload[0].value}</div> : null)} />
-                        <Bar dataKey="value" radius={[6,6,6,6]}>{chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.name === 'Aug' || entry.name === 'May' ? 'url(#activeBarSidebar)' : '#F3F4F6'} />)}</Bar>
-                        <defs><linearGradient id="activeBarSidebar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#FF4B91" /><stop offset="100%" stopColor="#FF7676" /></linearGradient></defs>
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 9, fontWeight: 500 }} dy={8} interval={2} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </div>
-
-              <div>
-                <Card className="bg-white border border-gray-200 rounded-2xl overflow-hidden p-6">
-                  <div className="flex items-center justify-between mb-6"><h3 className="font-semibold text-gray-900">Quick Calendar</h3></div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-7 gap-2 text-center">
-                      {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => <div key={day} className="text-xs font-semibold text-gray-600 py-2">{day}</div>)}
-                      {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay() }).map((_, i) => <div key={`empty-${i}`} className="text-xs text-gray-300 py-2">-</div>)}
-                      {Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }).map((_, i) => {
-                        const day = i + 1; const isToday = new Date().getDate() === day && new Date().getMonth() === new Date().getMonth();
-                        return (<button key={day} className={cn("text-xs font-semibold py-2 rounded-lg transition-all", isToday ? "bg-black text-white shadow-lg hover:shadow-xl" : "text-gray-600 hover:bg-gray-100")}>{day}</button>);
-                      })}
+                      <div>
+                        <p className="font-medium text-gray-900">{transaction.description}</p>
+                        <p className="text-sm text-gray-500">{transaction.category}</p>
+                      </div>
                     </div>
-                    <button onClick={() => setCurrentPage?.('calendar')} className="w-full text-center py-2 px-4 text-sm font-semibold text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors mt-4">View Full Calendar</button>
+                    <div className="text-right">
+                      <p className={cn(
+                        "font-semibold",
+                        transaction.type === 'income' ? "text-green-600" : "text-red-600"
+                      )}>
+                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(transaction.date).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                </Card>
-              </div>
+                ))}
+              </Card>
+            ) : (
+              <EmptyState
+                title="No transactions yet"
+                description="Start adding transactions to see your financial activity"
+                icon={CreditCard}
+                action={{ label: "Add Transaction", onClick: () => setCurrentPage?.('add-transaction') }}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Upcoming Bills */}
+        {upcomingBills.length > 0 && (
+          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Upcoming Bills</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage?.('calendar')}
+                className="rounded-full"
+              >
+                View Calendar
+              </Button>
+            </div>
+            
+            <Card className="divide-y divide-gray-100">
+              {upcomingBills.map((bill, index) => (
+                <div key={bill.id} className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                      <AlertCircle size={18} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{bill.description}</p>
+                      <p className="text-sm text-gray-500">
+                        Due {new Date(bill.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-semibold text-red-600">{formatCurrency(bill.amount)}</p>
+                </div>
+              ))}
+            </Card>
+          </div>
+        )}
+
+        {/* Active Goals */}
+        {activeGoals.length > 0 && (
+          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Goals Progress</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setCurrentPage?.('goals')}
+                className="rounded-full"
+              >
+                View All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeGoals.map((goal) => {
+                const progress = (goal.currentAmount / goal.targetAmount) * 100;
+                return (
+                  <Card key={goal.id} className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900 truncate">{goal.name}</h4>
+                      <Target size={16} className="text-gray-400" />
+                    </div>
+                    <div className="mb-3">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>{formatCurrency(goal.currentAmount)}</span>
+                        <span>{formatCurrency(goal.targetAmount)}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium text-blue-600">{progress.toFixed(0)}% Complete</p>
+                  </Card>
+                );
+              })}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

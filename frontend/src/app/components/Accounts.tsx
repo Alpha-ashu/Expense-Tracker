@@ -197,13 +197,14 @@ export const Accounts: React.FC = () => {
                     <Card
                       variant={isActive ? "glass" : "glass"}
                       className={cn(
-                        "w-full h-[180px] sm:h-[190px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[20px] cursor-pointer group hover:scale-[1.02]",
+                        "w-full h-[180px] sm:h-[190px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[20px] cursor-pointer group hover:scale-[1.02] outline-none focus:ring-0",
                         isActive
                           ? "border-2 border-blue-600 shadow-[0_15px_35px_rgba(37,99,235,0.15)] bg-white"
                           : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
                         !account.isActive && "opacity-60 grayscale"
                       )}
                       onClick={() => setSelectedAccountId(account.id!)}
+                      tabIndex={-1} // Prevent keyboard focus
                     >
                       <div className="p-4 h-full flex flex-col justify-between">
                         {/* Top row - icon + badge */}

@@ -1,35 +1,39 @@
 import React, { useState } from 'react';
-import { OnboardingStep1 } from './OnboardingStep1';
-import { OnboardingStep2 } from './OnboardingStep2';
-import { OnboardingStep3 } from './OnboardingStep3';
-import { OnboardingStep4 } from './OnboardingStep4';
+import { ProfileSetupStep } from './ProfileSetupStep';
+import { BankAccountStep } from './BankAccountStep';
+import { EmergencyContactStep } from './EmergencyContactStep';
+import { OnboardingCompleteStep } from './OnboardingCompleteStep';
 
 interface OnboardingData {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  firstName: string;
-  lastName: string;
-  salary: string;
+  displayName: string;
   dateOfBirth: string;
   jobType: string;
-  pin: string;
-  confirmPin: string;
+  jobIndustry: string;
+  salary: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolderName: string;
+  salaryCreditDate: string;
+  emergencyContactName: string;
+  emergencyContactNumber: string;
+  emergencyContactType: string;
 }
 
-export const UserOnboarding: React.FC = () => {
+export const NewUserOnboarding: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    salary: '',
+    displayName: '',
     dateOfBirth: '',
     jobType: '',
-    pin: '',
-    confirmPin: '',
+    jobIndustry: '',
+    salary: '',
+    bankName: '',
+    accountNumber: '',
+    accountHolderName: '',
+    salaryCreditDate: '',
+    emergencyContactName: '',
+    emergencyContactNumber: '',
+    emergencyContactType: 'whatsapp',
   });
 
   const updateOnboardingData = (data: Partial<OnboardingData>) => {
@@ -48,7 +52,7 @@ export const UserOnboarding: React.FC = () => {
     switch (currentStep) {
       case 1:
         return (
-          <OnboardingStep1
+          <ProfileSetupStep
             data={onboardingData}
             onUpdate={updateOnboardingData}
             onNext={nextStep}
@@ -56,7 +60,7 @@ export const UserOnboarding: React.FC = () => {
         );
       case 2:
         return (
-          <OnboardingStep2
+          <BankAccountStep
             data={onboardingData}
             onUpdate={updateOnboardingData}
             onNext={nextStep}
@@ -65,7 +69,7 @@ export const UserOnboarding: React.FC = () => {
         );
       case 3:
         return (
-          <OnboardingStep3
+          <EmergencyContactStep
             data={onboardingData}
             onUpdate={updateOnboardingData}
             onNext={nextStep}
@@ -74,13 +78,15 @@ export const UserOnboarding: React.FC = () => {
         );
       case 4:
         return (
-          <OnboardingStep4
+          <OnboardingCompleteStep
             data={onboardingData}
             onComplete={() => {
               // Handle onboarding completion
-              console.log('Onboarding completed:', onboardingData);
-              // Reload the page to trigger the app to show the main interface
-              window.location.reload();
+              console.log('New onboarding completed:', onboardingData);
+              // Save to localStorage and redirect to dashboard
+              localStorage.setItem('user_profile', JSON.stringify(onboardingData));
+              localStorage.setItem('onboarding_completed', 'true');
+              window.location.href = '/dashboard';
             }}
             onBack={prevStep}
           />
@@ -92,11 +98,11 @@ export const UserOnboarding: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         {/* Progress Indicator */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Create Account</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Complete Your Profile</h2>
             <span className="text-sm text-gray-500">Step {currentStep} of 4</span>
           </div>
           <div className="flex space-x-2">

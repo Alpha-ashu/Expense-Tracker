@@ -125,6 +125,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           await permissionService.fetchUserPermissions(nextUser.id, userRole);
         } else if (event === 'SIGNED_OUT') {
           permissionService.clearPermissions();
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed successfully');
         }
       }
     );

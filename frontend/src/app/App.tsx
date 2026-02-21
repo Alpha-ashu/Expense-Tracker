@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
-import { AuthPage } from '@/app/components/AuthPage';
+import { AuthPage } from '@/components/auth/AuthPage';
 import { PINAuth } from '@/app/components/PINAuth';
 import { Sidebar } from '@/app/components/Sidebar';
 import { Header } from '@/app/components/Header';
@@ -48,6 +48,7 @@ import { AddFriends } from '@/app/components/AddFriends';
 import { UserProfile } from '@/app/components/UserProfile';
 import { Notifications } from '@/app/components/Notifications';
 import { SimpleAutoTest } from '@/components/ui/SimpleAutoTest';
+import { NewUserOnboarding } from '@/components/onboarding/NewUserOnboarding';
 
 import { Toaster } from 'sonner';
 import { initializeDemoData } from '@/lib/demoData';
@@ -100,8 +101,6 @@ const AppContent: React.FC = () => {
     if (user) {
       const initTasks = [
         initializeNotifications(),
-        // Pass user email to support forcing admin data
-        initializeDemoData(user.email)
       ];
 
       Promise.all(initTasks).then(() => {
@@ -210,12 +209,20 @@ const AppContent: React.FC = () => {
 
   // Show auth page if not logged in with Supabase
   if (!user) {
-    return <AuthPage onAuthSuccess={() => setAuthenticated('true')} />;
+    return <AuthPage />;
   }
 
   // Show PIN authentication if enabled and not authenticated
   if (!isAuthenticated) {
     return <PINAuth onAuthenticated={setAuthenticated} />;
+  }
+
+  // Check if user has completed onboarding - CRITICAL: Must check after auth but before initialization
+  const hasCompletedOnboarding = localStorage.getItem('onboarding_completed') === 'true';
+
+  // Show onboarding for new users - BLOCK all other access until completion
+  if (!hasCompletedOnboarding) {
+    return <NewUserOnboarding />;
   }
 
   if (!isInitialized) {
