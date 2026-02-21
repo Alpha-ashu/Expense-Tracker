@@ -11,13 +11,30 @@ export const register = async (req: Request, res: Response) => {
 
     // Validate input
     if (!input.email || !input.name || !input.password) {
-      return res.status(400).json({ error: 'Missing required fields: email, name, password' });
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, name, password',
+        code: 'MISSING_FIELDS'
+      });
     }
 
     const tokens = await authService.register(input);
-    res.status(201).json(tokens);
+    res.status(201).json({
+      message: 'Registration successful',
+      ...tokens
+    });
   } catch (error: any) {
-    res.status(400).json({ error: error.message || 'Registration failed' });
+    let statusCode = 400;
+    let errorCode = 'REGISTRATION_FAILED';
+    
+    if (error.message === 'Email already registered') {
+      statusCode = 409;
+      errorCode = 'EMAIL_EXISTS';
+    }
+    
+    res.status(statusCode).json({ 
+      error: error.message || 'Registration failed',
+      code: errorCode
+    });
   }
 };
 
@@ -27,13 +44,29 @@ export const login = async (req: Request, res: Response) => {
 
     // Validate input
     if (!input.email || !input.password) {
-      return res.status(400).json({ error: 'Missing required fields: email, password' });
+      return res.status(400).json({ 
+        error: 'Missing required fields: email, password',
+        code: 'MISSING_FIELDS'
+      });
     }
 
     const tokens = await authService.login(input);
-    res.json(tokens);
+    res.json({
+      message: 'Login successful',
+      ...tokens
+    });
   } catch (error: any) {
-    res.status(401).json({ error: error.message || 'Login failed' });
+    let statusCode = 401;
+    let errorCode = 'LOGIN_FAILED';
+    
+    if (error.message === 'Invalid credentials') {
+      errorCode = 'INVALID_CREDENTIALS';
+    }
+    
+    res.status(statusCode).json({ 
+      error: error.message || 'Login failed',
+      code: errorCode
+    });
   }
 };
 

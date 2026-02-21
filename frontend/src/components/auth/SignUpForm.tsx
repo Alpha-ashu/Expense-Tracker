@@ -54,13 +54,14 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/v1/auth/register`, {
+      // Use the API client with proper error handling
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`,
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
@@ -68,8 +69,9 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
         localStorage.setItem('user_email', formData.email);
@@ -78,15 +80,23 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         // Redirect to onboarding for new users
         window.location.href = '/onboarding';
       } else {
-        const errorData = await response.json();
+        // Handle specific error cases
+        let errorMessage = data.error || 'Registration failed';
+        
+        if (data.code === 'EMAIL_EXISTS') {
+          errorMessage = 'This email is already registered. Please use a different email or try signing in.';
+        } else if (data.code === 'MISSING_FIELDS') {
+          errorMessage = 'Please fill in all required fields.';
+        }
+        
         setErrors({ 
-          general: errorData.error || 'Registration failed' 
+          general: errorMessage
         });
       }
     } catch (error) {
       console.error('Sign up error:', error);
       setErrors({ 
-        general: 'Network error. Please try again.' 
+        general: 'Network error. Please check your connection and try again.' 
       });
     } finally {
       setIsLoading(false);

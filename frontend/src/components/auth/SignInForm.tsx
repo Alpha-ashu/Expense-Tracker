@@ -35,8 +35,8 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/v1/auth/login`, {
+      // Use the API client with proper error handling
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,8 +44,9 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
         localStorage.setItem('user_email', formData.email);
@@ -58,15 +59,23 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           window.location.href = '/dashboard';
         }
       } else {
-        const errorData = await response.json();
+        // Handle specific error cases
+        let errorMessage = data.error || 'Invalid email or password';
+        
+        if (data.code === 'INVALID_CREDENTIALS') {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (data.code === 'MISSING_FIELDS') {
+          errorMessage = 'Please fill in all required fields.';
+        }
+        
         setErrors({ 
-          general: errorData.error || 'Invalid email or password' 
+          general: errorMessage
         });
       }
     } catch (error) {
       console.error('Sign in error:', error);
       setErrors({ 
-        general: 'Network error. Please try again.' 
+        general: 'Network error. Please check your connection and try again.' 
       });
     } finally {
       setIsLoading(false);
