@@ -15,8 +15,10 @@
 <body>
     <h1>Authentication Debug Test</h1>
     <button onclick="testHealth()">Test Health Endpoint</button>
+    <button onclick="testSimple()">Test Simple Endpoint</button>
     <button onclick="testDebug()">Test Debug Endpoint</button>
-    <button onclick="testRegister()">Test Registration</button>
+    <button onclick="testRegister()">Test Registration (Mock)</button>
+    <button onclick="testLogin()">Test Login (Mock)</button>
     <div id="results"></div>
 
     <script>
@@ -30,6 +32,16 @@
             }
         }
 
+        async function testSimple() {
+            try {
+                const response = await fetch('/api/v1/auth/test-simple');
+                const data = await response.json();
+                document.getElementById('results').innerHTML = '<h3 class="success">Simple Test Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML = '<h3 class="error">Simple Test Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
         async function testDebug() {
             try {
                 const response = await fetch('/api/v1/auth/debug');
@@ -37,6 +49,46 @@
                 document.getElementById('results').innerHTML = '<h3 class="success">Debug Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
             } catch (error) {
                 document.getElementById('results').innerHTML = '<h3 class="error">Debug Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const testData = {
+                    email: 'test' + Date.now() + '@example.com',
+                    password: 'testpassword123'
+                };
+
+                console.log('Sending login request:', testData);
+
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testData),
+                });
+
+                console.log('Login response status:', response.status);
+
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('Login response data:', data);
+                } catch (jsonError) {
+                    console.log('Login JSON parsing failed:', jsonError);
+                    const text = await response.text();
+                    console.log('Login response text:', text);
+                    data = {
+                        error: text || 'Server error occurred',
+                        code: 'PARSE_ERROR'
+                    };
+                }
+
+                document.getElementById('results').innerHTML = '<h3>Login Result:</h3><pre>Status: ' + response.status + '\n\n' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Login test error:', error);
+                document.getElementById('results').innerHTML = '<h3 class="error">Login Error:</h3><pre>' + error.message + '</pre>';
             }
         }
 

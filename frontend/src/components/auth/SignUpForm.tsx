@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 interface SignUpFormProps {
   onSwitchToSignIn: () => void;
@@ -54,74 +56,50 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
 
     setIsLoading(true);
     try {
-      // Use the API client with proper error handling
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: `${formData.firstName} ${formData.lastName}`,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-        }),
+      // Use the centralized API client
+      const response = await api.auth.register({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        password: formData.password,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('auth_token', data.accessToken);
-        localStorage.setItem('refresh_token', data.refreshToken);
+      // Store tokens from response
+      if (response.data && typeof response.data === 'object' && 'accessToken' in response.data) {
+        const tokens = response.data as {
+          accessToken: string;
+          refreshToken: string;
+          user?: any;
+        };
+        localStorage.setItem('auth_token', tokens.accessToken);
+        localStorage.setItem('refresh_token', tokens.refreshToken);
         localStorage.setItem('user_email', formData.email);
         localStorage.setItem('user_name', `${formData.firstName} ${formData.lastName}`);
         
         // Redirect to onboarding for new users
         window.location.href = '/onboarding';
-      } else {
-        // Handle error responses
-        let errorMessage = 'Registration failed';
-        let errorCode = 'REGISTRATION_FAILED';
-        
-        try {
-          const data = await response.json();
-          errorMessage = data.error || errorMessage;
-          errorCode = data.code || errorCode;
-        } catch (jsonError) {
-          // If JSON parsing fails, get text response
-          try {
-            const text = await response.text();
-            errorMessage = text || errorMessage;
-            errorCode = 'PARSE_ERROR';
-          } catch (textError) {
-            errorMessage = 'Server error occurred';
-            errorCode = 'SERVER_ERROR';
-          }
-        }
-        
-        // Handle specific error cases
-        if (errorCode === 'EMAIL_EXISTS') {
-          errorMessage = 'This email is already registered. Please use a different email or try signing in.';
-        } else if (errorCode === 'MISSING_FIELDS') {
-          errorMessage = 'Please fill in all required fields.';
-        } else if (errorCode === 'INVALID_EMAIL') {
-          errorMessage = 'Please enter a valid email address.';
-        } else if (errorCode === 'PASSWORD_TOO_SHORT') {
-          errorMessage = 'Password must be at least 8 characters long.';
-        } else if (errorCode === 'DATABASE_ERROR') {
-          errorMessage = 'Database error occurred. Please try again later.';
-        } else if (errorCode === 'PARSE_ERROR') {
-          errorMessage = 'Server response error. Please try again.';
-        }
-        
-        setErrors({ 
-          general: errorMessage
-        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign up error:', error);
+      
+      // Handle specific error cases from API client
+      let errorMessage = 'Registration failed';
+      
+      if (error.code === 'EMAIL_EXISTS') {
+        errorMessage = 'This email is already registered. Please use a different email or try signing in.';
+      } else if (error.code === 'MISSING_FIELDS') {
+        errorMessage = 'Please fill in all required fields.';
+      } else if (error.code === 'INVALID_EMAIL') {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (error.code === 'PASSWORD_TOO_SHORT') {
+        errorMessage = 'Password must be at least 8 characters long.';
+      } else if (error.code === 'DATABASE_ERROR') {
+        errorMessage = 'Database error occurred. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setErrors({ 
-        general: 'Network error. Please check your connection and try again.' 
+        general: errorMessage
       });
     } finally {
       setIsLoading(false);

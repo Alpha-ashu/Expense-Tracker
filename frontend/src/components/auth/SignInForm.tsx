@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '@/lib/api';
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void;
@@ -35,19 +37,21 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
 
     setIsLoading(true);
     try {
-      // Use the API client with proper error handling
-      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      // Use centralized API client
+      const response = await api.auth.login({
+        email: formData.email,
+        password: formData.password,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('auth_token', data.accessToken);
-        localStorage.setItem('refresh_token', data.refreshToken);
+      // Store tokens from response
+      if (response.data && typeof response.data === 'object' && 'accessToken' in response.data) {
+        const tokens = response.data as {
+          accessToken: string;
+          refreshToken: string;
+          user?: any;
+        };
+        localStorage.setItem('auth_token', tokens.accessToken);
+        localStorage.setItem('refresh_token', tokens.refreshToken);
         localStorage.setItem('user_email', formData.email);
         
         // Check if user needs onboarding
@@ -57,48 +61,27 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
         } else {
           window.location.href = '/dashboard';
         }
-      } else {
-        // Handle error responses
-        let errorMessage = 'Login failed';
-        let errorCode = 'LOGIN_FAILED';
-        
-        try {
-          const data = await response.json();
-          errorMessage = data.error || errorMessage;
-          errorCode = data.code || errorCode;
-        } catch (jsonError) {
-          // If JSON parsing fails, get text response
-          try {
-            const text = await response.text();
-            errorMessage = text || errorMessage;
-            errorCode = 'PARSE_ERROR';
-          } catch (textError) {
-            errorMessage = 'Server error occurred';
-            errorCode = 'SERVER_ERROR';
-          }
-        }
-        
-        // Handle specific error cases
-        if (errorCode === 'INVALID_CREDENTIALS') {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (errorCode === 'MISSING_FIELDS') {
-          errorMessage = 'Please fill in all required fields.';
-        } else if (errorCode === 'INVALID_EMAIL') {
-          errorMessage = 'Please enter a valid email address.';
-        } else if (errorCode === 'DATABASE_ERROR') {
-          errorMessage = 'Database error occurred. Please try again later.';
-        } else if (errorCode === 'PARSE_ERROR') {
-          errorMessage = 'Server response error. Please try again.';
-        }
-        
-        setErrors({ 
-          general: errorMessage
-        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      
+      // Handle specific error cases from API client
+      let errorMessage = 'Login failed';
+      
+      if (error.code === 'INVALID_CREDENTIALS') {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (error.code === 'MISSING_FIELDS') {
+        errorMessage = 'Please fill in all required fields.';
+      } else if (error.code === 'INVALID_EMAIL') {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (error.code === 'DATABASE_ERROR') {
+        errorMessage = 'Database error occurred. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setErrors({ 
-        general: 'Network error. Please check your connection and try again.' 
+        general: errorMessage
       });
     } finally {
       setIsLoading(false);
