@@ -69,19 +69,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         }),
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        // If JSON parsing fails, try to get text and create a generic error
-        const text = await response.text();
-        data = {
-          error: text || 'Server error occurred',
-          code: 'PARSE_ERROR'
-        };
-      }
-
       if (response.ok) {
+        const data = await response.json();
         localStorage.setItem('auth_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
         localStorage.setItem('user_email', formData.email);
@@ -90,20 +79,38 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         // Redirect to onboarding for new users
         window.location.href = '/onboarding';
       } else {
-        // Handle specific error cases
-        let errorMessage = data.error || 'Registration failed';
+        // Handle error responses
+        let errorMessage = 'Registration failed';
+        let errorCode = 'REGISTRATION_FAILED';
         
-        if (data.code === 'EMAIL_EXISTS') {
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+          errorCode = data.code || errorCode;
+        } catch (jsonError) {
+          // If JSON parsing fails, get text response
+          try {
+            const text = await response.text();
+            errorMessage = text || errorMessage;
+            errorCode = 'PARSE_ERROR';
+          } catch (textError) {
+            errorMessage = 'Server error occurred';
+            errorCode = 'SERVER_ERROR';
+          }
+        }
+        
+        // Handle specific error cases
+        if (errorCode === 'EMAIL_EXISTS') {
           errorMessage = 'This email is already registered. Please use a different email or try signing in.';
-        } else if (data.code === 'MISSING_FIELDS') {
+        } else if (errorCode === 'MISSING_FIELDS') {
           errorMessage = 'Please fill in all required fields.';
-        } else if (data.code === 'INVALID_EMAIL') {
+        } else if (errorCode === 'INVALID_EMAIL') {
           errorMessage = 'Please enter a valid email address.';
-        } else if (data.code === 'PASSWORD_TOO_SHORT') {
+        } else if (errorCode === 'PASSWORD_TOO_SHORT') {
           errorMessage = 'Password must be at least 8 characters long.';
-        } else if (data.code === 'DATABASE_ERROR') {
+        } else if (errorCode === 'DATABASE_ERROR') {
           errorMessage = 'Database error occurred. Please try again later.';
-        } else if (data.code === 'PARSE_ERROR') {
+        } else if (errorCode === 'PARSE_ERROR') {
           errorMessage = 'Server response error. Please try again.';
         }
         

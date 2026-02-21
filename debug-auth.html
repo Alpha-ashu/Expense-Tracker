@@ -2,21 +2,41 @@
 <html>
 <head>
     <title>Auth Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { margin: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #results { margin-top: 20px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; }
+        pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow-x: auto; }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+    </style>
 </head>
 <body>
     <h1>Authentication Debug Test</h1>
+    <button onclick="testHealth()">Test Health Endpoint</button>
     <button onclick="testDebug()">Test Debug Endpoint</button>
     <button onclick="testRegister()">Test Registration</button>
     <div id="results"></div>
 
     <script>
+        async function testHealth() {
+            try {
+                const response = await fetch('/api/v1/health');
+                const data = await response.json();
+                document.getElementById('results').innerHTML = '<h3 class="success">Health Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('results').innerHTML = '<h3 class="error">Health Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
         async function testDebug() {
             try {
                 const response = await fetch('/api/v1/auth/debug');
                 const data = await response.json();
-                document.getElementById('results').innerHTML = '<h3>Debug Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                document.getElementById('results').innerHTML = '<h3 class="success">Debug Result:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
             } catch (error) {
-                document.getElementById('results').innerHTML = '<h3>Debug Error:</h3><pre>' + error.message + '</pre>';
+                document.getElementById('results').innerHTML = '<h3 class="error">Debug Error:</h3><pre>' + error.message + '</pre>';
             }
         }
 
@@ -28,6 +48,8 @@
                     password: 'testpassword123'
                 };
 
+                console.log('Sending registration request:', testData);
+
                 const response = await fetch('/api/v1/auth/register', {
                     method: 'POST',
                     headers: {
@@ -36,11 +58,17 @@
                     body: JSON.stringify(testData),
                 });
 
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
                 let data;
                 try {
                     data = await response.json();
+                    console.log('Response data:', data);
                 } catch (jsonError) {
+                    console.log('JSON parsing failed:', jsonError);
                     const text = await response.text();
+                    console.log('Response text:', text);
                     data = {
                         error: text || 'Server error occurred',
                         code: 'PARSE_ERROR'
@@ -49,7 +77,8 @@
 
                 document.getElementById('results').innerHTML = '<h3>Registration Result:</h3><pre>Status: ' + response.status + '\n\n' + JSON.stringify(data, null, 2) + '</pre>';
             } catch (error) {
-                document.getElementById('results').innerHTML = '<h3>Registration Error:</h3><pre>' + error.message + '</pre>';
+                console.error('Registration test error:', error);
+                document.getElementById('results').innerHTML = '<h3 class="error">Registration Error:</h3><pre>' + error.message + '</pre>';
             }
         }
     </script>
