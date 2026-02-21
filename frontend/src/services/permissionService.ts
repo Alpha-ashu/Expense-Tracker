@@ -60,6 +60,20 @@ class PermissionService {
 
       if (error) {
         console.error('❌ Error fetching permissions:', error);
+        
+        // Check if it's a network/CORS error
+        if (error.message?.includes('CORS') || 
+            error.message?.includes('fetch') || 
+            error.message?.includes('Failed to send') ||
+            error.message?.includes('network')) {
+          console.log('🔄 Using fallback permissions due to network/CORS error');
+          const role = fallbackRole || 'user';
+          const fallback = this.getDefaultPermissions(role);
+          this.permissions = fallback;
+          this.notifyListeners();
+          return fallback;
+        }
+        
         // Use fallback role if provided, otherwise default to 'user'
         const role = fallbackRole || 'user';
         console.log('🔄 Using fallback permissions for role:', role);
@@ -91,10 +105,8 @@ class PermissionService {
 
       return permissions;
     } catch (error) {
-      console.error('❌ Failed to fetch permissions:', error);
-      // Use fallback role if provided, otherwise default to 'user'
+      console.error('❌ Unexpected error in fetchUserPermissions:', error);
       const role = fallbackRole || 'user';
-      console.log('🔄 Using fallback permissions for role:', role);
       const fallback = this.getDefaultPermissions(role);
       this.permissions = fallback;
       this.notifyListeners();

@@ -47,6 +47,7 @@ import { AddGold } from '@/app/components/AddGold';
 import { AddFriends } from '@/app/components/AddFriends';
 import { UserProfile } from '@/app/components/UserProfile';
 import { Notifications } from '@/app/components/Notifications';
+import { SimpleAutoTest } from '@/components/ui/SimpleAutoTest';
 
 import { Toaster } from 'sonner';
 import { initializeDemoData } from '@/lib/demoData';
@@ -232,6 +233,8 @@ const AppContent: React.FC = () => {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard />;
+      case 'auto-sizing-test':
+        return <SimpleAutoTest />;
       case 'accounts':
         return <Accounts />;
       case 'transactions':
@@ -311,22 +314,21 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-bg-body text-text-primary overflow-hidden font-body selection:bg-black selection:text-white">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block z-50 desktop-only">
+    <div className="w-full min-h-screen flex overflow-x-hidden bg-gray-50 app-container">
+      {/* Desktop Sidebar - Fixed Position */}
+      <div className="hidden lg:block fixed left-0 top-0 h-full z-50 w-28">
         <Sidebar />
       </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-bg-body">
-          <div className="responsive-container">
-            {renderPage()}
-          </div>
+      {/* Main Content Area - With Sidebar Offset */}
+      <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content">
+        <main className="flex-1 overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
+          {renderPage()}
         </main>
       </div>
 
       {/* Mobile/Tablet Bottom Navigation */}
-      <div className="lg:hidden mobile-only">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 mobile-only mobile-bottom-nav">
         <BottomNav onQuickAdd={() => setShowQuickAction(true)} />
       </div>
 

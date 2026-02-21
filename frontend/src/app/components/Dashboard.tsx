@@ -77,22 +77,22 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   ];
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
-      <div className="max-w-[1600px] mx-auto pb-32 lg:pb-24 w-full">
-        <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50">
+      <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full">
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-4 lg:pb-6">
           <PageHeader title="Dashboard" subtitle="Manage your financial overview" icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />} />
         </div>
 
         {/* Time Filter */}
-        <div className="px-4 lg:px-8 mb-6">
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <TimeFilter value={timePeriod} onChange={setTimePeriod} />
             <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
           </div>
         </div>
 
-        <div className="flex justify-center px-4 lg:px-8 mb-6 lg:mb-8">
-          <Card variant="mesh-pink" className="w-full lg:w-[400px] p-6 lg:p-8 relative overflow-hidden">
+        <div className="flex justify-center px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <Card variant="mesh-pink" className="w-full max-w-md lg:max-w-lg p-6 lg:p-8 relative overflow-hidden">
             <div className="relative z-10">
               <p className="text-white/80 font-medium mb-1 text-sm text-center">Total Net Worth</p>
               <h2 className="text-3xl lg:text-4xl font-display font-bold text-white tracking-tight mb-6 text-center">{formatCurrency(stats.totalBalance)}</h2>
@@ -118,7 +118,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           </Card>
         </div>
 
-        <div className="flex items-center justify-center gap-3 overflow-x-auto scrollbar-hide pb-4 px-4 sm:px-6 lg:px-8 mb-4 lg:mb-6">
+        <div className="flex items-center justify-center gap-3 overflow-x-auto scrollbar-hide pb-4 px-4 sm:px-6 lg:px-8 xl:px-12 mb-4 lg:mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -141,7 +141,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 <div className="relative">
                   {/* Mobile: 2 cards per row, centered */}
                   <div className="lg:hidden">
-                    <div className="flex gap-3 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth">
+                    <div className="flex gap-3 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 snap-x snap-mandatory scrollbar-hide scroll-smooth">
                       {filteredAccounts.map((account, index) => (
                         <div
                           key={account.id}
@@ -204,40 +204,37 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                     </div>
                   </div>
 
-                  {/* Desktop: All cards in one row with smooth scrolling */}
+                  {/* Desktop: Grid layout with proper responsive sizing */}
                   <div className="hidden lg:block">
-                    <div className="flex gap-4 overflow-x-auto pb-8 px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth">
-                      {filteredAccounts.map((account, index) => (
-                        <div
-                          key={account.id}
-                          className="snap-center shrink-0"
-                          style={{
-                            scrollSnapAlign: 'center',
-                            scrollSnapStop: 'always',
-                            width: '380px',
-                          }}
-                        >
-                          <Card 
-                            variant={index % 2 === 0 ? 'mesh-pink' : index % 3 === 0 ? 'mesh-purple' : 'mesh-green'} 
-                            onClick={() => setCurrentPage('accounts')} 
-                            className="h-[200px] p-6 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
+                    <div className="px-8 xl:px-12">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-fr">
+                        {filteredAccounts.map((account, index) => (
+                          <div
+                            key={account.id}
+                            className="w-full"
                           >
-                            <div className="flex justify-between items-start">
-                              <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
-                                {activeTab === 'cash' ? <Banknote className="text-white w-5 h-5" /> : <span className="font-bold text-white text-lg">V</span>}
+                            <Card 
+                              variant={index % 2 === 0 ? 'mesh-pink' : index % 3 === 0 ? 'mesh-purple' : 'mesh-green'} 
+                              onClick={() => setCurrentPage('accounts')} 
+                              className="h-[200px] p-6 flex flex-col justify-between group hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-lg flex items-center justify-center flex-shrink-0">
+                                  {activeTab === 'cash' ? <Banknote className="text-white w-5 h-5" /> : <span className="font-bold text-white text-lg">$</span>}
+                                </div>
+                                <div className="bg-white/20 px-2 py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
                               </div>
-                              <div className="bg-white/20 px-2 py-1 rounded text-xs font-bold text-white backdrop-blur-md flex-shrink-0">{account.type.toUpperCase()}</div>
-                            </div>
-                            <div className="space-y-4">
-                              <p className="font-display text-3xl tracking-widest text-shadow-sm truncate text-white">{formatCurrency(account.balance)}</p>
-                              <div className="flex justify-between items-end text-sm font-medium text-white/80">
-                                <span className="truncate max-w-[150px]">{account.name}</span>
-                                <span className="flex-shrink-0">Exp 09/29</span>
+                              <div className="space-y-4">
+                                <p className="font-display text-3xl tracking-widest text-shadow-sm truncate text-white">{formatCurrency(account.balance)}</p>
+                                <div className="flex justify-between items-end text-sm font-medium text-white/80">
+                                  <span className="truncate max-w-[150px]">{account.name}</span>
+                                  <span className="flex-shrink-0">Exp 09/29</span>
+                                </div>
                               </div>
-                            </div>
-                          </Card>
-                        </div>
-                      ))}
+                            </Card>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -254,9 +251,9 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           </AnimatePresence>
         </div>
 
-        <div className="px-4 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
-            <div className="space-y-6">
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 space-y-6 lg:space-y-0">
+            <div className="lg:col-span-1 space-y-6">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
@@ -316,7 +313,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="lg:col-span-1 space-y-6">
               <div>
                 <Card className="bg-white border border-gray-200 rounded-2xl overflow-hidden p-6">
                   <div className="flex items-center justify-between mb-6"><h3 className="font-semibold text-gray-900">Monthly Analytics</h3></div>

@@ -1,0 +1,123 @@
+/* Mobile Test Classes - For Debugging Fullscreen Issues */
+
+/* Debug borders to visualize container boundaries */
+@media (max-width: 768px) {
+  .debug-border {
+    border: 2px solid red !important;
+    box-sizing: border-box !important;
+  }
+  
+  .debug-border-green {
+    border: 2px solid green !important;
+    box-sizing: border-box !important;
+  }
+  
+  .debug-border-blue {
+    border: 2px solid blue !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Visual indicators for overflow issues */
+  .overflow-indicator::before {
+    content: "OVERFLOW";
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: red;
+    color: white;
+    padding: 2px 4px;
+    font-size: 10px;
+    z-index: 9999;
+  }
+  
+  /* Viewport size indicator */
+  body::before {
+    content: "Mobile: " attr(data-viewport-width) "x" attr(data-viewport-height);
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 4px 8px;
+    font-size: 12px;
+    z-index: 9999;
+    font-family: monospace;
+  }
+}
+
+/* Test classes for different screen sizes */
+@media (max-width: 320px) {
+  .screen-size-indicator::after {
+    content: "XS (≤320px)";
+    position: fixed;
+    top: 20px;
+    left: 0;
+    background: orange;
+    color: white;
+    padding: 2px 6px;
+    font-size: 10px;
+    z-index: 9999;
+  }
+}
+
+@media (min-width: 321px) and (max-width: 480px) {
+  .screen-size-indicator::after {
+    content: "SM (321-480px)";
+    position: fixed;
+    top: 20px;
+    left: 0;
+    background: blue;
+    color: white;
+    padding: 2px 6px;
+    font-size: 10px;
+    z-index: 9999;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  .screen-size-indicator::after {
+    content: "MD (481-768px)";
+    position: fixed;
+    top: 20px;
+    left: 0;
+    background: green;
+    color: white;
+    padding: 2px 6px;
+    font-size: 10px;
+    z-index: 9999;
+  }
+}
+
+/* Scroll position indicator */
+.scroll-indicator {
+  position: fixed;
+  bottom: 80px;
+  right: 10px;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 4px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+  z-index: 9999;
+  font-family: monospace;
+}
+
+/* Touch indicator */
+.touch-zone {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border: 2px dashed rgba(255,0,0,0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}

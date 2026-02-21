@@ -1,5 +1,14 @@
 // PWA Registration and Setup
 export const registerServiceWorker = async () => {
+  // Don't register service worker in development or for email confirmation flows
+  if (import.meta.env.DEV || 
+      window.location.search.includes('confirm-email') ||
+      window.location.hash.includes('confirm-email') ||
+      window.location.pathname.includes('confirm-email')) {
+    console.log('Skipping service worker registration in development or email confirmation flow');
+    return null;
+  }
+
   if ('serviceWorker' in navigator) {
     try {
       const registration = await navigator.serviceWorker.register('/service-worker.js', {
@@ -71,17 +80,22 @@ export const showInstallPrompt = async (): Promise<boolean> => {
     return false;
   }
 
-  // Show the install prompt
-  deferredPrompt.prompt();
+  try {
+    // Show the install prompt
+    deferredPrompt.prompt();
+    
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+    
+    // We've used the prompt, can't use it again
+    deferredPrompt = null;
 
-  // Wait for the user to respond to the prompt
-  const { outcome } = await deferredPrompt.userChoice;
-  console.log(`User response to the install prompt: ${outcome}`);
-
-  // We've used the prompt, can't use it again
-  deferredPrompt = null;
-
-  return outcome === 'accepted';
+    return outcome === 'accepted';
+  } catch (error) {
+    console.error('Error showing install prompt:', error);
+    return false;
+  }
 };
 
 // Check if install prompt is available

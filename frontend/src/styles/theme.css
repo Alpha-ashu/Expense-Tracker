@@ -252,9 +252,9 @@
     overflow-x: hidden;
   }
   
-  /* Fixed height for mobile screens */
+  /* Flexible height for mobile screens */
   .mobile-screen-height {
-    height: 100vh;
-    height: 100dvh; /* Dynamic viewport height for mobile */
+    min-height: 100vh;
+    min-height: 100dvh; /* Dynamic viewport height for mobile */
   }
 }

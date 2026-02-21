@@ -1,6 +1,10 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+@import './responsive-auto-clean.css';
+@import './mobile-fullscreen-fix.css';
+/* Uncomment for debugging mobile issues: */
+/* @import './mobile-test-classes.css'; */
 
 /* CSS Variables for Layout */
 :root {
@@ -16,23 +20,10 @@
   --mobile-max: 640px;
   --tablet-max: 1024px;
   --desktop-min: 1025px;
-  
-  /* Container max widths */
-  --container-sm: 640px;
-  --container-md: 768px;
-  --container-lg: 1024px;
-  --container-xl: 1280px;
-  --container-2xl: 1536px;
 }
 
-/* Universal responsive container */
-.responsive-container {
-  width: 100%;
-  max-width: min(100vw, var(--container-2xl));
-  margin: 0 auto;
-  padding-left: max(1rem, calc((100vw - var(--container-2xl)) / 2));
-  padding-right: max(1rem, calc((100vw - var(--container-2xl)) / 2));
-}
+/* REMOVED: Container restrictions that cause screen cropping
+   These classes are removed to allow full viewport usage */
 
 /* Mobile First Approach - Base Styles */
 @media (max-width: 640px) {
@@ -59,16 +50,6 @@
     font-size: 16px; /* Prevents zoom on iOS */
   }
   
-  /* Mobile-specific adjustments */
-  .mobile-container {
-    padding: 0.5rem;
-  }
-  
-  .responsive-container {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-  
   /* Hide desktop elements */
   .desktop-only {
     display: none !important;
@@ -83,16 +64,6 @@
   
   body {
     font-size: 15px;
-  }
-  
-  .responsive-container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-  
-  /* Tablet-specific adjustments */
-  .tablet-container {
-    padding: 1rem;
   }
   
   /* Adjust button sizes for tablet */
@@ -112,16 +83,6 @@
     font-size: 16px;
   }
   
-  .responsive-container {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-  
-  /* Desktop-specific adjustments */
-  .desktop-container {
-    padding: 2rem;
-  }
-  
   /* Hide mobile elements */
   .mobile-only {
     display: none !important;
@@ -133,21 +94,7 @@
   }
 }
 
-/* Large Desktop Styles */
-@media (min-width: 1280px) {
-  .responsive-container {
-    padding-left: 3rem;
-    padding-right: 3rem;
-  }
-}
-
-/* Ultra-wide Desktop Styles */
-@media (min-width: 1536px) {
-  .responsive-container {
-    padding-left: 4rem;
-    padding-right: 4rem;
-  }
-}
+/* REMOVED: Large desktop container restrictions that cause cropping */
 
 /* Safe Area Support */
 .safe-area-inset-top {
@@ -166,10 +113,10 @@
   padding-right: max(0.5rem, env(safe-area-inset-right));
 }
 
-/* Main content container - respect bottom nav */
+/* Main content container - allow full viewport usage */
 @media (max-width: 1024px) {
   main {
-    max-height: calc(100vh - var(--header-height) - var(--bottom-reserved-space));
+    min-height: calc(100vh - var(--header-height) - var(--bottom-reserved-space));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -177,7 +124,7 @@
 
 @media (min-width: 1025px) {
   main {
-    max-height: calc(100vh - var(--header-height));
+    min-height: calc(100vh - var(--header-height));
   }
 }
 
