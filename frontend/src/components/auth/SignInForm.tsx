@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { useApp } from '@/contexts/AppContext';
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void;
+  onSubmit?: (credentials: { email: string; password: string }) => Promise<void>;
 }
 
-export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
+export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubmit }) => {
+  const { setCurrentPage } = useApp();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,17 +19,14 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-
     if (!formData.email) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-
     if (!formData.password) {
       newErrors.password = 'Password is required';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -34,16 +34,19 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
     setIsLoading(true);
     try {
-      // Use centralized API client
+      // If custom onSubmit handler is provided, use it
+      if (onSubmit) {
+        await onSubmit({ email: formData.email, password: formData.password });
+        return;
+      }
+      
+      // Default behavior
       const response = await api.auth.login({
         email: formData.email,
         password: formData.password,
       });
-
-      // Store tokens from response
       if (response.data && typeof response.data === 'object' && 'accessToken' in response.data) {
         const tokens = response.data as {
           accessToken: string;
@@ -53,21 +56,16 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
         localStorage.setItem('auth_token', tokens.accessToken);
         localStorage.setItem('refresh_token', tokens.refreshToken);
         localStorage.setItem('user_email', formData.email);
-        
-        // Check if user needs onboarding
         const onboardingCompleted = localStorage.getItem('onboarding_completed');
         if (!onboardingCompleted) {
-          window.location.href = '/onboarding';
+          setCurrentPage('onboarding');
         } else {
-          window.location.href = '/dashboard';
+          setCurrentPage('dashboard');
         }
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
-      
-      // Handle specific error cases from API client
       let errorMessage = 'Login failed';
-      
       if (error.code === 'INVALID_CREDENTIALS') {
         errorMessage = 'Invalid email or password. Please check your credentials and try again.';
       } else if (error.code === 'MISSING_FIELDS') {
@@ -79,10 +77,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      setErrors({ 
-        general: errorMessage
-      });
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +86,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -104,7 +98,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           <p className="text-sm text-red-600">{errors.general}</p>
         </div>
       )}
-
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
           Email Address
@@ -115,9 +108,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           name="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
           placeholder="you@example.com"
           disabled={isLoading}
         />
@@ -125,7 +116,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           <p className="mt-1 text-sm text-red-600">{errors.email}</p>
         )}
       </div>
-
       <div>
         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
           Password
@@ -136,9 +126,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           name="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
           placeholder="••••••••"
           disabled={isLoading}
         />
@@ -146,7 +134,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           <p className="mt-1 text-sm text-red-600">{errors.password}</p>
         )}
       </div>
-
       <div className="flex items-center justify-between">
         <label className="flex items-center">
           <input
@@ -159,7 +146,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           Forgot password?
         </a>
       </div>
-
       <button
         type="submit"
         disabled={isLoading}
@@ -174,7 +160,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
           'Sign In'
         )}
       </button>
-
       <div className="text-center text-sm text-gray-600">
         Don't have an account?{' '}
         <button

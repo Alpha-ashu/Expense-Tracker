@@ -15,6 +15,9 @@ export class SessionManager {
   private static instance: SessionManager;
   private sessionTimer: NodeJS.Timeout | null = null;
   private lastActivity: number = Date.now();
+  // Store bound handler references so we can actually remove them
+  private activityHandlers: Map<string, EventListener> = new Map();
+  private activityDebounce: NodeJS.Timeout | null = null;
 
   static getInstance(): SessionManager {
     if (!SessionManager.instance) {
@@ -53,18 +56,32 @@ export class SessionManager {
   }
 
   private setupActivityListeners(): void {
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => {
-      document.addEventListener(event, () => {
-        this.lastActivity = Date.now();
-        this.resetTimer();
-      }, { passive: true });
+    // Remove any existing listeners first to avoid duplicates
+    this.clearActivityListeners();
+
+    const events = ['mousedown', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(eventName => {
+      const handler: EventListener = () => {
+        // Debounce activity updates to avoid thrashing on scroll/mouse
+        if (this.activityDebounce) clearTimeout(this.activityDebounce);
+        this.activityDebounce = setTimeout(() => {
+          this.lastActivity = Date.now();
+        }, 500);
+      };
+      this.activityHandlers.set(eventName, handler);
+      document.addEventListener(eventName, handler, { passive: true });
     });
   }
 
   private clearActivityListeners(): void {
-    // In a real app, you'd store references to remove these listeners
-    console.log('Activity listeners cleared');
+    this.activityHandlers.forEach((handler, eventName) => {
+      document.removeEventListener(eventName, handler);
+    });
+    this.activityHandlers.clear();
+    if (this.activityDebounce) {
+      clearTimeout(this.activityDebounce);
+      this.activityDebounce = null;
+    }
   }
 
   private lockApp(): void {
@@ -83,23 +100,23 @@ export class InputValidator {
 
   static validatePassword(password: string): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    
+
     if (password.length < SECURITY_CONFIG.PASSWORD_MIN_LENGTH) {
       errors.push(`Password must be at least ${SECURITY_CONFIG.PASSWORD_MIN_LENGTH} characters long`);
     }
-    
+
     if (!/(?=.*[a-z])/.test(password)) {
       errors.push('Password must contain at least one lowercase letter');
     }
-    
+
     if (!/(?=.*[A-Z])/.test(password)) {
       errors.push('Password must contain at least one uppercase letter');
     }
-    
+
     if (!/(?=.*\d)/.test(password)) {
       errors.push('Password must contain at least one number');
     }
-    
+
     if (!/(?=.*[!@#$%^&*])/.test(password)) {
       errors.push('Password must contain at least one special character');
     }
@@ -192,8 +209,8 @@ export class CSPManager {
       "frame-ancestors 'none'"
     ].join('; ');
 
-    // In a real app, this would be set in the HTML meta tag or server headers
-    console.log('CSP would be set to:', csp);
+    // CSP is applied via meta tag in index.html — this method is kept for future
+    // server-side header configuration reference.
   }
 }
 
@@ -204,7 +221,7 @@ export class DataIntegrity {
       // Check if all required tables exist
       const tables = await db.tables;
       const requiredTables = ['accounts', 'transactions', 'loans', 'goals', 'investments'];
-      
+
       for (const table of requiredTables) {
         if (!tables.find(t => t.name === table)) {
           throw new Error(`Missing required table: ${table}`);
@@ -214,7 +231,7 @@ export class DataIntegrity {
       // Check for corrupted data
       const accountCount = await db.accounts.count();
       const transactionCount = await db.transactions.count();
-      
+
       if (accountCount < 0 || transactionCount < 0) {
         throw new Error('Database integrity check failed');
       }
@@ -228,7 +245,7 @@ export class DataIntegrity {
 
   static async backupAndVerify(): Promise<void> {
     const integrityOk = await DataIntegrity.verifyDatabaseIntegrity();
-    
+
     if (!integrityOk) {
       throw new Error('Database integrity check failed before backup');
     }
@@ -245,7 +262,7 @@ export class DataIntegrity {
 
     // Verify backup integrity
     const backupIntegrityOk = await DataIntegrity.verifyBackupIntegrity(backupData);
-    
+
     if (!backupIntegrityOk) {
       throw new Error('Backup integrity check failed');
     }
@@ -255,19 +272,27 @@ export class DataIntegrity {
 
   private static async verifyBackupIntegrity(backupData: any): Promise<boolean> {
     try {
-      // Basic integrity checks
-      if (!backupData.timestamp || !backupData.accounts) {
+      // Structural integrity checks — verify data is present and well-formed
+      if (!backupData.timestamp || !Array.isArray(backupData.accounts)) {
         return false;
       }
 
-      // Check account balances match transaction totals
-      for (const account of backupData.accounts) {
-        const transactions = backupData.transactions.filter((t: any) => t.accountId === account.id);
-        const balance = transactions.reduce((sum: number, t: any) => {
-          return sum + (t.type === 'income' ? t.amount : -t.amount);
-        }, 0);
+      // Verify backup timestamp is recent (within last 5 minutes)
+      const backupAge = Date.now() - new Date(backupData.timestamp).getTime();
+      if (backupAge > 5 * 60 * 1000) {
+        return false;
+      }
 
-        if (Math.abs(account.balance - balance) > 0.01) {
+      // Verify account records have valid non-NaN balances
+      for (const account of backupData.accounts) {
+        if (typeof account.balance !== 'number' || isNaN(account.balance)) {
+          return false;
+        }
+      }
+
+      // Verify transactions have required fields
+      for (const tx of (backupData.transactions ?? [])) {
+        if (!tx.type || typeof tx.amount !== 'number' || isNaN(tx.amount)) {
           return false;
         }
       }

@@ -4,9 +4,10 @@ import { api } from '@/lib/api';
 
 interface SignUpFormProps {
   onSwitchToSignIn: () => void;
+  onSubmit?: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void>;
 }
 
-export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
+export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubmit }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -56,7 +57,18 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
 
     setIsLoading(true);
     try {
-      // Use the centralized API client
+      // If custom onSubmit handler is provided, use it
+      if (onSubmit) {
+        await onSubmit({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+        });
+        return;
+      }
+
+      // Default behavior - Use the centralized API client
       const response = await api.auth.register({
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,

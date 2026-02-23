@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
@@ -7,6 +7,7 @@ import { Card } from '@/app/components/ui/card';
 import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import supabase from '@/utils/supabase/client';
 
 interface ProfileData {
   firstName: string;
@@ -32,15 +33,65 @@ export const UserProfile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: user?.email || 'user@example.com',
-    mobile: '+91 98765 43210',
-    dateOfBirth: '1990-05-15',
-    monthlyIncome: 50000,
-    jobType: 'salaried',
-    profilePhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+    firstName: '',
+    lastName: '',
+    email: user?.email || '',
+    mobile: '',
+    dateOfBirth: '',
+    monthlyIncome: 0,
+    jobType: '',
+    profilePhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Default',
   });
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch profile data from Supabase
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+          console.error('Error fetching profile:', error);
+          toast.error('Failed to load profile data');
+          return;
+        }
+
+        if (data) {
+          setProfileData({
+            firstName: data.first_name || '',
+            lastName: data.last_name || '',
+            email: data.email || user.email || '',
+            mobile: data.mobile || '',
+            dateOfBirth: data.date_of_birth || '',
+            monthlyIncome: data.monthly_income || 0,
+            jobType: data.job_type as any || '',
+            profilePhoto: data.profile_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name || 'User'}`,
+          });
+        } else {
+          // No profile data found, use basic info from auth
+          setProfileData(prev => ({
+            ...prev,
+            email: user.email || '',
+            profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [user]);
 
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [tempData, setTempData] = useState<ProfileData>(profileData);

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { AppProvider, useApp } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
-import { AuthPage } from '@/components/auth/AuthPage';
+import { AuthFlow } from '@/components/auth/AuthFlow';
+import { LimitedModeBanner } from '@/components/common/LimitedModeBanner';
 import { PINAuth } from '@/app/components/PINAuth';
 import { Sidebar } from '@/app/components/Sidebar';
 import { Header } from '@/app/components/Header';
@@ -207,20 +208,24 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Show auth page if not logged in with Supabase
+  // Check if user has completed onboarding
+  const hasCompletedOnboarding = localStorage.getItem('onboarding_completed') === 'true';
+  
+  // Check if user needs PIN setup (after onboarding or for returning users)
+  const needsPINSetup = !localStorage.getItem('financelife_encrypted_key');
+
+  // Show auth flow if not logged in with Supabase
   if (!user) {
-    return <AuthPage />;
+    return <AuthFlow />;
   }
 
-  // Show PIN authentication if enabled and not authenticated
-  if (!isAuthenticated) {
+  // Show PIN authentication if not authenticated via PIN
+  // Skip if already completed onboarding AND already has PIN set from this session
+  if (!isAuthenticated && (needsPINSetup || !hasCompletedOnboarding)) {
     return <PINAuth onAuthenticated={setAuthenticated} />;
   }
 
-  // Check if user has completed onboarding - CRITICAL: Must check after auth but before initialization
-  const hasCompletedOnboarding = localStorage.getItem('onboarding_completed') === 'true';
-
-  // Show onboarding for new users - BLOCK all other access until completion
+  // Show onboarding for new users who haven't completed it
   if (!hasCompletedOnboarding) {
     return <NewUserOnboarding />;
   }
@@ -322,6 +327,9 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen flex overflow-x-hidden bg-gray-50 app-container">
+      {/* Limited Mode Banner */}
+      <LimitedModeBanner />
+      
       {/* Desktop Sidebar - Fixed Position */}
       <div className="hidden lg:block fixed left-0 top-0 h-full z-50 w-28">
         <Sidebar />

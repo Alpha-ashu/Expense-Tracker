@@ -1,6 +1,6 @@
 import { db } from './database';
 
-export const initializeDemoData = async (userEmail?: string) => {
+export const initializeDemoData = async (userEmail?: string, userId?: string) => {
   const targetAdminEmail = 'shaik.job.details@gmail.com';
   const isAdmin = userEmail?.toLowerCase() === targetAdminEmail;
   const hasSeededAdmin = localStorage.getItem('admin_data_seeded_v2') === 'true';
@@ -8,8 +8,8 @@ export const initializeDemoData = async (userEmail?: string) => {
   // Only admin gets demo data - new users start with blank data
   if (!isAdmin) {
     console.log('Non-admin user - skipping demo data seeding');
-    // Still seed todo lists for non-admin users
-    await seedToDoListsIfNeeded();
+    // Seed empty todo lists for non-admin users with their real userId
+    await seedToDoListsIfNeeded(userId ?? 'user');
     return;
   }
 
@@ -257,7 +257,7 @@ export const initializeDemoData = async (userEmail?: string) => {
   const personalListId = await db.toDoLists.add({
     name: 'Personal Tasks',
     description: 'Daily personal tasks and errands',
-    ownerId: 'demo-user',
+    ownerId: userId ?? 'admin',
     createdAt: new Date('2026-01-15'),
     archived: false,
   });
@@ -265,7 +265,7 @@ export const initializeDemoData = async (userEmail?: string) => {
   const financeListId = await db.toDoLists.add({
     name: 'Financial Goals',
     description: 'Money management and investment tasks',
-    ownerId: 'demo-user',
+    ownerId: userId ?? 'admin',
     createdAt: new Date('2026-01-20'),
     archived: false,
   });
@@ -273,7 +273,7 @@ export const initializeDemoData = async (userEmail?: string) => {
   const workListId = await db.toDoLists.add({
     name: 'Work Projects',
     description: 'Professional tasks and deadlines',
-    ownerId: 'demo-user',
+    ownerId: userId ?? 'admin',
     createdAt: new Date('2026-02-01'),
     archived: false,
   });
@@ -403,7 +403,7 @@ export const initializeDemoData = async (userEmail?: string) => {
 };
 
 // Helper function to seed todo lists independently
-async function seedToDoListsIfNeeded() {
+async function seedToDoListsIfNeeded(userId: string = 'user') {
   const existingLists = await db.toDoLists.count();
   if (existingLists > 0) {
     return; // Already have todo lists
@@ -411,28 +411,28 @@ async function seedToDoListsIfNeeded() {
 
   console.log('Seeding todo lists for existing user...');
 
-  // Add demo todo lists
+  // Add todo lists with real user ID
   const personalListId = await db.toDoLists.add({
     name: 'Personal Tasks',
     description: 'Daily personal tasks and errands',
-    ownerId: 'demo-user',
-    createdAt: new Date('2026-01-15'),
+    ownerId: userId,
+    createdAt: new Date(),
     archived: false,
   });
 
   const financeListId = await db.toDoLists.add({
     name: 'Financial Goals',
     description: 'Money management and investment tasks',
-    ownerId: 'demo-user',
-    createdAt: new Date('2026-01-20'),
+    ownerId: userId,
+    createdAt: new Date(),
     archived: false,
   });
 
   const workListId = await db.toDoLists.add({
     name: 'Work Projects',
     description: 'Professional tasks and deadlines',
-    ownerId: 'demo-user',
-    createdAt: new Date('2026-02-01'),
+    ownerId: userId,
+    createdAt: new Date(),
     archived: false,
   });
 

@@ -49,9 +49,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip service worker for email confirmation redirects and API calls
+  if (request.url.includes('/confirm-email') || 
+      request.url.includes('/api/') ||
+      request.url.includes('/auth/')) {
+    return;
+  }
+
   // Skip caching for dev resources in development
-  if (request.url.includes('/@vite') || request.url.includes('/@react') || request.url.includes('/node_modules')) {
-    event.respondWith(fetch(request));
+  if (request.url.includes('/@vite') || 
+      request.url.includes('/@react') || 
+      request.url.includes('/node_modules') ||
+      request.url.includes('localhost:5173')) {
+    event.respondWith(
+      fetch(request).catch(() => {
+        // For dev resources, try to return a minimal response or let it fail gracefully
+        if (request.url.includes('/@vite/client')) {
+          return new Response('// Service worker disabled for Vite client', {
+            headers: { 'Content-Type': 'application/javascript' }
+          });
+        }
+        if (request.url.includes('/@react-refresh')) {
+          return new Response('// Service worker disabled for React refresh', {
+            headers: { 'Content-Type': 'text/plain' }
+          });
+        }
+        return new Response('Dev resource unavailable', { status: 503 });
+      })
+    );
     return;
   }
 

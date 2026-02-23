@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { UserRole } from '@/lib/featureFlags';
 import { isAdminEmail } from '@/lib/rbac';
 import { permissionService } from '@/services/permissionService';
+import { initializeDemoData } from '@/lib/demoData';
+import { db } from '@/lib/database';
 
 interface AuthContextType {
   user: User | null;
@@ -26,48 +28,54 @@ const parseEmailList = (value?: string) => {
 const advisorEmails = parseEmailList(import.meta.env.VITE_ADVISOR_EMAILS);
 
 /**
- * Resolve user role with strict admin email validation
- * Admin role is ONLY for shaik.job.details@gmail.com
- * Demo mode (no user) gets admin access for testing purposes
+ * Resolve user role with strict admin email validation.
+ * Admin role is ONLY granted to the specific admin email.
+ * Unauthenticated users always get 'user' role — auth gate handles access control.
  */
 const resolveUserRole = (user: User | null): UserRole => {
-  // Demo mode - give admin access for testing all features
   if (!user) {
-    console.log('🎭 Demo mode - admin role assigned for testing');
-    return 'admin';
+    return 'user'; // No role escalation for unauthenticated users
   }
 
   const email = (user.email || '').toLowerCase().trim();
-  
-  // Direct admin email check
   const adminEmails = ['shaik.job.details@gmail.com'];
-  
-  console.log('🔍 Role check for email:', { 
-    email, 
-    isAdmin: adminEmails.includes(email),
-    adminEmails 
-  });
-  
+
   if (adminEmails.includes(email)) {
-    console.log('🔐 Admin role assigned to:', email);
     return 'admin';
   }
 
-  // Check for advisor role
   if (advisorEmails.includes(email)) {
-    console.log('👔 Advisor role assigned to:', email);
     return 'advisor';
   }
 
-  // Check user metadata as fallback (but NOT for admin - that's always email-based)
+  // Check user metadata as fallback (but NOT for admin - always email-based)
   const metadataRole = user.user_metadata?.role;
   if (metadataRole === 'advisor') {
-    console.log('👔 Advisor role assigned via metadata:', email);
     return 'advisor';
   }
 
-  console.log('👤 User role assigned to:', email);
   return 'user';
+};
+
+/** Clear all user data from the local IndexedDB to ensure data isolation between accounts */
+const clearLocalUserData = async () => {
+  try {
+    await Promise.all([
+      db.accounts.clear(),
+      db.transactions.clear(),
+      db.loans.clear(),
+      db.goals.clear(),
+      db.investments.clear(),
+      db.notifications.clear(),
+      db.groupExpenses.clear(),
+      db.friends.clear(),
+    ]);
+    // Also clear related localStorage flags
+    localStorage.removeItem('admin_data_seeded_v2');
+  } catch (err) {
+    // Non-blocking — local DB clear is best-effort
+    console.error('Failed to clear local DB on login:', err);
+  }
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -112,21 +120,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event);
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
         const userRole = resolveUserRole(nextUser);
         setRole(userRole);
         setLoading(false);
-        
-        // Update permissions on auth change
+
         if (event === 'SIGNED_IN' && nextUser?.id) {
+          // Clear previous user's local data first (data isolation)
+          await clearLocalUserData();
+          // Fetch permissions from server
           await permissionService.fetchUserPermissions(nextUser.id, userRole);
+          // Seed demo data only for admin; regular users start with clean DB
+          await initializeDemoData(nextUser.email ?? undefined, nextUser.id);
         } else if (event === 'SIGNED_OUT') {
           permissionService.clearPermissions();
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
+          // Clear local DB on logout too
+          await clearLocalUserData();
         }
       }
     );

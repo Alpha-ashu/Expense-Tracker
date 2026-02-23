@@ -29,7 +29,7 @@ export default defineConfig({
     hmr: {
       protocol: 'ws',
       host: 'localhost',
-      port: 5173,
+      port: undefined, // Use whatever port Vite chooses
     },
   },
 });
