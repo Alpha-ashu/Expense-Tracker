@@ -41,7 +41,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
         await onSubmit({ email: formData.email, password: formData.password });
         return;
       }
-      
+
       // Default behavior
       const response = await api.auth.login({
         email: formData.email,
@@ -135,9 +135,11 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
         )}
       </div>
       <div className="flex items-center justify-between">
-        <label className="flex items-center">
+        <label htmlFor="rememberMe" className="flex items-center cursor-pointer">
           <input
             type="checkbox"
+            id="rememberMe"
+            name="rememberMe"
             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
           <span className="ml-2 text-sm text-gray-600">Remember me</span>

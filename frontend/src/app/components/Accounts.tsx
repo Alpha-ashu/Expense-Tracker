@@ -149,9 +149,8 @@ export const Accounts: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as AssetType)}
-                className={`relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base ${
-                  isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
-                }`}
+                className={`relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base ${isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
               >
                 {isActive && (
                   <motion.div
@@ -168,6 +167,35 @@ export const Accounts: React.FC = () => {
             );
           })}
         </div>
+
+        {/* ── New User Prompt ── Only shown when no accounts exist */}
+        {accounts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-4 sm:mx-6 lg:mx-8 xl:mx-12 mb-4 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 text-white p-5 shadow-lg"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-lg">🏦 Set up your first account</p>
+                <p className="text-sm text-purple-100 mt-1">
+                  Add your bank account, wallet, or cash to start tracking your finances.
+                </p>
+                <ul className="mt-3 space-y-1 text-sm text-purple-100">
+                  <li>• Salary / Savings bank account</li>
+                  <li>• Credit / Debit card</li>
+                  <li>• UPI wallet or Cash</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => setCurrentPage('add-account')}
+                className="shrink-0 mt-1 bg-white text-purple-700 hover:bg-purple-50 font-semibold text-sm px-4 py-2 rounded-xl transition-colors whitespace-nowrap"
+              >
+                + Add Account
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Mobile: 2 cards per row, centered */}
         <div className="lg:hidden">

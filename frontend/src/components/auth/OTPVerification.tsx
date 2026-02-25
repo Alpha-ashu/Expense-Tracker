@@ -92,27 +92,36 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
     setError(null);
 
     try {
-      // Use Supabase's real OTP verification (email OTP)
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      // For new users, Supabase sends a 'signup' type token when the account is
+      // unconfirmed (even when triggered via signInWithOtp). Try 'signup' first,
+      // then 'email' as fallback for already-confirmed returning users.
+      let verifySuccess = false;
+
+      const { error: signupError } = await supabase.auth.verifyOtp({
         email,
         token: otpCode,
-        type: 'email',
+        type: 'signup',
       });
 
-      if (verifyError) {
-        // Supabase also issues a signup OTP — try that token type as fallback
-        const { error: signupVerifyError } = await supabase.auth.verifyOtp({
+      if (!signupError) {
+        verifySuccess = true;
+      } else {
+        // Fallback: try 'email' type (for confirmed users doing signInWithOtp)
+        const { error: emailError } = await supabase.auth.verifyOtp({
           email,
           token: otpCode,
-          type: 'signup',
+          type: 'email',
         });
-
-        if (signupVerifyError) {
-          setError('Invalid or expired code. Please try again or request a new one.');
-          setOtp(['', '', '', '', '', '']);
-          inputRefs.current[0]?.focus();
-          return;
+        if (!emailError) {
+          verifySuccess = true;
         }
+      }
+
+      if (!verifySuccess) {
+        setError('Invalid or expired code. Please request a new one.');
+        setOtp(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+        return;
       }
 
       // Mark as verified in localStorage for sync-service
@@ -141,9 +150,10 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
 
     setIsResending(true);
     try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: 'signup',
+      // Use signInWithOtp to resend the 6-digit code (same as initial send)
+      const { error: resendError } = await supabase.auth.signInWithOtp({
         email,
+        options: { shouldCreateUser: false },
       });
 
       if (resendError) throw resendError;
@@ -152,9 +162,15 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
       setResendCooldown(60);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      toast.success(`New verification code sent to ${email}`);
+      toast.success(`New code sent to ${email}`);
     } catch (err: any) {
-      toast.error('Failed to resend code. Please try again.');
+      // 429 = Supabase rate limit (max 3 emails/hour on free tier)
+      if (err?.status === 429 || err?.message?.toLowerCase().includes('rate limit')) {
+        setError('Email rate limit reached — Supabase allows 3 emails/hour on the free plan. Please wait ~1 hour or configure a custom SMTP provider in your Supabase dashboard.');
+        setResendCooldown(300); // 5 min cooldown to stop further attempts
+      } else {
+        toast.error('Failed to resend code. Please try again in a minute.');
+      }
     } finally {
       setIsResending(false);
     }

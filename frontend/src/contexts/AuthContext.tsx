@@ -70,11 +70,51 @@ const clearLocalUserData = async () => {
       db.groupExpenses.clear(),
       db.friends.clear(),
     ]);
-    // Also clear related localStorage flags
     localStorage.removeItem('admin_data_seeded_v2');
   } catch (err) {
-    // Non-blocking — local DB clear is best-effort
     console.error('Failed to clear local DB on login:', err);
+  }
+};
+
+/** Sync accounts and transactions from Supabase into local Dexie DB */
+const syncFromSupabase = async (userId: string) => {
+  try {
+    const [{ data: accounts }, { data: transactions }] = await Promise.all([
+      supabase.from('accounts').select('*').eq('user_id', userId),
+      supabase.from('transactions').select('*').eq('user_id', userId),
+    ]);
+
+    if (accounts?.length) {
+      await db.accounts.bulkPut(
+        accounts.map((a: any) => ({
+          id: a.local_id ?? undefined,
+          name: a.name,
+          type: a.type,
+          balance: a.balance ?? 0,
+          currency: a.currency ?? 'INR',
+          isActive: a.is_active ?? true,
+          createdAt: new Date(a.created_at),
+        }))
+      );
+    }
+
+    if (transactions?.length) {
+      await db.transactions.bulkPut(
+        transactions.map((t: any) => ({
+          id: t.local_id ?? undefined,
+          type: t.type,
+          amount: t.amount,
+          description: t.description ?? '',
+          category: t.category ?? 'Other',
+          accountId: t.account_id,
+          date: new Date(t.date),
+          createdAt: new Date(t.created_at),
+        }))
+      );
+    }
+  } catch (err) {
+    // Non-blocking — app works offline with empty local DB
+    console.error('Supabase sync on login failed:', err);
   }
 };
 
@@ -97,13 +137,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Check active session
     const initAuth = async () => {
       try {
+        // If redirected here after explicit sign out, skip session restore
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('logged_out') === '1') {
+          // Clean up the URL param without reload
+          window.history.replaceState({}, '', window.location.pathname);
+          setUser(null);
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
         const userRole = resolveUserRole(nextUser);
         setRole(userRole);
-        
+
         // Initialize permissions from backend with local role as fallback
         if (nextUser?.id) {
           await permissionService.fetchUserPermissions(nextUser.id, userRole);
@@ -130,6 +181,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (event === 'SIGNED_IN' && nextUser?.id) {
           // Clear previous user's local data first (data isolation)
           await clearLocalUserData();
+          // Sync accounts/transactions from Supabase into local Dexie
+          await syncFromSupabase(nextUser.id);
           // Fetch permissions from server
           await permissionService.fetchUserPermissions(nextUser.id, userRole);
           // Seed demo data only for admin; regular users start with clean DB

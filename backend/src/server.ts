@@ -1,6 +1,7 @@
 import app from './app';
 import { setupSocketIO } from './sockets';
 import { logger } from './config/logger';
+import { initializeSocket } from './sockets/index';
 
 const PORT = process.env.PORT || 3000;
 
@@ -37,6 +38,8 @@ const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
 });
 
+// Initialize WebSocket
+initializeSocket(server);
 setupSocketIO(server);
 
 export default server;

@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
+import { unifiedSignOut } from '@/lib/auth-helpers';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, DollarSign } from 'lucide-react';
+import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, DollarSign, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfileData {
   firstName: string;
@@ -28,9 +30,24 @@ interface VerificationState {
 }
 
 export const UserProfile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { setCurrentPage } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    try {
+      // Use the unified signout function for consistent behavior
+      await unifiedSignOut(navigate);
+    } catch (error) {
+      console.error('Sign out failed:', error);
+      // Fallback to manual cleanup if unified signout fails
+      localStorage.clear();
+      sessionStorage.clear();
+      try { window.indexedDB.deleteDatabase('FinanceLifeDB'); } catch { }
+      navigate('/login');
+    }
+  };
 
   const [profileData, setProfileData] = useState<ProfileData>({
     firstName: '',
@@ -49,12 +66,12 @@ export const UserProfile: React.FC = () => {
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!user) return;
-      
+
       try {
         const { data, error } = await supabase
-          .from('user_profiles')
+          .from('profiles')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
@@ -64,15 +81,19 @@ export const UserProfile: React.FC = () => {
         }
 
         if (data) {
+          // Split full_name into first/last
+          const nameParts = (data.full_name || '').split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
           setProfileData({
-            firstName: data.first_name || '',
-            lastName: data.last_name || '',
+            firstName,
+            lastName,
             email: data.email || user.email || '',
-            mobile: data.mobile || '',
+            mobile: data.phone || '',
             dateOfBirth: data.date_of_birth || '',
             monthlyIncome: data.monthly_income || 0,
             jobType: data.job_type as any || '',
-            profilePhoto: data.profile_photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.first_name || 'User'}`,
+            profilePhoto: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
           });
         } else {
           // No profile data found, use basic info from auth
@@ -114,10 +135,42 @@ export const UserProfile: React.FC = () => {
     }
   };
 
-  const handleSaveProfile = () => {
-    setProfileData(tempData);
-    setIsEditingForm(false);
-    toast.success('Profile updated successfully');
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const baseData = {
+        id: user.id,
+        email: tempData.email,
+        full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
+        phone: tempData.mobile,
+        avatar_url: tempData.profilePhoto,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from('profiles').upsert({
+        ...baseData,
+        date_of_birth: tempData.dateOfBirth || null,
+        monthly_income: tempData.monthlyIncome,
+        job_type: tempData.jobType || null,
+      });
+
+      if (error) {
+        // Extended columns may not exist — fall back to base columns only
+        console.warn('Extended profile save failed, trying base:', error.message);
+        const { error: baseError } = await supabase.from('profiles').upsert(baseData);
+        if (baseError) throw baseError;
+      }
+
+      setProfileData(tempData);
+      setIsEditingForm(false);
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      console.error('Failed to save profile:', error);
+      toast.error(error.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChangeEmail = () => {
@@ -184,6 +237,37 @@ export const UserProfile: React.FC = () => {
 
         {/* Content */}
         <div className="px-4 lg:px-0 mt-8 space-y-6">
+
+          {/* ── New User Prompt ── Only shown when profile is incomplete */}
+          {!profileData.firstName && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-5 shadow-lg"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-lg">👋 Welcome! Complete your profile</p>
+                  <p className="text-sm text-blue-100 mt-1">
+                    Fill in your details so we can personalise your experience.
+                  </p>
+                  <ul className="mt-3 space-y-1 text-sm text-blue-100">
+                    {!profileData.firstName && <li>• First &amp; Last Name</li>}
+                    {!profileData.mobile && <li>• Mobile Number</li>}
+                    {!profileData.dateOfBirth && <li>• Date of Birth</li>}
+                    {!profileData.jobType && <li>• Job Type &amp; Monthly Income</li>}
+                  </ul>
+                </div>
+                <button
+                  onClick={() => setIsEditingForm(true)}
+                  className="shrink-0 mt-1 bg-white text-blue-700 hover:bg-blue-50 font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
+                >
+                  Edit Profile
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Profile Photo Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -230,11 +314,10 @@ export const UserProfile: React.FC = () => {
                       setIsEditingForm(!isEditingForm);
                       if (isEditingForm) setTempData(profileData);
                     }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      isEditingForm
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                        : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${isEditingForm
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      }`}
                   >
                     {isEditingForm ? 'Cancel' : 'Edit'}
                   </button>
@@ -589,16 +672,27 @@ export const UserProfile: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* Info Box */}
+          {/* Sign Out */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-blue-50 border border-blue-200 rounded-2xl p-4 lg:p-6"
+            transition={{ delay: 0.4 }}
           >
-            <p className="text-sm text-blue-900">
-              <span className="font-semibold">🔒 Security Note:</span> Email changes require mobile verification, and mobile changes require email verification. This protects your account from unauthorized changes.
-            </p>
+            <Card className="bg-white border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900">Signed in as</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{user?.email}</p>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors active:scale-95"
+                >
+                  <LogOut size={18} />
+                  Sign Out
+                </button>
+              </div>
+            </Card>
           </motion.div>
         </div>
       </div>

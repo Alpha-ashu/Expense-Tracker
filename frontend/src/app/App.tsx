@@ -213,6 +213,10 @@ const AppContent: React.FC = () => {
   
   // Check if user needs PIN setup (after onboarding or for returning users)
   const needsPINSetup = !localStorage.getItem('financelife_encrypted_key');
+  
+  // Check if this is a new user (no profile data and no onboarding completion)
+  const hasProfileData = localStorage.getItem('user_profile') || localStorage.getItem('user_settings');
+  const isNewUser = !hasCompletedOnboarding && !hasProfileData;
 
   // Show auth flow if not logged in with Supabase
   if (!user) {
@@ -226,7 +230,8 @@ const AppContent: React.FC = () => {
   }
 
   // Show onboarding for new users who haven't completed it
-  if (!hasCompletedOnboarding) {
+  // Only show if it's actually a new user (no existing profile data)
+  if (!hasCompletedOnboarding && isNewUser) {
     return <NewUserOnboarding />;
   }
 

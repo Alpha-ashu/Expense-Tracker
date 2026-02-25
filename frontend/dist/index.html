@@ -3,6 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- Content Security Policy — enforced by browser -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' data: blob: https:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.supabase.io;
+      frame-src 'none';
+      object-src 'none';
+      base-uri 'self';
+    " />
     <meta name="theme-color" content="#2563eb" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="description" content="FinanceLife - Your Privacy-First Financial Life Management Platform" />
@@ -13,8 +25,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <title>FinanceLife - Financial OS</title>
-    <script type="module" crossorigin src="/assets/index-Bcft02Gl.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/style-CWndZMj7.css">
+    <script type="module" crossorigin src="/assets/index-DpI66XYu.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/style-CyDSI1-A.css">
   </head>
   <body>
     <div id="root"></div>

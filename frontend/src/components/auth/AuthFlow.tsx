@@ -23,6 +23,7 @@ interface UserProfile {
   firstName: string;
   lastName: string;
   email: string;
+  mobile: string;
   dateOfBirth: string;
   jobType: string;
   jobIndustry: string;
@@ -82,9 +83,9 @@ export const AuthFlow: React.FC = () => {
 
       // Check if user has completed profile
       const { data: profile } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('*')
-        .eq('user_id', data.user.id)
+        .eq('id', data.user.id)
         .single();
 
       if (profile) {
@@ -120,24 +121,43 @@ export const AuthFlow: React.FC = () => {
         },
       });
 
-      if (error) throw error;
+      // SMTP misconfigured — account IS created but email failed. Non-fatal.
+      const smtpFailed = error?.message?.toLowerCase().includes('sending confirmation email');
+      if (error && !smtpFailed) throw error;
 
       setEmail(data.email);
       setUserProfile({
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        mobile: '',
         dateOfBirth: '',
         jobType: '',
         jobIndustry: '',
         monthlyIncome: '',
       });
       setIsNewUser(true);
-      // Go to mandatory OTP verification before profile setup
-      setStep('otp-verify');
-      saveFlowState('otp-verify');
 
-      toast.success('Account created! Please verify your email to continue.');
+      // Auto-detect: if Supabase "Confirm email" is OFF, the user is already confirmed
+      // immediately after signUp (email_confirmed_at is set). Skip OTP in that case.
+      const alreadyConfirmed = !!authData?.user?.email_confirmed_at;
+
+      if (alreadyConfirmed) {
+        // Email confirmation disabled in Supabase — go straight to profile setup
+        setStep('profile-setup');
+        saveFlowState('profile-setup');
+        toast.success('Account created! Let\'s set up your profile.');
+      } else if (smtpFailed) {
+        // Account created but email not sent — go to OTP screen with warning
+        setStep('otp-verify');
+        saveFlowState('otp-verify');
+        toast.warning('Account created! Email delivery failed — fix SMTP in Supabase dashboard, then click Resend Code.');
+      } else {
+        // Normal flow — email sent, user must verify
+        setStep('otp-verify');
+        saveFlowState('otp-verify');
+        toast.success('Verification code sent to your email!');
+      }
     } catch (error: any) {
       console.error('Sign up error:', error);
       toast.error(error.message || 'Failed to create account');
@@ -180,18 +200,31 @@ export const AuthFlow: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
-        // Save user profile to Supabase
-        await supabase.from('user_profiles').upsert({
-          user_id: user.id,
-          first_name: userProfile?.firstName,
-          last_name: userProfile?.lastName,
+        // Save profile — try full upsert first, fallback to base columns if migration not run
+        const baseProfile = {
+          id: user.id,
           email: userProfile?.email,
-          date_of_birth: userProfile?.dateOfBirth,
-          job_type: userProfile?.jobType,
-          job_industry: userProfile?.jobIndustry,
-          monthly_income: parseFloat(userProfile?.monthlyIncome || '0'),
+          full_name: `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim(),
+          phone: userProfile?.mobile ?? null,
           updated_at: new Date().toISOString(),
+        };
+
+        const { error: profileError } = await supabase.from('profiles').upsert({
+          ...baseProfile,
+          date_of_birth: userProfile?.dateOfBirth || null,
+          job_type: userProfile?.jobType || null,
+          job_industry: userProfile?.jobIndustry || null,
+          monthly_income: parseFloat(userProfile?.monthlyIncome || '0'),
         });
+
+        if (profileError) {
+          // Likely missing extended columns — fall back to base columns only
+          console.warn('Extended profile upsert failed, trying base:', profileError.message);
+          const { error: baseError } = await supabase.from('profiles').upsert(baseProfile);
+          if (baseError) {
+            console.error('Base profile save also failed:', baseError);
+          }
+        }
 
         // Register device
         const deviceId = localStorage.getItem('device_id') || generateDeviceId();
@@ -247,31 +280,32 @@ export const AuthFlow: React.FC = () => {
 
       if (!user || !salaryAccount) return;
 
-      // Create salary bank account in local DB only (no mock income transaction)
+      const accountName = `${salaryAccount.bankName} - ${salaryAccount.accountName}`;
+      const balance = parseFloat(salaryAccount.openingBalance) || 0;
+
+      // 1. Save to local Dexie DB immediately (guaranteed to work)
       await db.accounts.add({
-        name: `${salaryAccount.bankName} - ${salaryAccount.accountName}`,
+        name: accountName,
         type: 'bank',
-        balance: parseFloat(salaryAccount.openingBalance) || 0,
+        balance,
         currency: 'INR',
         isActive: true,
         createdAt: new Date(),
       });
 
-      // Save to Supabase for cloud sync
+      // 2. Sync to Supabase — only use guaranteed base columns
       const { error } = await supabase.from('accounts').insert({
         user_id: user.id,
-        name: `${salaryAccount.bankName} - ${salaryAccount.accountName}`,
+        name: accountName,
         type: 'bank',
-        balance: parseFloat(salaryAccount.openingBalance) || 0,
+        balance,
         currency: 'INR',
-        is_primary: salaryAccount.isPrimary,
-        salary_credit_date: parseInt(salaryAccount.salaryCreditDate),
         created_at: new Date().toISOString(),
       });
 
       if (error) {
-        console.error('Failed to save account to Supabase:', error);
-        toast.error('Account created locally, but failed to sync to cloud');
+        console.error('Failed to sync account to Supabase:', error.message);
+        // Local save succeeded — not a blocking error
       } else {
         toast.success('Salary account created and synced!');
       }
@@ -356,6 +390,7 @@ export const AuthFlow: React.FC = () => {
               firstName: userProfile?.firstName || '',
               lastName: userProfile?.lastName || '',
               email: email,
+              mobile: '',
               dateOfBirth: formData.get('dob') as string,
               jobType: formData.get('jobType') as string,
               jobIndustry: formData.get('jobIndustry') as string,
@@ -365,9 +400,10 @@ export const AuthFlow: React.FC = () => {
         >
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <label htmlFor="ps-firstName" className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
               <input
                 type="text"
+                id="ps-firstName"
                 name="firstName"
                 defaultValue={userProfile?.firstName}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -375,9 +411,10 @@ export const AuthFlow: React.FC = () => {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <label htmlFor="ps-lastName" className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
               <input
                 type="text"
+                id="ps-lastName"
                 name="lastName"
                 defaultValue={userProfile?.lastName}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -387,9 +424,10 @@ export const AuthFlow: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+            <label htmlFor="ps-dob" className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
             <input
               type="date"
+              id="ps-dob"
               name="dob"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               required
@@ -398,8 +436,9 @@ export const AuthFlow: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+              <label htmlFor="ps-jobType" className="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
               <select
+                id="ps-jobType"
                 name="jobType"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
@@ -414,8 +453,9 @@ export const AuthFlow: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
+              <label htmlFor="ps-jobIndustry" className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
               <select
+                id="ps-jobIndustry"
                 name="jobIndustry"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
@@ -432,9 +472,10 @@ export const AuthFlow: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Income (₹)</label>
+            <label htmlFor="ps-income" className="block text-sm font-medium text-gray-700 mb-1">Monthly Income (₹)</label>
             <input
               type="number"
+              id="ps-income"
               name="income"
               placeholder="50000"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
