@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
-import { unifiedSignOut } from '@/lib/auth-helpers';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
@@ -9,7 +8,8 @@ import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, DollarSign, LogOu
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { db } from '@/lib/database';
+import { permissionService } from '@/services/permissionService';
 
 interface ProfileData {
   firstName: string;
@@ -33,19 +33,88 @@ export const UserProfile: React.FC = () => {
   const { user, signOut } = useAuth();
   const { setCurrentPage } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
+    if (isSigningOut) return; // Prevent double-clicks
+    
+    setIsSigningOut(true);
+    console.log('🔐 Starting sign out process...');
+    toast.info('Signing out...');
+    
     try {
-      // Use the unified signout function for consistent behavior
-      await unifiedSignOut(navigate);
+      // Step 1: Sign out from Supabase (with timeout)
+      const signOutPromise = supabase.auth.signOut({ scope: 'global' });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign out timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([signOutPromise, timeoutPromise]);
+      } catch (e) {
+        console.warn('Supabase signOut timed out or failed (non-blocking):', e);
+      }
+
+      // Step 2: Clear permissions
+      try {
+        permissionService.clearPermissions();
+      } catch (e) {
+        console.warn('Permission clear error (non-blocking):', e);
+      }
+
+      // Step 3: Clear all storage immediately
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn('Storage clear error (non-blocking):', e);
+      }
+
+      // Step 4: Clear IndexedDB tables (with timeout)
+      try {
+        await Promise.race([
+          Promise.all([
+            db.accounts.clear(),
+            db.transactions.clear(),
+            db.loans.clear(),
+            db.goals.clear(),
+            db.investments.clear(),
+            db.notifications.clear(),
+            db.groupExpenses.clear(),
+            db.friends.clear(),
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('DB clear timeout')), 3000))
+        ]);
+      } catch (e) {
+        console.warn('DB clear error (non-blocking):', e);
+      }
+
+      // Step 5: Delete the database
+      try {
+        window.indexedDB.deleteDatabase('FinanceLifeDB');
+      } catch (e) {
+        console.warn('IndexedDB delete error (non-blocking):', e);
+      }
+
+      console.log('✅ Sign out completed successfully');
+      toast.success('Signed out successfully');
+
+      // Step 6: Hard redirect immediately
+      window.location.href = window.location.origin + '/login?logged_out=1';
+
     } catch (error) {
-      console.error('Sign out failed:', error);
-      // Fallback to manual cleanup if unified signout fails
-      localStorage.clear();
-      sessionStorage.clear();
-      try { window.indexedDB.deleteDatabase('FinanceLifeDB'); } catch { }
-      navigate('/login');
+      console.error('❌ Sign out failed:', error);
+      
+      // Force cleanup even on error
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        // Ignore
+      }
+      
+      // Always redirect
+      window.location.href = window.location.origin + '/login';
     }
   };
 
@@ -91,17 +160,45 @@ export const UserProfile: React.FC = () => {
             email: data.email || user.email || '',
             mobile: data.phone || '',
             dateOfBirth: data.date_of_birth || '',
-            monthlyIncome: data.monthly_income || 0,
+            monthlyIncome: data.monthly_income || data.annual_income ? Math.round((data.monthly_income || data.annual_income / 12)) : 0,
             jobType: data.job_type as any || '',
             profilePhoto: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
           });
         } else {
-          // No profile data found, use basic info from auth
-          setProfileData(prev => ({
-            ...prev,
-            email: user.email || '',
-            profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
-          }));
+          // No profile data in Supabase, check localStorage from onboarding
+          const localProfile = localStorage.getItem('user_profile');
+          if (localProfile) {
+            try {
+              const parsedProfile = JSON.parse(localProfile);
+              const nameParts = (parsedProfile.displayName || '').split(' ');
+              const firstName = nameParts[0] || '';
+              const lastName = nameParts.slice(1).join(' ') || '';
+              setProfileData({
+                firstName,
+                lastName,
+                email: user.email || '',
+                mobile: '',
+                dateOfBirth: parsedProfile.dateOfBirth || '',
+                monthlyIncome: parsedProfile.salary ? Math.round(parseFloat(parsedProfile.salary) / 12) : 0,
+                jobType: parsedProfile.jobType?.toLowerCase() || '',
+                profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+              });
+            } catch {
+              // Fallback to basic info from auth
+              setProfileData(prev => ({
+                ...prev,
+                email: user.email || '',
+                profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
+              }));
+            }
+          } else {
+            // No profile data found, use basic info from auth
+            setProfileData(prev => ({
+              ...prev,
+              email: user.email || '',
+              profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
+            }));
+          }
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -112,6 +209,84 @@ export const UserProfile: React.FC = () => {
     };
 
     fetchProfileData();
+  }, [user]);
+
+  // Listen for onboarding completion to refresh profile data
+  useEffect(() => {
+    const handleOnboardingComplete = (event: CustomEvent) => {
+      console.log('ONBOARDING_COMPLETED event received in UserProfile, refreshing profile data...');
+      // Force refresh of profile data after onboarding
+      const fetchProfileData = async () => {
+        if (!user) return;
+
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching profile after onboarding:', error);
+            return;
+          }
+
+          if (data) {
+            const nameParts = (data.full_name || '').split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            setProfileData({
+              firstName,
+              lastName,
+              email: data.email || user.email || '',
+              mobile: data.phone || '',
+              dateOfBirth: data.date_of_birth || '',
+              monthlyIncome: data.monthly_income || data.annual_income ? Math.round((data.monthly_income || data.annual_income / 12)) : 0,
+              jobType: data.job_type as any || '',
+              profilePhoto: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+            });
+          } else {
+            // Check localStorage for onboarding data
+            const localProfile = localStorage.getItem('user_profile');
+            if (localProfile) {
+              try {
+                const parsedProfile = JSON.parse(localProfile);
+                const nameParts = (parsedProfile.displayName || '').split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ') || '';
+                setProfileData({
+                  firstName,
+                  lastName,
+                  email: user.email || '',
+                  mobile: '',
+                  dateOfBirth: parsedProfile.dateOfBirth || '',
+                  monthlyIncome: parsedProfile.salary ? Math.round(parseFloat(parsedProfile.salary) / 12) : 0,
+                  jobType: parsedProfile.jobType?.toLowerCase() || '',
+                  profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+                });
+              } catch {
+                // Fallback to basic info
+                setProfileData(prev => ({
+                  ...prev,
+                  email: user.email || '',
+                  profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
+                }));
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing profile after onboarding:', error);
+        }
+      };
+
+      fetchProfileData();
+    };
+
+    window.addEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete as EventListener);
+
+    return () => {
+      window.removeEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete as EventListener);
+    };
   }, [user]);
 
   const [isEditingForm, setIsEditingForm] = useState(false);
@@ -686,10 +861,11 @@ export const UserProfile: React.FC = () => {
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors active:scale-95"
+                  disabled={isSigningOut}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <LogOut size={18} />
-                  Sign Out
+                  {isSigningOut ? 'Signing Out...' : 'Sign Out'}
                 </button>
               </div>
             </Card>

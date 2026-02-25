@@ -5,7 +5,6 @@ interface ProfileSetupStepProps {
     displayName: string;
     dateOfBirth: string;
     jobType: string;
-    jobIndustry: string;
     salary: string;
   };
   onUpdate: (data: any) => void;
@@ -21,23 +20,6 @@ const JOB_TYPES = [
   'Student',
   'Retired',
   'Unemployed',
-  'Other',
-];
-
-const JOB_INDUSTRIES = [
-  'Information Technology',
-  'Telecommunications',
-  'Cinema & Entertainment',
-  'Healthcare',
-  'Education',
-  'Finance & Banking',
-  'Manufacturing',
-  'Retail',
-  'Transportation',
-  'Construction',
-  'Hospitality',
-  'Government',
-  'Non-profit',
   'Other',
 ];
 
@@ -70,10 +52,6 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
 
     if (!data.jobType) {
       newErrors.jobType = 'Job type is required';
-    }
-
-    if (!data.jobIndustry) {
-      newErrors.jobIndustry = 'Job industry is required';
     }
 
     if (!data.salary) {
@@ -141,54 +119,28 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 mb-1">
-            Job Type
-          </label>
-          <select
-            id="jobType"
-            value={data.jobType}
-            onChange={(e) => onUpdate({ jobType: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.jobType ? 'border-red-500' : 'border-gray-300'
-            }`}
-          >
-            <option value="">Select job type</option>
-            {JOB_TYPES.map((job) => (
-              <option key={job} value={job}>
-                {job}
-              </option>
-            ))}
-          </select>
-          {errors.jobType && (
-            <p className="mt-1 text-sm text-red-600">{errors.jobType}</p>
-          )}
-        </div>
-
-        <div>
-          <label htmlFor="jobIndustry" className="block text-sm font-medium text-gray-700 mb-1">
-            Industry
-          </label>
-          <select
-            id="jobIndustry"
-            value={data.jobIndustry}
-            onChange={(e) => onUpdate({ jobIndustry: e.target.value })}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.jobIndustry ? 'border-red-500' : 'border-gray-300'
-            }`}
-          >
-            <option value="">Select industry</option>
-            {JOB_INDUSTRIES.map((industry) => (
-              <option key={industry} value={industry}>
-                {industry}
-              </option>
-            ))}
-          </select>
-          {errors.jobIndustry && (
-            <p className="mt-1 text-sm text-red-600">{errors.jobIndustry}</p>
-          )}
-        </div>
+      <div>
+        <label htmlFor="jobType" className="block text-sm font-medium text-gray-700 mb-1">
+          Job Type
+        </label>
+        <select
+          id="jobType"
+          value={data.jobType}
+          onChange={(e) => onUpdate({ jobType: e.target.value })}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            errors.jobType ? 'border-red-500' : 'border-gray-300'
+          }`}
+        >
+          <option value="">Select job type</option>
+          {JOB_TYPES.map((job) => (
+            <option key={job} value={job}>
+              {job}
+            </option>
+          ))}
+        </select>
+        {errors.jobType && (
+          <p className="mt-1 text-sm text-red-600">{errors.jobType}</p>
+        )}
       </div>
 
       <div>

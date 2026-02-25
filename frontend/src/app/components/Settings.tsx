@@ -4,7 +4,6 @@ import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSig
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { legacySignOut } from '@/lib/auth-helpers';
 import { motion } from 'framer-motion';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -18,6 +17,8 @@ import {
   createBackup,
   listBackups
 } from '@/lib/importExport';
+import supabase from '@/utils/supabase/client';
+import { permissionService } from '@/services/permissionService';
 
 export const Settings: React.FC = () => {
   const { currency, setCurrency, language, setLanguage, setCurrentPage, visibleFeatures, setVisibleFeatures } = useApp();
@@ -25,6 +26,7 @@ export const Settings: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [backups, setBackups] = useState<Array<any>>([]);
   const [showBackups, setShowBackups] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   React.useEffect(() => {
     loadBackups();
@@ -36,16 +38,85 @@ export const Settings: React.FC = () => {
   };
 
   const handleSignOut = async () => {
+    if (isSigningOut) return; // Prevent double-clicks
+    
+    setIsSigningOut(true);
+    console.log('🔐 Starting sign out process...');
+    toast.info('Signing out...');
+    
     try {
-      // Use the legacy signout function for consistent behavior
-      await legacySignOut();
+      // Step 1: Sign out from Supabase (with timeout)
+      const signOutPromise = supabase.auth.signOut({ scope: 'global' });
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign out timeout')), 5000)
+      );
+      
+      try {
+        await Promise.race([signOutPromise, timeoutPromise]);
+      } catch (e) {
+        console.warn('Supabase signOut timed out or failed (non-blocking):', e);
+      }
+
+      // Step 2: Clear permissions
+      try {
+        permissionService.clearPermissions();
+      } catch (e) {
+        console.warn('Permission clear error (non-blocking):', e);
+      }
+
+      // Step 3: Clear all storage immediately
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn('Storage clear error (non-blocking):', e);
+      }
+
+      // Step 4: Clear IndexedDB tables (with timeout)
+      try {
+        await Promise.race([
+          Promise.all([
+            db.accounts.clear(),
+            db.transactions.clear(),
+            db.loans.clear(),
+            db.goals.clear(),
+            db.investments.clear(),
+            db.notifications.clear(),
+            db.groupExpenses.clear(),
+            db.friends.clear(),
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('DB clear timeout')), 3000))
+        ]);
+      } catch (e) {
+        console.warn('DB clear error (non-blocking):', e);
+      }
+
+      // Step 5: Delete the database
+      try {
+        window.indexedDB.deleteDatabase('FinanceLifeDB');
+      } catch (e) {
+        console.warn('IndexedDB delete error (non-blocking):', e);
+      }
+
+      console.log('✅ Sign out completed successfully');
+      toast.success('Signed out successfully');
+
+      // Step 6: Hard redirect immediately
+      window.location.href = window.location.origin + '/login?logged_out=1';
+
     } catch (error) {
-      console.error('Sign out error:', error);
-      // Fallback to manual cleanup if legacy signout fails
-      localStorage.clear();
-      sessionStorage.clear();
-      try { window.indexedDB.deleteDatabase('FinanceLifeDB'); } catch { }
-      window.location.href = window.location.origin;
+      console.error('❌ Sign out failed:', error);
+      
+      // Force cleanup even on error
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        // Ignore
+      }
+      
+      // Always redirect
+      window.location.href = window.location.origin + '/login';
     }
   };
 

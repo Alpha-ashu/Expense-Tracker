@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
 import { ProfileSetupStep } from './ProfileSetupStep';
 import { BankAccountStep } from './BankAccountStep';
-import { EmergencyContactStep } from './EmergencyContactStep';
 import { OnboardingCompleteStep } from './OnboardingCompleteStep';
 
 interface OnboardingData {
   displayName: string;
   dateOfBirth: string;
   jobType: string;
-  jobIndustry: string;
   salary: string;
   bankName: string;
   accountNumber: string;
   accountHolderName: string;
   salaryCreditDate: string;
-  emergencyContactName: string;
-  emergencyContactNumber: string;
-  emergencyContactType: string;
 }
 
 export const NewUserOnboarding: React.FC = () => {
@@ -25,15 +20,11 @@ export const NewUserOnboarding: React.FC = () => {
     displayName: '',
     dateOfBirth: '',
     jobType: '',
-    jobIndustry: '',
     salary: '',
     bankName: '',
     accountNumber: '',
     accountHolderName: '',
     salaryCreditDate: '',
-    emergencyContactName: '',
-    emergencyContactNumber: '',
-    emergencyContactType: 'whatsapp',
   });
 
   const updateOnboardingData = (data: Partial<OnboardingData>) => {
@@ -41,7 +32,7 @@ export const NewUserOnboarding: React.FC = () => {
   };
 
   const nextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 4));
+    setCurrentStep(prev => Math.min(prev + 1, 3));
   };
 
   const prevStep = () => {
@@ -69,15 +60,6 @@ export const NewUserOnboarding: React.FC = () => {
         );
       case 3:
         return (
-          <EmergencyContactStep
-            data={onboardingData}
-            onUpdate={updateOnboardingData}
-            onNext={nextStep}
-            onBack={prevStep}
-          />
-        );
-      case 4:
-        return (
           <OnboardingCompleteStep
             data={onboardingData}
             onComplete={() => {
@@ -86,6 +68,10 @@ export const NewUserOnboarding: React.FC = () => {
               // Save to localStorage and redirect to dashboard
               localStorage.setItem('user_profile', JSON.stringify(onboardingData));
               localStorage.setItem('onboarding_completed', 'true');
+              // Dispatch custom event for global state update
+              window.dispatchEvent(new CustomEvent('ONBOARDING_COMPLETED', { 
+                detail: onboardingData 
+              }));
               window.location.href = '/dashboard';
             }}
             onBack={prevStep}
@@ -103,10 +89,10 @@ export const NewUserOnboarding: React.FC = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Complete Your Profile</h2>
-            <span className="text-sm text-gray-500">Step {currentStep} of 4</span>
+            <span className="text-sm text-gray-500">Step {currentStep} of 3</span>
           </div>
           <div className="flex space-x-2">
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3].map((step) => (
               <div
                 key={step}
                 className={`flex-1 h-2 rounded-full transition-colors ${

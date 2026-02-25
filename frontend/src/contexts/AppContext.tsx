@@ -65,13 +65,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
+    // Listen for onboarding completion to refresh all data
+    const handleOnboardingComplete = () => {
+      console.log('ONBOARDING_COMPLETED event received, refreshing data...');
+      setForceUpdate(prev => prev + 1);
+    };
+
+    // Listen for onboarding refresh timestamp to force data refresh
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'onboarding_refresh_timestamp') {
+        console.log('Onboarding refresh timestamp detected, forcing data refresh...');
+        setForceUpdate(prev => prev + 1);
+      }
+    };
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete);
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
