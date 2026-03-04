@@ -38,9 +38,9 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     totalBalance: accounts.filter(a => a.isActive).reduce((sum, a) => sum + a.balance, 0),
     monthlyIncome: timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
     monthlyExpense: timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
-    savingsRate: timeFilteredTransactions.length > 0 
-      ? ((timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) - 
-         timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)) /
+    savingsRate: timeFilteredTransactions.length > 0
+      ? ((timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
+        timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)) /
         timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)) * 100
       : 0,
   }), [accounts, timeFilteredTransactions]);
@@ -53,9 +53,9 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     // Filter for recurring expenses and upcoming bills
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return transactions.filter(t => 
-      t.type === 'expense' && 
-      t.date >= now && 
+    return transactions.filter(t =>
+      t.type === 'expense' &&
+      t.date >= now &&
       t.date <= thirtyDaysFromNow &&
       (t.category === 'bills' || t.category === 'subscriptions' || t.description.toLowerCase().includes('emi'))
     ).slice(0, 3);
@@ -77,9 +77,9 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     { id: 'cash', label: 'Cash', icon: Banknote },
   ];
 
-  const EmptyState = ({ title, description, icon: Icon, action }: { 
-    title: string; 
-    description: string; 
+  const EmptyState = ({ title, description, icon: Icon, action }: {
+    title: string;
+    description: string;
     icon: React.ElementType;
     action?: { label: string; onClick: () => void };
   }) => (
@@ -135,7 +135,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                   <p className="text-white font-bold text-sm lg:text-base">{formatCurrency(stats.monthlyExpense)}</p>
                 </div>
               </div>
-              
+
               {stats.monthlyIncome > 0 && (
                 <div className="mt-4 bg-white/20 backdrop-blur-md rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-1 opacity-80">
@@ -156,19 +156,19 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <button 
-                key={tab.id} 
-                onClick={() => setActiveTab(tab.id as 'all' | 'bank' | 'card' | 'wallet' | 'cash')} 
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as 'all' | 'bank' | 'card' | 'wallet' | 'cash')}
                 className={cn(
-                  'relative flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2.5 lg:py-3 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
+                  'relative flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
                   isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
                 )}
               >
                 {isActive && (
-                  <motion.div 
-                    layoutId="activeTabPill" 
-                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full" 
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} 
+                  <motion.div
+                    layoutId="activeTabPill"
+                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full z-0"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
                 )}
                 <span className="relative z-10 flex items-center gap-1 sm:gap-2">
@@ -184,23 +184,23 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Accounts</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage?.('accounts')}
               className="rounded-full"
             >
               View All
             </Button>
           </div>
-          
+
           <AnimatePresence mode="wait">
             {filteredAccounts.length > 0 ? (
-              <motion.div 
-                key={activeTab} 
-                initial={{ opacity: 0, x: 20 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                exit={{ opacity: 0, x: -20 }} 
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               >
@@ -210,9 +210,9 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center",
                         account.type === 'bank' ? "bg-blue-100 text-blue-600" :
-                        account.type === 'card' ? "bg-purple-100 text-purple-600" :
-                        account.type === 'wallet' ? "bg-green-100 text-green-600" :
-                        "bg-gray-100 text-gray-600"
+                          account.type === 'card' ? "bg-purple-100 text-purple-600" :
+                            account.type === 'wallet' ? "bg-green-100 text-green-600" :
+                              "bg-gray-100 text-gray-600"
                       )}>
                         {account.type === 'bank' && <Wallet size={20} />}
                         {account.type === 'card' && <CreditCard size={20} />}
@@ -243,16 +243,16 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage?.('transactions')}
               className="rounded-full"
             >
               View All
             </Button>
           </div>
-          
+
           <AnimatePresence>
             {recentTransactions.length > 0 ? (
               <Card className="divide-y divide-gray-100">
@@ -300,16 +300,16 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Upcoming Bills</h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setCurrentPage?.('calendar')}
                 className="rounded-full"
               >
                 View Calendar
               </Button>
             </div>
-            
+
             <Card className="divide-y divide-gray-100">
               {upcomingBills.map((bill, index) => (
                 <div key={bill.id} className="p-4 flex items-center justify-between">
@@ -336,16 +336,16 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Goals Progress</h3>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setCurrentPage?.('goals')}
                 className="rounded-full"
               >
                 View All
               </Button>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeGoals.map((goal) => {
                 const progress = (goal.currentAmount / goal.targetAmount) * 100;
@@ -361,7 +361,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                         <span>{formatCurrency(goal.targetAmount)}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                           style={{ width: `${Math.min(progress, 100)}%` }}
                         />

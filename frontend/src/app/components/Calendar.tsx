@@ -107,13 +107,20 @@ export const Calendar: React.FC = () => {
 
   const calendarDays = useMemo(() => {
     const days = [];
-    for (let i = 0; i < 42; i++) {
+    const daysInMonth = monthEnd.getDate();
+    // Padding from previous month to start on the correct day of week
+    const leadingPadding = monthStart.getDay();
+
+    // We only need (leadingPadding + daysInMonth) total blocks, and maybe trail to fill the last row
+    const totalBlocks = Math.ceil((leadingPadding + daysInMonth) / 7) * 7;
+
+    for (let i = 0; i < totalBlocks; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
       days.push(date);
     }
     return days;
-  }, [startDate]);
+  }, [startDate, monthStart, monthEnd]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
@@ -259,415 +266,415 @@ export const Calendar: React.FC = () => {
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
-        {/* App Header */}
-        <PageHeader
-          title="Calendar"
-          subtitle="Track activities, reminders & transactions"
-          icon={<CalendarIcon size={20} className="sm:w-6 sm:h-6" />}
-        />
+      {/* App Header */}
+      <PageHeader
+        title="Calendar"
+        subtitle="Track activities, reminders & transactions"
+        icon={<CalendarIcon size={20} className="sm:w-6 sm:h-6" />}
+      />
 
-        {/* Time Filter & Actions Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <TimeFilter value={timePeriod} onChange={setTimePeriod} />
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleToday}
-              className="px-4 py-2.5 rounded-xl bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all border border-gray-200 shadow-sm text-sm"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setShowReminderModal(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-500/25"
-            >
-              <Plus size={18} /> Add Reminder
-            </button>
-          </div>
+      {/* Time Filter & Actions Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <TimeFilter value={timePeriod} onChange={setTimePeriod} />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleToday}
+            className="px-4 py-2.5 rounded-xl bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all border border-gray-200 shadow-sm text-sm"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setShowReminderModal(true)}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-500/25"
+          >
+            <Plus size={18} /> Add Reminder
+          </button>
         </div>
+      </div>
 
-        {/* Summary Stats Row */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                <TrendingUp size={16} className="text-green-600" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-500">Income</span>
+      {/* Summary Stats Row */}
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+              <TrendingUp size={16} className="text-green-600" />
             </div>
-            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-              {formatCurrency(summaryStats.income)}
-            </p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                <TrendingDown size={16} className="text-red-600" />
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-500">Expense</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-500">Income</span>
+          </div>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+            {formatCurrency(summaryStats.income)}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+              <TrendingDown size={16} className="text-red-600" />
             </div>
-            <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-              {formatCurrency(summaryStats.expense)}
-            </p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center",
-                summaryStats.total >= 0 ? "bg-blue-100" : "bg-orange-100"
-              )}>
-                <span className={cn(
-                  "text-sm font-bold",
-                  summaryStats.total >= 0 ? "text-blue-600" : "text-orange-600"
-                )}>=</span>
-              </div>
-              <span className="text-xs sm:text-sm font-medium text-gray-500">Balance</span>
-            </div>
-            <p className={cn(
-              "text-lg sm:text-xl lg:text-2xl font-bold",
-              summaryStats.total >= 0 ? "text-green-600" : "text-red-600"
+            <span className="text-xs sm:text-sm font-medium text-gray-500">Expense</span>
+          </div>
+          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
+            {formatCurrency(summaryStats.expense)}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center",
+              summaryStats.total >= 0 ? "bg-blue-100" : "bg-orange-100"
             )}>
-              {summaryStats.total >= 0 ? '+' : ''}{formatCurrency(summaryStats.total)}
-            </p>
-          </motion.div>
+              <span className={cn(
+                "text-sm font-bold",
+                summaryStats.total >= 0 ? "text-blue-600" : "text-orange-600"
+              )}>=</span>
+            </div>
+            <span className="text-xs sm:text-sm font-medium text-gray-500">Balance</span>
+          </div>
+          <p className={cn(
+            "text-lg sm:text-xl lg:text-2xl font-bold",
+            summaryStats.total >= 0 ? "text-green-600" : "text-red-600"
+          )}>
+            {summaryStats.total >= 0 ? '+' : ''}{formatCurrency(summaryStats.total)}
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Calendar Card */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+        {/* Month Navigation */}
+        <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={handlePrevMonth}
+            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+            title="Previous month"
+          >
+            <ChevronLeft size={20} className="text-white" />
+          </button>
+          <div className="text-center">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
+              {MONTHS[currentDate.getMonth()]}
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">{currentDate.getFullYear()}</p>
+          </div>
+          <button
+            onClick={handleNextMonth}
+            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
+            title="Next month"
+          >
+            <ChevronRight size={20} className="text-white" />
+          </button>
         </div>
 
-        {/* Calendar Card */}
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Month Navigation */}
-          <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 py-4 flex items-center justify-between">
-            <button 
-              onClick={handlePrevMonth} 
-              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-              title="Previous month"
-            >
-              <ChevronLeft size={20} className="text-white" />
-            </button>
-            <div className="text-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
-                {MONTHS[currentDate.getMonth()]}
-              </h2>
-              <p className="text-xs text-gray-400 mt-0.5">{currentDate.getFullYear()}</p>
-            </div>
-            <button 
-              onClick={handleNextMonth} 
-              className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
-              title="Next month"
-            >
-              <ChevronRight size={20} className="text-white" />
-            </button>
+        {/* Calendar Grid */}
+        <div className="p-4 sm:p-6">
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-3">
+            {DAYS.map((day) => (
+              <div key={day} className="text-center font-medium text-gray-400 text-xs py-2">
+                {day}
+              </div>
+            ))}
           </div>
 
-          {/* Calendar Grid */}
-          <div className="p-4 sm:p-6">
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-3">
-              {DAYS.map((day) => (
-                <div key={day} className="text-center font-medium text-gray-400 text-xs py-2">
-                  {day}
-                </div>
-              ))}
-            </div>
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            <AnimatePresence mode="wait">
+              {calendarDays.map((date, index) => {
+                const isToday = isCurrentMonth && date.getDate() === today.getDate();
+                const isSelected = selectedDate && getDateKey(date) === getDateKey(selectedDate);
+                const isCurrentMonth_ = date.getMonth() === currentDate.getMonth();
+                const hasAct = hasActivity(date);
 
-            {/* Calendar Days */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
-              <AnimatePresence mode="wait">
-                {calendarDays.map((date, index) => {
-                  const isToday = isCurrentMonth && date.getDate() === today.getDate();
-                  const isSelected = selectedDate && getDateKey(date) === getDateKey(selectedDate);
-                  const isCurrentMonth_ = date.getMonth() === currentDate.getMonth();
-                  const hasAct = hasActivity(date);
+                // If not current month, render an empty placeholder block to maintain grid spacing
+                if (!isCurrentMonth_) {
+                  return <div key={`empty-${index}`} className="aspect-square opacity-0 pointer-events-none" />;
+                }
 
-                  // Only render current month dates
-                  if (!isCurrentMonth_) {
-                    return null;
-                  }
-
-                  return (
-                    <motion.button
-                      key={getDateKey(date)}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      onClick={() => setSelectedDate(date)}
-                      className={cn(
-                        'aspect-square rounded-xl transition-all duration-200 flex flex-col items-center justify-center relative group',
-                        isSelected
-                          ? 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/30 scale-105 z-10'
-                          : isToday
-                          ? 'bg-gray-900 text-white shadow-md'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 hover:scale-105',
-                        'font-semibold text-sm sm:text-base'
-                      )}
-                    >
-                      {date.getDate()}
-
-                      {/* Activity Indicator */}
-                      {hasAct && !isSelected && (
-                        <div className="absolute bottom-1.5 sm:bottom-2 flex gap-0.5">
-                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-pink-500" />
-                        </div>
-                      )}
-                      {hasAct && isSelected && (
-                        <div className="absolute bottom-1.5 sm:bottom-2 flex gap-0.5">
-                          <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-white/70" />
-                        </div>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-
-        {/* Daily Activity Timeline */}
-        <AnimatePresence mode="wait">
-          {selectedDate && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-gray-50 to-white px-4 sm:px-6 py-4 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                      {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                    </h2>
-                    <p className="text-xs text-gray-500 mt-0.5">Activity Summary</p>
-                  </div>
-                  <button
-                    onClick={() => setSelectedDate(null)}
-                    className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
-                    title="Close"
+                return (
+                  <motion.button
+                    key={getDateKey(date)}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    onClick={() => setSelectedDate(date)}
+                    className={cn(
+                      'aspect-square rounded-xl transition-all duration-200 flex flex-col items-center justify-center relative group',
+                      isSelected
+                        ? 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/30 font-bold z-10'
+                        : isToday
+                          ? 'bg-gray-900 text-white shadow-md font-bold'
+                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 hover:shadow-sm',
+                      'text-sm sm:text-base'
+                    )}
                   >
-                    <X size={18} className="text-gray-500" />
-                  </button>
-                </div>
-              </div>
+                    {date.getDate()}
 
-              <div className="p-4 sm:p-6">
-                {/* Daily Stats Summary */}
-                {(() => {
-                  const dailyStats = getDailyStats(selectedDate);
-                  return (
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
-                      <div className="bg-green-50 rounded-xl p-3 text-center">
-                        <p className="text-xs text-green-600 font-medium mb-1">Income</p>
-                        <p className="text-sm sm:text-base font-bold text-green-700">
-                          +{formatCurrency(dailyStats.income)}
-                        </p>
+                    {/* Activity Indicator */}
+                    {hasAct && !isSelected && (
+                      <div className="absolute bottom-1.5 sm:bottom-2 flex gap-0.5">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-pink-500 shadow-sm shadow-pink-500/50" />
                       </div>
-                      <div className="bg-red-50 rounded-xl p-3 text-center">
-                        <p className="text-xs text-red-600 font-medium mb-1">Expense</p>
-                        <p className="text-sm sm:text-base font-bold text-red-700">
-                          -{formatCurrency(dailyStats.expense)}
-                        </p>
+                    )}
+                    {hasAct && isSelected && (
+                      <div className="absolute bottom-1.5 sm:bottom-2 flex gap-0.5">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-white shadow-sm" />
                       </div>
-                      <div className={cn(
-                        "rounded-xl p-3 text-center",
-                        dailyStats.total >= 0 ? "bg-blue-50" : "bg-orange-50"
+                    )}
+                  </motion.button>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* Daily Activity Timeline */}
+      <AnimatePresence mode="wait">
+        {selectedDate && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-gray-50 to-white px-4 sm:px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    {selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Activity Summary</p>
+                </div>
+                <button
+                  onClick={() => setSelectedDate(null)}
+                  className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center"
+                  title="Close"
+                >
+                  <X size={18} className="text-gray-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {/* Daily Stats Summary */}
+              {(() => {
+                const dailyStats = getDailyStats(selectedDate);
+                return (
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+                    <div className="bg-green-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-green-600 font-medium mb-1">Income</p>
+                      <p className="text-sm sm:text-base font-bold text-green-700">
+                        +{formatCurrency(dailyStats.income)}
+                      </p>
+                    </div>
+                    <div className="bg-red-50 rounded-xl p-3 text-center">
+                      <p className="text-xs text-red-600 font-medium mb-1">Expense</p>
+                      <p className="text-sm sm:text-base font-bold text-red-700">
+                        -{formatCurrency(dailyStats.expense)}
+                      </p>
+                    </div>
+                    <div className={cn(
+                      "rounded-xl p-3 text-center",
+                      dailyStats.total >= 0 ? "bg-blue-50" : "bg-orange-50"
+                    )}>
+                      <p className={cn(
+                        "text-xs font-medium mb-1",
+                        dailyStats.total >= 0 ? "text-blue-600" : "text-orange-600"
+                      )}>Net</p>
+                      <p className={cn(
+                        "text-sm sm:text-base font-bold",
+                        dailyStats.total >= 0 ? "text-blue-700" : "text-orange-700"
                       )}>
-                        <p className={cn(
-                          "text-xs font-medium mb-1",
-                          dailyStats.total >= 0 ? "text-blue-600" : "text-orange-600"
-                        )}>Net</p>
-                        <p className={cn(
-                          "text-sm sm:text-base font-bold",
-                          dailyStats.total >= 0 ? "text-blue-700" : "text-orange-700"
-                        )}>
-                          {dailyStats.total >= 0 ? '+' : ''}{formatCurrency(dailyStats.total)}
-                        </p>
-                      </div>
+                        {dailyStats.total >= 0 ? '+' : ''}{formatCurrency(dailyStats.total)}
+                      </p>
                     </div>
-                  );
-                })()}
-
-                {/* Transactions List */}
-                {getDailyActivities(selectedDate).length > 0 ? (
-                  <div className="space-y-3">
-                    {getDailyActivities(selectedDate).map((activity, idx) => (
-                      <motion.div
-                        key={activity.id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        className={cn(
-                          'flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-colors',
-                          activity.type === 'reminder'
-                            ? 'bg-purple-50 border border-purple-100'
-                            : 'bg-gray-50 hover:bg-gray-100'
-                        )}
-                      >
-                        <div className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0',
-                          activity.type === 'expense' ? 'bg-red-100' :
-                          activity.type === 'income' ? 'bg-green-100' :
-                          activity.type === 'transfer' ? 'bg-blue-100' : 'bg-purple-100'
-                        )}>
-                          {activity.icon}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">{activity.title}</p>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            {activity.category && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-white text-gray-600 border border-gray-200">
-                                {activity.category}
-                              </span>
-                            )}
-                            {activity.accountName && (
-                              <span className="text-xs text-gray-400">• {activity.accountName}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          {activity.amount && (
-                            <p className={cn(
-                              'font-bold text-sm sm:text-base',
-                              activity.type === 'expense' ? 'text-red-600' : 'text-green-600'
-                            )}>
-                              {activity.type === 'expense' ? '-' : '+'}{formatCurrency(activity.amount)}
-                            </p>
-                          )}
-                          {activity.time && (
-                            <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
-                          )}
-                        </div>
-                      </motion.div>
-                    ))}
                   </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                      <CalendarIcon size={24} className="text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 font-medium">No activities for this day</p>
-                    <button
-                      onClick={() => setShowReminderModal(true)}
-                      className="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2 text-sm"
+                );
+              })()}
+
+              {/* Transactions List */}
+              {getDailyActivities(selectedDate).length > 0 ? (
+                <div className="space-y-3">
+                  {getDailyActivities(selectedDate).map((activity, idx) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className={cn(
+                        'flex items-center gap-3 p-3 sm:p-4 rounded-xl transition-colors',
+                        activity.type === 'reminder'
+                          ? 'bg-purple-50 border border-purple-100'
+                          : 'bg-gray-50 hover:bg-gray-100'
+                      )}
                     >
-                      <Plus size={16} /> Add Reminder
-                    </button>
+                      <div className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0',
+                        activity.type === 'expense' ? 'bg-red-100' :
+                          activity.type === 'income' ? 'bg-green-100' :
+                            activity.type === 'transfer' ? 'bg-blue-100' : 'bg-purple-100'
+                      )}>
+                        {activity.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm sm:text-base truncate">{activity.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {activity.category && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-white text-gray-600 border border-gray-200">
+                              {activity.category}
+                            </span>
+                          )}
+                          {activity.accountName && (
+                            <span className="text-xs text-gray-400">• {activity.accountName}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {activity.amount && (
+                          <p className={cn(
+                            'font-bold text-sm sm:text-base',
+                            activity.type === 'expense' ? 'text-red-600' : 'text-green-600'
+                          )}>
+                            {activity.type === 'expense' ? '-' : '+'}{formatCurrency(activity.amount)}
+                          </p>
+                        )}
+                        {activity.time && (
+                          <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <CalendarIcon size={24} className="text-gray-400" />
                   </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Add Reminder Modal */}
-        <AnimatePresence>
-          {showReminderModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-              onClick={() => setShowReminderModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">Add Reminder</h3>
-                  <button onClick={() => setShowReminderModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                    <X size={24} />
+                  <p className="text-gray-500 font-medium">No activities for this day</p>
+                  <button
+                    onClick={() => setShowReminderModal(true)}
+                    className="mt-4 px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors inline-flex items-center gap-2 text-sm"
+                  >
+                    <Plus size={16} /> Add Reminder
                   </button>
                 </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">Title</label>
-                    <input
-                      type="text"
-                      value={newReminder.title}
-                      onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })}
-                      placeholder="Add reminder title"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    />
-                  </div>
+      {/* Add Reminder Modal */}
+      <AnimatePresence>
+        {showReminderModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowReminderModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Add Reminder</h3>
+                <button onClick={() => setShowReminderModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X size={24} />
+                </button>
+              </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">Description (Optional)</label>
-                    <textarea
-                      value={newReminder.description}
-                      onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })}
-                      placeholder="Add details"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none h-20"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">Type</label>
-                    <select
-                      value={newReminder.type}
-                      onChange={(e) => setNewReminder({ ...newReminder, type: e.target.value as any })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    >
-                      <option value="task">Task</option>
-                      <option value="event">Event</option>
-                      <option value="reminder">Reminder</option>
-                      <option value="goal">Goal</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">Date</label>
-                    <input
-                      type="date"
-                      value={newReminder.date.toISOString().split('T')[0]}
-                      onChange={(e) => setNewReminder({ ...newReminder, date: new Date(e.target.value) })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                    />
-                      <input
-                        type="text"
-                        title="Calendar input"
-                        placeholder="Enter value"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                      />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={() => setShowReminderModal(false)}
-                      className="flex-1 px-4 py-2 rounded-lg bg-gray-200 text-gray-900 font-semibold hover:bg-gray-300 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={addReminder}
-                      className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold hover:from-pink-600 hover:to-rose-600 transition-colors"
-                    >
-                      Add
-                    </button>
-                  </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Title</label>
+                  <input
+                    type="text"
+                    value={newReminder.title}
+                    onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })}
+                    placeholder="Add reminder title"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
                 </div>
-              </motion.div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Description (Optional)</label>
+                  <textarea
+                    value={newReminder.description}
+                    onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })}
+                    placeholder="Add details"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none h-20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Type</label>
+                  <select
+                    value={newReminder.type}
+                    onChange={(e) => setNewReminder({ ...newReminder, type: e.target.value as any })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  >
+                    <option value="task">Task</option>
+                    <option value="event">Event</option>
+                    <option value="reminder">Reminder</option>
+                    <option value="goal">Goal</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={newReminder.date.toISOString().split('T')[0]}
+                    onChange={(e) => setNewReminder({ ...newReminder, date: new Date(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                  <input
+                    type="text"
+                    title="Calendar input"
+                    placeholder="Enter value"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => setShowReminderModal(false)}
+                    className="flex-1 px-4 py-2 rounded-lg bg-gray-200 text-gray-900 font-semibold hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addReminder}
+                    className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold hover:from-pink-600 hover:to-rose-600 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
             </motion.div>
-          )}
-        </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

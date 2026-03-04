@@ -6,6 +6,7 @@ interface BankAccountStepProps {
     accountNumber: string;
     accountHolderName: string;
     salaryCreditDate: string;
+    currentBalance: string;
   };
   onUpdate: (data: any) => void;
   onNext: () => void;
@@ -13,15 +14,19 @@ interface BankAccountStepProps {
 }
 
 const BANKS = [
-  'Bank of America',
-  'Chase',
-  'Wells Fargo',
-  'Citibank',
-  'Capital One',
-  'US Bank',
-  'PNC Bank',
-  'TD Bank',
-  'Bank of the West',
+  'State Bank of India (SBI)',
+  'HDFC Bank',
+  'ICICI Bank',
+  'Axis Bank',
+  'Kotak Mahindra Bank',
+  'Punjab National Bank (PNB)',
+  'Bank of Baroda',
+  'Canara Bank',
+  'Union Bank of India',
+  'IndusInd Bank',
+  'Yes Bank',
+  'IDFC First Bank',
+  'Federal Bank',
   'Other',
 ];
 
@@ -50,6 +55,12 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
       newErrors.accountHolderName = 'Account holder name is required';
     } else if (data.accountHolderName.trim().length < 2) {
       newErrors.accountHolderName = 'Account holder name must be at least 2 characters';
+    }
+
+    if (data.currentBalance && isNaN(Number(data.currentBalance))) {
+      newErrors.currentBalance = 'Please enter a valid amount';
+    } else if (data.currentBalance && Number(data.currentBalance) < 0) {
+      newErrors.currentBalance = 'Balance cannot be negative';
     }
 
     if (!data.salaryCreditDate) {
@@ -94,9 +105,8 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           id="bankName"
           value={data.bankName}
           onChange={(e) => onUpdate({ bankName: e.target.value })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.bankName ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.bankName ? 'border-red-500' : 'border-gray-300'
+            }`}
         >
           <option value="">Select your bank</option>
           {BANKS.map((bank) => (
@@ -119,9 +129,8 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           id="accountHolderName"
           value={data.accountHolderName}
           onChange={(e) => onUpdate({ accountHolderName: e.target.value })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.accountHolderName ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.accountHolderName ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="John Doe"
         />
         {errors.accountHolderName && (
@@ -138,9 +147,8 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           id="accountNumber"
           value={data.accountNumber}
           onChange={(e) => onUpdate({ accountNumber: formatAccountNumber(e.target.value) })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.accountNumber ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="1234 5678 9012 3456"
           maxLength={21} // 17 digits + 4 spaces
         />
@@ -153,6 +161,29 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
       </div>
 
       <div>
+        <label htmlFor="currentBalance" className="block text-sm font-medium text-gray-700 mb-1">
+          Current Balance (₹)
+        </label>
+        <input
+          type="number"
+          id="currentBalance"
+          value={data.currentBalance}
+          onChange={(e) => onUpdate({ currentBalance: e.target.value })}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.currentBalance ? 'border-red-500' : 'border-gray-300'
+            }`}
+          placeholder="0"
+          min="0"
+          step="0.01"
+        />
+        {errors.currentBalance && (
+          <p className="mt-1 text-sm text-red-600">{errors.currentBalance}</p>
+        )}
+        <p className="mt-1 text-xs text-gray-500">
+          Optional - The amount currently in this bank account.
+        </p>
+      </div>
+
+      <div>
         <label htmlFor="salaryCreditDate" className="block text-sm font-medium text-gray-700 mb-1">
           Salary Credit Date
         </label>
@@ -160,9 +191,8 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           id="salaryCreditDate"
           value={data.salaryCreditDate}
           onChange={(e) => onUpdate({ salaryCreditDate: e.target.value })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.salaryCreditDate ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.salaryCreditDate ? 'border-red-500' : 'border-gray-300'
+            }`}
         >
           <option value="">Select salary credit date</option>
           {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (

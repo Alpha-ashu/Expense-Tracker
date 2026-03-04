@@ -81,27 +81,23 @@ export const AuthFlow: React.FC = () => {
 
       setEmail(credentials.email);
 
-      // Check if user has completed profile
+      // Always go to PIN setup after sign-in.
+      // Profile completion (onboarding) is handled by App.tsx's NewUserOnboarding gate,
+      // so we don't need a separate legacy profile-setup path here.
       const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id')
         .eq('id', data.user.id)
         .single();
 
-      if (profile) {
-        // Existing user - go directly to PIN
-        setIsNewUser(false);
-        setStep('pin-setup');
-      } else {
-        // No profile - need to complete setup
-        setIsNewUser(true);
-        setStep('profile-setup');
-      }
+      setIsNewUser(!profile);
+      setStep('pin-setup');
 
-      saveFlowState(step);
+      saveFlowState('pin-setup');
     } catch (error: any) {
       console.error('Sign in error:', error);
-      toast.error(error.message || 'Failed to sign in');
+      const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
+      toast.error(isNetworkError ? 'Cannot connect to server. Please try again later.' : (error.message || 'Failed to sign in'));
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +156,8 @@ export const AuthFlow: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Sign up error:', error);
-      toast.error(error.message || 'Failed to create account');
+      const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
+      toast.error(isNetworkError ? 'Cannot connect to server. Please try again later.' : (error.message || 'Failed to create account'));
     } finally {
       setIsLoading(false);
     }
@@ -387,8 +384,9 @@ export const AuthFlow: React.FC = () => {
             e.preventDefault();
             const formData = new FormData(e.target as HTMLFormElement);
             handleProfileComplete({
-              firstName: userProfile?.firstName || '',
-              lastName: userProfile?.lastName || '',
+              // Read firstName/lastName from the actual form inputs (not stale state)
+              firstName: (formData.get('firstName') as string) || userProfile?.firstName || '',
+              lastName: (formData.get('lastName') as string) || userProfile?.lastName || '',
               email: email,
               mobile: '',
               dateOfBirth: formData.get('dob') as string,

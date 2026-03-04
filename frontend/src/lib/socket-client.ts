@@ -350,10 +350,7 @@ class SocketClient {
     
     this.listeners.get(event)!.push(callback);
 
-    // If socket is connected, also register the callback directly
-    if (this.isConnectedToServer()) {
-      this.socket!.on(event, callback);
-    }
+    // Only manage typed callbacks internally; do not register with socket.io-client
 
     // Return unsubscribe function
     return () => {
@@ -374,10 +371,7 @@ class SocketClient {
       }
     }
 
-    // Remove from socket if connected
-    if (this.isConnectedToServer()) {
-      this.socket!.off(event, callback);
-    }
+    // Only manage typed callbacks internally; do not unregister from socket.io-client
   }
 
   /**
@@ -457,13 +451,13 @@ class SocketClient {
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.reconnectDelay = 1000;
-      this.emit('connect');
+      this.emit('connect', undefined);
     });
 
     this.socket.on('disconnect', () => {
       console.log('Socket disconnected');
       this.isConnected = false;
-      this.emit('disconnect');
+      this.emit('disconnect', undefined);
     });
   }
 

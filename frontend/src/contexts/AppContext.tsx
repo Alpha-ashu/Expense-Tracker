@@ -73,7 +73,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Listen for onboarding refresh timestamp to force data refresh
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'onboarding_refresh_timestamp') {
+      // Only refresh if onboarding_refresh_timestamp changes
+      if (e.key === 'onboarding_refresh_timestamp' && e.newValue) {
         console.log('Onboarding refresh timestamp detected, forcing data refresh...');
         setForceUpdate(prev => prev + 1);
       }

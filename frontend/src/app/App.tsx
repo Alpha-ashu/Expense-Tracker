@@ -6,7 +6,7 @@ import { AuthFlow } from '@/components/auth/AuthFlow';
 import { LimitedModeBanner } from '@/components/common/LimitedModeBanner';
 import { PINAuth } from '@/app/components/PINAuth';
 import { Sidebar } from '@/app/components/Sidebar';
-import { Header } from '@/app/components/Header';
+import { TopBar } from '@/app/components/ui/TopBar';
 import { BottomNav } from '@/app/components/BottomNav';
 import { QuickActionModal } from '@/app/components/QuickActionModal';
 import { PWAInstallPrompt } from '@/app/components/PWAInstallPrompt';
@@ -210,10 +210,10 @@ const AppContent: React.FC = () => {
 
   // Check if user has completed onboarding
   const hasCompletedOnboarding = localStorage.getItem('onboarding_completed') === 'true';
-  
+
   // Check if user needs PIN setup (after onboarding or for returning users)
   const needsPINSetup = !localStorage.getItem('financelife_encrypted_key');
-  
+
   // Check if this is a new user (no profile data and no onboarding completion)
   const hasProfileData = localStorage.getItem('user_profile') || localStorage.getItem('user_settings');
   const isNewUser = !hasCompletedOnboarding && !hasProfileData;
@@ -223,16 +223,20 @@ const AppContent: React.FC = () => {
     return <AuthFlow />;
   }
 
-  // Show PIN authentication if not authenticated via PIN
-  // Skip if already completed onboarding AND already has PIN set from this session
-  if (!isAuthenticated && (needsPINSetup || !hasCompletedOnboarding)) {
-    return <PINAuth onAuthenticated={setAuthenticated} />;
-  }
-
-  // Show onboarding for new users who haven't completed it
-  // Only show if it's actually a new user (no existing profile data)
+  // ── Gate 1: Onboarding (BEFORE PIN) ─────────────────────────────────────
+  // New users who have never completed onboarding must do so first.
+  // We show onboarding before asking for a PIN so they don't get stuck
+  // on the PIN creation screen with no way to proceed to data entry.
   if (!hasCompletedOnboarding && isNewUser) {
     return <NewUserOnboarding />;
+  }
+
+  // ── Gate 2: PIN authentication ───────────────────────────────────────────
+  // Returning users (onboarding done) who haven't entered their PIN this session,
+  // OR users who still need to set up a PIN (edge case: completed onboarding
+  // via the legacy AuthFlow but PIN was not persisted).
+  if (!isAuthenticated) {
+    return <PINAuth onAuthenticated={setAuthenticated} />;
   }
 
   if (!isInitialized) {
@@ -334,14 +338,15 @@ const AppContent: React.FC = () => {
     <div className="w-full min-h-screen flex overflow-x-hidden bg-gray-50 app-container">
       {/* Limited Mode Banner */}
       <LimitedModeBanner />
-      
+
       {/* Desktop Sidebar - Fixed Position */}
       <div className="hidden lg:block fixed left-0 top-0 h-full z-50 w-28">
         <Sidebar />
       </div>
 
       {/* Main Content Area - With Sidebar Offset */}
-      <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content">
+      <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content relative">
+        <TopBar />
         <main className="flex-1 overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
           {renderPage()}
         </main>

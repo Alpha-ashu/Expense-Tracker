@@ -19,22 +19,22 @@ const filterOptions: { id: TimeFilterPeriod; label: string }[] = [
 
 export const TimeFilter: React.FC<TimeFilterProps> = ({ value, onChange, className }) => {
   return (
-    <div className={cn('flex items-center gap-2 p-1 bg-gray-100 rounded-xl', className)}>
+    <div className={cn('flex items-center gap-1 sm:gap-2 p-1.5 bg-gray-100/80 backdrop-blur-sm rounded-2xl w-full sm:w-auto overflow-x-auto scrollbar-hide', className)}>
       {filterOptions.map((option) => (
         <button
           key={option.id}
           onClick={() => onChange(option.id)}
           className={cn(
-            'relative px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200',
+            'relative flex items-center justify-center px-4 py-2 sm:px-6 sm:py-2.5 rounded-[12px] text-xs sm:text-sm font-medium transition-all duration-300 whitespace-nowrap',
             value === option.id
               ? 'text-white'
-              : 'text-gray-600 hover:text-gray-900'
+              : 'text-gray-600 hover:bg-gray-200/50'
           )}
         >
           {value === option.id && (
             <motion.div
               layoutId="timeFilterPill"
-              className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-lg shadow-md"
+              className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-[12px] shadow-sm shadow-pink-200 z-0"
               transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
             />
           )}
@@ -52,10 +52,10 @@ export const filterByTimePeriod = <T extends { date: Date | string }>(
   referenceDate: Date = new Date()
 ): T[] => {
   const now = referenceDate;
-  
+
   return items.filter((item) => {
     const itemDate = new Date(item.date);
-    
+
     switch (period) {
       case 'daily':
         return (

@@ -1,0 +1,255 @@
+import React, { useState } from 'react';
+import { useApp } from '@/contexts/AppContext';
+import { Search, Bell, Menu, GripVertical } from 'lucide-react';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
+import { NavigationItem } from '@/app/constants/navigation';
+import { NotificationPopup } from '@/app/components/ui/NotificationPopup';
+import { useSharedMenu } from '@/hooks/useSharedMenu';
+import { motion, Reorder, useDragControls } from 'framer-motion';
+
+interface DraggablePageMenuItemProps {
+    item: NavigationItem;
+    isActive: boolean;
+    onNavigate: (id: string) => void;
+}
+
+const DraggablePageMenuItem: React.FC<DraggablePageMenuItemProps> = ({
+    item,
+    isActive,
+    onNavigate,
+}) => {
+    const Icon = item.icon;
+    const dragControls = useDragControls();
+
+    return (
+        <Reorder.Item
+            value={item}
+            dragListener={false}
+            dragControls={dragControls}
+            className="relative"
+            whileDrag={{ scale: 1.02, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.05)' }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        >
+            <button
+                onClick={() => onNavigate(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${isActive
+                    ? 'bg-black text-white shadow-lg'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+            >
+                <div
+                    className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-2"
+                    onPointerDown={(e) => dragControls.start(e)}
+                >
+                    <GripVertical size={16} className="text-gray-400" />
+                </div>
+                <Icon size={20} />
+                <span className="font-bold text-sm">{item.label}</span>
+            </button>
+        </Reorder.Item>
+    );
+};
+
+export const TopBar: React.FC = () => {
+    const { setCurrentPage } = useApp();
+    const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
+    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(3);
+
+    const [recentNotifications] = useState([
+        {
+            id: '1',
+            type: 'transaction' as const,
+            title: 'Transaction Recorded',
+            description: 'Your expense of ₹500 for groceries has been recorded.',
+            timestamp: new Date(Date.now() - 15 * 60000),
+            icon: <span>📉</span>,
+            color: 'text-red-600',
+            bgColor: 'bg-red-50',
+        },
+        {
+            id: '2',
+            type: 'emi' as const,
+            title: 'EMI Due Reminder',
+            description: 'Your monthly EMI of ₹2,500 is due on Feb 10.',
+            timestamp: new Date(Date.now() - 2 * 3600000),
+            icon: <span>⚠️</span>,
+            color: 'text-orange-600',
+            bgColor: 'bg-orange-50',
+        },
+        {
+            id: '3',
+            type: 'investment' as const,
+            title: 'Investment Update',
+            description: 'Your mutual fund SIP of ₹5,000 has been invested.',
+            timestamp: new Date(Date.now() - 8 * 3600000),
+            icon: <span>📈</span>,
+            color: 'text-green-600',
+            bgColor: 'bg-green-50',
+        },
+    ]);
+
+    const playNotificationSound = () => {
+        try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (error) {
+            console.error('Failed to play notification sound:', error);
+        }
+    };
+
+    const handleNotificationClick = () => {
+        setNotificationPopupOpen(true);
+        if (unreadNotificationsCount > 0) {
+            playNotificationSound();
+            setUnreadNotificationsCount(0);
+        }
+    };
+
+    const handleProfileClick = () => {
+        setCurrentPage('user-profile');
+    };
+
+    const handleViewAllNotifications = () => {
+        setCurrentPage('notifications');
+    };
+
+    const handleMenuItemClick = (itemId: string) => {
+        handleNavigate(itemId);
+        setMobileMenuOpen(false);
+    };
+
+    return (
+        <div className="w-full bg-gray-50 border-b border-gray-100 sticky top-0 z-[60] px-4 sm:px-6 lg:px-8 py-3">
+            {/* Notification Popup */}
+            <NotificationPopup
+                isOpen={notificationPopupOpen}
+                onClose={() => setNotificationPopupOpen(false)}
+                onViewAll={handleViewAllNotifications}
+                notifications={recentNotifications}
+            />
+
+            {/* Top Header Row - Menu, Search, Bell, Profile */}
+            <div className="flex items-center justify-between gap-3 lg:gap-4 max-w-7xl mx-auto">
+                {/* Left: Menu and Search */}
+                <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-1 max-w-2xl">
+                    {/* Mobile Menu Button */}
+                    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                        <SheetTrigger asChild>
+                            <button className="lg:hidden p-2 -ml-2 hover:bg-gray-200 rounded-lg transition-colors" aria-label="Open navigation menu">
+                                <Menu size={24} className="text-gray-900" />
+                            </button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="w-[280px] p-0 bg-white border-r border-gray-100 text-gray-900 z-[100]">
+                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                            <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
+                            <div className="flex flex-col h-full">
+                                <div className="p-6 border-b border-gray-100">
+                                    <h1 className="text-2xl font-bold font-display text-gray-900">FinanceLife</h1>
+                                    <p className="text-sm text-gray-500 mt-1">Your Financial OS</p>
+                                </div>
+
+                                <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
+                                    <p className="text-xs text-gray-400 mb-3 px-2">Drag to reorder menu items</p>
+                                    <Reorder.Group
+                                        axis="y"
+                                        values={orderedItems}
+                                        onReorder={handleReorder}
+                                        className="space-y-1"
+                                    >
+                                        {orderedItems.map((item) => (
+                                            <DraggablePageMenuItem
+                                                key={item.id}
+                                                item={item}
+                                                isActive={currentPage === item.id}
+                                                onNavigate={handleMenuItemClick}
+                                            />
+                                        ))}
+                                    </Reorder.Group>
+                                </nav>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
+                    {/* Search */}
+                    <div className="relative flex-1 group hidden md:block">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-gray-600 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            className="pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 shadow-sm w-full focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-400 font-medium text-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Right: Bell and Profile */}
+                <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
+                    {/* Notification Bell */}
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleNotificationClick}
+                        className="relative rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm w-10 h-10 shrink-0 flex items-center justify-center transition-colors"
+                    >
+                        <Bell size={20} />
+                        {/* Unread Badge */}
+                        {unreadNotificationsCount > 0 && (
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center"
+                            />
+                        )}
+                    </motion.button>
+
+                    {/* Profile Avatar */}
+                    <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleProfileClick}
+                        className="w-10 h-10 rounded-xl bg-gray-200 overflow-hidden shadow-sm shrink-0 hover:shadow-md transition-shadow flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm"
+                    >
+                        {(() => {
+                            try {
+                                const profileStr = localStorage.getItem('user_profile');
+                                if (profileStr) {
+                                    const profile = JSON.parse(profileStr);
+                                    if (profile.avatarUrl) {
+                                        return <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />;
+                                    }
+                                    if (profile.full_name) {
+                                        const names = profile.full_name.split(' ').filter(Boolean);
+                                        const firstPart = names[0]?.[0] || '';
+                                        const secondPart = names.length > 1 ? names[names.length - 1][0] : '';
+                                        return <span>{firstPart}{secondPart}</span>;
+                                    }
+                                    if (profile.displayName) {
+                                        const names = profile.displayName.split(' ').filter(Boolean);
+                                        const firstPart = names[0]?.[0] || '';
+                                        const secondPart = names.length > 1 ? names[names.length - 1][0] : '';
+                                        return <span>{firstPart}{secondPart}</span>;
+                                    }
+                                }
+                            } catch (e) {
+                                console.error("Error reading profile for avatar");
+                            }
+                            return <span>U</span>;
+                        })()}
+                    </motion.button>
+                </div>
+            </div>
+        </div>
+    );
+};

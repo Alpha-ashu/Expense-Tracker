@@ -118,6 +118,17 @@ const syncFromSupabase = async (userId: string) => {
   }
 };
 
+/** Returns true if an error is a network/timeout fault (Supabase unreachable) */
+const isNetworkError = (error: any): boolean =>
+  error?.name === 'AbortError' ||
+  error?.name === 'TypeError' ||
+  (error?.message && (
+    error.message.includes('signal is aborted') ||
+    error.message.toLowerCase().includes('failed to fetch') ||
+    error.message.toLowerCase().includes('network') ||
+    error.message.toLowerCase().includes('timed out')
+  ));
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -134,43 +145,121 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
+    // ── Silence React StrictMode AbortErrors from Supabase's navigator.locks ──
+    // In dev, React mounts → unmounts → remounts every component. The first
+    // unmount aborts the locks.ts lock that onAuthStateChange() acquired, which
+    // surfaces as an unhandled "AbortError: signal is aborted without reason".
+    // These are harmless noise — the second (real) mount re-subscribes correctly.
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const err = event.reason;
+      if (
+        err?.name === 'AbortError' &&
+        (err?.message === 'signal is aborted without reason' || err?.message === '')
+      ) {
+        event.preventDefault(); // Suppress from console
+      }
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    // Guard against setting state after the component unmounts
+    let isMounted = true;
+
     // Check active session
     const initAuth = async () => {
+      // ── Suppress the single console.error that Supabase's internal fetch.ts
+      // logs before rethrowing an AbortError when our 10-second timeout fires.
+      // Without this intercept, one "AbortError: signal is aborted without reason"
+      // line always appears even though our code handles it gracefully below.
+      const _origConsoleError = console.error;
+      console.error = (...args: any[]) => {
+        const first = args[0];
+        const isAbort =
+          first?.name === 'AbortError' ||
+          first?.name === 'AuthRetryableFetchError' ||
+          (first?.message && first.message.includes('aborted')) ||
+          (typeof first === 'string' && (first.includes('AbortError') || first.includes('aborted')));
+        if (!isAbort) _origConsoleError.apply(console, args);
+      };
+
       try {
         // If redirected here after explicit sign out, skip session restore
         const params = new URLSearchParams(window.location.search);
         if (params.get('logged_out') === '1') {
-          // Clean up the URL param without reload
           window.history.replaceState({}, '', window.location.pathname);
-          setUser(null);
-          setSession(null);
-          setLoading(false);
+          if (isMounted) {
+            setUser(null);
+            setSession(null);
+            setLoading(false);
+          }
           return;
         }
 
         const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
         const userRole = resolveUserRole(nextUser);
         setRole(userRole);
 
-        // Initialize permissions from backend with local role as fallback
+        // ✅ Supabase is reachable — safe to enable auto-refresh
+        supabase.auth.startAutoRefresh();
+
         if (nextUser?.id) {
           await permissionService.fetchUserPermissions(nextUser.id, userRole);
         }
-      } catch (error) {
-        console.error('Error loading session:', error);
+      } catch (error: any) {
+        if (!isMounted) return;
+
+        if (isNetworkError(error)) {
+          // Supabase is unreachable (paused project, no internet, etc.).
+          // Stay unauthenticated and do NOT start auto-refresh — it would
+          // spam the console with ERR_CONNECTION_TIMED_OUT every ~30 seconds.
+          console.warn('Supabase unreachable at startup — running in offline mode.');
+        } else {
+          console.error('Error loading session:', error);
+        }
       } finally {
-        setLoading(false);
+        console.error = _origConsoleError; // Always restore
+        if (isMounted) setLoading(false);
       }
     };
 
     initAuth();
 
+    // Pause/resume auto-refresh based on actual network connectivity.
+    // Note: navigator.onLine reflects browser internet access, NOT Supabase
+    // reachability. The `online` handler re-calls getSession() so we only
+    // start auto-refresh if Supabase responds successfully.
+    const handleOffline = () => {
+      supabase.auth.stopAutoRefresh();
+      console.info('📴 Offline — Supabase auto-refresh paused.');
+    };
+
+    const handleOnline = async () => {
+      console.info('🌐 Online — probing Supabase before resuming auto-refresh...');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        // Supabase responded — update state and (re-)enable auto-refresh
+        setSession(session);
+        setUser(session?.user ?? null);
+        setRole(resolveUserRole(session?.user ?? null));
+        supabase.auth.startAutoRefresh();
+        console.info('✅ Supabase reachable — auto-refresh resumed.');
+      } catch {
+        console.warn('Supabase still unreachable after coming online — keeping auto-refresh paused.');
+      }
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!isMounted) return;
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
@@ -179,8 +268,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(false);
 
         if (event === 'SIGNED_IN' && nextUser?.id) {
-          // Clear previous user's local data first (data isolation)
-          await clearLocalUserData();
+          // CRITICAL: Only clear local data when a *different* user signs in.
+          // Clearing on every SIGNED_IN (including page reloads and post-onboarding
+          // reloads) wipes data that was just written during onboarding.
+          const lastUserId = localStorage.getItem('auth_last_user_id');
+          const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
+
+          if (isUserSwitch) {
+            // Different user logged in — clear previous user's local data
+            await clearLocalUserData();
+          }
+
+          // Always record the current user so we can detect future switches
+          localStorage.setItem('auth_last_user_id', nextUser.id);
+
           // Sync accounts/transactions from Supabase into local Dexie
           await syncFromSupabase(nextUser.id);
           // Fetch permissions from server
@@ -188,6 +289,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Seed demo data only for admin; regular users start with clean DB
           await initializeDemoData(nextUser.email ?? undefined, nextUser.id);
         } else if (event === 'SIGNED_OUT') {
+          // On logout, clear the stored user ID so the next login is treated
+          // as a fresh start (even if same user logs back in).
+          localStorage.removeItem('auth_last_user_id');
           permissionService.clearPermissions();
           // Clear local DB on logout too
           await clearLocalUserData();
@@ -196,7 +300,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
+      supabase.auth.stopAutoRefresh();
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
 

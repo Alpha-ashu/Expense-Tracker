@@ -1,17 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { Search, Bell, Menu, ChevronLeft, GripVertical } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
-import { NavigationItem } from '@/app/constants/navigation';
-import { NotificationPopup } from '@/app/components/ui/NotificationPopup';
-import { useSharedMenu } from '@/hooks/useSharedMenu';
-import { motion, Reorder, useDragControls } from 'framer-motion';
-
-interface DraggablePageMenuItemProps {
-    item: NavigationItem;
-    isActive: boolean;
-    onNavigate: (id: string) => void;
-}
+import { ChevronLeft } from 'lucide-react';
 
 export interface PageHeaderProps {
     title: string;
@@ -23,50 +12,16 @@ export interface PageHeaderProps {
     onBack?: () => void;
 }
 
-const DraggablePageMenuItem: React.FC<DraggablePageMenuItemProps> = ({
-    item,
-    isActive,
-    onNavigate,
+export const PageHeader: React.FC<PageHeaderProps> = ({
+    title,
+    subtitle,
+    icon,
+    children,
+    showBack = false,
+    backTo = 'dashboard',
+    onBack
 }) => {
-    const Icon = item.icon;
-    const dragControls = useDragControls();
-
-    return (
-        <Reorder.Item
-            value={item}
-            dragListener={false}
-            dragControls={dragControls}
-            className="relative"
-            whileDrag={{ scale: 1.02, zIndex: 50, backgroundColor: 'rgba(0,0,0,0.05)' }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        >
-            <button
-                onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-colors ${isActive
-                    ? 'bg-black text-white shadow-lg'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-            >
-                <div
-                    className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-2"
-                    onPointerDown={(e) => dragControls.start(e)}
-                >
-                    <GripVertical size={16} className="text-gray-400" />
-                </div>
-                <Icon size={20} />
-                <span className="font-bold text-sm">{item.label}</span>
-            </button>
-        </Reorder.Item>
-    );
-};
-
-
-export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, children, showBack = false, backTo = 'dashboard', onBack }) => {
     const { setCurrentPage } = useApp();
-    const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
-    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(3);
 
     const handleBackClick = () => {
         if (onBack) {
@@ -76,212 +31,38 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, icon, c
         }
     };
 
-    const [recentNotifications] = useState([
-        {
-            id: '1',
-            type: 'transaction' as const,
-            title: 'Transaction Recorded',
-            description: 'Your expense of ₹500 for groceries has been recorded.',
-            timestamp: new Date(Date.now() - 15 * 60000),
-            icon: <span>📉</span>,
-            color: 'text-red-600',
-            bgColor: 'bg-red-50',
-        },
-        {
-            id: '2',
-            type: 'emi' as const,
-            title: 'EMI Due Reminder',
-            description: 'Your monthly EMI of ₹2,500 is due on Feb 10.',
-            timestamp: new Date(Date.now() - 2 * 3600000),
-            icon: <span>⚠️</span>,
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-50',
-        },
-        {
-            id: '3',
-            type: 'investment' as const,
-            title: 'Investment Update',
-            description: 'Your mutual fund SIP of ₹5,000 has been invested.',
-            timestamp: new Date(Date.now() - 8 * 3600000),
-            icon: <span>📈</span>,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50',
-        },
-    ]);
-
-    // Play notification sound
-    const playNotificationSound = () => {
-        try {
-            // Create a simple beep sound using Web Audio API
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.5);
-        } catch (error) {
-            console.error('Failed to play notification sound:', error);
-        }
-    };
-
-    // Handle notification popup open
-    const handleNotificationClick = () => {
-        setNotificationPopupOpen(true);
-        // Clear unread count and play sound on first open
-        if (unreadNotificationsCount > 0) {
-            playNotificationSound();
-            setUnreadNotificationsCount(0);
-        }
-    };
-
-    // Handle profile click - navigate to user profile
-    const handleProfileClick = () => {
-        setCurrentPage('user-profile');
-    };
-
-    // Handle View All notifications
-    const handleViewAllNotifications = () => {
-        setCurrentPage('notifications');
-    };
-
-    const handleMenuItemClick = (itemId: string) => {
-        handleNavigate(itemId);
-        setMobileMenuOpen(false);
-    };
-
     return (
-        <>
-            {/* Notification Popup */}
-            <NotificationPopup
-                isOpen={notificationPopupOpen}
-                onClose={() => setNotificationPopupOpen(false)}
-                onViewAll={handleViewAllNotifications}
-                notifications={recentNotifications}
-            />
-
-            {/* Top Header Row - Menu, Search, Bell, Profile */}
-            <div className="flex items-center justify-between gap-3 lg:gap-4 mb-4">
-                {/* Left: Menu and Search */}
-                <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-1">
-                    {/* Mobile Menu Button */}
-                    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-                        <SheetTrigger asChild>
-                            <button className="lg:hidden p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Open navigation menu">
-                                <Menu size={24} className="text-gray-900" />
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent side="left" className="w-[280px] p-0 bg-white border-r border-gray-100 text-gray-900 z-[100]">
-                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                            <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
-                            <div className="flex flex-col h-full">
-                                <div className="p-6 border-b border-gray-100">
-                                    <h1 className="text-2xl font-bold font-display text-gray-900">FinanceLife</h1>
-                                    <p className="text-sm text-gray-500 mt-1">Your Financial OS</p>
-                                </div>
-
-                                <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
-                                    <p className="text-xs text-gray-400 mb-3 px-2">Drag to reorder menu items</p>
-                                    <Reorder.Group
-                                        axis="y"
-                                        values={orderedItems}
-                                        onReorder={handleReorder}
-                                        className="space-y-1"
-                                    >
-                                        {orderedItems.map((item) => (
-                                            <DraggablePageMenuItem
-                                                key={item.id}
-                                                item={item}
-                                                isActive={currentPage === item.id}
-                                                onNavigate={handleMenuItemClick}
-                                            />
-                                        ))}
-                                    </Reorder.Group>
-                                </nav>
-                            </div>
-                        </SheetContent>
-                    </Sheet>
-
-                    {/* Search */}
-                    <div className="relative flex-1 group hidden md:block">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-gray-600 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            className="pl-10 pr-4 py-3 bg-white rounded-2xl border-none shadow-inner w-full focus:ring-2 focus:ring-black/5 outline-none transition-all placeholder:text-gray-400 font-medium"
-                        />
-                    </div>
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8 pt-4">
+            {/* Left: Title Section */}
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-1">
+                    {showBack && (
+                        <button
+                            onClick={handleBackClick}
+                            className="p-2 -ml-2 hover:bg-gray-200 rounded-xl transition-colors shrink-0"
+                            aria-label="Go back"
+                        >
+                            <ChevronLeft size={24} className="text-gray-900" />
+                        </button>
+                    )}
+                    {icon && <div className="text-gray-900 shrink-0">{icon}</div>}
+                    <h1 className="text-2xl lg:text-3xl font-display font-bold text-gray-900 tracking-tight truncate">
+                        {title}
+                    </h1>
                 </div>
-
-                {/* Right: Bell and Profile */}
-                <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
-                    {/* Notification Bell */}
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleNotificationClick}
-                        className="relative rounded-2xl bg-black text-white hover:bg-black/80 shadow-lg w-10 h-10 lg:w-12 lg:h-12 shrink-0 flex items-center justify-center transition-colors"
-                    >
-                        <Bell size={20} />
-                        {/* Unread Badge */}
-                        {unreadNotificationsCount > 0 && (
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border border-white shadow-lg"
-                            />
-                        )}
-                    </motion.button>
-
-                    {/* Profile Avatar */}
-                    <motion.button
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleProfileClick}
-                        className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-gray-200 overflow-hidden border-2 border-white shadow-lg shrink-0 hover:shadow-xl transition-shadow"
-                    >
-                        <img
-                            src="https://ui-avatars.com/api/?name=Jude+Kylian&background=0D8ABC&color=fff"
-                            alt="Profile"
-                            className="w-full h-full object-cover"
-                        />
-                    </motion.button>
-                </div>
+                {subtitle && (
+                    <p className={`text-gray-500 font-medium text-sm lg:text-base truncate ${showBack ? 'ml-10' : ''}`}>
+                        {subtitle}
+                    </p>
+                )}
             </div>
 
-            {/* Bottom Header Row - Title and Action Button */}
-            <header className="flex items-center justify-between gap-4 mb-6 lg:mb-8">
-                {/* Left: Title Section */}
-                <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                        {showBack && (
-                            <button
-                                onClick={handleBackClick}
-                                className="p-2 -ml-2 hover:bg-gray-100 rounded-xl transition-colors"
-                                aria-label="Go back"
-                            >
-                                <ChevronLeft size={24} className="text-gray-900" />
-                            </button>
-                        )}
-                        {icon && <div className="text-gray-900">{icon}</div>}
-                        <h1 className="text-2xl lg:text-3xl font-display font-bold text-gray-900 tracking-tight">{title}</h1>
-                    </div>
-                    {subtitle && <p className={`text-gray-500 font-medium text-sm lg:text-base ${showBack ? 'ml-10' : ''}`}>{subtitle}</p>}
+            {/* Right: Action Button */}
+            {children && (
+                <div className="flex-shrink-0">
+                    {children}
                 </div>
-
-                {/* Right: Action Button */}
-                {children && (
-                    <div className="flex-shrink-0">
-                        {children}
-                    </div>
-                )}
-            </header>
-        </>
+            )}
+        </header>
     );
 };

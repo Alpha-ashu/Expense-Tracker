@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, DollarSign, LogOut } from 'lucide-react';
+import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
@@ -37,18 +37,18 @@ export const UserProfile: React.FC = () => {
 
   const handleSignOut = async () => {
     if (isSigningOut) return; // Prevent double-clicks
-    
+
     setIsSigningOut(true);
     console.log('🔐 Starting sign out process...');
     toast.info('Signing out...');
-    
+
     try {
       // Step 1: Sign out from Supabase (with timeout)
       const signOutPromise = supabase.auth.signOut({ scope: 'global' });
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Sign out timeout')), 5000)
       );
-      
+
       try {
         await Promise.race([signOutPromise, timeoutPromise]);
       } catch (e) {
@@ -104,7 +104,7 @@ export const UserProfile: React.FC = () => {
 
     } catch (error) {
       console.error('❌ Sign out failed:', error);
-      
+
       // Force cleanup even on error
       try {
         localStorage.clear();
@@ -112,7 +112,7 @@ export const UserProfile: React.FC = () => {
       } catch (e) {
         // Ignore
       }
-      
+
       // Always redirect
       window.location.href = window.location.origin + '/login';
     }
@@ -131,154 +131,155 @@ export const UserProfile: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch profile data from Supabase
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!user) return;
+  // Fetch profile data: localStorage first (instant, guaranteed from onboarding),
+  // then Supabase to supplement or override if it has richer data.
+  /**
+   * Normalize any jobType string (from either onboarding form) into one of
+   * the three canonical values used by the profile dropdown.
+   */
+  const normalizeJobType = (raw: string): ProfileData['jobType'] => {
+    const v = (raw || '').toLowerCase().trim();
+    if (!v) return '';
+    if (v.includes('business') || v.includes('self') || v === 'self-employed') return 'businessman';
+    if (v.includes('freelance')) return 'freelancer';
+    // Everything else (full-time, part-time, salaried, employment, student, retired, etc.) → salaried
+    return 'salaried';
+  };
 
+  /** Human-readable label for a canonical jobType value */
+  const jobTypeLabel = (v: string) => {
+    if (v === 'businessman') return 'Self-employed / Business';
+    if (v === 'freelancer') return 'Freelancer';
+    if (v === 'salaried') return 'Salaried / Employed';
+    return 'Not specified';
+  };
+
+  const fetchProfileData = async () => {
+    if (!user) { setIsLoading(false); return; }
+
+    // ── SOURCE 0: Supabase auth user_metadata (set during signUp) ────────────
+    // When users sign up, first_name/last_name are stored in user_metadata.
+    // This is the most reliable name source even before a profiles row exists.
+    const meta = user.user_metadata || {};
+    const metaFirstName = (meta.first_name || meta.firstName || '').trim();
+    const metaLastName = (meta.last_name || meta.lastName || '').trim();
+
+    // Apply auth metadata as the baseline so names are never blank
+    if (metaFirstName || metaLastName) {
+      setProfileData(prev => ({
+        ...prev,
+        firstName: metaFirstName || prev.firstName,
+        lastName: metaLastName || prev.lastName,
+        email: user.email || prev.email,
+        profilePhoto: prev.profilePhoto ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${metaFirstName || 'User'}`,
+      }));
+    }
+
+    // ── SOURCE 1: localStorage (written by NewUserOnboarding on completion) ───
+    const localProfile = localStorage.getItem('user_profile');
+    if (localProfile) {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        const p = JSON.parse(localProfile);
+        // displayName is from NewUserOnboarding; full_name/firstName from AuthFlow path
+        const displayName = p.displayName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+        const nameParts = displayName.split(' ');
+        const firstName = metaFirstName || nameParts[0] || '';
+        const lastName = metaLastName || nameParts.slice(1).join(' ') || '';
+        const rawSalary = parseFloat(p.salary);
+        const monthlyIncomeVal = p.monthlyIncome
+          ? Number(p.monthlyIncome)
+          : (!isNaN(rawSalary) && rawSalary > 0 ? Math.round(rawSalary / 12) : 0);
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-          console.error('Error fetching profile:', error);
-          toast.error('Failed to load profile data');
-          return;
-        }
-
-        if (data) {
-          // Split full_name into first/last
-          const nameParts = (data.full_name || '').split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-          setProfileData({
-            firstName,
-            lastName,
-            email: data.email || user.email || '',
-            mobile: data.phone || '',
-            dateOfBirth: data.date_of_birth || '',
-            monthlyIncome: data.monthly_income || data.annual_income ? Math.round((data.monthly_income || data.annual_income / 12)) : 0,
-            jobType: data.job_type as any || '',
-            profilePhoto: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
-          });
-        } else {
-          // No profile data in Supabase, check localStorage from onboarding
-          const localProfile = localStorage.getItem('user_profile');
-          if (localProfile) {
-            try {
-              const parsedProfile = JSON.parse(localProfile);
-              const nameParts = (parsedProfile.displayName || '').split(' ');
-              const firstName = nameParts[0] || '';
-              const lastName = nameParts.slice(1).join(' ') || '';
-              setProfileData({
-                firstName,
-                lastName,
-                email: user.email || '',
-                mobile: '',
-                dateOfBirth: parsedProfile.dateOfBirth || '',
-                monthlyIncome: parsedProfile.salary ? Math.round(parseFloat(parsedProfile.salary) / 12) : 0,
-                jobType: parsedProfile.jobType?.toLowerCase() || '',
-                profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
-              });
-            } catch {
-              // Fallback to basic info from auth
-              setProfileData(prev => ({
-                ...prev,
-                email: user.email || '',
-                profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
-              }));
-            }
-          } else {
-            // No profile data found, use basic info from auth
-            setProfileData(prev => ({
-              ...prev,
-              email: user.email || '',
-              profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile data');
-      } finally {
-        setIsLoading(false);
+        setProfileData(prev => ({
+          ...prev,
+          firstName: firstName || prev.firstName,
+          lastName: lastName || prev.lastName,
+          email: user.email || prev.email,
+          mobile: p.mobile || prev.mobile || '',
+          dateOfBirth: p.dateOfBirth || prev.dateOfBirth || '',
+          monthlyIncome: monthlyIncomeVal || prev.monthlyIncome,
+          jobType: (normalizeJobType(p.jobType) || prev.jobType) as ProfileData['jobType'],
+          profilePhoto: p.profilePhoto ||
+            prev.profilePhoto ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+        }));
+      } catch {
+        // Corrupt localStorage — fall through to Supabase
       }
-    };
+    }
 
+    // ── SOURCE 2: Supabase profiles table (authoritative, cloud-synced) ────────
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        if (error.code !== 'PGRST116') {
+          console.warn('Supabase profile fetch (non-blocking):', error.code, error.message);
+        }
+        return; // Keep sources 0+1 data
+      }
+
+      const hasRealProfile = data && (
+        data.full_name || data.first_name || data.phone ||
+        data.date_of_birth || data.job_type ||
+        data.monthly_income || data.annual_income
+      );
+
+      if (hasRealProfile) {
+        const fullName = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim();
+        const nameParts = fullName.split(' ');
+        const firstName = data.first_name || metaFirstName || nameParts[0] || '';
+        const lastName = data.last_name || metaLastName || nameParts.slice(1).join(' ') || '';
+        const monthlyIncomeVal = data.monthly_income
+          ? Number(data.monthly_income)
+          : data.annual_income
+            ? Math.round(Number(data.annual_income) / 12)
+            : 0;
+
+        setProfileData({
+          firstName,
+          lastName,
+          email: data.email || user.email || '',
+          mobile: data.phone || '',
+          dateOfBirth: data.date_of_birth || '',
+          monthlyIncome: monthlyIncomeVal,
+          jobType: (normalizeJobType(data.job_type) || '') as ProfileData['jobType'],
+          profilePhoto: data.avatar_url ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+        });
+        // Keep localStorage in sync
+        localStorage.setItem('user_profile', JSON.stringify({
+          displayName: `${firstName} ${lastName}`.trim(),
+          firstName, lastName,
+          mobile: data.phone || '',
+          dateOfBirth: data.date_of_birth || '',
+          jobType: data.job_type || '',
+          salary: ((data.annual_income || (monthlyIncomeVal * 12)) || 0).toString(),
+          monthlyIncome: monthlyIncomeVal,
+          profilePhoto: data.avatar_url || '',
+        }));
+      }
+    } catch (error) {
+      console.warn('Supabase profile fetch failed (non-blocking):', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProfileData();
   }, [user]);
 
   // Listen for onboarding completion to refresh profile data
   useEffect(() => {
-    const handleOnboardingComplete = (event: CustomEvent) => {
+    const handleOnboardingComplete = () => {
       console.log('ONBOARDING_COMPLETED event received in UserProfile, refreshing profile data...');
-      // Force refresh of profile data after onboarding
-      const fetchProfileData = async () => {
-        if (!user) return;
-
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error fetching profile after onboarding:', error);
-            return;
-          }
-
-          if (data) {
-            const nameParts = (data.full_name || '').split(' ');
-            const firstName = nameParts[0] || '';
-            const lastName = nameParts.slice(1).join(' ') || '';
-            setProfileData({
-              firstName,
-              lastName,
-              email: data.email || user.email || '',
-              mobile: data.phone || '',
-              dateOfBirth: data.date_of_birth || '',
-              monthlyIncome: data.monthly_income || data.annual_income ? Math.round((data.monthly_income || data.annual_income / 12)) : 0,
-              jobType: data.job_type as any || '',
-              profilePhoto: data.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
-            });
-          } else {
-            // Check localStorage for onboarding data
-            const localProfile = localStorage.getItem('user_profile');
-            if (localProfile) {
-              try {
-                const parsedProfile = JSON.parse(localProfile);
-                const nameParts = (parsedProfile.displayName || '').split(' ');
-                const firstName = nameParts[0] || '';
-                const lastName = nameParts.slice(1).join(' ') || '';
-                setProfileData({
-                  firstName,
-                  lastName,
-                  email: user.email || '',
-                  mobile: '',
-                  dateOfBirth: parsedProfile.dateOfBirth || '',
-                  monthlyIncome: parsedProfile.salary ? Math.round(parseFloat(parsedProfile.salary) / 12) : 0,
-                  jobType: parsedProfile.jobType?.toLowerCase() || '',
-                  profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
-                });
-              } catch {
-                // Fallback to basic info
-                setProfileData(prev => ({
-                  ...prev,
-                  email: user.email || '',
-                  profilePhoto: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email || 'User'}`,
-                }));
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error refreshing profile after onboarding:', error);
-        }
-      };
-
+      // Re-use the already-fixed fetchProfileData (handles Supabase + localStorage fallback)
       fetchProfileData();
     };
 
@@ -291,6 +292,16 @@ export const UserProfile: React.FC = () => {
 
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [tempData, setTempData] = useState<ProfileData>(profileData);
+
+  // Bug 3 fix: keep tempData in sync with profileData after async fetch,
+  // but only when the edit form is not currently open to avoid overwriting
+  // in-progress user edits.
+  useEffect(() => {
+    if (!isEditingForm) {
+      setTempData(profileData);
+    }
+  }, [profileData]);
+
   const [verification, setVerification] = useState<VerificationState>({
     type: null,
     otp: '',
@@ -339,6 +350,20 @@ export const UserProfile: React.FC = () => {
 
       setProfileData(tempData);
       setIsEditingForm(false);
+      // Save latest profile to localStorage for persistence
+      localStorage.setItem('user_profile', JSON.stringify({
+        displayName: `${tempData.firstName} ${tempData.lastName}`.trim(),
+        dateOfBirth: tempData.dateOfBirth,
+        jobType: tempData.jobType,
+        salary: tempData.monthlyIncome * 12,
+        profilePhoto: tempData.profilePhoto,
+      }));
+      // Fetch latest profile from Supabase to guarantee sync
+      try {
+        await fetchProfileData();
+      } catch (fetchError) {
+        // Optionally log or handle fetch error
+      }
       toast.success('Profile updated successfully!');
     } catch (error: any) {
       console.error('Failed to save profile:', error);
@@ -469,6 +494,8 @@ export const UserProfile: React.FC = () => {
                 onChange={handlePhotoUpload}
                 className="hidden"
                 aria-label="Upload profile picture"
+                id="profile-picture-upload"
+                name="profile-picture-upload"
               />
             </div>
           </motion.div>
@@ -509,6 +536,8 @@ export const UserProfile: React.FC = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter first name"
                       aria-label="First name"
+                      id="firstName"
+                      name="firstName"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">{profileData.firstName}</p>
@@ -526,6 +555,8 @@ export const UserProfile: React.FC = () => {
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Enter last name"
                       aria-label="Last name"
+                      id="lastName"
+                      name="lastName"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">{profileData.lastName}</p>
@@ -545,14 +576,19 @@ export const UserProfile: React.FC = () => {
                       onChange={(e) => setTempData({ ...tempData, dateOfBirth: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       aria-label="Date of birth"
+                      id="dateOfBirth"
+                      name="dateOfBirth"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">
-                      {new Date(profileData.dateOfBirth).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
+                      {/* Bug 4 fix: guard against "Invalid Date" when dateOfBirth is empty */}
+                      {profileData.dateOfBirth
+                        ? new Date(profileData.dateOfBirth).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                        : 'Not specified'}
                     </p>
                   )}
                 </div>
@@ -569,15 +605,17 @@ export const UserProfile: React.FC = () => {
                       onChange={(e) => setTempData({ ...tempData, jobType: e.target.value as any })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       aria-label="Select job type"
+                      id="jobType"
+                      name="jobType"
                     >
                       <option value="">Select job type</option>
-                      <option value="salaried">Salaried</option>
-                      <option value="businessman">Businessman</option>
+                      <option value="salaried">Salaried / Employed</option>
+                      <option value="businessman">Self-employed / Business Owner</option>
                       <option value="freelancer">Freelancer</option>
                     </select>
                   ) : (
-                    <p className="text-gray-900 font-medium text-lg capitalize">
-                      {profileData.jobType || 'Not specified'}
+                    <p className="text-gray-900 font-medium text-lg">
+                      {jobTypeLabel(profileData.jobType)}
                     </p>
                   )}
                 </div>
@@ -585,7 +623,7 @@ export const UserProfile: React.FC = () => {
                 {/* Monthly Income */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <DollarSign size={16} className="text-gray-500" />
+                    <span className="text-gray-500 font-bold text-base">₹</span>
                     Monthly Income
                   </label>
                   {isEditingForm ? (
@@ -595,6 +633,8 @@ export const UserProfile: React.FC = () => {
                       onChange={(e) => setTempData({ ...tempData, monthlyIncome: parseFloat(e.target.value) })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="0.00"
+                      id="monthlyIncome"
+                      name="monthlyIncome"
                     />
                   ) : (
                     <p className="text-gray-900 font-medium text-lg">₹ {profileData.monthlyIncome.toLocaleString()}</p>
@@ -667,6 +707,8 @@ export const UserProfile: React.FC = () => {
                             setVerification({ ...verification, newValue: e.target.value })
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          id="newEmail"
+                          name="newEmail"
                         />
                         <div className="flex gap-3">
                           <button
@@ -777,6 +819,8 @@ export const UserProfile: React.FC = () => {
                             setVerification({ ...verification, newValue: e.target.value })
                           }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          id="newMobile"
+                          name="newMobile"
                         />
                         <div className="flex gap-3">
                           <button
@@ -816,6 +860,8 @@ export const UserProfile: React.FC = () => {
                           onChange={(e) => setVerification({ ...verification, otp: e.target.value })}
                           maxLength={6}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-2xl tracking-widest"
+                          id="emailOtp"
+                          name="emailOtp"
                         />
                         <p className="text-xs text-gray-500 mt-2">Use code: 123456 (Demo)</p>
                         <div className="flex gap-3 mt-4">

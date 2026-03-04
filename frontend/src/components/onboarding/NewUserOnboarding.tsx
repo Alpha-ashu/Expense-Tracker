@@ -12,6 +12,8 @@ interface OnboardingData {
   accountNumber: string;
   accountHolderName: string;
   salaryCreditDate: string;
+  currentBalance: string;
+  avatarUrl: string;
 }
 
 export const NewUserOnboarding: React.FC = () => {
@@ -25,6 +27,8 @@ export const NewUserOnboarding: React.FC = () => {
     accountNumber: '',
     accountHolderName: '',
     salaryCreditDate: '',
+    currentBalance: '',
+    avatarUrl: '',
   });
 
   const updateOnboardingData = (data: Partial<OnboardingData>) => {
@@ -63,16 +67,13 @@ export const NewUserOnboarding: React.FC = () => {
           <OnboardingCompleteStep
             data={onboardingData}
             onComplete={() => {
-              // Handle onboarding completion
-              console.log('New onboarding completed:', onboardingData);
-              // Save to localStorage and redirect to dashboard
-              localStorage.setItem('user_profile', JSON.stringify(onboardingData));
-              localStorage.setItem('onboarding_completed', 'true');
-              // Dispatch custom event for global state update
-              window.dispatchEvent(new CustomEvent('ONBOARDING_COMPLETED', { 
-                detail: onboardingData 
-              }));
-              window.location.href = '/dashboard';
+              // OnboardingCompleteStep.startProcessing() already:
+              //   • saved the profile to Supabase + localStorage
+              //   • dispatched ONBOARDING_COMPLETED
+              //   • set onboarding_completed = 'true'
+              // All we need to do is reload so App.tsx re-evaluates the flag
+              // and transitions from the onboarding gate to the main app.
+              window.location.reload();
             }}
             onBack={prevStep}
           />
@@ -95,9 +96,8 @@ export const NewUserOnboarding: React.FC = () => {
             {[1, 2, 3].map((step) => (
               <div
                 key={step}
-                className={`flex-1 h-2 rounded-full transition-colors ${
-                  step <= currentStep ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
+                className={`flex-1 h-2 rounded-full transition-colors ${step <= currentStep ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
               />
             ))}
           </div>

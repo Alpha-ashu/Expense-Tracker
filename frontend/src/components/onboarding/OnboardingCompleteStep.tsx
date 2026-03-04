@@ -13,6 +13,7 @@ interface OnboardingCompleteStepProps {
     accountNumber: string;
     accountHolderName: string;
     salaryCreditDate: string;
+    currentBalance: string;
   };
   onComplete: () => void;
   onBack: () => void;
@@ -27,100 +28,109 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Auto-start processing when component mounts
-    startProcessing();
-  }, []);
-
+  // Only start processing when user clicks 'Complete Setup'
   const startProcessing = async () => {
     setIsProcessing(true);
     setError(null);
 
+    // ── PERSIST TO LOCALSTORAGE FIRST (synchronous, before any await) ─────────
+    // This guarantees profile data is saved even if Supabase calls fail with
+    // AbortError, CORS issues, or network timeouts. Supabase is purely a cloud
+    // backup — the source of truth for this session is localStorage.
+    const userProfile = {
+      displayName: data.displayName,
+      dateOfBirth: data.dateOfBirth,
+      jobType: data.jobType,
+      salary: data.salary,
+      monthlyIncome: Math.round(parseFloat(data.salary) / 12),
+      createdAt: new Date().toISOString(),
+    };
+    localStorage.setItem('user_profile', JSON.stringify(userProfile));
+    localStorage.setItem('onboarding_completed', 'true');
+    localStorage.setItem('user_setup_date', new Date().toISOString());
+    console.log('✅ Profile data saved to localStorage:', userProfile);
+
     try {
-      // Get current authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Step 1: Save profile information to Supabase
+      // Step 1: Try to save profile to Supabase (non-blocking — localStorage is the backup)
       setProgress(15);
-      
-      if (user) {
-        // Split displayName into first/last name
-        const nameParts = data.displayName.trim().split(/\s+/);
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        
-        const profileData = {
-          id: user.id,
-          email: user.email,
-          full_name: data.displayName,
-          first_name: firstName,
-          last_name: lastName,
-          date_of_birth: data.dateOfBirth || null,
-          job_type: data.jobType?.toLowerCase() || null,
-          annual_income: parseFloat(data.salary) || null,
-          monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
-          updated_at: new Date().toISOString(),
-        };
-
-        // Upsert profile to Supabase
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert(profileData, { onConflict: 'id' });
-
-        if (profileError) {
-          console.warn('Profile save to Supabase failed (non-blocking):', profileError.message);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const nameParts = data.displayName.trim().split(/\s+/);
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          const profileData = {
+            id: user.id,
+            email: user.email,
+            full_name: data.displayName,
+            first_name: firstName,
+            last_name: lastName,
+            date_of_birth: data.dateOfBirth || null,
+            job_type: data.jobType?.toLowerCase() || null,
+            annual_income: parseFloat(data.salary) || null,
+            monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
+            updated_at: new Date().toISOString(),
+          };
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert(profileData, { onConflict: 'id' });
+          if (profileError) {
+            console.warn('Full profile save failed, trying base columns:', profileError.message);
+            const baseProfile = {
+              id: user.id,
+              email: user.email,
+              full_name: data.displayName,
+              updated_at: new Date().toISOString(),
+            };
+            const { error: baseError } = await supabase
+              .from('profiles')
+              .upsert(baseProfile, { onConflict: 'id' });
+            if (baseError) {
+              console.warn('Base profile save also failed (localStorage is the backup):', baseError.message);
+            }
+          }
         }
+      } catch (supabaseError) {
+        // AbortError / CORS / network timeout — non-critical, localStorage already saved
+        console.warn('Supabase profile save skipped (non-blocking):', supabaseError);
       }
-
-      // Save to localStorage as backup
-      const userProfile = {
-        displayName: data.displayName,
-        dateOfBirth: data.dateOfBirth,
-        jobType: data.jobType,
-        salary: data.salary,
-        monthlyIncome: Math.round(parseFloat(data.salary) / 12),
-        createdAt: new Date().toISOString(),
-      };
-      localStorage.setItem('user_profile', JSON.stringify(userProfile));
-
       // Step 2: Create initial account entry in Dexie database
       setProgress(35);
-      
       const accountData = {
         name: `${data.bankName} - ${data.accountHolderName}`,
         type: 'bank' as const,
-        balance: 0,
+        balance: parseFloat(data.currentBalance) || 0,
         currency: 'INR',
         isActive: true,
         createdAt: new Date(),
       };
-
-      // Insert account into Dexie database
       const accountId = await db.accounts.add(accountData);
       console.log('Created account with ID:', accountId);
-
-      // Also sync to Supabase if user is authenticated
-      if (user) {
-        const { error: accountError } = await supabase
-          .from('accounts')
-          .insert({
-            user_id: user.id,
-            name: accountData.name,
-            type: accountData.type,
-            balance: accountData.balance,
-            currency: accountData.currency,
-            is_active: accountData.isActive,
-            created_at: new Date().toISOString(),
-          });
-
-        if (accountError) {
-          console.warn('Account sync to Supabase failed (non-blocking):', accountError.message);
+      // Sync account to Supabase (non-blocking — same pattern as profile above)
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          const { error: accountError } = await supabase
+            .from('accounts')
+            .insert({
+              user_id: currentUser.id,
+              local_id: accountId,   // store Dexie ID so syncFromSupabase restores the same row
+              name: accountData.name,
+              type: accountData.type,
+              balance: accountData.balance,
+              currency: accountData.currency,
+              is_active: accountData.isActive,
+              created_at: new Date().toISOString(),
+            });
+          if (accountError) {
+            console.warn('Account sync to Supabase failed (non-blocking):', accountError.message);
+          }
         }
+      } catch (accountSyncError) {
+        console.warn('Account Supabase sync skipped (non-blocking):', accountSyncError);
       }
-
       // Step 3: Set up monthly salary transaction template
       setProgress(55);
-      
       const salaryTemplate = {
         id: `template_salary_${Date.now()}`,
         name: 'Monthly Salary',
@@ -134,37 +144,26 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         isActive: true,
         createdAt: new Date().toISOString(),
       };
-
       const existingTemplates = JSON.parse(localStorage.getItem('transaction_templates') || '[]');
       existingTemplates.push(salaryTemplate);
       localStorage.setItem('transaction_templates', JSON.stringify(existingTemplates));
-
-      // Step 4: Mark onboarding as complete
+      // Step 4: Mark onboarding as complete (re-affirm in case top-level write was skipped)
       setProgress(75);
-      
-      localStorage.setItem('onboarding_completed', 'true');
-      localStorage.setItem('user_setup_date', new Date().toISOString());
-
       // Step 5: Dispatch ONBOARDING_COMPLETED event for global state update
       setProgress(90);
-      
       window.dispatchEvent(new CustomEvent('ONBOARDING_COMPLETED', {
         detail: {
           profile: userProfile,
           account: { ...accountData, id: accountId },
         },
       }));
-
       // Step 6: Force refresh of all components by updating localStorage timestamp
       localStorage.setItem('onboarding_refresh_timestamp', Date.now().toString());
-      
       // Step 7: Final processing
       setProgress(100);
       await new Promise(resolve => setTimeout(resolve, 500));
-
       toast.success('Account setup complete!');
       onComplete();
-
     } catch (err) {
       console.error('Onboarding completion failed:', err);
       setError(err instanceof Error ? err.message : 'Setup failed');
@@ -235,9 +234,9 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
           </span>
           <span>{progress}%</span>
         </div>
-        
+
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
+          <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
             style={{ width: `${progress}%` }}
           />
@@ -252,6 +251,9 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
           <li>✓ Job: {data.jobType}</li>
           <li>✓ Salary: ₹{parseFloat(data.salary).toLocaleString()}/year</li>
           <li>✓ Bank: {data.bankName} account</li>
+          {data.currentBalance && (
+            <li>✓ Current Balance: ₹{parseFloat(data.currentBalance).toLocaleString()}</li>
+          )}
           <li>✓ Salary credit: {data.salaryCreditDate}{parseInt(data.salaryCreditDate) === 1 || parseInt(data.salaryCreditDate) === 21 || parseInt(data.salaryCreditDate) === 31 ? 'st' : parseInt(data.salaryCreditDate) === 2 || parseInt(data.salaryCreditDate) === 22 ? 'nd' : parseInt(data.salaryCreditDate) === 3 || parseInt(data.salaryCreditDate) === 23 ? 'rd' : 'th'} of month</li>
         </ul>
       </div>
@@ -288,6 +290,14 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         >
           Back
         </button>
+        {!isProcessing && progress === 0 && (
+          <button
+            onClick={startProcessing}
+            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Complete Setup
+          </button>
+        )}
       </div>
     </div>
   );
