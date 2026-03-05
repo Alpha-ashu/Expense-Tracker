@@ -76,12 +76,24 @@ const clearLocalUserData = async () => {
   }
 };
 
-/** Sync accounts and transactions from Supabase into local Dexie DB */
+/** Sync user data from Supabase into local Dexie DB on login */
 const syncFromSupabase = async (userId: string) => {
   try {
-    const [{ data: accounts }, { data: transactions }, { data: profile }] = await Promise.all([
+    const [
+      { data: accounts },
+      { data: transactions },
+      { data: loansData },
+      { data: goalsData },
+      { data: investmentsData },
+      { data: groupExpensesData },
+      { data: profile },
+    ] = await Promise.all([
       supabase.from('accounts').select('*').eq('user_id', userId),
       supabase.from('transactions').select('*').eq('user_id', userId),
+      supabase.from('loans').select('*').eq('user_id', userId),
+      supabase.from('goals').select('*').eq('user_id', userId),
+      supabase.from('investments').select('*').eq('user_id', userId),
+      supabase.from('group_expenses').select('*').eq('user_id', userId),
       supabase.from('profiles').select('*').eq('id', userId).single(),
     ]);
 
@@ -133,9 +145,76 @@ const syncFromSupabase = async (userId: string) => {
         }))
       );
     }
+
+    if (loansData?.length) {
+      await db.loans.bulkPut(
+        loansData.map((l: any) => ({
+          id: l.local_id ?? undefined,
+          type: l.type,
+          name: l.name,
+          principalAmount: l.principal_amount ?? 0,
+          outstandingBalance: l.outstanding_balance ?? 0,
+          interestRate: l.interest_rate,
+          emiAmount: l.emi_amount,
+          dueDate: l.due_date ? new Date(l.due_date) : undefined,
+          frequency: l.frequency,
+          status: l.status ?? 'active',
+          contactPerson: l.contact_person,
+          createdAt: new Date(l.created_at),
+        }))
+      );
+    }
+
+    if (goalsData?.length) {
+      await db.goals.bulkPut(
+        goalsData.map((g: any) => ({
+          id: g.local_id ?? undefined,
+          name: g.name,
+          targetAmount: g.target_amount ?? 0,
+          currentAmount: g.current_amount ?? 0,
+          targetDate: new Date(g.target_date),
+          category: g.category ?? 'other',
+          isGroupGoal: g.is_group_goal ?? false,
+          createdAt: new Date(g.created_at),
+        }))
+      );
+    }
+
+    if (investmentsData?.length) {
+      await db.investments.bulkPut(
+        investmentsData.map((i: any) => ({
+          id: i.local_id ?? undefined,
+          assetType: i.asset_type,
+          assetName: i.asset_name,
+          quantity: i.quantity ?? 0,
+          buyPrice: i.buy_price ?? 0,
+          currentPrice: i.current_price ?? 0,
+          totalInvested: i.total_invested ?? 0,
+          currentValue: i.current_value ?? 0,
+          profitLoss: i.profit_loss ?? 0,
+          purchaseDate: new Date(i.purchase_date),
+          lastUpdated: new Date(i.last_updated ?? i.created_at),
+        }))
+      );
+    }
+
+    if (groupExpensesData?.length) {
+      await db.groupExpenses.bulkPut(
+        groupExpensesData.map((g: any) => ({
+          id: g.local_id ?? undefined,
+          name: g.name,
+          totalAmount: g.total_amount ?? 0,
+          paidBy: g.paid_by ?? 0,
+          date: new Date(g.date),
+          members: g.members ?? [],
+          items: g.items ?? [],
+          createdAt: new Date(g.created_at),
+        }))
+      );
+    }
   } catch (err) {
-    // Non-blocking — app works offline with empty local DB
-    console.error('Supabase sync on login failed:', err);
+    // Non-blocking — app works offline with local DB data
+    console.error('Supabase sync on login failed (non-blocking):', err);
   }
 };
 

@@ -253,7 +253,7 @@ const AppContent: React.FC = () => {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard setCurrentPage={setCurrentPage} />;
       case 'auto-sizing-test':
         return <SimpleAutoTest />;
       case 'accounts':
@@ -330,7 +330,7 @@ const AppContent: React.FC = () => {
       case 'transfer':
         return <Transfer />;
       default:
-        return <Dashboard />;
+        return <Dashboard setCurrentPage={setCurrentPage} />;
     }
   };
 
