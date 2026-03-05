@@ -22,7 +22,7 @@ export const ToDoListShare: React.FC = () => {
   ];
 
   // Use actual user ID or fallback for demo data
-  const currentUserId = user?.id || 'demo-user';
+  const currentUserId = user?.id ?? null;
 
   // Get list ID from localStorage
   useEffect(() => {
@@ -220,11 +220,10 @@ export const ToDoListShare: React.FC = () => {
                         <Edit size={16} className="text-blue-600" />
                       )}
                       <span
-                        className={`text-sm font-medium ${
-                          share.permission === 'view'
+                        className={`text-sm font-medium ${share.permission === 'view'
                             ? 'text-gray-600'
                             : 'text-blue-600'
-                        }`}
+                          }`}
                       >
                         {share.permission === 'view' ? 'View Only' : 'Can Edit'}
                       </span>

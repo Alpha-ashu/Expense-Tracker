@@ -18,7 +18,7 @@ export const ToDoListDetail: React.FC = () => {
   const [newItemDueDate, setNewItemDueDate] = useState('');
 
   // Use actual user ID or fallback for demo data
-  const currentUserId = user?.id || 'demo-user';
+  const currentUserId = user?.id ?? null;
 
   // Get list ID from localStorage
   useEffect(() => {
@@ -138,7 +138,7 @@ export const ToDoListDetail: React.FC = () => {
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all"
-              style={{ 
+              style={{
                 width: `calc(${(completedCount / items.length) * 100}% - 4px)`
               }}
             ></div>
@@ -242,21 +242,19 @@ export const ToDoListDetail: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h4
-                        className={`font-medium ${
-                          item.completed
+                        className={`font-medium ${item.completed
                             ? 'text-gray-400 line-through'
                             : 'text-gray-900'
-                        }`}
+                          }`}
                       >
                         {item.title}
                       </h4>
                       {item.description && (
                         <p
-                          className={`text-sm mt-1 ${
-                            item.completed
+                          className={`text-sm mt-1 ${item.completed
                               ? 'text-gray-300'
                               : 'text-gray-500'
-                          }`}
+                            }`}
                         >
                           {item.description}
                         </p>
@@ -273,9 +271,8 @@ export const ToDoListDetail: React.FC = () => {
 
                   <div className="flex items-center gap-2 mt-2">
                     <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        priorityColors[item.priority as keyof typeof priorityColors]
-                      }`}
+                      className={`text-xs px-2 py-1 rounded ${priorityColors[item.priority as keyof typeof priorityColors]
+                        }`}
                     >
                       {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
                     </span>

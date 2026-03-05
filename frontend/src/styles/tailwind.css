@@ -126,4 +126,50 @@
   .shadow-colored-red {
     box-shadow: var(--shadow-colored-red);
   }
+
+  /* ── Scrollbar hide ── */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ── Global page layout ── */
+  .page-shell {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #F2F4F7;
+    overflow-x: hidden;
+  }
+
+  .page-content {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 1400px;
+    padding: 1.5rem 1rem 7rem;
+  }
+
+  @media (min-width: 640px) {
+    .page-content {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-content {
+      padding: 2rem 2rem 2.5rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .page-content {
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
+    }
+  }
 }

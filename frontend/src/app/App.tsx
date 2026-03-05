@@ -257,9 +257,12 @@ const AppContent: React.FC = () => {
       <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content relative">
         <TopBar />
         <main className="flex-1 overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
-          <Suspense fallback={<PageLoader />}>
-            {renderPage()}
-          </Suspense>
+          {/* Global alignment envelope — centers content on wide screens */}
+          <div className="w-full max-w-[1440px] mx-auto">
+            <Suspense fallback={<PageLoader />}>
+              {renderPage()}
+            </Suspense>
+          </div>
         </main>
       </div>
 

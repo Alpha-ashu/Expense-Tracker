@@ -19,13 +19,14 @@ export const ToDoLists: React.FC = () => {
   const [listToDelete, setListToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Use actual user ID or fallback for demo data
-  const currentUserId = user?.id || 'demo-user';
+  // Use actual user ID — if not authenticated, show empty state
+  const currentUserId = user?.id ?? null;
 
   const toDoLists = useLiveQuery(
-    () => db.toDoLists.filter(list => 
-      list.ownerId === currentUserId || list.ownerId === 'demo-user'
-    ).toArray(),
+    () => {
+      if (!currentUserId) return Promise.resolve([]);
+      return db.toDoLists.filter(list => list.ownerId === currentUserId).toArray();
+    },
     [currentUserId]
   ) || [];
 
