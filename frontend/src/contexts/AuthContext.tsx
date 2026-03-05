@@ -79,10 +79,31 @@ const clearLocalUserData = async () => {
 /** Sync accounts and transactions from Supabase into local Dexie DB */
 const syncFromSupabase = async (userId: string) => {
   try {
-    const [{ data: accounts }, { data: transactions }] = await Promise.all([
+    const [{ data: accounts }, { data: transactions }, { data: profile }] = await Promise.all([
       supabase.from('accounts').select('*').eq('user_id', userId),
       supabase.from('transactions').select('*').eq('user_id', userId),
+      supabase.from('profiles').select('*').eq('id', userId).single(),
     ]);
+
+    // Bypass onboarding if profile exists in backend
+    if (profile && (profile.full_name || profile.first_name)) {
+      localStorage.setItem('onboarding_completed', 'true');
+
+      const firstName = profile.first_name || profile.full_name?.split(' ')[0] || '';
+      const lastName = profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '';
+
+      localStorage.setItem('user_profile', JSON.stringify({
+        displayName: profile.full_name || `${firstName} ${lastName}`.trim(),
+        firstName,
+        lastName,
+        mobile: profile.phone || '',
+        dateOfBirth: profile.date_of_birth || '',
+        jobType: profile.job_type || '',
+        salary: (profile.annual_income || (profile.monthly_income ? profile.monthly_income * 12 : 0)).toString(),
+        monthlyIncome: profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0),
+        profilePhoto: profile.avatar_url || '',
+      }));
+    }
 
     if (accounts?.length) {
       await db.accounts.bulkPut(
@@ -208,6 +229,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         if (nextUser?.id) {
           await permissionService.fetchUserPermissions(nextUser.id, userRole);
+          // Sync data and bypass onboarding if profile exists, before hiding the loading screen
+          await syncFromSupabase(nextUser.id);
         }
       } catch (error: any) {
         if (!isMounted) return;
@@ -265,36 +288,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(nextUser);
         const userRole = resolveUserRole(nextUser);
         setRole(userRole);
-        setLoading(false);
 
-        if (event === 'SIGNED_IN' && nextUser?.id) {
-          // CRITICAL: Only clear local data when a *different* user signs in.
-          // Clearing on every SIGNED_IN (including page reloads and post-onboarding
-          // reloads) wipes data that was just written during onboarding.
-          const lastUserId = localStorage.getItem('auth_last_user_id');
-          const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
+        try {
 
-          if (isUserSwitch) {
-            // Different user logged in — clear previous user's local data
+          if (event === 'SIGNED_IN' && nextUser?.id) {
+            // CRITICAL: Only clear local data when a *different* user signs in.
+            // Clearing on every SIGNED_IN (including page reloads and post-onboarding
+            // reloads) wipes data that was just written during onboarding.
+            const lastUserId = localStorage.getItem('auth_last_user_id');
+            const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
+
+            if (isUserSwitch) {
+              // Different user logged in — clear previous user's local data
+              await clearLocalUserData();
+            }
+
+            // Always record the current user so we can detect future switches
+            localStorage.setItem('auth_last_user_id', nextUser.id);
+
+            // Sync accounts/transactions from Supabase into local Dexie
+            await syncFromSupabase(nextUser.id);
+            // Fetch permissions from server
+            await permissionService.fetchUserPermissions(nextUser.id, userRole);
+            // Seed demo data only for admin; regular users start with clean DB
+            await initializeDemoData(nextUser.email ?? undefined, nextUser.id);
+          } else if (event === 'SIGNED_OUT') {
+            // On logout, clear the stored user ID so the next login is treated
+            // as a fresh start (even if same user logs back in).
+            localStorage.removeItem('auth_last_user_id');
+            permissionService.clearPermissions();
+            // Clear local DB on logout too
             await clearLocalUserData();
           }
-
-          // Always record the current user so we can detect future switches
-          localStorage.setItem('auth_last_user_id', nextUser.id);
-
-          // Sync accounts/transactions from Supabase into local Dexie
-          await syncFromSupabase(nextUser.id);
-          // Fetch permissions from server
-          await permissionService.fetchUserPermissions(nextUser.id, userRole);
-          // Seed demo data only for admin; regular users start with clean DB
-          await initializeDemoData(nextUser.email ?? undefined, nextUser.id);
-        } else if (event === 'SIGNED_OUT') {
-          // On logout, clear the stored user ID so the next login is treated
-          // as a fresh start (even if same user logs back in).
-          localStorage.removeItem('auth_last_user_id');
-          permissionService.clearPermissions();
-          // Clear local DB on logout too
-          await clearLocalUserData();
+        } finally {
+          setLoading(false);
         }
       }
     );
