@@ -43,6 +43,49 @@ export const Accounts: React.FC = () => {
     accountName: string;
     accountType: string;
   } | null>(null);
+  // Edit modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<{
+    id: number;
+    name: string;
+    type: string;
+    balance: number;
+    isActive: boolean;
+  } | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const handleEditAccount = (account: typeof accounts[0], e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingAccount({
+      id: account.id!,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      isActive: account.isActive ?? true,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAccount) return;
+    setIsSavingEdit(true);
+    try {
+      await db.accounts.update(editingAccount.id, {
+        name: editingAccount.name,
+        type: editingAccount.type as any,
+        balance: editingAccount.balance,
+        isActive: editingAccount.isActive,
+      });
+      toast.success('Account updated!');
+      setEditModalOpen(false);
+      setEditingAccount(null);
+    } catch (err) {
+      console.error('Failed to update account:', err);
+      toast.error('Failed to update account. Please try again.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
   const carouselRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -287,14 +330,23 @@ export const Accounts: React.FC = () => {
                             {getAccountIcon(account.type)}
                           </div>
                           {isActive && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              className="bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full flex-shrink-0"
-                            >
-                              ACTIVE
-                            </motion.div>
+                            <div className="flex items-center gap-2">
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full flex-shrink-0"
+                              >
+                                ACTIVE
+                              </motion.div>
+                              <button
+                                onClick={(e) => handleEditAccount(account, e)}
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/35 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                title="Edit account"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                            </div>
                           )}
                         </div>
 
@@ -431,14 +483,23 @@ export const Accounts: React.FC = () => {
                                   {getAccountIcon(account.type)}
                                 </div>
                                 {isActive && (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full"
-                                  >
-                                    ACTIVE
-                                  </motion.div>
+                                  <div className="flex items-center gap-2">
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.8 }}
+                                      className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full"
+                                    >
+                                      ACTIVE
+                                    </motion.div>
+                                    <button
+                                      onClick={(e) => handleEditAccount(account, e)}
+                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/35 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                      title="Edit account"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
 
@@ -677,6 +738,132 @@ export const Accounts: React.FC = () => {
           setAccountToDelete(null);
         }}
       />
+
+      {/* Edit Account Modal */}
+      <AnimatePresence>
+        {editModalOpen && editingAccount && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => { setEditModalOpen(false); setEditingAccount(null); }}
+            />
+            {/* Sheet */}
+            <motion.div
+              className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-2xl z-10"
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 280 }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1 sm:hidden">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pt-4 pb-2">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Edit Account</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">Update your account details</p>
+                </div>
+                <button
+                  onClick={() => { setEditModalOpen(false); setEditingAccount(null); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Form */}
+              <div className="px-6 pb-6 pt-3 space-y-4">
+                {/* Account Name */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Account Name</label>
+                  <input
+                    type="text"
+                    value={editingAccount.name}
+                    onChange={(e) => setEditingAccount(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 outline-none text-sm font-medium text-gray-900 transition-all"
+                    placeholder="e.g. HDFC Savings"
+                  />
+                </div>
+
+                {/* Account Type */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Account Type</label>
+                  <select
+                    value={editingAccount.type}
+                    onChange={(e) => setEditingAccount(prev => prev ? { ...prev, type: e.target.value } : null)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 outline-none text-sm font-medium text-gray-900 bg-white transition-all"
+                  >
+                    <option value="bank">🏦 Bank Account</option>
+                    <option value="card">💳 Credit / Debit Card</option>
+                    <option value="wallet">📱 Digital Wallet</option>
+                    <option value="cash">💵 Cash</option>
+                  </select>
+                </div>
+
+                {/* Balance */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Current Balance (₹)</label>
+                  <input
+                    type="number"
+                    value={editingAccount.balance}
+                    onChange={(e) => setEditingAccount(prev => prev ? { ...prev, balance: parseFloat(e.target.value) || 0 } : null)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 outline-none text-sm font-medium text-gray-900 transition-all"
+                    placeholder="0.00"
+                    step="0.01"
+                  />
+                </div>
+
+                {/* Active toggle */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Active Account</p>
+                    <p className="text-xs text-gray-500">Show this account in your portfolio</p>
+                  </div>
+                  <button
+                    onClick={() => setEditingAccount(prev => prev ? { ...prev, isActive: !prev.isActive } : null)}
+                    className={cn(
+                      "relative w-11 h-6 rounded-full transition-all duration-200",
+                      editingAccount.isActive ? "bg-gradient-to-r from-pink-500 to-rose-500" : "bg-gray-200"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200",
+                        editingAccount.isActive ? "translate-x-5" : "translate-x-0"
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-1">
+                  <button
+                    onClick={() => { setEditModalOpen(false); setEditingAccount(null); }}
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={isSavingEdit || !editingAccount.name.trim()}
+                    className="flex-1 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-semibold hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-pink-200"
+                  >
+                    {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Statement Import Modal */}
       {statementImportOpen && (
