@@ -15,6 +15,26 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validatePasswordStrength = (password: string) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length < minLength) return `Password must be at least ${minLength} characters long`;
+    if (!hasUpperCase) return 'Password must contain at least one uppercase letter';
+    if (!hasLowerCase) return 'Password must contain at least one lowercase letter';
+    if (!hasNumbers) return 'Password must contain at least one number';
+    if (!hasSpecialChar) return 'Password must contain at least one special character';
+
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -25,8 +45,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
         await signIn(email, password);
         toast.success('Welcome back!');
         onAuthSuccess();
-      } else {
         // Signup
+        if (!validateEmail(email)) {
+          toast.error('Please enter a valid email address');
+          setLoading(false);
+          return;
+        }
+
+        const passwordError = validatePasswordStrength(password);
+        if (passwordError) {
+          toast.error(passwordError);
+          setLoading(false);
+          return;
+        }
+
         if (!fullName.trim()) {
           toast.error('Please enter your full name');
           setLoading(false);
@@ -142,9 +174,13 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                 </button>
               </div>
               {!isLogin && (
-                <p className="mt-1 text-xs text-gray-500">
-                  Must be at least 6 characters
-                </p>
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <p className={password.length >= 8 ? "text-green-600" : ""}>✓ At least 8 characters</p>
+                  <p className={/[A-Z]/.test(password) ? "text-green-600" : ""}>✓ Contains uppercase letter</p>
+                  <p className={/[a-z]/.test(password) ? "text-green-600" : ""}>✓ Contains lowercase letter</p>
+                  <p className={/\d/.test(password) ? "text-green-600" : ""}>✓ Contains number</p>
+                  <p className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "text-green-600" : ""}>✓ Contains special character</p>
+                </div>
               )}
             </div>
 
