@@ -5,11 +5,9 @@ export const initializeDemoData = async (userEmail?: string, userId?: string) =>
   const isAdmin = userEmail?.toLowerCase() === targetAdminEmail;
   const hasSeededAdmin = localStorage.getItem('admin_data_seeded_v2') === 'true';
 
-  // Only admin gets demo data - new users start with blank data
+  // Only admin gets demo data — regular users start with a clean slate
   if (!isAdmin) {
     console.log('Non-admin user - skipping demo data seeding');
-    // Seed empty todo lists for non-admin users with their real userId
-    await seedToDoListsIfNeeded(userId ?? 'user');
     return;
   }
 
