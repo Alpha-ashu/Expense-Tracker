@@ -104,12 +104,13 @@ const AppContent: React.FC = () => {
     }
 
     if (user) {
-      initializeNotifications().then(() => {
+      (async () => {
+        await Promise.resolve(initializeNotifications());
         initializeRealtimeSync();
         HealthChecker.checkHealth().catch(console.error);
         HealthChecker.startPeriodicCheck(60000).catch(console.error);
         setIsInitialized(true);
-      });
+      })();
     } else if (!authLoading) {
       setIsInitialized(true);
     }
