@@ -35,11 +35,12 @@ export const PINSetup: React.FC<PINSetupProps> = ({
   useEffect(() => {
     if (pin.length === 6) {
       // Check for common patterns
-      const isSequential = '0123456789'.includes(pin) || '9876543210'.includes(pin);
-      const isRepeating = pin.split('').every(c => c === pin[0]);
+      const isSequential = /012|123|234|345|456|567|678|789/.test(pin) || /987|876|765|654|543|432|321|210/.test(pin);
+      const isRepeating = /(.)\1{2,}/.test(pin); // 3 or more repeating like 111, 222
+      const isPattern = /^(121212|101010|010101|212121|112233|223344)$/.test(pin);
       const hasUniqueDigits = new Set(pin.split('')).size >= 4;
 
-      if (isSequential || isRepeating) {
+      if (isSequential || isRepeating || isPattern) {
         setPinStrength('weak');
       } else if (hasUniqueDigits) {
         setPinStrength('strong');
@@ -71,7 +72,7 @@ export const PINSetup: React.FC<PINSetupProps> = ({
         return;
       }
       if (pinStrength === 'weak') {
-        setError('PIN is too weak. Avoid sequential or repeating numbers.');
+        setError('PIN is too weak. Avoid sequential (123), repeating (111), or common patterns.');
         return;
       }
       setStep('confirm');
@@ -95,11 +96,11 @@ export const PINSetup: React.FC<PINSetupProps> = ({
     try {
       // Store the PIN securely
       const key = storeMasterKey(step === 'enter' ? pin : confirmPin);
-      
+
       // Store PIN metadata
       localStorage.setItem('pin_created_at', new Date().toISOString());
       localStorage.setItem('pin_expiry', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()); // 90 days
-      
+
       toast.success(step === 'enter' ? 'PIN verified successfully!' : 'PIN created successfully!');
       onComplete(step === 'enter' ? pin : confirmPin);
     } catch (err) {
@@ -122,11 +123,10 @@ export const PINSetup: React.FC<PINSetupProps> = ({
       {[...Array(6)].map((_, i) => (
         <div
           key={i}
-          className={`w-4 h-4 rounded-full transition-all duration-200 ${
-            value.length > i
+          className={`w-4 h-4 rounded-full transition-all duration-200 ${value.length > i
               ? 'bg-blue-600 scale-110'
               : 'bg-gray-300 border-2 border-gray-300'
-          }`}
+            }`}
         />
       ))}
     </div>
