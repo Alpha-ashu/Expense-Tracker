@@ -266,7 +266,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                         {transaction.type === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{transaction.description}</p>
+                        <p className="font-medium text-gray-900">{transaction.description || transaction.category}</p>
                         <p className="text-sm text-gray-500">{transaction.category}</p>
                       </div>
                     </div>

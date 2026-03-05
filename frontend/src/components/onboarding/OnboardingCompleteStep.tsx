@@ -10,10 +10,10 @@ interface OnboardingCompleteStepProps {
     jobType: string;
     salary: string;
     bankName: string;
-    accountNumber: string;
     accountHolderName: string;
-    salaryCreditDate: string;
     currentBalance: string;
+    country: string;
+    language: string;
   };
   onComplete: () => void;
   onBack: () => void;
@@ -43,9 +43,19 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       jobType: data.jobType,
       salary: data.salary,
       monthlyIncome: Math.round(parseFloat(data.salary) / 12),
+      country: data.country,
+      language: data.language,
       createdAt: new Date().toISOString(),
     };
     localStorage.setItem('user_profile', JSON.stringify(userProfile));
+
+    const userSettings = {
+      defaultCurrency: 'INR',
+      monthlyBudget: Math.round(parseFloat(data.salary) / 12),
+      language: data.language,
+      country: data.country
+    };
+    localStorage.setItem('user_settings', JSON.stringify(userSettings));
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('user_setup_date', new Date().toISOString());
     console.log('✅ Profile data saved to localStorage:', userProfile);
@@ -129,24 +139,9 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       } catch (accountSyncError) {
         console.warn('Account Supabase sync skipped (non-blocking):', accountSyncError);
       }
-      // Step 3: Set up monthly salary transaction template
+      // Step 3 (Removed Salary Template)
       setProgress(55);
-      const salaryTemplate = {
-        id: `template_salary_${Date.now()}`,
-        name: 'Monthly Salary',
-        type: 'income',
-        category: 'salary',
-        amount: parseFloat(data.salary) / 12, // Monthly salary
-        accountId: accountId as number,
-        isRecurring: true,
-        recurringType: 'monthly',
-        recurringDay: parseInt(data.salaryCreditDate),
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      };
-      const existingTemplates = JSON.parse(localStorage.getItem('transaction_templates') || '[]');
-      existingTemplates.push(salaryTemplate);
-      localStorage.setItem('transaction_templates', JSON.stringify(existingTemplates));
+
       // Step 4: Mark onboarding as complete (re-affirm in case top-level write was skipped)
       setProgress(75);
       // Step 5: Dispatch ONBOARDING_COMPLETED event for global state update
@@ -248,13 +243,13 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         <h4 className="text-sm font-medium text-gray-700 mb-2">Setting up:</h4>
         <ul className="text-xs text-gray-600 space-y-1">
           <li>✓ Profile: {data.displayName}</li>
+          <li>✓ Location: {data.country} ({data.language})</li>
           <li>✓ Job: {data.jobType}</li>
           <li>✓ Salary: ₹{parseFloat(data.salary).toLocaleString()}/year</li>
           <li>✓ Bank: {data.bankName} account</li>
           {data.currentBalance && (
             <li>✓ Current Balance: ₹{parseFloat(data.currentBalance).toLocaleString()}</li>
           )}
-          <li>✓ Salary credit: {data.salaryCreditDate}{parseInt(data.salaryCreditDate) === 1 || parseInt(data.salaryCreditDate) === 21 || parseInt(data.salaryCreditDate) === 31 ? 'st' : parseInt(data.salaryCreditDate) === 2 || parseInt(data.salaryCreditDate) === 22 ? 'nd' : parseInt(data.salaryCreditDate) === 3 || parseInt(data.salaryCreditDate) === 23 ? 'rd' : 'th'} of month</li>
         </ul>
       </div>
 

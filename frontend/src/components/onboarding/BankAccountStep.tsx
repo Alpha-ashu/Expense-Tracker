@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 
 interface BankAccountStepProps {
   data: {
+    country: string;
     bankName: string;
-    accountNumber: string;
     accountHolderName: string;
-    salaryCreditDate: string;
     currentBalance: string;
   };
   onUpdate: (data: any) => void;
@@ -13,22 +12,14 @@ interface BankAccountStepProps {
   onBack: () => void;
 }
 
-const BANKS = [
-  'State Bank of India (SBI)',
-  'HDFC Bank',
-  'ICICI Bank',
-  'Axis Bank',
-  'Kotak Mahindra Bank',
-  'Punjab National Bank (PNB)',
-  'Bank of Baroda',
-  'Canara Bank',
-  'Union Bank of India',
-  'IndusInd Bank',
-  'Yes Bank',
-  'IDFC First Bank',
-  'Federal Bank',
-  'Other',
-];
+const BANK_LISTS: Record<string, string[]> = {
+  'India': ['State Bank of India (SBI)', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank', 'Punjab National Bank (PNB)', 'Bank of Baroda', 'Canara Bank', 'Other'],
+  'United States': ['Chase', 'Bank of America', 'Wells Fargo', 'Citibank', 'Capital One', 'Other'],
+  'United Kingdom': ['Barclays', 'HSBC', 'Lloyds', 'NatWest', 'Santander', 'Other'],
+  'Canada': ['RBC Royal Bank', 'TD Bank', 'Scotiabank', 'BMO', 'CIBC', 'Other'],
+  'Australia': ['Commonwealth Bank', 'Westpac', 'ANZ', 'NAB', 'Other'],
+  'Default': ['Primary Local Bank', 'International Bank', 'Other']
+};
 
 export const BankAccountStep: React.FC<BankAccountStepProps> = ({
   data,
@@ -45,12 +36,6 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
       newErrors.bankName = 'Bank name is required';
     }
 
-    if (!data.accountNumber.trim()) {
-      newErrors.accountNumber = 'Account number is required';
-    } else if (!/^\d{8,17}$/.test(data.accountNumber.replace(/\s/g, ''))) {
-      newErrors.accountNumber = 'Please enter a valid account number (8-17 digits)';
-    }
-
     if (!data.accountHolderName.trim()) {
       newErrors.accountHolderName = 'Account holder name is required';
     } else if (data.accountHolderName.trim().length < 2) {
@@ -61,10 +46,6 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
       newErrors.currentBalance = 'Please enter a valid amount';
     } else if (data.currentBalance && Number(data.currentBalance) < 0) {
       newErrors.currentBalance = 'Balance cannot be negative';
-    }
-
-    if (!data.salaryCreditDate) {
-      newErrors.salaryCreditDate = 'Salary credit date is required';
     }
 
     setErrors(newErrors);
@@ -78,13 +59,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
     }
   };
 
-  const formatAccountNumber = (value: string) => {
-    // Remove all non-digit characters
-    const cleaned = value.replace(/\D/g, '');
-    // Format with spaces every 4 digits
-    const formatted = cleaned.replace(/(\d{4})(?=\d)/g, '$1 ');
-    return formatted;
-  };
+  const availableBanks = BANK_LISTS[data.country] || BANK_LISTS['Default'];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,7 +68,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           Bank Account Setup
         </h3>
         <p className="text-sm text-gray-600 mb-6">
-          Set up your salary account details for automatic tracking.
+          Set up your primary account details for tracking.
         </p>
       </div>
 
@@ -109,7 +84,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
             }`}
         >
           <option value="">Select your bank</option>
-          {BANKS.map((bank) => (
+          {availableBanks.map((bank) => (
             <option key={bank} value={bank}>
               {bank}
             </option>
@@ -122,7 +97,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
 
       <div>
         <label htmlFor="accountHolderName" className="block text-sm font-medium text-gray-700 mb-1">
-          Account Holder Name
+          Account Name
         </label>
         <input
           type="text"
@@ -131,7 +106,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           onChange={(e) => onUpdate({ accountHolderName: e.target.value })}
           className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.accountHolderName ? 'border-red-500' : 'border-gray-300'
             }`}
-          placeholder="John Doe"
+          placeholder="Main checking, Savings, etc."
         />
         {errors.accountHolderName && (
           <p className="mt-1 text-sm text-red-600">{errors.accountHolderName}</p>
@@ -139,30 +114,8 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
       </div>
 
       <div>
-        <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-1">
-          Account Number
-        </label>
-        <input
-          type="text"
-          id="accountNumber"
-          value={data.accountNumber}
-          onChange={(e) => onUpdate({ accountNumber: formatAccountNumber(e.target.value) })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'
-            }`}
-          placeholder="1234 5678 9012 3456"
-          maxLength={21} // 17 digits + 4 spaces
-        />
-        {errors.accountNumber && (
-          <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>
-        )}
-        <p className="mt-1 text-xs text-gray-500">
-          Enter your account number (8-17 digits). Spaces will be added automatically.
-        </p>
-      </div>
-
-      <div>
         <label htmlFor="currentBalance" className="block text-sm font-medium text-gray-700 mb-1">
-          Current Balance (₹)
+          Current Balance
         </label>
         <input
           type="number"
@@ -179,47 +132,20 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           <p className="mt-1 text-sm text-red-600">{errors.currentBalance}</p>
         )}
         <p className="mt-1 text-xs text-gray-500">
-          Optional - The amount currently in this bank account.
-        </p>
-      </div>
-
-      <div>
-        <label htmlFor="salaryCreditDate" className="block text-sm font-medium text-gray-700 mb-1">
-          Salary Credit Date
-        </label>
-        <select
-          id="salaryCreditDate"
-          value={data.salaryCreditDate}
-          onChange={(e) => onUpdate({ salaryCreditDate: e.target.value })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.salaryCreditDate ? 'border-red-500' : 'border-gray-300'
-            }`}
-        >
-          <option value="">Select salary credit date</option>
-          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-            <option key={day} value={day.toString()}>
-              {day}{day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th'} of each month
-            </option>
-          ))}
-        </select>
-        {errors.salaryCreditDate && (
-          <p className="mt-1 text-sm text-red-600">{errors.salaryCreditDate}</p>
-        )}
-        <p className="mt-1 text-xs text-gray-500">
-          Select the day of the month when your salary is typically credited.
+          The amount currently in this bank account.
         </p>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-blue-800 mb-2">Why we need this information</h4>
+        <h4 className="text-sm font-medium text-blue-800 mb-2">Almost Done!</h4>
         <ul className="text-xs text-blue-700 space-y-1">
-          <li>• Automatically track your salary deposits</li>
-          <li>• Set up monthly budget based on your income</li>
+          <li>• Set up your starting balance</li>
           <li>• Provide insights on your spending patterns</li>
           <li>• Your bank information is encrypted and secure</li>
         </ul>
       </div>
 
-      <div className="flex space-x-3">
+      <div className="flex space-x-3 mt-8">
         <button
           type="button"
           onClick={onBack}
@@ -231,7 +157,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
           type="submit"
           className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
         >
-          Complete Setup
+          Submit
         </button>
       </div>
     </form>

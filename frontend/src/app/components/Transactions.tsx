@@ -100,23 +100,23 @@ export const Transactions: React.FC = () => {
 
       {/* Action Buttons */}
       <div className="flex gap-2 sm:gap-3 flex-wrap">
-          <Button
-            variant="secondary"
-            onClick={() => setShowScanModal(true)}
-            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4"
-          >
-            <Camera size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Scan Bill</span>
-            <span className="inline sm:hidden">Scan</span>
-          </Button>
-          <Button
-            onClick={() => setShowTransactionTypeModal(true)}
-            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
-          >
-            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-            Add
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          onClick={() => setShowScanModal(true)}
+          className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4"
+        >
+          <Camera size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Scan Bill</span>
+          <span className="inline sm:hidden">Scan</span>
+        </Button>
+        <Button
+          onClick={() => setShowTransactionTypeModal(true)}
+          className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+        >
+          <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+          Add
+        </Button>
+      </div>
 
       {/* Time Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -237,7 +237,9 @@ export const Transactions: React.FC = () => {
                           {displayType === 'income' ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900 text-sm">{transaction.description}</p>
+                          <p className="font-bold text-gray-900 text-sm">
+                            {transaction.description || transaction.category}
+                          </p>
                           <p className="text-xs text-gray-400 font-medium">{new Date(transaction.date).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -519,14 +521,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
             <input
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
               placeholder="e.g., Grocery shopping"
-              required
             />
           </div>
 

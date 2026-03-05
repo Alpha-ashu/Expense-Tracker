@@ -70,7 +70,7 @@ export const AddTransaction: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const account = accounts.find(a => a.id === formData.accountId);
     if (!account) {
       toast.error('Please select an account');
@@ -130,11 +130,10 @@ export const AddTransaction: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => setFormData({ ...formData, type: 'expense', category: CATEGORIES.expense[0] })}
-              className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${
-                formData.type === 'expense'
+              className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${formData.type === 'expense'
                   ? 'bg-red-50 border-red-300 text-red-700 shadow-lg'
                   : 'bg-white border-gray-200 text-gray-600 hover:border-red-200'
-              }`}
+                }`}
             >
               <div className="text-2xl mb-1">📉</div>
               Expense
@@ -144,11 +143,10 @@ export const AddTransaction: React.FC = () => {
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => setFormData({ ...formData, type: 'income', category: CATEGORIES.income[0] })}
-              className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${
-                formData.type === 'income'
+              className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${formData.type === 'income'
                   ? 'bg-green-50 border-green-300 text-green-700 shadow-lg'
                   : 'bg-white border-gray-200 text-gray-600 hover:border-green-200'
-              }`}
+                }`}
             >
               <div className="text-2xl mb-1">📈</div>
               Income
@@ -222,14 +220,13 @@ export const AddTransaction: React.FC = () => {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-3">Description *</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-3">Description (Optional)</label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                   placeholder="e.g., Grocery shopping"
-                  required
                 />
               </div>
 

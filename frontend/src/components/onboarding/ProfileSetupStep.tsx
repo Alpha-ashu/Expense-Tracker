@@ -44,12 +44,6 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!data.displayName.trim()) {
-      newErrors.displayName = 'Display name is required';
-    } else if (data.displayName.trim().length < 2) {
-      newErrors.displayName = 'Display name must be at least 2 characters';
-    }
-
     if (!data.dateOfBirth) {
       newErrors.dateOfBirth = 'Date of birth is required';
     } else {
@@ -160,22 +154,9 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
         </AnimatePresence>
       </div>
 
-      <div>
-        <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
-          Display Name
-        </label>
-        <input
-          type="text"
-          id="displayName"
-          value={data.displayName}
-          onChange={(e) => onUpdate({ displayName: e.target.value })}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.displayName ? 'border-red-500' : 'border-gray-300'
-            }`}
-          placeholder="John Doe"
-        />
-        {errors.displayName && (
-          <p className="mt-1 text-sm text-red-600">{errors.displayName}</p>
-        )}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center mb-4">
+        <span className="text-sm text-gray-500 block mb-1">Signed in as</span>
+        <span className="font-semibold text-gray-800">{data.displayName || 'User'}</span>
       </div>
 
       <div>
