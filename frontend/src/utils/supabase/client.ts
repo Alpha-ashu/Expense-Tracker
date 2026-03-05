@@ -48,25 +48,6 @@ const createStubClient = (): any => {
 	};
 };
 
-// Custom fetch with a 10-second timeout to fail fast when Supabase is unreachable
-// (paused project, network outage, or corporate firewall). Without this the browser
-// TCP timeout (~2 min) causes the retry loop to flood the console for minutes.
-const fetchWithTimeout = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-	const TIMEOUT_MS = 10_000;
-	const controller = new AbortController();
-	const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-	// Propagate any caller-supplied signal so Supabase can still cancel our request.
-	const callerSignal = (init as RequestInit & { signal?: AbortSignal })?.signal;
-	if (callerSignal) {
-		callerSignal.addEventListener('abort', () => controller.abort(), { once: true });
-	}
-
-	return fetch(input, { ...init, signal: controller.signal }).finally(() =>
-		clearTimeout(timeoutId),
-	);
-};
-
 // autoRefreshToken is set to false here.
 // AuthContext.tsx is responsible for calling startAutoRefresh() only AFTER a
 // successful getSession() confirms Supabase is actually reachable, and for
@@ -76,7 +57,6 @@ const fetchWithTimeout = (input: RequestInfo | URL, init?: RequestInit): Promise
 const supabase = (!supabaseUrl || !supabaseKey)
 	? createStubClient()
 	: createClient(supabaseUrl, supabaseKey, {
-		global: { fetch: fetchWithTimeout },
 		auth: {
 			autoRefreshToken: false,
 			persistSession: true,

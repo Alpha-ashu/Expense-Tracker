@@ -149,14 +149,27 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
     if (resendCooldown > 0) return;
 
     setIsResending(true);
+    setError(null);
     try {
-      // Use signInWithOtp to resend the 6-digit code (same as initial send)
+      // First try resend without creating user (standard case: user exists, just needs new code)
       const { error: resendError } = await supabase.auth.signInWithOtp({
         email,
         options: { shouldCreateUser: false },
       });
 
-      if (resendError) throw resendError;
+      if (resendError) {
+        // 422 = user account doesn't exist yet (signup may have failed server-side)
+        // or the email hasn't been confirmed — try with shouldCreateUser: true
+        if (resendError.status === 422 || resendError.message?.toLowerCase().includes('user')) {
+          const { error: createError } = await supabase.auth.signInWithOtp({
+            email,
+            options: { shouldCreateUser: true },
+          });
+          if (createError) throw createError;
+        } else {
+          throw resendError;
+        }
+      }
 
       setResendAttempts(prev => prev + 1);
       setResendCooldown(60);
@@ -164,12 +177,15 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
       inputRefs.current[0]?.focus();
       toast.success(`New code sent to ${email}`);
     } catch (err: any) {
+      const status = err?.status;
       // 429 = Supabase rate limit (max 3 emails/hour on free tier)
-      if (err?.status === 429 || err?.message?.toLowerCase().includes('rate limit')) {
+      if (status === 429 || err?.message?.toLowerCase().includes('rate limit')) {
         setError('Email rate limit reached — Supabase allows 3 emails/hour on the free plan. Please wait ~1 hour or configure a custom SMTP provider in your Supabase dashboard.');
         setResendCooldown(300); // 5 min cooldown to stop further attempts
+      } else if (status === 500) {
+        setError('Email sending is currently unavailable (Supabase server error). Please go back and try signing up again, or check your Supabase SMTP settings.');
       } else {
-        toast.error('Failed to resend code. Please try again in a minute.');
+        toast.error(err?.message || 'Failed to resend code. Please try again in a minute.');
       }
     } finally {
       setIsResending(false);

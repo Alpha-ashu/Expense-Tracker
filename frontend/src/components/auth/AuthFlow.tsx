@@ -123,7 +123,9 @@ export const AuthFlow: React.FC = () => {
 
       // SMTP misconfigured — account IS created but email failed. Non-fatal.
       const smtpFailed = error?.message?.toLowerCase().includes('sending confirmation email');
-      if (error && !smtpFailed) throw error;
+      // 500 server errors during signup — Supabase DB trigger ran but email hook failed
+      const serverError = error?.status === 500 || error?.message?.toLowerCase().includes('internal server error');
+      if (error && !smtpFailed && !serverError) throw error;
 
       setEmail(data.email);
       setUserProfile({
@@ -147,6 +149,12 @@ export const AuthFlow: React.FC = () => {
         setStep('profile-setup');
         saveFlowState('profile-setup');
         toast.success('Account created! Let\'s set up your profile.');
+      } else if (serverError) {
+        // Supabase returned 500 — account may have been created but email sending failed
+        // Route to OTP screen; resend button will recover via signInWithOtp
+        setStep('otp-verify');
+        saveFlowState('otp-verify');
+        toast.warning('Account created, but our email server had an issue. Use \"Resend Code\" below to get your verification email.');
       } else if (smtpFailed) {
         // Account created but email not sent — go to OTP screen with warning
         setStep('otp-verify');
@@ -161,7 +169,14 @@ export const AuthFlow: React.FC = () => {
     } catch (error: any) {
       console.error('Sign up error:', error);
       const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
-      toast.error(isNetworkError ? 'Cannot connect to server. Please try again later.' : (error.message || 'Failed to create account'));
+      const isServerError = error?.status === 500 || error?.message?.toLowerCase().includes('internal server error');
+      let errMsg = error.message || 'Failed to create account';
+      if (isNetworkError) {
+        errMsg = 'Cannot connect to server. Please try again later.';
+      } else if (isServerError) {
+        errMsg = 'Signup is temporarily unavailable (server error). Please try again in a moment or contact support if this persists.';
+      }
+      toast.error(errMsg);
     } finally {
       setIsLoading(false);
     }
