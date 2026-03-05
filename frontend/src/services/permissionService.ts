@@ -37,7 +37,7 @@ class PermissionService {
   private permissions: UserPermissions | null = null;
   private listeners: ((permissions: UserPermissions | null) => void)[] = [];
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): PermissionService {
     if (!PermissionService.instance) {
@@ -47,65 +47,28 @@ class PermissionService {
   }
 
   /**
-   * Fetch user permissions from backend
+   * Fetch user permissions — resolved directly from the profiles table.
+   * No Edge Function required; eliminates the CORS/500 error from the
+   * missing `get-user-permissions` function.
    */
   async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<UserPermissions> {
     try {
-      console.log('🔐 Fetching permissions for user:', userId);
+      // Resolve role from profiles table (column: role, default: 'user')
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
 
-      // Call backend function to get user permissions
-      const { data, error } = await supabase.functions.invoke('get-user-permissions', {
-        userId
-      });
+      const role: UserRole =
+        (profile?.role as UserRole) || fallbackRole || 'user';
 
-      if (error) {
-        console.error('❌ Error fetching permissions:', error);
-        
-        // Check if it's a network/CORS error
-        if (error.message?.includes('CORS') || 
-            error.message?.includes('fetch') || 
-            error.message?.includes('Failed to send') ||
-            error.message?.includes('network')) {
-          console.log('🔄 Using fallback permissions due to network/CORS error');
-          const role = fallbackRole || 'user';
-          const fallback = this.getDefaultPermissions(role);
-          this.permissions = fallback;
-          this.notifyListeners();
-          return fallback;
-        }
-        
-        // Use fallback role if provided, otherwise default to 'user'
-        const role = fallbackRole || 'user';
-        console.log('🔄 Using fallback permissions for role:', role);
-        const fallback = this.getDefaultPermissions(role);
-        this.permissions = fallback;
-        this.notifyListeners();
-        return fallback;
-      }
-
-      if (!data) {
-        console.warn('⚠️ No permissions data returned, using defaults');
-        const role = fallbackRole || 'user';
-        const fallback = this.getDefaultPermissions(role);
-        this.permissions = fallback;
-        this.notifyListeners();
-        return fallback;
-      }
-
-      const permissions: UserPermissions = {
-        role: data.role,
-        allowedFeatures: data.allowedFeatures || [],
-        permissions: data.permissions || {},
-        lastUpdated: data.lastUpdated || new Date().toISOString()
-      };
-
-      console.log('✅ Permissions fetched:', permissions);
+      const permissions = this.getDefaultPermissions(role);
       this.permissions = permissions;
       this.notifyListeners();
-
       return permissions;
     } catch (error) {
-      console.error('❌ Unexpected error in fetchUserPermissions:', error);
+      // Network / RLS error — silently fall back, never throw
       const role = fallbackRole || 'user';
       const fallback = this.getDefaultPermissions(role);
       this.permissions = fallback;
