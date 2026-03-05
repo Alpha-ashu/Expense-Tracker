@@ -1,12 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { TrendingUp, CreditCard, Wallet, Banknote, Smartphone, ArrowUpRight, ArrowDownLeft, Plus, Calendar, Target, Users, TrendingDown, AlertCircle } from 'lucide-react';
+import {
+  TrendingUp, CreditCard, Wallet, Banknote, Smartphone,
+  ArrowUpRight, ArrowDownLeft, Target, TrendingDown,
+  AlertCircle, Calendar, Users, BarChart3, ChevronRight,
+  Clock, CheckCircle2, AlertTriangle, BadgeDollarSign,
+  HandCoins, Activity, Landmark
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
-import { motion } from 'framer-motion';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 
 interface DashboardProps {
@@ -14,7 +19,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ setCurrentPage }: DashboardProps) {
-  const { accounts, transactions, goals, loans, investments, currency } = useApp();
+  const { accounts, transactions, goals, loans, investments, groupExpenses, currency } = useApp();
   const [activeTab, setActiveTab] = useState<'all' | 'bank' | 'card' | 'wallet' | 'cash'>('all');
   const [timePeriod, setTimePeriod] = useState<TimeFilterPeriod>('monthly');
 
@@ -23,10 +28,8 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     return accounts.filter(a => a.type === activeTab);
   }, [accounts, activeTab]);
 
-  // Filter transactions by time period
-  const timeFilteredTransactions = useMemo(() => {
-    return filterByTimePeriod(transactions, timePeriod);
-  }, [transactions, timePeriod]);
+  const timeFilteredTransactions = useMemo(() =>
+    filterByTimePeriod(transactions, timePeriod), [transactions, timePeriod]);
 
   const filteredTransactions = useMemo(() => {
     if (activeTab === 'all') return timeFilteredTransactions;
@@ -38,32 +41,90 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     totalBalance: accounts.filter(a => a.isActive).reduce((sum, a) => sum + a.balance, 0),
     monthlyIncome: timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
     monthlyExpense: timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
-    savingsRate: timeFilteredTransactions.length > 0
+    savingsRate: timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) > 0
       ? ((timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
         timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)) /
         timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)) * 100
       : 0,
   }), [accounts, timeFilteredTransactions]);
 
-  const recentTransactions = useMemo(() => {
-    return filteredTransactions.slice(0, 5);
-  }, [filteredTransactions]);
+  const recentTransactions = useMemo(() => filteredTransactions.slice(0, 5), [filteredTransactions]);
 
-  const upcomingBills = useMemo(() => {
-    // Filter for recurring expenses and upcoming bills
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return transactions.filter(t =>
-      t.type === 'expense' &&
-      t.date >= now &&
-      t.date <= thirtyDaysFromNow &&
+  const activeGoals = useMemo(() => goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3), [goals]);
+
+  // ── Loans & EMI computed data ──────────────────────────────────────────────
+  const now = new Date();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const activeLoans = useMemo(() =>
+    loans.filter(l => l.status === 'active' || l.status === 'overdue').slice(0, 3),
+    [loans]);
+
+  const getLoanStatus = (loan: typeof loans[0]) => {
+    if (loan.status === 'overdue') return 'overdue';
+    if (loan.dueDate && new Date(loan.dueDate) <= sevenDaysFromNow) return 'upcoming';
+    return 'active';
+  };
+
+  // ── Calendar / Upcoming Events ──────────────────────────────────────────────
+  const upcomingEvents = useMemo(() => {
+    const events: { label: string; date: Date; type: 'emi' | 'bill' | 'transaction'; amount?: number; timeCategory: 'today' | 'week' | 'month' }[] = [];
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    // EMI due dates from loans
+    loans.filter(l => l.status === 'active' && l.dueDate).forEach(loan => {
+      const dueDate = new Date(loan.dueDate!);
+      if (dueDate >= now && dueDate <= endOfMonth) {
+        const isToday = dueDate.toDateString() === now.toDateString();
+        const isThisWeek = dueDate <= sevenDaysFromNow;
+        events.push({
+          label: `${loan.name} EMI`,
+          date: dueDate,
+          type: 'emi',
+          amount: loan.emiAmount,
+          timeCategory: isToday ? 'today' : isThisWeek ? 'week' : 'month',
+        });
+      }
+    });
+
+    // Upcoming scheduled transactions
+    transactions.filter(t =>
+      t.type === 'expense' && t.date >= now && t.date <= endOfMonth &&
       (t.category === 'bills' || t.category === 'subscriptions' || t.description.toLowerCase().includes('emi'))
-    ).slice(0, 3);
-  }, [transactions]);
+    ).forEach(t => {
+      const isToday = new Date(t.date).toDateString() === now.toDateString();
+      const isThisWeek = new Date(t.date) <= sevenDaysFromNow;
+      events.push({
+        label: t.description,
+        date: new Date(t.date),
+        type: 'bill',
+        amount: t.amount,
+        timeCategory: isToday ? 'today' : isThisWeek ? 'week' : 'month',
+      });
+    });
 
-  const activeGoals = useMemo(() => {
-    return goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3);
-  }, [goals]);
+    return events.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
+  }, [loans, transactions]);
+
+  // ── Group Expenses / Borrow / Lend ─────────────────────────────────────────
+  const groupStats = useMemo(() => {
+    const borrowed = loans.filter(l => l.type === 'borrowed' && l.status === 'active').reduce((s, l) => s + l.outstandingBalance, 0);
+    const lent = loans.filter(l => l.type === 'lent' && l.status === 'active').reduce((s, l) => s + l.outstandingBalance, 0);
+    const pendingSettlements = groupExpenses.reduce((s, g) => {
+      const unpaid = g.members.filter(m => !m.paid).reduce((ms, m) => ms + m.share, 0);
+      return s + unpaid;
+    }, 0);
+    return { borrowed, lent, pendingSettlements, activeGroups: groupExpenses.length };
+  }, [loans, groupExpenses]);
+
+  // ── Investments ────────────────────────────────────────────────────────────
+  const investmentStats = useMemo(() => {
+    const totalInvested = investments.reduce((s, i) => s + i.totalInvested, 0);
+    const currentValue = investments.reduce((s, i) => s + i.currentValue, 0);
+    const totalReturns = currentValue - totalInvested;
+    const returnsPercent = totalInvested > 0 ? (totalReturns / totalInvested) * 100 : 0;
+    return { totalInvested, currentValue, totalReturns, returnsPercent, count: investments.length };
+  }, [investments]);
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', {
     style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0
@@ -77,27 +138,30 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     { id: 'cash', label: 'Cash', icon: Banknote },
   ];
 
-  const EmptyState = ({ title, description, icon: Icon, action }: {
-    title: string;
-    description: string;
-    icon: React.ElementType;
-    action?: { label: string; onClick: () => void };
-  }) => (
-    <Card className="p-8 text-center">
-      <Icon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-500 mb-4">{description}</p>
-      {action && (
-        <Button onClick={action.onClick} className="rounded-full">
-          {action.label}
-        </Button>
-      )}
-    </Card>
+  // Reusable section header
+  const SectionHeader = ({ title, onViewAll, viewLabel = 'View All' }: { title: string; onViewAll: () => void; viewLabel?: string }) => (
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      <Button variant="outline" size="sm" onClick={onViewAll} className="rounded-full text-xs gap-1">
+        {viewLabel} <ChevronRight size={12} />
+      </Button>
+    </div>
   );
+
+  const EmptyWidget = ({ icon: Icon, message }: { icon: React.ElementType; message: string }) => (
+    <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+      <Icon size={36} className="mb-2 opacity-40" />
+      <p className="text-sm font-medium">{message}</p>
+    </div>
+  );
+
+  const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35 } };
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-gray-50">
       <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full">
+
+        {/* Header */}
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-4 lg:pb-6">
           <PageHeader title="Dashboard" subtitle="Manage your financial overview" icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />} />
         </div>
@@ -110,7 +174,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           </div>
         </div>
 
-        {/* Financial Health Overview */}
+        {/* ── 1. Financial Health Hero ── */}
         <div className="flex justify-center px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <Card variant="mesh-pink" className="w-full max-w-md lg:max-w-lg p-6 lg:p-8 relative overflow-hidden">
             <div className="relative z-10">
@@ -118,7 +182,6 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
               <h2 className="text-3xl lg:text-4xl font-display font-bold text-white tracking-tight mb-6 text-center">
                 {formatCurrency(stats.totalBalance)}
               </h2>
-
               <div className="grid grid-cols-2 gap-3 lg:gap-4">
                 <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-1 opacity-80">
@@ -135,7 +198,6 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                   <p className="text-white font-bold text-sm lg:text-base">{formatCurrency(stats.monthlyExpense)}</p>
                 </div>
               </div>
-
               {stats.monthlyIncome > 0 && (
                 <div className="mt-4 bg-white/20 backdrop-blur-md rounded-2xl p-3">
                   <div className="flex items-center gap-2 mb-1 opacity-80">
@@ -158,15 +220,14 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'all' | 'bank' | 'card' | 'wallet' | 'cash')}
+                onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={cn(
                   'relative flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
                   isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
                 )}
               >
                 {isActive && (
-                  <motion.div
-                    layoutId="activeTabPill"
+                  <motion.div layoutId="activeTabPill"
                     className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full z-0"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                   />
@@ -180,200 +241,345 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           })}
         </div>
 
-        {/* Accounts Section */}
-        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Accounts</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage?.('accounts')}
-              className="rounded-full"
-            >
-              View All
-            </Button>
-          </div>
-
+        {/* ── 2. Accounts ── */}
+        <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <SectionHeader title="Accounts" onViewAll={() => setCurrentPage?.('accounts')} />
           <AnimatePresence mode="wait">
             {filteredAccounts.length > 0 ? (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
+              <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}
                 className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               >
                 {filteredAccounts.slice(0, 4).map((account) => (
-                  <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+                  <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
                     <div className="flex items-center justify-between mb-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
                         account.type === 'bank' ? "bg-blue-100 text-blue-600" :
                           account.type === 'card' ? "bg-purple-100 text-purple-600" :
-                            account.type === 'wallet' ? "bg-green-100 text-green-600" :
-                              "bg-gray-100 text-gray-600"
+                            account.type === 'wallet' ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-600"
                       )}>
                         {account.type === 'bank' && <Wallet size={20} />}
                         {account.type === 'card' && <CreditCard size={20} />}
                         {account.type === 'wallet' && <Smartphone size={20} />}
                         {account.type === 'cash' && <Banknote size={20} />}
                       </div>
-                      {!account.isActive && (
-                        <span className="text-xs text-gray-500">Inactive</span>
-                      )}
+                      {!account.isActive && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Inactive</span>}
                     </div>
-                    <h4 className="font-medium text-gray-900 truncate mb-1">{account.name}</h4>
+                    <h4 className="font-medium text-gray-900 truncate mb-1 text-sm">{account.name}</h4>
                     <p className="text-xl font-bold text-gray-900">{formatCurrency(account.balance)}</p>
                   </Card>
                 ))}
               </motion.div>
             ) : (
-              <EmptyState
-                title="No accounts yet"
-                description="Add your first account to start tracking your finances"
-                icon={Wallet}
-                action={{ label: "Add Account", onClick: () => setCurrentPage?.('add-account') }}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage?.('transactions')}
-              className="rounded-full"
-            >
-              View All
-            </Button>
-          </div>
-
-          <AnimatePresence>
-            {recentTransactions.length > 0 ? (
-              <Card className="divide-y divide-gray-100">
-                {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-10 h-10 rounded-full flex items-center justify-center",
-                        transaction.type === 'income' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
-                      )}>
-                        {transaction.type === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{transaction.description || transaction.category}</p>
-                        <p className="text-sm text-gray-500">{transaction.category}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={cn(
-                        "font-semibold",
-                        transaction.type === 'income' ? "text-green-600" : "text-red-600"
-                      )}>
-                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(transaction.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <Card className="p-8 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('add-account')}>
+                <EmptyWidget icon={Wallet} message="No accounts yet — tap to add your first" />
               </Card>
-            ) : (
-              <EmptyState
-                title="No transactions yet"
-                description="Start adding transactions to see your financial activity"
-                icon={CreditCard}
-                action={{ label: "Add Transaction", onClick: () => setCurrentPage?.('add-transaction') }}
-              />
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
-        {/* Upcoming Bills */}
-        {upcomingBills.length > 0 && (
-          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Upcoming Bills</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage?.('calendar')}
-                className="rounded-full"
-              >
-                View Calendar
-              </Button>
-            </div>
-
+        {/* ── 3. Recent Transactions ── */}
+        <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <SectionHeader title="Recent Transactions" onViewAll={() => setCurrentPage?.('transactions')} />
+          {recentTransactions.length > 0 ? (
             <Card className="divide-y divide-gray-100">
-              {upcomingBills.map((bill, index) => (
-                <div key={bill.id} className="p-4 flex items-center justify-between">
+              {recentTransactions.map((transaction) => (
+                <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setCurrentPage?.('transactions')}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
-                      <AlertCircle size={18} />
+                    <div className={cn("w-10 h-10 rounded-full flex items-center justify-center",
+                      transaction.type === 'income' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                    )}>
+                      {transaction.type === 'income' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{bill.description}</p>
-                      <p className="text-sm text-gray-500">
-                        Due {new Date(bill.date).toLocaleDateString()}
-                      </p>
+                      <p className="font-medium text-gray-900 text-sm">{transaction.description || transaction.category}</p>
+                      <p className="text-xs text-gray-500">{transaction.category}</p>
                     </div>
                   </div>
-                  <p className="font-semibold text-red-600">{formatCurrency(bill.amount)}</p>
+                  <div className="text-right">
+                    <p className={cn("font-semibold text-sm", transaction.type === 'income' ? "text-green-600" : "text-red-600")}>
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    </p>
+                    <p className="text-xs text-gray-500">{new Date(transaction.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                  </div>
                 </div>
               ))}
             </Card>
-          </div>
-        )}
+          ) : (
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('add-transaction')}>
+              <EmptyWidget icon={CreditCard} message="No transactions — tap to add your first" />
+            </Card>
+          )}
+        </motion.div>
 
-        {/* Active Goals */}
-        {activeGoals.length > 0 && (
-          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Goals Progress</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage?.('goals')}
-                className="rounded-full"
-              >
-                View All
-              </Button>
-            </div>
-
+        {/* ── 4. Loans & EMI ── */}
+        <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <SectionHeader title="Loans & EMI" onViewAll={() => setCurrentPage?.('loans')} />
+          {activeLoans.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeGoals.map((goal) => {
-                const progress = (goal.currentAmount / goal.targetAmount) * 100;
+              {activeLoans.map((loan) => {
+                const status = getLoanStatus(loan);
+                const statusConfig = {
+                  overdue: { label: 'Overdue', bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100', icon: AlertTriangle, dotColor: 'bg-red-500' },
+                  upcoming: { label: 'Due Soon', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: Clock, dotColor: 'bg-amber-500' },
+                  active: { label: 'Active', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: CheckCircle2, dotColor: 'bg-blue-500' },
+                }[status];
+                const StatusIcon = statusConfig.icon;
                 return (
-                  <Card key={goal.id} className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900 truncate">{goal.name}</h4>
-                      <Target size={16} className="text-gray-400" />
-                    </div>
-                    <div className="mb-3">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>{formatCurrency(goal.currentAmount)}</span>
-                        <span>{formatCurrency(goal.targetAmount)}</span>
+                  <Card key={loan.id}
+                    className={cn("p-4 cursor-pointer hover:shadow-lg transition-all border", statusConfig.border)}
+                    onClick={() => setCurrentPage?.('loans')}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", statusConfig.bg)}>
+                        <Landmark size={18} className={statusConfig.text} />
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(progress, 100)}%` }}
-                        />
-                      </div>
+                      <span className={cn("flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full", statusConfig.bg, statusConfig.text)}>
+                        <span className={cn("w-1.5 h-1.5 rounded-full", statusConfig.dotColor)} />
+                        {statusConfig.label}
+                      </span>
                     </div>
-                    <p className="text-sm font-medium text-blue-600">{progress.toFixed(0)}% Complete</p>
+                    <h4 className="font-semibold text-gray-900 truncate text-sm mb-0.5">{loan.name}</h4>
+                    <p className="text-xs text-gray-500 mb-3 capitalize">{loan.type === 'emi' ? 'EMI Loan' : loan.type === 'borrowed' ? 'Borrowed' : 'Lent'}</p>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs text-gray-500">
+                        <span>Outstanding</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(loan.outstandingBalance)}</span>
+                      </div>
+                      {loan.emiAmount && (
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span>EMI</span>
+                          <span className="font-semibold text-gray-900">{formatCurrency(loan.emiAmount)}/mo</span>
+                        </div>
+                      )}
+                      {loan.dueDate && (
+                        <div className="flex justify-between items-center text-xs text-gray-500">
+                          <span>Next due</span>
+                          <span className={cn("font-semibold", status === 'overdue' ? 'text-red-600' : 'text-gray-900')}>
+                            {new Date(loan.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </Card>
                 );
               })}
             </div>
-          </div>
+          ) : (
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('loans')}>
+              <EmptyWidget icon={Landmark} message="No active loans — click to manage" />
+            </Card>
+          )}
+        </motion.div>
+
+        {/* ── 5. Calendar / Upcoming Events ── */}
+        <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <SectionHeader title="Upcoming Events" onViewAll={() => setCurrentPage?.('calendar')} viewLabel="View Calendar" />
+          {upcomingEvents.length > 0 ? (
+            <Card className="divide-y divide-gray-100 cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('calendar')}>
+              {upcomingEvents.map((event, i) => {
+                const timeBadge = {
+                  today: { label: 'Today', cls: 'bg-red-100 text-red-600' },
+                  week: { label: 'This Week', cls: 'bg-amber-100 text-amber-600' },
+                  month: { label: 'This Month', cls: 'bg-blue-100 text-blue-600' },
+                }[event.timeCategory];
+                const typeIcon = event.type === 'emi'
+                  ? <Landmark size={16} className="text-purple-600" />
+                  : <AlertCircle size={16} className="text-orange-600" />;
+                const typeBg = event.type === 'emi' ? 'bg-purple-50' : 'bg-orange-50';
+                return (
+                  <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", typeBg)}>
+                        {typeIcon}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{event.label}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full", timeBadge.cls)}>{timeBadge.label}</span>
+                          <span className="text-xs text-gray-500">
+                            {event.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {event.amount !== undefined && (
+                      <p className="font-semibold text-sm text-gray-900">{formatCurrency(event.amount)}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </Card>
+          ) : (
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('calendar')}>
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                <Calendar size={36} className="mb-2 opacity-40" />
+                <p className="text-sm font-medium">No upcoming events this month</p>
+                <p className="text-xs text-gray-400 mt-1">EMI due dates and bills appear here</p>
+              </div>
+            </Card>
+          )}
+        </motion.div>
+
+        {/* ── 6. Group Expenses / Borrow / Lend ── */}
+        <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <SectionHeader title="Borrow, Lend & Groups" onViewAll={() => setCurrentPage?.('groups')} />
+          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setCurrentPage?.('groups')}>
+            {(groupStats.borrowed > 0 || groupStats.lent > 0 || groupStats.pendingSettlements > 0 || groupStats.activeGroups > 0) ? (
+              <div className="p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {/* You Owe */}
+                  <div className="bg-red-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <HandCoins size={14} className="text-red-500" />
+                      <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">You Owe</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(groupStats.borrowed)}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Borrowed</p>
+                  </div>
+
+                  {/* Others Owe */}
+                  <div className="bg-green-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <BadgeDollarSign size={14} className="text-green-500" />
+                      <span className="text-[10px] font-bold text-green-500 uppercase tracking-wide">Owed to You</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(groupStats.lent)}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Lent out</p>
+                  </div>
+
+                  {/* Pending Settlements */}
+                  <div className="bg-amber-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <AlertCircle size={14} className="text-amber-500" />
+                      <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Pending</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(groupStats.pendingSettlements)}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Unsettled</p>
+                  </div>
+
+                  {/* Active Groups */}
+                  <div className="bg-blue-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Users size={14} className="text-blue-500" />
+                      <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wide">Groups</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{groupStats.activeGroups}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Active</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end mt-3 text-xs text-gray-400 gap-1">
+                  <span>Tap to manage</span>
+                  <ChevronRight size={12} />
+                </div>
+              </div>
+            ) : (
+              <EmptyWidget icon={Users} message="No group expenses or borrow/lend records" />
+            )}
+          </Card>
+        </motion.div>
+
+        {/* ── 7. Investments ── */}
+        <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+          <SectionHeader title="Investments" onViewAll={() => setCurrentPage?.('investments')} />
+          {investmentStats.count > 0 ? (
+            <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setCurrentPage?.('investments')}>
+              <div className="p-4">
+                {/* Top summary row */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                  <div className="bg-indigo-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Activity size={14} className="text-indigo-500" />
+                      <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Invested</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(investmentStats.totalInvested)}</p>
+                  </div>
+                  <div className="bg-purple-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <BarChart3 size={14} className="text-purple-500" />
+                      <span className="text-[10px] font-bold text-purple-500 uppercase tracking-wide">Current Value</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(investmentStats.currentValue)}</p>
+                  </div>
+                  <div className={cn("rounded-2xl p-3", investmentStats.totalReturns >= 0 ? "bg-green-50" : "bg-red-50")}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {investmentStats.totalReturns >= 0
+                        ? <TrendingUp size={14} className="text-green-500" />
+                        : <TrendingDown size={14} className="text-red-500" />}
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wide", investmentStats.totalReturns >= 0 ? "text-green-500" : "text-red-500")}>Returns</span>
+                    </div>
+                    <p className={cn("text-base font-bold", investmentStats.totalReturns >= 0 ? "text-green-700" : "text-red-700")}>
+                      {investmentStats.totalReturns >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalReturns)}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-2xl p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <BarChart3 size={14} className="text-gray-500" />
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Holdings</span>
+                    </div>
+                    <p className="text-base font-bold text-gray-900">{investmentStats.count}</p>
+                  </div>
+                </div>
+                {/* Individual investments */}
+                <div className="divide-y divide-gray-100">
+                  {investments.slice(0, 3).map((inv) => (
+                    <div key={inv.id} className="flex items-center justify-between py-2.5">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{inv.assetName}</p>
+                        <p className="text-xs text-gray-400 capitalize">{inv.assetType}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(inv.currentValue)}</p>
+                        <p className={cn("text-xs font-semibold", inv.profitLoss >= 0 ? "text-green-600" : "text-red-500")}>
+                          {inv.profitLoss >= 0 ? '+' : ''}{formatCurrency(inv.profitLoss)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end mt-2 text-xs text-gray-400 gap-1">
+                  <span>View all investments</span>
+                  <ChevronRight size={12} />
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('investments')}>
+              <EmptyWidget icon={BarChart3} message="No investments added yet — click to add" />
+            </Card>
+          )}
+        </motion.div>
+
+        {/* ── 8. Goals Progress ── */}
+        {activeGoals.length > 0 && (
+          <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+            <SectionHeader title="Goals Progress" onViewAll={() => setCurrentPage?.('goals')} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeGoals.map((goal) => {
+                const progress = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+                return (
+                  <Card key={goal.id} className="p-4 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setCurrentPage?.('goals')}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-900 truncate text-sm">{goal.name}</h4>
+                      <Target size={16} className="text-pink-400 flex-shrink-0" />
+                    </div>
+                    <div className="mb-3">
+                      <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                        <span>{formatCurrency(goal.currentAmount)}</span>
+                        <span>{formatCurrency(goal.targetAmount)}</span>
+                      </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div className="bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                    <p className="text-xs font-semibold text-pink-600">{progress.toFixed(0)}% Complete</p>
+                  </Card>
+                );
+              })}
+            </div>
+          </motion.div>
         )}
+
       </div>
     </div>
   );
