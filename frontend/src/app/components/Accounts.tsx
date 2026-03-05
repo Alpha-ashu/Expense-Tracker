@@ -408,12 +408,14 @@ export const Accounts: React.FC = () => {
                           <Card
                             variant={isActive ? "mesh-pink" : "glass"}
                             className={cn(
-                              "w-[400px] h-[210px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[28px]",
+                              "w-[400px] h-[210px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[28px] cursor-pointer group outline-none focus:ring-0",
                               isActive
                                 ? "shadow-[0_20px_40px_rgba(236,72,153,0.25)] border-0"
                                 : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
                               !account.isActive && "opacity-60 grayscale",
                             )}
+                            onClick={() => setSelectedAccountId(account.id!)}
+                            tabIndex={-1}
                           >
                             <div className="relative z-10 p-[20px] h-full grid grid-rows-[44px_1fr_40px]">
                               {/* Top row - icon + badge */}

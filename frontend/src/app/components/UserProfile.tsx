@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, LogOut } from 'lucide-react';
+import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
@@ -913,6 +913,90 @@ export const UserProfile: React.FC = () => {
                   <LogOut size={18} />
                   {isSigningOut ? 'Signing Out...' : 'Sign Out'}
                 </button>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Legal & Policies Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <ShieldAlert size={20} className="text-purple-600" />
+                Legal &amp; Privacy Policies
+              </h3>
+
+              <div className="space-y-4">
+                {/* Privacy Policy */}
+                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                    <div className="flex items-center gap-3">
+                      <FileText size={18} className="text-gray-500" />
+                      <span className="font-medium text-gray-900">Privacy Policy</span>
+                    </div>
+                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
+                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
+                  </summary>
+                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
+                    <p className="mb-2"><strong>Effective Date:</strong> March 5, 2026</p>
+                    <p className="mb-2">We collect and use your personal information solely to provide and improve the Finance Tracker application. Your financial data is securely encrypted and stored.</p>
+                    <p>We do not sell your personal data to third parties. For more detailed information, please review our full Privacy Policy on our website.</p>
+                  </div>
+                </details>
+
+                {/* SMS & Message Reading Policy */}
+                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                    <div className="flex items-center gap-3">
+                      <Smartphone size={18} className="text-gray-500" />
+                      <span className="font-medium text-gray-900">SMS &amp; Message Reading Policy</span>
+                    </div>
+                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
+                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
+                  </summary>
+                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
+                    <p className="mb-2"><strong>Usage of SMS Data:</strong></p>
+                    <p className="mb-2">If you opt-in to automatic transaction tracking, our app may read SMS messages strictly from recognized banks and financial institutions to automatically log your expenses and incomes.</p>
+                    <p>We use local on-device processing where possible. Message data is only transmitted to our servers if required to properly extract transaction amounts securely, and is never used for marketing purposes.</p>
+                  </div>
+                </details>
+
+                {/* Terms of Service */}
+                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                    <div className="flex items-center gap-3">
+                      <FileText size={18} className="text-gray-500" />
+                      <span className="font-medium text-gray-900">Terms of Service</span>
+                    </div>
+                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
+                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
+                  </summary>
+                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
+                    <p className="mb-2">By using this application, you agree to our Terms of Service.</p>
+                    <p>You are responsible for maintaining the confidentiality of your account login information and are fully responsible for all activities that occur under your account.</p>
+                  </div>
+                </details>
+
+                {/* Contact Us */}
+                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
+                    <div className="flex items-center gap-3">
+                      <Mail size={18} className="text-gray-500" />
+                      <span className="font-medium text-gray-900">Contact &amp; Support</span>
+                    </div>
+                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
+                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
+                  </summary>
+                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
+                    <p className="mb-2">If you have any questions or need support regarding your account, privacy, or usage of the application, please reach out to our team:</p>
+                    <p className="mb-1"><strong>Email:</strong> support@financetracker.com</p>
+                    <p><strong>Phone:</strong> 1-800-[SUPPORT]</p>
+                  </div>
+                </details>
+
               </div>
             </Card>
           </motion.div>
