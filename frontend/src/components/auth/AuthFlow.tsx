@@ -8,6 +8,8 @@ import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { db } from '@/lib/database';
 import { useApp } from '@/contexts/AppContext';
+import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
+import { TermsOfService } from '@/app/components/TermsOfService';
 
 type AuthStep =
   | 'welcome'
@@ -17,7 +19,9 @@ type AuthStep =
   | 'profile-setup'
   | 'salary-setup'
   | 'pin-setup'
-  | 'complete';
+  | 'complete'
+  | 'privacy'
+  | 'terms';
 
 interface UserProfile {
   firstName: string;
@@ -255,7 +259,7 @@ export const AuthFlow: React.FC = () => {
       localStorage.removeItem('auth_flow_step');
       localStorage.removeItem('pending_auth_email');
 
-      toast.success('Setup complete! Welcome to FinanceLife!');
+      toast.success('Setup complete! Welcome to Finora!');
 
       // Dispatch global event for other modules
       window.dispatchEvent(new CustomEvent('PROFILE_SETUP_COMPLETED', {
@@ -328,7 +332,7 @@ export const AuthFlow: React.FC = () => {
             <Wallet className="w-12 h-12 text-white" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">
-            FinanceLife
+            Finora
           </h1>
           <p className="text-xl text-blue-100 max-w-md">
             Your personal finance companion. Track expenses, manage budgets, and achieve your financial goals.
@@ -671,11 +675,17 @@ export const AuthFlow: React.FC = () => {
               <SignUpForm
                 onSwitchToSignIn={() => setStep('signin')}
                 onSubmit={handleSignUp}
+                onViewTerms={() => setStep('terms')}
+                onViewPrivacy={() => setStep('privacy')}
               />
             </div>
           </div>
         </div>
       );
+    case 'privacy':
+      return <PrivacyPolicy onBack={() => setStep('signup')} />;
+    case 'terms':
+      return <TermsOfService onBack={() => setStep('signup')} />;
     case 'otp-verify':
       return (
         <OTPVerification

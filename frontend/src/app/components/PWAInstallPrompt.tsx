@@ -70,7 +70,7 @@ export const PWAInstallPrompt: React.FC = () => {
                     <Smartphone className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Install FinanceLife</h3>
+                    <h3 className="font-bold text-lg">Install Finora</h3>
                     <p className="text-xs text-blue-100 mt-0.5">Quick access from your home screen</p>
                   </div>
                 </div>

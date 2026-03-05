@@ -335,7 +335,7 @@ export interface Notification {
 }
 
 // Database Class
-export class FinanceLifeDB extends Dexie {
+export class FinoraDB extends Dexie {
   accounts!: Table<Account>;
   friends!: Table<Friend>;
   transactions!: Table<Transaction>;
@@ -348,7 +348,7 @@ export class FinanceLifeDB extends Dexie {
   notifications!: Table<Notification>;
 
   constructor() {
-    super('FinanceLifeDB');
+    super('FinoraDB');
     this.version(1).stores({
       accounts: '++id, type, isActive',
       transactions: '++id, type, accountId, category, date',
@@ -377,7 +377,7 @@ export class FinanceLifeDB extends Dexie {
 }
 
 // Add additional tables for production features
-export class ProductionDB extends FinanceLifeDB {
+export class ProductionDB extends FinoraDB {
     gold!: Table<GoldEntry>;
   logs!: Table<{ id: string; level: string; message: string; timestamp: Date }>;
   errorReports!: Table<{ id: string; report: string; timestamp: Date }>;

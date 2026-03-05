@@ -1,8 +1,8 @@
 import CryptoJS from 'crypto-js';
 
 // Encryption key management
-const STORAGE_KEY = 'financelife_encrypted_key';
-const SALT_KEY = 'financelife_salt';
+const STORAGE_KEY = 'Finora_encrypted_key';
+const SALT_KEY = 'Finora_salt';
 
 /**
  * Generate encryption key from PIN

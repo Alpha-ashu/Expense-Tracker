@@ -128,7 +128,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full mb-4">
             <Shield className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">FinanceLife</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Finora</h1>
           <p className="text-blue-100">
             {isCreating ? 'Create your secure PIN' : 'Enter your PIN to continue'}
           </p>

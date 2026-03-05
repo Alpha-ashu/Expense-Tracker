@@ -219,7 +219,7 @@ export class CloudSyncService {
   }
 
   constructor() {
-    this.apiEndpoint = process.env.VITE_API_BASE_URL || 'https://api.financelife.app';
+    this.apiEndpoint = process.env.VITE_API_BASE_URL || 'https://api.Finora.app';
     this.authToken = localStorage.getItem('auth_token');
   }
 

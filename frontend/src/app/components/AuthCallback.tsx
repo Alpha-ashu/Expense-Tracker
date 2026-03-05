@@ -46,7 +46,7 @@ export const AuthCallback: React.FC = () => {
 
           // Success!
           setStatus('success');
-          toast.success('Email verified successfully! Welcome to FinanceLife.');
+          toast.success('Email verified successfully! Welcome to Finora.');
           
           // Redirect to dashboard after 2 seconds
           setTimeout(() => setCurrentPage('dashboard'), 2000);

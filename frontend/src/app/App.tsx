@@ -212,7 +212,7 @@ const AppContent: React.FC = () => {
   const hasCompletedOnboarding = localStorage.getItem('onboarding_completed') === 'true';
 
   // Check if user needs PIN setup (after onboarding or for returning users)
-  const needsPINSetup = !localStorage.getItem('financelife_encrypted_key');
+  const needsPINSetup = !localStorage.getItem('Finora_encrypted_key');
 
   // Check if this is a new user (no profile data and no onboarding completion)
   const hasProfileData = localStorage.getItem('user_profile') || localStorage.getItem('user_settings');
@@ -244,7 +244,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-blue-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading FinanceLife...</p>
+          <p className="text-white text-lg">Loading Finora...</p>
         </div>
       </div>
     );

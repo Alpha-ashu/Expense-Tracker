@@ -93,7 +93,7 @@ export const Settings: React.FC = () => {
 
       // Step 5: Delete the database
       try {
-        window.indexedDB.deleteDatabase('FinanceLifeDB');
+        window.indexedDB.deleteDatabase('FinoraDB');
       } catch (e) {
         console.warn('IndexedDB delete error (non-blocking):', e);
       }
@@ -514,7 +514,7 @@ export const Settings: React.FC = () => {
         className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">About FinanceLife</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">About Finora</h3>
           <div className="space-y-2 text-sm text-gray-600">
             <p><strong>Version:</strong> 1.0.0</p>
             <p><strong>Storage:</strong> All data is stored locally on your device using IndexedDB</p>

@@ -1,5 +1,5 @@
 /**
- * Global Type Definitions for Expense Tracker
+ * Global Type Definitions for Finora
  * Centralized type system for consistency across the application
  */
 

@@ -5,9 +5,11 @@ import { api } from '@/lib/api';
 interface SignUpFormProps {
   onSwitchToSignIn: () => void;
   onSubmit?: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void>;
+  onViewTerms?: () => void;
+  onViewPrivacy?: () => void;
 }
 
-export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubmit }) => {
+export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubmit, onViewTerms, onViewPrivacy }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -86,16 +88,16 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
         localStorage.setItem('refresh_token', tokens.refreshToken);
         localStorage.setItem('user_email', formData.email);
         localStorage.setItem('user_name', `${formData.firstName} ${formData.lastName}`);
-        
+
         // Redirect to onboarding for new users
         window.location.href = '/onboarding';
       }
     } catch (error: any) {
       console.error('Sign up error:', error);
-      
+
       // Handle specific error cases from API client
       let errorMessage = 'Registration failed';
-      
+
       if (error.code === 'EMAIL_EXISTS') {
         errorMessage = 'This email is already registered. Please use a different email or try signing in.';
       } else if (error.code === 'MISSING_FIELDS') {
@@ -109,8 +111,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      setErrors({ 
+
+      setErrors({
         general: errorMessage
       });
     } finally {
@@ -146,9 +148,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
             name="firstName"
             value={formData.firstName}
             onChange={handleInputChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.firstName ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.firstName ? 'border-red-500' : 'border-gray-300'
+              }`}
             placeholder="John"
             disabled={isLoading}
           />
@@ -167,9 +168,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
             name="lastName"
             value={formData.lastName}
             onChange={handleInputChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.lastName ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lastName ? 'border-red-500' : 'border-gray-300'
+              }`}
             placeholder="Doe"
             disabled={isLoading}
           />
@@ -189,9 +189,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
           name="email"
           value={formData.email}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.email ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="you@example.com"
           disabled={isLoading}
         />
@@ -210,9 +209,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
           name="password"
           value={formData.password}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="••••••••"
           disabled={isLoading}
         />
@@ -231,9 +229,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
           name="confirmPassword"
           value={formData.confirmPassword}
           onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+            }`}
           placeholder="••••••••"
           disabled={isLoading}
         />
@@ -244,7 +241,10 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <p className="text-xs text-blue-700">
-          By creating an account, you agree to our Terms of Service and Privacy Policy. 
+          By creating an account, you agree to our{' '}
+          <button type="button" onClick={onViewTerms} className="underline hover:text-blue-900">Terms of Service</button>{' '}
+          and{' '}
+          <button type="button" onClick={onViewPrivacy} className="underline hover:text-blue-900">Privacy Policy</button>.
           You'll receive a confirmation email to verify your account.
         </p>
       </div>

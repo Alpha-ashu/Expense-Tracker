@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { signIn, signUp } from '@/lib/supabase-helpers';
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PrivacyPolicy } from './PrivacyPolicy';
+import { TermsOfService } from './TermsOfService';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
 }
 
 export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
+  const [currentView, setCurrentView] = useState<'auth' | 'privacy' | 'terms'>('auth');
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,16 +87,24 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  if (currentView === 'privacy') {
+    return <PrivacyPolicy onBack={() => setCurrentView('auth')} />;
+  }
+
+  if (currentView === 'terms') {
+    return <TermsOfService onBack={() => setCurrentView('auth')} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Logo/Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <span className="text-3xl">💰</span>
+            <div className="inline-flex items-center justify-center w-20 h-20 mb-4 bg-gray-50 rounded-full p-2 shadow-sm border border-gray-100">
+              <img src="/logo.png" alt="Finora Logo" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23F59E0B"/><text x="50" y="55" font-family="Arial" font-size="50" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">$</text></svg>' }} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">FinanceLife</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Finora</h1>
             <p className="text-gray-500 mt-2">
               {isLogin ? 'Welcome back!' : 'Create your account'}
             </p>
@@ -216,6 +227,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               >
                 {isLogin ? 'Sign up' : 'Sign in'}
               </button>
+            </p>
+          </div>
+
+          {/* Policy Links */}
+          <div className="mt-4 text-center">
+            <p className="text-xs text-gray-500">
+              By continuing, you agree to our{' '}
+              <button onClick={() => setCurrentView('terms')} className="text-blue-600 hover:underline">
+                Terms of Service
+              </button>{' '}
+              and{' '}
+              <button onClick={() => setCurrentView('privacy')} className="text-blue-600 hover:underline">
+                Privacy Policy
+              </button>.
             </p>
           </div>
 

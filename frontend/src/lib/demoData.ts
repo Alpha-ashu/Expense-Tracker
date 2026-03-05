@@ -172,7 +172,7 @@ export const initializeDemoData = async (userEmail?: string, userId?: string) =>
     {
       userId: 'advisor-1',
       name: 'Sarah Johnson',
-      email: 'sarah.johnson@financelife.com',
+      email: 'sarah.johnson@Finora.com',
       phone: '+1-555-0123',
       photo: '/api/placeholder/150/150',
       bio: 'Specialized in helping clients build long-term wealth through strategic investment planning and tax optimization. Focus on retirement planning and wealth preservation strategies.',
@@ -195,7 +195,7 @@ export const initializeDemoData = async (userEmail?: string, userId?: string) =>
     {
       userId: 'advisor-2',
       name: 'Michael Chen',
-      email: 'michael.chen@financelife.com',
+      email: 'michael.chen@Finora.com',
       phone: '+1-555-0124',
       photo: '/api/placeholder/150/150',
       bio: 'Expert in complex tax planning, estate structuring, and business tax strategies. Help high-net-worth individuals minimize tax burden while ensuring compliance.',
@@ -218,7 +218,7 @@ export const initializeDemoData = async (userEmail?: string, userId?: string) =>
     {
       userId: 'advisor-3',
       name: 'Emily Rodriguez',
-      email: 'emily.rodriguez@financelife.com',
+      email: 'emily.rodriguez@Finora.com',
       phone: '+1-555-0125',
       photo: '/api/placeholder/150/150',
       bio: 'Passionate about helping individuals achieve financial freedom through effective debt management strategies and credit improvement. Specialized in debt consolidation and financial education.',

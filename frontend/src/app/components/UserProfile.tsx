@@ -91,7 +91,7 @@ export const UserProfile: React.FC = () => {
 
       // Step 5: Delete the database
       try {
-        window.indexedDB.deleteDatabase('FinanceLifeDB');
+        window.indexedDB.deleteDatabase('FinoraDB');
       } catch (e) {
         console.warn('IndexedDB delete error (non-blocking):', e);
       }
@@ -1112,7 +1112,7 @@ export const UserProfile: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold">Delete Account</h3>
               <p className="text-red-100 text-sm mt-1">
-                You are about to permanently delete your FinanceLife account.
+                You are about to permanently delete your Finora account.
                 All your tracked accounts, transactions, and data will be erased.
               </p>
             </div>

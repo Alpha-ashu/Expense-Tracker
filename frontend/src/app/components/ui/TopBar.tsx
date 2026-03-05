@@ -159,7 +159,7 @@ export const TopBar: React.FC = () => {
                             <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
                             <div className="flex flex-col h-full">
                                 <div className="p-6 border-b border-gray-100">
-                                    <h1 className="text-2xl font-bold font-display text-gray-900">FinanceLife</h1>
+                                    <h1 className="text-2xl font-bold font-display text-gray-900">Finora</h1>
                                     <p className="text-sm text-gray-500 mt-1">Your Financial OS</p>
                                 </div>
 

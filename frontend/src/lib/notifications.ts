@@ -7,7 +7,7 @@ export const showNotification = (message: string, type: 'success' | 'error' | 'w
   
   // For PWA, we can also show browser notifications if permission is granted
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('FinanceLife', {
+    new Notification('Finora', {
       body: message,
       icon: '/favicon.ico'
     });

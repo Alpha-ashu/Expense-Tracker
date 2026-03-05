@@ -31,7 +31,7 @@ export async function unifiedSignOut(_navigate?: (path: string) => void): Promis
     sessionStorage.clear();
 
     // Step 6: Delete local IndexedDB (non-blocking)
-    try { window.indexedDB.deleteDatabase('FinanceLifeDB'); } catch { }
+    try { window.indexedDB.deleteDatabase('FinoraDB'); } catch { }
 
     console.log('✅ Unified signout completed successfully');
 
@@ -44,7 +44,7 @@ export async function unifiedSignOut(_navigate?: (path: string) => void): Promis
     try {
       localStorage.clear();
       sessionStorage.clear();
-      window.indexedDB.deleteDatabase('FinanceLifeDB');
+      window.indexedDB.deleteDatabase('FinoraDB');
     } catch { }
     window.location.replace(window.location.origin + '?logged_out=1');
   }
@@ -71,7 +71,7 @@ export async function legacySignOut(): Promise<void> {
 
     // Delete local IndexedDB (non-blocking)
     try {
-      window.indexedDB.deleteDatabase('FinanceLifeDB');
+      window.indexedDB.deleteDatabase('FinoraDB');
     } catch (err) {
       console.warn('Failed to delete IndexedDB:', err);
     }

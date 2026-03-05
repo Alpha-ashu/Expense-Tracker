@@ -124,7 +124,7 @@ export const Header: React.FC = () => {
           <SheetDescription className="sr-only">Main navigation menu with links to all app sections</SheetDescription>
           <div className="flex flex-col h-full bg-bg-card">
             <div className="p-6 border-b border-white/10">
-              <h1 className="text-2xl font-bold text-accent-secondary font-display">FinanceLife</h1>
+              <h1 className="text-2xl font-bold text-accent-secondary font-display">Finora</h1>
               <p className="text-sm text-text-secondary mt-1">Your Financial OS</p>
             </div>
 
