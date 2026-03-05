@@ -39,18 +39,18 @@ export const Settings: React.FC = () => {
 
   const handleSignOut = async () => {
     if (isSigningOut) return; // Prevent double-clicks
-    
+
     setIsSigningOut(true);
     console.log('🔐 Starting sign out process...');
     toast.info('Signing out...');
-    
+
     try {
       // Step 1: Sign out from Supabase (with timeout)
       const signOutPromise = supabase.auth.signOut({ scope: 'global' });
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Sign out timeout')), 5000)
       );
-      
+
       try {
         await Promise.race([signOutPromise, timeoutPromise]);
       } catch (e) {
@@ -64,10 +64,16 @@ export const Settings: React.FC = () => {
         console.warn('Permission clear error (non-blocking):', e);
       }
 
-      // Step 3: Clear all storage immediately
+      // Step 3: Clear all storage (PIN preserved)
       try {
+        const pinBackup = {
+          hash: localStorage.getItem('Finora_encrypted_key'),
+          salt: localStorage.getItem('Finora_salt'),
+        };
         localStorage.clear();
         sessionStorage.clear();
+        if (pinBackup.hash) localStorage.setItem('Finora_encrypted_key', pinBackup.hash);
+        if (pinBackup.salt) localStorage.setItem('Finora_salt', pinBackup.salt);
       } catch (e) {
         console.warn('Storage clear error (non-blocking):', e);
       }
@@ -106,15 +112,21 @@ export const Settings: React.FC = () => {
 
     } catch (error) {
       console.error('❌ Sign out failed:', error);
-      
-      // Force cleanup even on error
+
+      // Force cleanup even on error (PIN preserved)
       try {
+        const pinBackup = {
+          hash: localStorage.getItem('Finora_encrypted_key'),
+          salt: localStorage.getItem('Finora_salt'),
+        };
         localStorage.clear();
         sessionStorage.clear();
+        if (pinBackup.hash) localStorage.setItem('Finora_encrypted_key', pinBackup.hash);
+        if (pinBackup.salt) localStorage.setItem('Finora_salt', pinBackup.salt);
       } catch (e) {
         // Ignore
       }
-      
+
       // Always redirect
       window.location.href = window.location.origin + '/login';
     }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
-import { clearSecurityData } from '@/lib/encryption';
+import { clearSecurityData, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 
 interface SecurityContextType {
   isAuthenticated: boolean;
@@ -27,7 +27,7 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const resetTimer = () => {
       if (timeoutId) clearTimeout(timeoutId);
-      
+
       if (isAuthenticated && lockTimeout > 0) {
         timeoutId = setTimeout(() => {
           handleLock();
@@ -61,7 +61,7 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
   const setAuthenticated = (key: string) => {
     setEncryptionKey(key);
     setIsAuthenticated(true);
-    
+
     // Store in session
     sessionStorage.setItem('session_active', 'true');
   };
@@ -74,16 +74,23 @@ export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const logout = async () => {
     handleLock();
+
+    // Preserve PIN keys across storage clear
+    const pinBackup = backupPINKeys();
+
     clearSecurityData();
-    
+
     if (isNativePlatform) {
       await Preferences.remove({ key: 'user_authenticated' });
     }
-    
+
     // Clear all data
     localStorage.clear();
     sessionStorage.clear();
-    
+
+    // Restore PIN keys
+    restorePINKeys(pinBackup);
+
     // Reload app
     window.location.reload();
   };

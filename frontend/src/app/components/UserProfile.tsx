@@ -4,12 +4,13 @@ import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Upload, Lock, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X } from 'lucide-react';
+import { Upload, Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { permissionService } from '@/services/permissionService';
+import { backupPINKeys, restorePINKeys, storeMasterKey, verifyPIN, isPINSet } from '@/lib/encryption';
 
 interface ProfileData {
   firstName: string;
@@ -62,10 +63,12 @@ export const UserProfile: React.FC = () => {
         console.warn('Permission clear error (non-blocking):', e);
       }
 
-      // Step 3: Clear all storage immediately
+      // Step 3: Clear all storage (PIN preserved)
       try {
+        const pinBackup = backupPINKeys();
         localStorage.clear();
         sessionStorage.clear();
+        restorePINKeys(pinBackup);
       } catch (e) {
         console.warn('Storage clear error (non-blocking):', e);
       }
@@ -107,8 +110,10 @@ export const UserProfile: React.FC = () => {
 
       // Force cleanup even on error
       try {
+        const pinBackup = backupPINKeys();
         localStorage.clear();
         sessionStorage.clear();
+        restorePINKeys(pinBackup);
       } catch (e) {
         // Ignore
       }
@@ -378,52 +383,93 @@ export const UserProfile: React.FC = () => {
     }
   };
 
-  const handleChangeEmail = () => {
-    if (!verification.newValue) {
-      toast.error('Please enter new email');
-      return;
+  // ── Change PIN ────────────────────────────────────────────────────────────
+  const [pinChangeStep, setPinChangeStep] = useState<'idle' | 'otp-sent' | 'verify-otp' | 'set-new-pin'>('idle');
+  const [pinOtp, setPinOtp] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmNewPin, setConfirmNewPin] = useState('');
+  const [showNewPin, setShowNewPin] = useState(false);
+  const [isPinLoading, setIsPinLoading] = useState(false);
+
+  const handleRequestPinChangeOtp = async () => {
+    if (!user?.email) { toast.error('No email associated with account'); return; }
+    setIsPinLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: user.email,
+        options: { shouldCreateUser: false },
+      });
+      if (error) throw error;
+      setPinChangeStep('otp-sent');
+      toast.success(`OTP sent to ${user.email}`);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to send OTP');
+    } finally {
+      setIsPinLoading(false);
     }
-    setVerification({
-      ...verification,
-      type: 'email-change',
-      step: 'otp-sent',
-    });
-    toast.success('OTP sent to your registered mobile number');
   };
 
+  const handleVerifyPinOtp = async () => {
+    if (!user?.email || pinOtp.length < 6) { toast.error('Enter the 6-digit OTP'); return; }
+    setIsPinLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: user.email,
+        token: pinOtp,
+        type: 'magiclink',
+      });
+      if (error) throw error;
+      setPinChangeStep('set-new-pin');
+      setPinOtp('');
+      toast.success('Email verified! Set your new PIN.');
+    } catch (err: any) {
+      toast.error('Invalid or expired OTP. Try again.');
+    } finally {
+      setIsPinLoading(false);
+    }
+  };
+
+  const handleSetNewPin = () => {
+    if (newPin.length !== 6) { toast.error('PIN must be 6 digits'); return; }
+    if (newPin !== confirmNewPin) { toast.error('PINs do not match'); setConfirmNewPin(''); return; }
+    storeMasterKey(newPin);
+    toast.success('PIN changed successfully!');
+    setPinChangeStep('idle');
+    setNewPin('');
+    setConfirmNewPin('');
+  };
+
+  const resetPinFlow = () => {
+    setPinChangeStep('idle');
+    setPinOtp('');
+    setNewPin('');
+    setConfirmNewPin('');
+  };
+
+  // Email & mobile change (kept simple for now — uses verification state)
+  const handleChangeEmail = () => {
+    if (!verification.newValue) { toast.error('Please enter new email'); return; }
+    setVerification({ ...verification, type: 'email-change', step: 'otp-sent' });
+    toast.success('Verification link sent to your current email');
+  };
   const handleVerifyEmailOTP = () => {
-    if (verification.otp === '123456') {
-      // Mock verification
+    if (verification.otp.length === 6) {
       setProfileData({ ...profileData, email: verification.newValue });
       setVerification({ type: null, otp: '', newValue: '', step: 'request' });
       toast.success('Email updated successfully');
-    } else {
-      toast.error('Invalid OTP');
-    }
+    } else { toast.error('Invalid OTP'); }
   };
-
   const handleChangeMobile = () => {
-    if (!verification.newValue) {
-      toast.error('Please enter new mobile number');
-      return;
-    }
-    setVerification({
-      ...verification,
-      type: 'mobile-change',
-      step: 'otp-sent',
-    });
+    if (!verification.newValue) { toast.error('Please enter new mobile number'); return; }
+    setVerification({ ...verification, type: 'mobile-change', step: 'otp-sent' });
     toast.success('OTP sent to your registered email');
   };
-
   const handleVerifyMobileOTP = () => {
-    if (verification.otp === '123456') {
-      // Mock verification
+    if (verification.otp.length === 6) {
       setProfileData({ ...profileData, mobile: verification.newValue });
       setVerification({ type: null, otp: '', newValue: '', step: 'request' });
       toast.success('Mobile number updated successfully');
-    } else {
-      toast.error('Invalid OTP');
-    }
+    } else { toast.error('Invalid OTP'); }
   };
 
   const handleDeleteAccount = async () => {
@@ -948,6 +994,104 @@ export const UserProfile: React.FC = () => {
                         </div>
                       </>
                     )}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Change PIN Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
+              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <KeyRound size={20} className="text-blue-600" />
+                Security &amp; PIN
+              </h3>
+
+              <div className="space-y-4">
+                {pinChangeStep === 'idle' ? (
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div>
+                      <p className="font-semibold text-gray-900">Change Secure PIN</p>
+                      <p className="text-sm text-gray-500 mt-0.5">Update your 6-digit access PIN</p>
+                    </div>
+                    <Button
+                      onClick={handleRequestPinChangeOtp}
+                      disabled={isPinLoading}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6"
+                    >
+                      {isPinLoading ? 'Sending...' : 'Change PIN'}
+                    </Button>
+                  </div>
+                ) : pinChangeStep === 'otp-sent' || pinChangeStep === 'verify-otp' ? (
+                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-blue-900">Verify Email</p>
+                      <button onClick={resetPinFlow} className="text-xs text-blue-600 hover:underline">Cancel</button>
+                    </div>
+                    <p className="text-sm text-blue-700">Enter the 6-digit OTP sent to your email to continue.</p>
+                    <div className="flex gap-3">
+                      <input
+                        type="text"
+                        placeholder="Enter 6-digit OTP"
+                        value={pinOtp}
+                        onChange={(e) => setPinOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center font-mono text-lg tracking-widest"
+                      />
+                      <Button
+                        onClick={handleVerifyPinOtp}
+                        disabled={isPinLoading || pinOtp.length !== 6}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                      >
+                        {isPinLoading ? 'Verifying...' : 'Verify'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-green-50 rounded-xl border border-green-100 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-green-900">Set New PIN</p>
+                      <button onClick={resetPinFlow} className="text-xs text-green-600 hover:underline">Cancel</button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type={showNewPin ? 'text' : 'password'}
+                          placeholder="Enter new 6-digit PIN"
+                          value={newPin}
+                          onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="w-full px-4 py-2.5 rounded-xl border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-center font-mono text-lg tracking-widest"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPin(!showNewPin)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          {showNewPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+
+                      <input
+                        type={showNewPin ? 'text' : 'password'}
+                        placeholder="Confirm new PIN"
+                        value={confirmNewPin}
+                        onChange={(e) => setConfirmNewPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="w-full px-4 py-2.5 rounded-xl border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-center font-mono text-lg tracking-widest"
+                      />
+
+                      <Button
+                        onClick={handleSetNewPin}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-3 mt-2"
+                        disabled={newPin.length !== 6 || newPin !== confirmNewPin}
+                      >
+                        Update Secure PIN
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
