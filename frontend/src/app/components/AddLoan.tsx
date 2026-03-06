@@ -40,7 +40,7 @@ export const AddLoan: React.FC = () => {
   const handleFieldChange = (key: string, value: any) => {
     const updated = { ...formData, [key]: value };
     setFormData(updated);
-    
+
     // Auto-calculate EMI if principal, interest rate, or tenure changes
     if (key === 'principalAmount' || key === 'interestRate' || key === 'tenureMonths') {
       updated.emiAmount = calculateEMI();
@@ -96,7 +96,7 @@ export const AddLoan: React.FC = () => {
 
   return (
     <CenteredLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
         <PageHeader
           title="Add New Loan"
           subtitle="Track your loans and manage EMI payments"
@@ -119,7 +119,7 @@ export const AddLoan: React.FC = () => {
                 placeholder="e.g., Bank Name, Lender Name"
                 required
               />
-              
+
               {/* Add Friend Button */}
               {friends && friends.length > 0 && (
                 <div className="mt-2">

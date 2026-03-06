@@ -19,16 +19,30 @@ const CATEGORIES = {
 
 export const AddTransaction: React.FC = () => {
   const { accounts, setCurrentPage, currency } = useApp();
-  const [formData, setFormData] = useState({
-    type: 'expense' as 'expense' | 'income',
-    amount: 0,
-    accountId: accounts[0]?.id || 0,
-    category: CATEGORIES.expense[0],
-    subcategory: '',
-    description: '',
-    merchant: '',
-    date: new Date().toISOString().split('T')[0],
+  const [formData, setFormData] = useState(() => {
+    return {
+      type: 'expense' as 'expense' | 'income',
+      amount: 0,
+      accountId: accounts[0]?.id || 0,
+      category: CATEGORIES['expense'][0],
+      subcategory: '',
+      description: '',
+      merchant: '',
+      date: new Date().toISOString().split('T')[0],
+    };
   });
+
+  useEffect(() => {
+    const rawFormType = localStorage.getItem('quickFormType');
+    if (rawFormType === 'income' || rawFormType === 'expense') {
+      setFormData(prev => ({
+        ...prev,
+        type: rawFormType as 'expense' | 'income',
+        category: CATEGORIES[rawFormType as 'expense' | 'income'][0],
+      }));
+      localStorage.removeItem('quickFormType');
+    }
+  }, []);
 
   useEffect(() => {
     const rawDraft = localStorage.getItem('voiceTransactionDraft');
@@ -105,7 +119,7 @@ export const AddTransaction: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 pb-32 lg:pb-8">
-      <div className="max-w-2xl mx-auto px-4 lg:px-0">
+      <div className="max-w-[480px] mx-auto px-4 lg:px-0 w-full">
         {/* Header */}
         <div className="pt-6 lg:pt-10">
           <PageHeader
@@ -131,8 +145,8 @@ export const AddTransaction: React.FC = () => {
               type="button"
               onClick={() => setFormData({ ...formData, type: 'expense', category: CATEGORIES.expense[0] })}
               className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${formData.type === 'expense'
-                  ? 'bg-red-50 border-red-300 text-red-700 shadow-lg'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-red-200'
+                ? 'bg-red-50 border-red-300 text-red-700 shadow-lg'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-red-200'
                 }`}
             >
               <div className="text-2xl mb-1">📉</div>
@@ -144,8 +158,8 @@ export const AddTransaction: React.FC = () => {
               type="button"
               onClick={() => setFormData({ ...formData, type: 'income', category: CATEGORIES.income[0] })}
               className={`relative py-4 rounded-2xl border-2 transition-all font-semibold text-sm sm:text-base ${formData.type === 'income'
-                  ? 'bg-green-50 border-green-300 text-green-700 shadow-lg'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-green-200'
+                ? 'bg-green-50 border-green-300 text-green-700 shadow-lg'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-green-200'
                 }`}
             >
               <div className="text-2xl mb-1">📈</div>

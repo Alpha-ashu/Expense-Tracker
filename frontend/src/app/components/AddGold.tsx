@@ -76,7 +76,7 @@ export const AddGold: React.FC = () => {
 
   return (
     <CenteredLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
         {/* Header */}
         <div className="flex items-center gap-3">
           <button

@@ -104,7 +104,7 @@ export const AddFriends: React.FC = () => {
 
   return (
     <CenteredLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
         <PageHeader
           title="Add Friends"
           subtitle="Manage friends for group expenses and bill splitting"
@@ -113,9 +113,9 @@ export const AddFriends: React.FC = () => {
           backTo="groups"
         />
 
-        <div className="grid lg:grid-cols-2 gap-6 max-w-4xl">
+        <div className="flex flex-col gap-6">
           {/* Add Friend Form */}
-          <div className="bg-white rounded-xl border border-gray-200 p-8">
+          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-6">Add New Friend</h3>
 
             {!isAddingFriend && friends.length > 0 && (
@@ -211,13 +211,13 @@ export const AddFriends: React.FC = () => {
                           (formData.color === color ? styles.selectedColor : styles.unselectedColor) + ' ' +
                           (color === '#3b82f6' ? styles.colorBlue :
                             color === '#ef4444' ? styles.colorRed :
-                            color === '#10b981' ? styles.colorGreen :
-                            color === '#f59e0b' ? styles.colorAmber :
-                            color === '#8b5cf6' ? styles.colorPurple :
-                            color === '#ec4899' ? styles.colorPink :
-                            color === '#06b6d4' ? styles.colorCyan :
-                            color === '#f97316' ? styles.colorOrange :
-                            '')
+                              color === '#10b981' ? styles.colorGreen :
+                                color === '#f59e0b' ? styles.colorAmber :
+                                  color === '#8b5cf6' ? styles.colorPurple :
+                                    color === '#ec4899' ? styles.colorPink :
+                                      color === '#06b6d4' ? styles.colorCyan :
+                                        color === '#f97316' ? styles.colorOrange :
+                                          '')
                         }
                         aria-label={`Select color ${color}`}
                         title={`Select color ${color}`}
@@ -254,7 +254,7 @@ export const AddFriends: React.FC = () => {
 
           {/* Friends List */}
           {friends.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-8">
+            <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-6">
                 Added Friends ({friends.length})
               </h3>
@@ -270,13 +270,13 @@ export const AddFriends: React.FC = () => {
                         styles.friendAvatar + ' ' +
                         (friend.color === '#3b82f6' ? styles.colorBlue :
                           friend.color === '#ef4444' ? styles.colorRed :
-                          friend.color === '#10b981' ? styles.colorGreen :
-                          friend.color === '#f59e0b' ? styles.colorAmber :
-                          friend.color === '#8b5cf6' ? styles.colorPurple :
-                          friend.color === '#ec4899' ? styles.colorPink :
-                          friend.color === '#06b6d4' ? styles.colorCyan :
-                          friend.color === '#f97316' ? styles.colorOrange :
-                          '')
+                            friend.color === '#10b981' ? styles.colorGreen :
+                              friend.color === '#f59e0b' ? styles.colorAmber :
+                                friend.color === '#8b5cf6' ? styles.colorPurple :
+                                  friend.color === '#ec4899' ? styles.colorPink :
+                                    friend.color === '#06b6d4' ? styles.colorCyan :
+                                      friend.color === '#f97316' ? styles.colorOrange :
+                                        '')
                       }
                     >
                       {friend.name.charAt(0).toUpperCase()}

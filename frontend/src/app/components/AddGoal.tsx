@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '@/contexts/AppContext';import { CenteredLayout } from '@/app/components/CenteredLayout';
+import { useApp } from '@/contexts/AppContext'; import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
@@ -20,7 +20,7 @@ export const AddGoal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.targetAmount <= 0) {
       toast.error('Target amount must be greater than 0');
       return;
@@ -49,136 +49,136 @@ export const AddGoal: React.FC = () => {
 
   return (
     <CenteredLayout>
-      <div className="space-y-6">
-      <PageHeader
-        title="Create New Goal"
-        subtitle="Set a financial goal and track your progress"
-        icon={<Target size={20} className="sm:w-6 sm:h-6" />}
-        showBack
-        backTo="goals"
-      />
+      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
+        <PageHeader
+          title="Create New Goal"
+          subtitle="Set a financial goal and track your progress"
+          icon={<Target size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="goals"
+        />
 
-      {/* Form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Goal Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              placeholder="e.g., Save for vacation"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              aria-label="Goal Category"
-              title="Goal Category"
-            >
-              <option value="savings">Savings</option>
-              <option value="investment">Investment</option>
-              <option value="debt-payoff">Debt Payoff</option>
-              <option value="education">Education</option>
-              <option value="travel">Travel</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Target Amount *</label>
-            <div className="flex items-center">
-              <span className="text-gray-600 mr-3 text-lg">{currency}</span>
+        {/* Form */}
+        <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Goal Name *</label>
               <input
-                type="number"
-                step="0.01"
-                value={formData.targetAmount || ''}
-                onChange={(e) => setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                placeholder="0.00"
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                placeholder="e.g., Save for vacation"
                 required
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Current Amount</label>
-            <div className="flex items-center">
-              <span className="text-gray-600 mr-3 text-lg">{currency}</span>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Category *</label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-label="Goal Category"
+                title="Goal Category"
+              >
+                <option value="savings">Savings</option>
+                <option value="investment">Investment</option>
+                <option value="debt-payoff">Debt Payoff</option>
+                <option value="education">Education</option>
+                <option value="travel">Travel</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Target Amount *</label>
+              <div className="flex items-center">
+                <span className="text-gray-600 mr-3 text-lg">{currency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.targetAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Current Amount</label>
+              <div className="flex items-center">
+                <span className="text-gray-600 mr-3 text-lg">{currency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.currentAmount || ''}
+                  onChange={(e) => setFormData({ ...formData, currentAmount: parseFloat(e.target.value) || 0 })}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Target Deadline *</label>
               <input
-                type="number"
-                step="0.01"
-                value={formData.currentAmount || ''}
-                onChange={(e) => setFormData({ ...formData, currentAmount: parseFloat(e.target.value) || 0 })}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                placeholder="0.00"
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                required
+                aria-label="Goal Deadline"
+                title="Goal Deadline"
+                placeholder="Goal Deadline"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Target Deadline *</label>
-            <input
-              type="date"
-              value={formData.deadline}
-              onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              required
-              aria-label="Goal Deadline"
-              title="Goal Deadline"
-              placeholder="Goal Deadline"
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Priority</label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-label="Goal Priority"
+                title="Goal Priority"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Priority</label>
-            <select
-              value={formData.priority}
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              aria-label="Goal Priority"
-              title="Goal Priority"
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
+                placeholder="Add any notes about this goal"
+                rows={3}
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
-              placeholder="Add any notes about this goal"
-              rows={3}
-            />
-          </div>
-
-          <div className="flex gap-4 pt-6">
-            <button
-              type="button"
-              onClick={() => setCurrentPage('goals')}
-              className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700 bg-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-semibold shadow-lg"
-            >
-              Create Goal
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex gap-4 pt-6">
+              <button
+                type="button"
+                onClick={() => setCurrentPage('goals')}
+                className="flex-1 px-6 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-semibold text-gray-700 bg-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-900 transition-colors font-semibold shadow-lg"
+              >
+                Create Goal
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </CenteredLayout>
   );

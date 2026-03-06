@@ -147,134 +147,134 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
   return (
     <CenteredLayout>
-      <div className="space-y-6">
-      <PageHeader
-        title="Transfer Money"
-        subtitle="Move money between your own accounts"
-        icon={<ArrowRightLeft size={20} className="sm:w-6 sm:h-6" />}
-        showBack
-        backTo="accounts"
-        onBack={onBack}
-      />
+      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
+        <PageHeader
+          title="Transfer Money"
+          subtitle="Move money between your own accounts"
+          icon={<ArrowRightLeft size={20} className="sm:w-6 sm:h-6" />}
+          showBack
+          backTo="accounts"
+          onBack={onBack}
+        />
 
-      {/* Form Card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-sm text-blue-700 font-medium">💰 Transfer Between Your Own Accounts</p>
-          </div>
+        {/* Form Card */}
+        <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-blue-700 font-medium">💰 Transfer Between Your Own Accounts</p>
+            </div>
 
-          {/* From Account */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              From Account
-            </label>
-            <select
-              aria-label="From Account"
-              value={formData.fromAccountId}
-              onChange={(e) =>
-                setFormData({ ...formData, fromAccountId: parseInt(e.target.value) })
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value={0}>Select source account</option>
-              {activeAccounts.map((account: Account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} ({currency} {account.balance.toFixed(2)})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* To Account */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              To Account
-            </label>
-            <select
-              aria-label="To Account"
-              value={formData.toAccountId}
-              onChange={(e) =>
-                setFormData({ ...formData, toAccountId: parseInt(e.target.value) })
-              }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value={0}>Select destination account</option>
-              {activeAccounts
-                .filter((acc: Account) => acc.id !== formData.fromAccountId)
-                .map((account: Account) => (
+            {/* From Account */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                From Account
+              </label>
+              <select
+                aria-label="From Account"
+                value={formData.fromAccountId}
+                onChange={(e) =>
+                  setFormData({ ...formData, fromAccountId: parseInt(e.target.value) })
+                }
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value={0}>Select source account</option>
+                {activeAccounts.map((account: Account) => (
                   <option key={account.id} value={account.id}>
                     {account.name} ({currency} {account.balance.toFixed(2)})
                   </option>
                 ))}
-            </select>
-          </div>
+              </select>
+            </div>
 
-          {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Amount
-            </label>
-            <div className="flex items-center">
-              <span className="text-gray-600 mr-3 text-lg">{currency}</span>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.amount || ''}
+            {/* To Account */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                To Account
+              </label>
+              <select
+                aria-label="To Account"
+                value={formData.toAccountId}
                 onChange={(e) =>
-                  setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+                  setFormData({ ...formData, toAccountId: parseInt(e.target.value) })
                 }
-                placeholder="0.00"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+              >
+                <option value={0}>Select destination account</option>
+                {activeAccounts
+                  .filter((acc: Account) => acc.id !== formData.fromAccountId)
+                  .map((account: Account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({currency} {account.balance.toFixed(2)})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Amount
+              </label>
+              <div className="flex items-center">
+                <span className="text-gray-600 mr-3 text-lg">{currency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.amount || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+                  }
+                  placeholder="0.00"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description (Optional)
+              </label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="e.g., Monthly transfer to savings"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description (Optional)
-            </label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              placeholder="e.g., Monthly transfer to savings"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+            {/* Buttons */}
+            <div className="flex gap-4 pt-6">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Complete Transfer
+              </button>
+            </div>
+          </form>
+        </div>
 
-          {/* Buttons */}
-          <div className="flex gap-4 pt-6">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-gray-700"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Complete Transfer
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Info Box */}
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4 max-w-2xl">
-        <h3 className="font-semibold text-green-900 mb-2">✓ Safe & Secure</h3>
-        <p className="text-sm text-green-700">
-          Transfers are instantly processed and create audit-trail transactions in both accounts for your records.
-        </p>
-      </div>
+        {/* Info Box */}
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 max-w-2xl">
+          <h3 className="font-semibold text-green-900 mb-2">✓ Safe & Secure</h3>
+          <p className="text-sm text-green-700">
+            Transfers are instantly processed and create audit-trail transactions in both accounts for your records.
+          </p>
+        </div>
       </div>
     </CenteredLayout>
   );

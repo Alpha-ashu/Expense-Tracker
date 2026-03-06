@@ -30,17 +30,6 @@ export const Transactions: React.FC = () => {
   const [transactionToDelete, setTransactionToDelete] = useState<{ id: number; description: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    const type = localStorage.getItem('quickFormType');
-    if (type === 'expense' || type === 'income') {
-      setCurrentPage('add-transaction');
-      localStorage.removeItem('quickFormType');
-    } else if (type) {
-      // Remove any other unexpected value
-      localStorage.removeItem('quickFormType');
-    }
-  }, [setCurrentPage]);
-
   const filteredTransactions = useMemo(() => {
     // First filter by time period
     const timeFiltered = filterByTimePeriod(transactions, timePeriod);

@@ -1,28 +1,13 @@
-// Updated Auth Context integration guide for backend sync
-// This shows how to integrate dataSyncService into your authentication flow
-
-import { dataSyncService } from '@/lib/data-sync';
-import { backendService } from '@/lib/backend-api';
+import supabase from '@/utils/supabase/client';
+import { db } from '@/lib/database';
 
 /**
  * Call this after successful login
  * This syncs all user data from backend to local cache
  */
 export async function handleLoginSuccess(userId: string, token: string) {
+  // Now handled correctly by AuthContext's syncFromSupabase
   console.log('🔓 Login successful for user:', userId);
-
-  // 1. Set the token in backend service for all API calls
-  backendService.setToken(token);
-
-  // 2. Sync all backend data to local cache
-  try {
-    await dataSyncService.syncDownOnLogin(userId);
-    console.log('✅ All data synced from backend');
-  } catch (error) {
-    console.error('⚠️  Initial sync failed, but continuing with cached data:', error);
-  }
-
-  // Note: User will see cached data if sync fails, which is better than no data
 }
 
 /**
@@ -30,33 +15,45 @@ export async function handleLoginSuccess(userId: string, token: string) {
  * This clears all local user data
  */
 export async function handleLogout() {
+  // Now handled correctly by AuthContext's clearLocalUserData
   console.log('🔐 User logging out');
-
-  // 1. Clear token
-  backendService.clearToken();
-
-  // 2. Clear all local data
-  await dataSyncService.clearOnLogout();
-
-  console.log('✅ Local data cleared on logout');
 }
 
 /**
- * For any new transaction, call this instead of directly saving to local db
- * This ensures data is saved to backend (source of truth) first
+ * For any new transaction, save to local DB and Supabase
  */
 export async function saveTransactionWithBackendSync(transaction: any) {
   try {
-    // 1. Save to backend first (source of truth)
-    const savedTransaction = await backendService.createTransaction(transaction);
-    console.log('✅ Transaction saved to backend:', savedTransaction.id);
+    // 1. Always save locally first for fast UI response
+    const dbTransaction = {
+      ...transaction,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    const savedId = await db.transactions.add(dbTransaction);
+    const savedTransaction = { ...dbTransaction, id: savedId, local_id: savedId };
 
-    // 2. Update local cache (optional - can refresh on next sync)
-    // const { db } = await import('@/lib/database');
-    // await db.transactions.add({
-    //   ...savedTransaction,
-    //   synced: true,
-    // });
+    // 2. Try to save to Supabase directly if user is logged in
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const record = {
+        local_id: savedId,
+        type: transaction.type,
+        amount: transaction.amount,
+        description: transaction.description || '',
+        category: transaction.category || 'Other',
+        account_id: transaction.accountId,
+        date: new Date(transaction.date).toISOString(),
+        user_id: user.id
+      };
+      
+      // Fire and forget, don't block
+      supabase.from('transactions').insert([record])
+        .then(({ error }) => {
+           if (error) console.error('Supabase sync failed (non-blocking):', error)
+        })
+        .catch(err => console.error('Supabase sync error (non-blocking):', err));
+    }
 
     return savedTransaction;
   } catch (error) {
@@ -70,8 +67,34 @@ export async function saveTransactionWithBackendSync(transaction: any) {
  */
 export async function saveAccountWithBackendSync(account: any) {
   try {
-    const savedAccount = await backendService.createAccount(account);
-    console.log('✅ Account saved to backend:', savedAccount.id);
+    const dbAccount = {
+      ...account,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const savedId = await db.accounts.add(dbAccount);
+    const savedAccount = { ...dbAccount, id: savedId, local_id: savedId };
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const record = {
+        local_id: savedId,
+        name: account.name,
+        type: account.type,
+        balance: account.balance || 0,
+        currency: account.currency || 'INR',
+        is_active: account.isActive ?? true,
+        user_id: user.id
+      };
+      
+      supabase.from('accounts').insert([record])
+        .then(({ error }) => {
+           if (error) console.error('Supabase sync failed:', error)
+        })
+        .catch(err => console.error('Supabase sync error:', err));
+    }
+
     return savedAccount;
   } catch (error) {
     console.error('❌ Failed to save account:', error);
@@ -84,8 +107,35 @@ export async function saveAccountWithBackendSync(account: any) {
  */
 export async function saveGoalWithBackendSync(goal: any) {
   try {
-    const savedGoal = await backendService.createGoal(goal);
-    console.log('✅ Goal saved to backend:', savedGoal.id);
+    const dbGoal = {
+      ...goal,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    const savedId = await db.goals.add(dbGoal);
+    const savedGoal = { ...dbGoal, id: savedId, local_id: savedId };
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const record = {
+        local_id: savedId,
+        name: goal.name,
+        target_amount: goal.targetAmount,
+        current_amount: goal.currentAmount || 0,
+        target_date: new Date(goal.targetDate).toISOString(),
+        category: goal.category || 'other',
+        is_group_goal: goal.isGroupGoal || false,
+        user_id: user.id
+      };
+      
+      supabase.from('goals').insert([record])
+        .then(({ error }) => {
+           if (error) console.error('Supabase sync failed:', error)
+        })
+        .catch(err => console.error('Supabase sync error:', err));
+    }
+
     return savedGoal;
   } catch (error) {
     console.error('❌ Failed to save goal:', error);
@@ -97,5 +147,6 @@ export async function saveGoalWithBackendSync(goal: any) {
  * Check backend connectivity
  */
 export async function checkBackendConnectivity(): Promise<boolean> {
-  return dataSyncService.waitForBackend();
+  const { data: { session } } = await supabase.auth.getSession();
+  return !!session;
 }

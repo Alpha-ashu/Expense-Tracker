@@ -52,29 +52,12 @@ class PermissionService {
    * missing `get-user-permissions` function.
    */
   async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<UserPermissions> {
-    try {
-      // Resolve role from profiles table (column: role, default: 'user')
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const role: UserRole =
-        (profile?.role as UserRole) || fallbackRole || 'user';
-
-      const permissions = this.getDefaultPermissions(role);
-      this.permissions = permissions;
-      this.notifyListeners();
-      return permissions;
-    } catch (error) {
-      // Network / RLS error — silently fall back, never throw
-      const role = fallbackRole || 'user';
-      const fallback = this.getDefaultPermissions(role);
-      this.permissions = fallback;
-      this.notifyListeners();
-      return fallback;
-    }
+    // Role is reliably resolved by AuthContext using email and user_metadata
+    const role: UserRole = fallbackRole || 'user';
+    const permissions = this.getDefaultPermissions(role);
+    this.permissions = permissions;
+    this.notifyListeners();
+    return Promise.resolve(permissions);
   }
 
   /**

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { Wallet, Landmark, CreditCard, Banknote, Smartphone, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -15,6 +15,24 @@ const accountTypes = [
   { id: 'wallet', label: 'Digital Wallet', icon: Smartphone, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', active: 'ring-orange-500' },
 ];
 
+const BANK_LISTS: Record<string, string[]> = {
+  'India': ['State Bank of India (SBI)', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank', 'Punjab National Bank (PNB)', 'Bank of Baroda', 'Canara Bank', 'Yes Bank', 'Other Bank (Manual Entry)'],
+  'United States': ['Chase', 'Bank of America', 'Wells Fargo', 'Citibank', 'Capital One', 'Other Bank (Manual Entry)'],
+  'United Kingdom': ['Barclays', 'HSBC', 'Lloyds', 'NatWest', 'Santander', 'Other Bank (Manual Entry)'],
+  'Canada': ['RBC Royal Bank', 'TD Bank', 'Scotiabank', 'BMO', 'CIBC', 'Other Bank (Manual Entry)'],
+  'Australia': ['Commonwealth Bank', 'Westpac', 'ANZ', 'NAB', 'Other Bank (Manual Entry)'],
+  'Default': ['Primary Local Bank', 'International Bank', 'Other Bank (Manual Entry)']
+};
+
+const WALLET_LISTS: Record<string, string[]> = {
+  'India': ['Paytm', 'Google Pay', 'PhonePe', 'Amazon Pay', 'Other Wallet (Manual Entry)'],
+  'United States': ['Apple Pay', 'Google Pay', 'PayPal', 'Venmo', 'Cash App', 'Other Wallet (Manual Entry)'],
+  'United Kingdom': ['Apple Pay', 'Google Pay', 'PayPal', 'Monzo', 'Revolut', 'Other Wallet (Manual Entry)'],
+  'Canada': ['Apple Pay', 'Google Pay', 'PayPal', 'Wealthsimple', 'Other Wallet (Manual Entry)'],
+  'Australia': ['Apple Pay', 'Google Pay', 'PayPal', 'Beem It', 'Other Wallet (Manual Entry)'],
+  'Default': ['Apple Pay', 'Google Pay', 'PayPal', 'Other Wallet (Manual Entry)']
+};
+
 export const AddAccount: React.FC = () => {
   const { setCurrentPage, currency } = useApp();
   const [formData, setFormData] = useState({
@@ -22,7 +40,47 @@ export const AddAccount: React.FC = () => {
     type: 'bank' as 'bank' | 'card' | 'cash' | 'wallet',
     balance: '',
   });
+  const [userCountry, setUserCountry] = useState('Default');
+  const [provider, setProvider] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const rawProfile = localStorage.getItem('user_profile');
+    if (rawProfile) {
+      try {
+        const profile = JSON.parse(rawProfile);
+        if (profile.country) {
+          setUserCountry(profile.country);
+        }
+      } catch (e) { }
+    }
+  }, []);
+
+  useEffect(() => {
+    setProvider('');
+    setFormData(prev => ({ ...prev, name: '' }));
+  }, [formData.type, userCountry]);
+
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setProvider(val);
+    if (!val) {
+      setFormData(prev => ({ ...prev, name: '' }));
+      return;
+    }
+
+    if (val === 'Other Bank (Manual Entry)' || val === 'Other Wallet (Manual Entry)') {
+      setFormData(prev => ({ ...prev, name: '' }));
+    } else {
+      let generatedName = `${val} Account`;
+      if (formData.type === 'card') {
+        generatedName = `${val} Credit Card`;
+      } else if (formData.type === 'wallet') {
+        generatedName = `${val} Wallet`;
+      }
+      setFormData(prev => ({ ...prev, name: generatedName }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +110,13 @@ export const AddAccount: React.FC = () => {
     }
   };
 
+  const currentList = formData.type === 'wallet' ? WALLET_LISTS : BANK_LISTS;
+  const availableOptions = currentList[userCountry] || currentList['Default'];
+  const showNameField = formData.type === 'cash' || provider !== '';
+
   return (
     <div className="w-full min-h-screen bg-gray-50/50 pb-32 lg:pb-8 font-sans">
-      <div className="max-w-2xl mx-auto px-4 lg:px-0">
+      <div className="max-w-[480px] mx-auto px-4 lg:px-0 w-full">
         {/* Header */}
         <div className="pt-6 lg:pt-10 mb-8">
           <PageHeader
@@ -143,23 +205,50 @@ export const AddAccount: React.FC = () => {
                 <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide uppercase">
                   2. Account Details
                 </label>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Account Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-5 py-4 text-lg border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium"
-                    placeholder="e.g., Main Checking, Chase Sapph..."
-                    required
-                  />
-                </div>
+
+                {/* Provider Selection */}
+                {formData.type !== 'cash' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      {formData.type === 'wallet' ? 'Wallet Provider' : 'Bank / Institution'}
+                    </label>
+                    <select
+                      value={provider}
+                      onChange={handleProviderChange}
+                      className="w-full px-5 py-4 text-lg border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 font-medium appearance-none"
+                    >
+                      <option value="">
+                        Select {formData.type === 'wallet' ? 'Provider' : 'Bank'}
+                      </option>
+                      {availableOptions.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Account Name */}
+                {showNameField && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                    <div className="pt-2">
+                      <label className="block text-sm font-medium text-gray-600 mb-2">
+                        Account Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-5 py-4 text-lg border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium"
+                        placeholder={formData.type === 'cash' ? "e.g., Physical Cash, Safe Drawer" : "e.g., Main Checking, Chase Sapph..."}
+                        required
+                      />
+                    </div>
+                  </motion.div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Current Balance
+                    Current Balance <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <div className="relative group">
                     <div className="absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600 group-focus-within:bg-blue-100 group-focus-within:text-blue-700 transition-colors">
@@ -202,3 +291,4 @@ export const AddAccount: React.FC = () => {
     </div>
   );
 };
+
