@@ -88,6 +88,7 @@ export const Accounts: React.FC = () => {
   };
   const carouselRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const isClickScrolling = useRef(false);
 
   // Filter accounts based on active tab
   const filteredAccounts = useMemo(() => {
@@ -109,6 +110,8 @@ export const Accounts: React.FC = () => {
     if (!carousel) return;
 
     const handleCarouselScroll = () => {
+      if (isClickScrolling.current) return;
+
       const carouselRect = carousel.getBoundingClientRect();
       const carouselCenter = carouselRect.left + carouselRect.width / 2;
 
@@ -140,6 +143,19 @@ export const Accounts: React.FC = () => {
       carousel.removeEventListener("scroll", handleCarouselScroll);
     };
   }, [filteredAccounts, selectedAccountId]);
+
+  const handleCardClick = (id: number) => {
+    isClickScrolling.current = true;
+    setSelectedAccountId(id);
+    const cardEl = cardRefs.current[id];
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    }
+    // Release scroll listener lock after smooth scroll animation completes
+    setTimeout(() => {
+      isClickScrolling.current = false;
+    }, 600);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -282,7 +298,10 @@ export const Accounts: React.FC = () => {
 
         {/* Mobile: 1 card per row, centered */}
         <div className="lg:hidden">
-          <div className="flex gap-4 overflow-x-auto pb-8 px-4 sm:px-6 snap-x snap-mandatory scrollbar-hide scroll-smooth">
+          <div className={cn(
+            "flex gap-4 overflow-x-auto pb-4 px-4 sm:px-6 snap-x snap-mandatory scrollbar-hide scroll-smooth",
+            filteredAccounts.length === 1 && "justify-center"
+          )}>
             {filteredAccounts.map((account) => {
               const isActive = selectedAccountId === account.id;
               return (
@@ -313,7 +332,7 @@ export const Accounts: React.FC = () => {
                           : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
                         !account.isActive && "opacity-60 grayscale",
                       )}
-                      onClick={() => setSelectedAccountId(account.id!)}
+                      onClick={() => handleCardClick(account.id!)}
                       tabIndex={-1} // Prevent keyboard focus
                     >
                       <div className="relative z-10 p-5 h-full flex flex-col justify-between">
@@ -345,6 +364,16 @@ export const Accounts: React.FC = () => {
                                 title="Edit account"
                               >
                                 <Edit2 size={12} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteAccount(account.id!, account.name);
+                                }}
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-red-500/80 hover:bg-red-500 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                title="Delete account"
+                              >
+                                <Trash2 size={12} />
                               </button>
                             </div>
                           )}
@@ -419,6 +448,42 @@ export const Accounts: React.FC = () => {
               );
             })}
           </div>
+          
+          {/* Swipe Guide & Dot Indicators (Mobile) */}
+          {filteredAccounts.length > 1 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center -mt-2 mb-6"
+            >
+              <div className="flex gap-1.5 justify-center items-center h-4 mb-2">
+                {filteredAccounts.map((account) => (
+                  <div
+                    key={`dot-mobile-${account.id}`}
+                    onClick={() => handleCardClick(account.id!)}
+                    className={cn(
+                      "rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 m-0 p-0",
+                      selectedAccountId === account.id 
+                        ? "w-4 sm:w-5 h-1.5 sm:h-2 bg-gradient-to-r from-pink-500 to-rose-500" 
+                        : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gray-300 hover:bg-gray-400"
+                    )}
+                    role="button"
+                    style={{
+                      minWidth: selectedAccountId === account.id ? "16px" : "6px",
+                      minHeight: "6px"
+                    }}
+                    aria-label={`Go to account ${account.name}`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center text-[10px] text-gray-400 font-medium tracking-widest uppercase">
+                <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2">←</span> 
+                Swipe to explore 
+                <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">→</span>
+              </div>
+            </motion.div>
+          )}
+
         </div>
 
         {/* Desktop: Original carousel layout */}
@@ -427,7 +492,10 @@ export const Accounts: React.FC = () => {
             {/* Carousel Container */}
             <div
               ref={carouselRef}
-              className="flex gap-3 md:gap-4 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth"
+              className={cn(
+                "flex gap-3 md:gap-4 overflow-x-auto pb-4 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth",
+                filteredAccounts.length === 1 && "justify-center"
+              )}
               style={{
                 WebkitOverflowScrolling: "touch",
               }}
@@ -462,7 +530,7 @@ export const Accounts: React.FC = () => {
                                 : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
                               !account.isActive && "opacity-60 grayscale",
                             )}
-                            onClick={() => setSelectedAccountId(account.id!)}
+                            onClick={() => handleCardClick(account.id!)}
                             tabIndex={-1}
                           >
                             <div className="relative z-10 p-[20px] h-full grid grid-rows-[44px_1fr_40px]">
@@ -494,6 +562,16 @@ export const Accounts: React.FC = () => {
                                       title="Edit account"
                                     >
                                       <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteAccount(account.id!, account.name);
+                                      }}
+                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/80 hover:bg-red-500 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                      title="Delete account"
+                                    >
+                                      <Trash2 size={14} />
                                     </button>
                                   </div>
                                 )}
@@ -569,7 +647,42 @@ export const Accounts: React.FC = () => {
                   })}
             </div>
 
-            {/* Transaction History - Subscribed to Carousel Scroll */}
+        {/* Swipe Guide & Dot Indicators */}
+        {filteredAccounts.length > 1 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center -mt-2 mb-6 md:mb-8"
+          >
+            <div className="flex gap-1.5 justify-center items-center h-4 mb-2">
+              {filteredAccounts.map((account) => (
+                <div
+                  key={`dot-${account.id}`}
+                  onClick={() => handleCardClick(account.id!)}
+                  className={cn(
+                    "rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 m-0 p-0",
+                    selectedAccountId === account.id 
+                      ? "w-5 h-2 bg-gradient-to-r from-pink-500 to-rose-500" 
+                      : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
+                  )}
+                  role="button"
+                  style={{
+                    minWidth: selectedAccountId === account.id ? "20px" : "8px",
+                    minHeight: "8px"
+                  }}
+                  aria-label={`Go to account ${account.name}`}
+                />
+              ))}
+            </div>
+            <div className="flex items-center text-[10px] sm:text-xs text-gray-400 font-medium tracking-widest uppercase">
+              <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2">←</span> 
+              Swipe to explore 
+              <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">→</span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Transaction History - Subscribed to Carousel Scroll */}
             <AnimatePresence mode="wait">
               {selectedAccount && (
                 <motion.div

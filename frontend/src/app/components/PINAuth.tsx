@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Fingerprint, Shield } from 'lucide-react';
-import { isPINSet, verifyPIN, storeMasterKey } from '@/lib/encryption';
+import { isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
+import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
@@ -18,13 +19,53 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
   useEffect(() => {
-    const pinExists = isPINSet();
-    setIsCreating(!pinExists);
+    let isMounted = true;
+
+    const initPin = async () => {
+      // If PIN is already set locally, just prompt for verification
+      if (isPINSet()) {
+        if (isMounted) setIsCreating(false);
+      } else {
+        // Cache was cleared OR this is a brand new user/device.
+        // Attempt to fetch existing PIN from Supabase `user_pins`
+        setIsLoading(true);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            const { data } = await supabase
+              .from('user_pins')
+              .select('pin_hash')
+              .eq('user_id', session.user.id)
+              .maybeSingle();
+
+            if (data?.pin_hash && isMounted) {
+              const [hash, salt] = data.pin_hash.split('|');
+              if (hash && salt) {
+                restorePINKeys({ hash, salt });
+                setIsCreating(false);
+                setIsLoading(false);
+                return;
+              }
+            }
+          }
+        } catch (error: any) {
+          console.error('Failed to restore PIN from backend:', error);
+        }
+        if (isMounted) {
+          setIsCreating(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initPin();
     
     // Check biometric availability on native platforms
     if (Capacitor.isNativePlatform()) {
       checkBiometricAvailability();
     }
+
+    return () => { isMounted = false; };
   }, []);
 
   const checkBiometricAvailability = async () => {
@@ -72,6 +113,24 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         // Store PIN and generate encryption key
         const key = storeMasterKey(pin);
         
+        // Backup to Supabase so it survives cache clear
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.id) {
+            const backup = backupPINKeys(); 
+            if (backup.hash && backup.salt) {
+              const pinHashValue = `${backup.hash}|${backup.salt}`;
+              await supabase.from('user_pins').upsert({
+                user_id: session.user.id,
+                pin_hash: pinHashValue,
+                expires_at: new Date('2099-01-01').toISOString(), // Required NOT NULL column
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("PIN backup to server failed (working locally)", e);
+        }
+
         // Store in Capacitor Preferences for native platforms
         if (Capacitor.isNativePlatform()) {
           await Preferences.set({

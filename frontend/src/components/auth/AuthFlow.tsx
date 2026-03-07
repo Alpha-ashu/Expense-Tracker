@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Shield, Cloud, Smartphone, Wallet, TrendingUp, Bell } from 'lucide-react';
+import { ChevronRight, Shield, Cloud, Smartphone, Wallet, TrendingUp, Bell, Sparkles, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { SignInForm } from './SignInForm';
 import { SignUpForm } from './SignUpForm';
 import { OTPVerification } from './OTPVerification';
@@ -342,56 +343,120 @@ export const AuthFlow: React.FC = () => {
   };
 
   // Welcome Screen
-  const renderWelcome = () => (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 flex flex-col">
-      {/* Hero Section */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-        <div className="mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-white/10 backdrop-blur-sm rounded-3xl mb-6">
-            <Wallet className="w-12 h-12 text-white" />
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Finora
-          </h1>
-          <p className="text-xl text-blue-100 max-w-md">
-            Your personal finance companion. Track expenses, manage budgets, and achieve your financial goals.
-          </p>
+  // Welcome Screen
+  const renderWelcome = () => {
+    const containerVariants = {
+      hidden: { opacity: 0 },
+      show: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.15
+        }
+      }
+    };
+
+    const itemVariants = {
+      hidden: { opacity: 0, y: 30 },
+      show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+    };
+
+    return (
+      <div className="relative min-h-screen bg-[#050D1A] flex flex-col overflow-hidden font-sans select-none">
+        {/* Dynamic Background */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            animate={{
+              scale: [1, 1.1, 1],
+              opacity: [0.3, 0.4, 0.3],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-[20%] -left-[10%] w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] bg-blue-600/40 rounded-full blur-[100px]"
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.2, 0.3, 0.2],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute top-[40%] text-right -right-[10%] w-[70vw] h-[70vw] md:w-[50vw] md:h-[50vw] bg-indigo-600/30 rounded-full blur-[100px]"
+          />
         </div>
 
-        {/* Features */}
-        <div className="grid grid-cols-2 gap-4 mb-8 max-w-sm">
-          {[
-            { icon: TrendingUp, text: 'Track Spending' },
-            { icon: Cloud, text: 'Cloud Sync' },
-            { icon: Shield, text: 'Bank-level Security' },
-            { icon: Bell, text: 'Bill Reminders' },
-          ].map((feature, i) => (
-            <div key={i} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg p-3">
-              <feature.icon className="w-5 h-5 text-blue-200" />
-              <span className="text-sm text-white">{feature.text}</span>
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="relative z-10 flex-1 flex flex-col justify-center items-center px-6 sm:px-8 mt-12"
+        >
+          {/* Logo Section */}
+          <motion.div variants={itemVariants} className="mb-10 text-center w-full max-w-sm">
+            <div className="relative w-24 h-24 mx-auto mb-6">
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 rounded-[2rem] border border-blue-500/30 border-dashed"
+              />
+              <div className="absolute inset-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.4)]">
+                <Wallet className="w-10 h-10 text-white" strokeWidth={1.5} />
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 tracking-tight mb-4">
+              Finora
+            </h1>
+            <p className="text-base sm:text-lg text-gray-400 font-medium max-w-[280px] sm:max-w-md mx-auto leading-relaxed">
+              Experience the future of personal finance. Track, grow, and master your wealth seamlessly.
+            </p>
+          </motion.div>
 
-      {/* Action Buttons */}
-      <div className="p-6 pb-12 space-y-4">
-        <button
-          onClick={() => setStep('signup')}
-          className="w-full py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+          {/* Feature Pills */}
+          <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-3 w-full max-w-sm mb-12">
+            {[
+              { icon: TrendingUp, text: 'Insights' },
+              { icon: Shield, text: 'Secure' },
+              { icon: Sparkles, text: 'Smart' },
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-md rounded-full px-4 py-2 hover:bg-white/10 transition-colors cursor-default">
+                <feature.icon className="w-4 h-4 text-blue-400" />
+                <span className="text-sm font-medium text-gray-200">{feature.text}</span>
+              </div>
+            ))}
+          </motion.div>
+        </motion.div>
+
+        {/* Call To Actions */}
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, type: "spring", stiffness: 300, damping: 30 }}
+          className="relative z-10 px-6 sm:px-8 pb-12 w-full max-w-md mx-auto"
         >
-          Get Started
-          <ChevronRight className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setStep('signin')}
-          className="w-full py-4 bg-white/10 text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-colors backdrop-blur-sm"
-        >
-          I already have an account
-        </button>
+          <div className="space-y-4">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setStep('signup')}
+              className="w-full relative group overflow-hidden xrounded-2xl p-[1px] block rounded-2xl"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="relative bg-[#050D1A]/80 backdrop-blur-xl px-6 py-4 rounded-2xl flex items-center justify-center gap-2 group-hover:bg-[#050D1A]/60 transition-colors">
+                <span className="text-white font-semibold text-lg">Create Account</span>
+                <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-white transition-colors group-hover:translate-x-1" />
+              </div>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setStep('signin')}
+              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl py-4 font-semibold text-lg backdrop-blur-md transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              Sign In
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Profile Setup Step
   const renderProfileSetup = () => (

@@ -76,26 +76,33 @@ const clearLocalUserData = async () => {
   }
 };
 
+const fetchWithTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+  ]);
+};
+
 /** Sync user data from Supabase into local Dexie DB on login */
 const syncFromSupabase = async (userId: string) => {
   try {
     const [
-      { data: accounts },
-      { data: transactions },
-      { data: loansData },
-      { data: goalsData },
-      { data: investmentsData },
-      { data: groupExpensesData },
-      { data: profile },
-    ] = await Promise.all([
+      { data: accounts = null },
+      { data: transactions = null },
+      { data: loansData = null },
+      { data: goalsData = null },
+      { data: investmentsData = null },
+      { data: groupExpensesData = null },
+      { data: profile = null },
+    ] = await fetchWithTimeout(Promise.all([
       supabase.from('accounts').select('*').eq('user_id', userId),
       supabase.from('transactions').select('*').eq('user_id', userId),
       supabase.from('loans').select('*').eq('user_id', userId),
       supabase.from('goals').select('*').eq('user_id', userId),
       supabase.from('investments').select('*').eq('user_id', userId),
       supabase.from('group_expenses').select('*').eq('user_id', userId),
-      supabase.from('profiles').select('*').eq('id', userId).single(),
-    ]);
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    ]), 4000);
 
     // Bypass onboarding if profile exists in backend
     if (profile && (profile.full_name || profile.first_name)) {
@@ -236,104 +243,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [role, setRole] = useState<UserRole>('user');
 
   useEffect(() => {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
-
-    if (!supabaseUrl || !supabaseKey) {
-      toast.error('Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY in Vercel.');
-      setLoading(false);
-      return;
-    }
-
-    // ── Silence React StrictMode AbortErrors from Supabase's navigator.locks ──
-    // In dev, React mounts → unmounts → remounts every component. The first
-    // unmount aborts the locks.ts lock that onAuthStateChange() acquired, which
-    // surfaces as an unhandled "AbortError: signal is aborted without reason".
-    // These are harmless noise — the second (real) mount re-subscribes correctly.
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const err = event.reason;
-      if (
-        err?.name === 'AbortError' &&
-        (err?.message === 'signal is aborted without reason' || err?.message === '')
-      ) {
-        event.preventDefault(); // Suppress from console
-      }
-    };
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    // Guard against setting state after the component unmounts
     let isMounted = true;
 
-    // Check active session
-    const initAuth = async () => {
-      // ── Suppress the single console.error that Supabase's internal fetch.ts
-      // logs before rethrowing an AbortError when our 10-second timeout fires.
-      // Without this intercept, one "AbortError: signal is aborted without reason"
-      // line always appears even though our code handles it gracefully below.
-      const _origConsoleError = console.error;
-      console.error = (...args: any[]) => {
-        const first = args[0];
-        const isAbort =
-          first?.name === 'AbortError' ||
-          first?.name === 'AuthRetryableFetchError' ||
-          (first?.message && first.message.includes('aborted')) ||
-          (typeof first === 'string' && (first.includes('AbortError') || first.includes('aborted')));
-        if (!isAbort) _origConsoleError.apply(console, args);
-      };
-
-      try {
-        // If redirected here after explicit sign out, skip session restore
-        const params = new URLSearchParams(window.location.search);
-        if (params.get('logged_out') === '1') {
-          window.history.replaceState({}, '', window.location.pathname);
-          if (isMounted) {
-            setUser(null);
-            setSession(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-
-        setSession(session);
-        const nextUser = session?.user ?? null;
-        setUser(nextUser);
-        const userRole = resolveUserRole(nextUser);
-        setRole(userRole);
-
-        // ✅ Supabase is reachable — safe to enable auto-refresh
-        supabase.auth.startAutoRefresh();
-
-        if (nextUser?.id) {
-          await permissionService.fetchUserPermissions(nextUser.id, userRole);
-          // Sync data and bypass onboarding if profile exists, before hiding the loading screen
-          await syncFromSupabase(nextUser.id);
-        }
-      } catch (error: any) {
-        if (!isMounted) return;
-
-        if (isNetworkError(error)) {
-          // Supabase is unreachable (paused project, no internet, etc.).
-          // Stay unauthenticated and do NOT start auto-refresh — it would
-          // spam the console with ERR_CONNECTION_TIMED_OUT every ~30 seconds.
-          console.warn('Supabase unreachable at startup — running in offline mode.');
-        } else {
-          console.error('Error loading session:', error);
-        }
-      } finally {
-        console.error = _origConsoleError; // Always restore
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    initAuth();
-
     // Pause/resume auto-refresh based on actual network connectivity.
-    // Note: navigator.onLine reflects browser internet access, NOT Supabase
-    // reachability. The `online` handler re-calls getSession() so we only
-    // start auto-refresh if Supabase responds successfully.
     const handleOffline = () => {
       supabase.auth.stopAutoRefresh();
       console.info('📴 Offline — Supabase auto-refresh paused.');
@@ -344,7 +256,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
-        // Supabase responded — update state and (re-)enable auto-refresh
         setSession(session);
         setUser(session?.user ?? null);
         setRole(resolveUserRole(session?.user ?? null));
@@ -358,7 +269,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     window.addEventListener('offline', handleOffline);
     window.addEventListener('online', handleOnline);
 
-    // Listen for auth changes
+    let initialSyncDone = false;
+
+    // Listen for auth changes cleanly. This fires immediately with INITIAL_SESSION, 
+    // replacing the need to manually call getSession() and dodging React StrictMode lock races.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!isMounted) return;
@@ -369,28 +283,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setRole(userRole);
 
         try {
+          if (nextUser?.id) {
+            const isFreshLogin = event === 'SIGNED_IN';
+            const isAppLoad = event === 'INITIAL_SESSION' && !initialSyncDone;
 
-          if (event === 'SIGNED_IN' && nextUser?.id) {
-            // CRITICAL: Only clear local data when a *different* user signs in.
-            // Clearing on every SIGNED_IN (including page reloads and post-onboarding
-            // reloads) wipes data that was just written during onboarding.
-            const lastUserId = localStorage.getItem('auth_last_user_id');
-            const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
+            if (isFreshLogin || isAppLoad) {
+              const lastUserId = localStorage.getItem('auth_last_user_id');
+              const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
 
-            if (isUserSwitch) {
-              // Different user logged in — clear previous user's local data
-              await clearLocalUserData();
+              if (isUserSwitch) {
+                // Different user logged in — clear previous user's local data
+                await clearLocalUserData();
+              }
+
+              // Always record the current user so we can detect future switches
+              localStorage.setItem('auth_last_user_id', nextUser.id);
+
+              // Sync accounts/transactions from Supabase into local Dexie
+              await syncFromSupabase(nextUser.id);
+              // Fetch permissions from server
+              await permissionService.fetchUserPermissions(nextUser.id, userRole);
+              
+              // Seed demo data only for fresh login admin; regular users start with clean DB
+              if (isFreshLogin) {
+                await initializeDemoData(nextUser.email ?? undefined, nextUser.id);
+              }
+              initialSyncDone = true;
             }
-
-            // Always record the current user so we can detect future switches
-            localStorage.setItem('auth_last_user_id', nextUser.id);
-
-            // Sync accounts/transactions from Supabase into local Dexie
-            await syncFromSupabase(nextUser.id);
-            // Fetch permissions from server
-            await permissionService.fetchUserPermissions(nextUser.id, userRole);
-            // Seed demo data only for admin; regular users start with clean DB
-            await initializeDemoData(nextUser.email ?? undefined, nextUser.id);
           } else if (event === 'SIGNED_OUT') {
             // On logout, clear the stored user ID so the next login is treated
             // as a fresh start (even if same user logs back in).
@@ -398,9 +317,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             permissionService.clearPermissions();
             // Clear local DB on logout too
             await clearLocalUserData();
+            initialSyncDone = false; // Reset for next login
           }
+        } catch (error) {
+          console.error('Error in onAuthStateChange handler:', error);
         } finally {
-          setLoading(false);
+          if (isMounted) setLoading(false);
         }
       }
     );
@@ -411,7 +333,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       supabase.auth.stopAutoRefresh();
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
 

@@ -20,6 +20,41 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  const calculateStrength = (password: string) => {
+    if (!password) return 0;
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+    if (/\d/.test(password)) score += 1;
+    if (/[^a-zA-Z\d]/.test(password)) score += 1;
+    return Math.max(1, score);
+  };
+
+  const strengthScore = calculateStrength(formData.password);
+  
+  const getStrengthColor = (index: number) => {
+    if (!formData.password) return 'bg-gray-200';
+    if (index > strengthScore) return 'bg-gray-200';
+    switch (strengthScore) {
+      case 1: return 'bg-red-500';
+      case 2: return 'bg-yellow-500';
+      case 3: return 'bg-blue-500';
+      case 4: return 'bg-emerald-500';
+      default: return 'bg-gray-200';
+    }
+  };
+
+  const getStrengthLabel = () => {
+    if (!formData.password) return '';
+    switch (strengthScore) {
+      case 1: return 'Weak';
+      case 2: return 'Fair';
+      case 3: return 'Good';
+      case 4: return 'Strong';
+      default: return '';
+    }
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -214,6 +249,22 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
           placeholder="••••••••"
           disabled={isLoading}
         />
+        {/* Password Strength Indicator */}
+        {formData.password && (
+          <div className="mt-2">
+            <div className="flex gap-1 h-1.5 w-full mb-1">
+              {[1, 2, 3, 4].map((index) => (
+                <div
+                  key={index}
+                  className={`h-full flex-1 rounded-full transition-colors duration-300 ${getStrengthColor(index)}`}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-right text-gray-500 font-medium">
+              {getStrengthLabel()}
+            </p>
+          </div>
+        )}
         {errors.password && (
           <p className="mt-1 text-sm text-red-600">{errors.password}</p>
         )}
