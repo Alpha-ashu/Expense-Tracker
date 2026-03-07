@@ -10,7 +10,7 @@ interface AddLoanModalWithFriendsProps {
 }
 
 export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = ({ onClose }) => {
-  const { friends } = useApp();
+  const { friends, refreshData } = useApp();
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [formData, setFormData] = useState({
     type: 'borrowed' as 'borrowed' | 'lent' | 'emi',
@@ -47,6 +47,7 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
       setFormData({ ...formData, friendId: savedFriend.id, contactPerson: newFriend.name });
       setNewFriend({ name: '', email: '', phone: '', notes: '' });
       setShowAddFriend(false);
+      refreshData();
       toast.success('Friend added successfully');
     } catch (error) {
       toast.error('Failed to add friend');
@@ -78,6 +79,7 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
         createdAt: new Date(),
       });
       toast.success('Loan added successfully');
+      refreshData();
       onClose();
     } catch (error) {
       toast.error('Failed to add loan');

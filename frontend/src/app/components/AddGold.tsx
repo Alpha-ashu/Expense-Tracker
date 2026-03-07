@@ -20,7 +20,7 @@ interface GoldEntry {
 }
 
 export const AddGold: React.FC = () => {
-  const { setCurrentPage, currency } = useApp();
+  const { setCurrentPage, currency, refreshData } = useApp();
   const [formData, setFormData] = useState<GoldEntry>({
     type: 'gold',
     quantity: 0,
@@ -62,6 +62,7 @@ export const AddGold: React.FC = () => {
 
       const totalValue = formData.quantity * formData.currentPrice;
       toast.success(`Gold entry added! Current value: ${currency} ${totalValue.toFixed(2)}`);
+      refreshData();
       setCurrentPage('investments');
     } catch (error) {
       console.error('Failed to add gold entry:', error);

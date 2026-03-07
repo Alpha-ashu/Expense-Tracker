@@ -8,7 +8,7 @@ import { CreditCard, UserPlus, X, Check, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddLoan: React.FC = () => {
-  const { setCurrentPage, currency, accounts, friends } = useApp();
+  const { setCurrentPage, currency, accounts, friends, refreshData } = useApp();
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -85,6 +85,7 @@ export const AddLoan: React.FC = () => {
       });
 
       toast.success(`Loan of ${currency} ${formData.principalAmount} created! EMI: ${currency} ${formData.emiAmount.toFixed(2)}`);
+      refreshData();
       setCurrentPage('loans');
     } catch (error) {
       console.error('Failed to add loan:', error);

@@ -7,7 +7,7 @@ import { Target } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddGoal: React.FC = () => {
-  const { setCurrentPage, currency } = useApp();
+  const { setCurrentPage, currency, refreshData } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     category: 'savings' as 'savings' | 'investment' | 'debt-payoff' | 'education' | 'travel' | 'other',
@@ -40,6 +40,7 @@ export const AddGoal: React.FC = () => {
         isGroupGoal: false,
       });
       toast.success('Goal created successfully');
+      refreshData();
       setCurrentPage('goals');
     } catch (error) {
       console.error('Failed to add goal:', error);

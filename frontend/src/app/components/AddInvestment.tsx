@@ -7,7 +7,7 @@ import { TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddInvestment: React.FC = () => {
-  const { setCurrentPage, currency } = useApp();
+  const { setCurrentPage, currency, refreshData } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     type: 'stocks' as 'stocks' | 'bonds' | 'mutual-funds' | 'real-estate' | 'crypto' | 'other',
@@ -57,6 +57,7 @@ export const AddInvestment: React.FC = () => {
         description: formData.description,
       });
       toast.success('Investment added successfully');
+      refreshData();
       setCurrentPage('investments');
     } catch (error) {
       console.error('Failed to add investment:', error);

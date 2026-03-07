@@ -427,15 +427,11 @@ export const Accounts: React.FC = () => {
             {/* Carousel Container */}
             <div
               ref={carouselRef}
-              className="flex gap-3 md:gap-4 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide"
+              className="flex gap-3 md:gap-4 overflow-x-auto pb-8 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth"
               style={{
-                scrollBehavior: "smooth",
-                scrollSnapType: "x mandatory",
                 WebkitOverflowScrolling: "touch",
               }}
             >
-              <AnimatePresence>
-                <motion.div className="flex gap-3 md:gap-4">
                   {filteredAccounts.map((account) => {
                     const isActive = selectedAccountId === account.id;
                     return (
@@ -571,8 +567,6 @@ export const Accounts: React.FC = () => {
                       </div>
                     );
                   })}
-                </motion.div>
-              </AnimatePresence>
             </div>
 
             {/* Transaction History - Subscribed to Carousel Scroll */}

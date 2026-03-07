@@ -34,7 +34,7 @@ const WALLET_LISTS: Record<string, string[]> = {
 };
 
 export const AddAccount: React.FC = () => {
-  const { setCurrentPage, currency } = useApp();
+  const { setCurrentPage, currency, refreshData } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     type: 'bank' as 'bank' | 'card' | 'cash' | 'wallet',
@@ -107,6 +107,7 @@ export const AddAccount: React.FC = () => {
         updatedAt: new Date(),
       });
       toast.success('Account created successfully', { icon: '🎉' });
+      refreshData();
       setCurrentPage('accounts');
     } catch (error) {
       console.error('Failed to add account:', error);

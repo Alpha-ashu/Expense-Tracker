@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import supabase from '@/utils/supabase/client';
 
 export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propAccountId }) => {
-  const { setCurrentPage, currency } = useApp();
+  const { setCurrentPage, currency, refreshData } = useApp();
   const [account, setAccount] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,6 +75,7 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
         toast.success('Account updated locally!');
       }
 
+      refreshData();
       setCurrentPage('accounts');
     } catch (error: any) {
       console.error('Failed to update account:', error);

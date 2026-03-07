@@ -247,10 +247,10 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           <AnimatePresence mode="wait">
             {filteredAccounts.length > 0 ? (
               <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}
               >
-                {filteredAccounts.slice(0, 4).map((account) => (
-                  <Card key={account.id} className="p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
+                {filteredAccounts.map((account) => (
+                  <Card key={account.id} className="p-4 w-[280px] sm:w-[320px] shrink-0 snap-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
                     <div className="flex items-center justify-between mb-3">
                       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
                         account.type === 'bank' ? "bg-blue-100 text-blue-600" :

@@ -18,7 +18,7 @@ interface Friend {
 }
 
 export const AddFriends: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { setCurrentPage, refreshData } = useApp();
   const [formData, setFormData] = useState<Friend>({
     name: '',
     email: '',
@@ -88,6 +88,7 @@ export const AddFriends: React.FC = () => {
       }
 
       toast.success(`${friends.length} friend(s) added successfully`);
+      refreshData();
       setCurrentPage('groups');
     } catch (error) {
       console.error('Failed to add friends:', error);

@@ -18,7 +18,7 @@ const CATEGORIES = {
 };
 
 export const AddTransaction: React.FC = () => {
-  const { accounts, setCurrentPage, currency } = useApp();
+  const { accounts, setCurrentPage, currency, refreshData } = useApp();
   const [formData, setFormData] = useState(() => {
     return {
       type: 'expense' as 'expense' | 'income',
@@ -110,6 +110,7 @@ export const AddTransaction: React.FC = () => {
       const icon = formData.type === 'income' ? '📈' : '📉';
       const message = `${icon} ${typeLabel} ${currency} ${formData.amount.toFixed(2)} added to ${formData.category}`;
       toast.success(message);
+      refreshData();
       setCurrentPage('transactions');
     } catch (error) {
       console.error('Failed to add transaction:', error);

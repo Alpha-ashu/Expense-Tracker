@@ -8,7 +8,7 @@ import { Users, UserPlus, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AddGroup: React.FC = () => {
-  const { setCurrentPage, currency, friends } = useApp();
+  const { setCurrentPage, currency, friends, refreshData } = useApp();
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -78,6 +78,7 @@ export const AddGroup: React.FC = () => {
         date: new Date(formData.date),
       });
       toast.success('Group expense created successfully');
+      refreshData();
       setCurrentPage('groups');
     } catch (error) {
       console.error('Failed to create group:', error);

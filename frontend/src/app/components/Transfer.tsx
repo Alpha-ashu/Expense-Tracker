@@ -10,7 +10,7 @@ import { ArrowRightLeft } from 'lucide-react';
 import type { Account } from '@/lib/database';
 
 export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
-  const { currency, setCurrentPage } = useApp();
+  const { currency, setCurrentPage, refreshData } = useApp();
   const [formData, setFormData] = useState({
     fromAccountId: 0,
     toAccountId: 0,
@@ -116,6 +116,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
       // Show detailed success message
       const message = `✅ Transfer completed: ${currency} ${formData.amount.toFixed(2)} from ${fromAccount.name} to ${toAccount.name}`;
       toast.success(message);
+      refreshData();
       setFormData({
         fromAccountId: 0,
         toAccountId: 0,

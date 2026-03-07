@@ -8,7 +8,7 @@ import { TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const EditInvestment: React.FC = () => {
-  const { investments, setCurrentPage } = useApp();
+  const { investments, setCurrentPage, refreshData } = useApp();
   const [formData, setFormData] = useState({
     assetType: 'stock' as 'stock' | 'crypto' | 'forex' | 'gold' | 'silver' | 'other',
     assetName: '',
@@ -63,6 +63,7 @@ export const EditInvestment: React.FC = () => {
 
       toast.success('Investment updated successfully');
       localStorage.removeItem('editingInvestmentId');
+      refreshData();
       setCurrentPage('investments');
     } catch (error) {
       toast.error('Failed to update investment');
