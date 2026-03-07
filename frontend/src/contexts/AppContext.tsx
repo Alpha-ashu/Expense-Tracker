@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
 import { realtimeSyncManager, trackChange } from '@/lib/realTime';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,7 +33,19 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentPage, setCurrentPage] = useState('accounts');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const currentPage = location.pathname.length > 1 ? location.pathname.substring(1).split('?')[0].split('#')[0] : 'accounts';
+
+  const setCurrentPage = useCallback((page: string) => {
+    // Standardize URL to keep it clean
+    if (page === 'dashboard' && location.pathname === '/') return;
+    if (page !== currentPage) {
+      navigate(`/${page}`);
+    }
+  }, [navigate, currentPage, location.pathname]);
+
   const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'INR');
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
   const [isOnline, setIsOnline] = useState(navigator.onLine);

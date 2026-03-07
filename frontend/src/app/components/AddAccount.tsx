@@ -89,12 +89,18 @@ export const AddAccount: React.FC = () => {
       return;
     }
 
+    const parsedBalance = parseFloat(formData.balance) || 0;
+    if (parsedBalance < 0) {
+      toast.error('Account balance cannot be negative');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await saveAccountWithBackendSync({
         name: formData.name.trim(),
         type: formData.type,
-        balance: parseFloat(formData.balance) || 0,
+        balance: parsedBalance,
         currency,
         isActive: true,
         createdAt: new Date(),
@@ -257,6 +263,7 @@ export const AddAccount: React.FC = () => {
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       value={formData.balance}
                       onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
                       className="w-full pl-20 pr-5 py-4 text-2xl font-bold border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 placeholder:text-gray-300 tracking-tight"

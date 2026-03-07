@@ -26,6 +26,10 @@ export const createAccount = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    if (balance !== undefined && Number(balance) < 0) {
+      return res.status(400).json({ error: 'Account balance cannot be negative' });
+    }
+
     const account = await prisma.account.create({
       data: {
         userId,
@@ -82,6 +86,10 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
 
     if (!account || account.userId !== userId) {
       return res.status(404).json({ error: 'Account not found' });
+    }
+
+    if (updates.balance !== undefined && Number(updates.balance) < 0) {
+      return res.status(400).json({ error: 'Account balance cannot be negative' });
     }
 
     const updated = await prisma.account.update({

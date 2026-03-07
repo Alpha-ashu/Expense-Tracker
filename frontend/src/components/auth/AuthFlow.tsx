@@ -167,15 +167,19 @@ export const AuthFlow: React.FC = () => {
         toast.success('Verification code sent to your email!');
       }
     } catch (error: any) {
-      console.error('Sign up error:', error);
       const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
       const isServerError = error?.status === 500 || error?.message?.toLowerCase().includes('internal server error');
+      const isSmtpError = error?.message?.toLowerCase().includes('sending confirmation email') || error?.message?.toLowerCase().includes('smtp');
+      
       let errMsg = error.message || 'Failed to create account';
       if (isNetworkError) {
         errMsg = 'Cannot connect to server. Please try again later.';
       } else if (isServerError) {
         errMsg = 'Signup is temporarily unavailable (server error). Please try again in a moment or contact support if this persists.';
+      } else if (isSmtpError) {
+        errMsg = "We couldn't send a verification email. Please try again later.";
       }
+      
       toast.error(errMsg);
     } finally {
       setIsLoading(false);

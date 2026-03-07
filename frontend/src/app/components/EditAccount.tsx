@@ -36,6 +36,11 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
     e.preventDefault();
     if (!account) return;
 
+    if (account.balance < 0) {
+      toast.error('Account balance cannot be negative');
+      return;
+    }
+
     setSaving(true);
     try {
       // 1. Update local IndexedDB (instant UI update)
@@ -151,6 +156,7 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
                 <input
                   type="number"
                   step="0.01"
+                  min="0"
                   value={account.balance || ''}
                   onChange={(e) => setAccount({ ...account, balance: parseFloat(e.target.value) || 0 })}
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
