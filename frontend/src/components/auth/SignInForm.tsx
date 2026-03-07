@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useApp } from '@/contexts/AppContext';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface SignInFormProps {
   onSwitchToSignUp: () => void;
@@ -10,23 +10,19 @@ interface SignInFormProps {
 
 export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubmit }) => {
   const { setCurrentPage } = useApp();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+      newErrors.email = 'Invalid email address';
     }
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
+    if (!formData.password) newErrors.password = 'Required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -36,48 +32,27 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
     if (!validateForm()) return;
     setIsLoading(true);
     try {
-      // If custom onSubmit handler is provided, use it
       if (onSubmit) {
         await onSubmit({ email: formData.email, password: formData.password });
         return;
       }
-
-      // Default behavior
-      const response = await api.auth.login({
-        email: formData.email,
-        password: formData.password,
-      });
+      const response = await api.auth.login({ email: formData.email, password: formData.password });
       if (response.data && typeof response.data === 'object' && 'accessToken' in response.data) {
-        const tokens = response.data as {
-          accessToken: string;
-          refreshToken: string;
-          user?: any;
-        };
+        const tokens = response.data as any;
         localStorage.setItem('auth_token', tokens.accessToken);
         localStorage.setItem('refresh_token', tokens.refreshToken);
         localStorage.setItem('user_email', formData.email);
         const onboardingCompleted = localStorage.getItem('onboarding_completed');
-        if (!onboardingCompleted) {
-          setCurrentPage('onboarding');
-        } else {
-          setCurrentPage('dashboard');
-        }
+        setCurrentPage(onboardingCompleted ? 'dashboard' : 'onboarding');
       }
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      let errorMessage = 'Login failed';
-      if (error.code === 'INVALID_CREDENTIALS') {
-        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-      } else if (error.code === 'MISSING_FIELDS') {
-        errorMessage = 'Please fill in all required fields.';
-      } else if (error.code === 'INVALID_EMAIL') {
-        errorMessage = 'Please enter a valid email address.';
-      } else if (error.code === 'DATABASE_ERROR') {
-        errorMessage = 'Database error occurred. Please try again later.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      setErrors({ general: errorMessage });
+      const codeMap: Record<string, string> = {
+        INVALID_CREDENTIALS: 'Invalid email or password. Please try again.',
+        MISSING_FIELDS: 'Please fill in all required fields.',
+        INVALID_EMAIL: 'Please enter a valid email address.',
+        DATABASE_ERROR: 'Database error occurred. Please try again later.',
+      };
+      setErrors({ general: codeMap[error.code] || error.message || 'Sign in failed. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -86,92 +61,93 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const inputBase = (hasError: boolean) =>
+    `w-full pl-10 pr-4 py-3 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 transition-all duration-200 ${
+      hasError
+        ? 'border-red-300 focus:ring-red-500/20 focus:border-red-400 bg-red-50/30'
+        : 'border-gray-200 hover:border-gray-300 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white'
+    }`;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {errors.general && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-sm text-red-600">{errors.general}</p>
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+          <p className="text-sm text-red-600 text-center">{errors.general}</p>
         </div>
       )}
+
+      {/* Email */}
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-          Email Address
-        </label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          value={formData.email}
-          onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
-          placeholder="you@example.com"
-          disabled={isLoading}
-        />
-        {errors.email && (
-          <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-        )}
-      </div>
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-          Password
-        </label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
-          placeholder="••••••••"
-          disabled={isLoading}
-        />
-        {errors.password && (
-          <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-        )}
-      </div>
-      <div className="flex items-center justify-between">
-        <label htmlFor="rememberMe" className="flex items-center cursor-pointer">
+        <label htmlFor="signin-email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <Mail size={16} />
+          </div>
           <input
-            type="checkbox"
-            id="rememberMe"
-            name="rememberMe"
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            type="email" id="signin-email" name="email"
+            value={formData.email} onChange={handleInputChange}
+            disabled={isLoading} placeholder="you@example.com"
+            className={inputBase(!!errors.email)}
           />
-          <span className="ml-2 text-sm text-gray-600">Remember me</span>
+        </div>
+        {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
+      </div>
+
+      {/* Password */}
+      <div>
+        <label htmlFor="signin-password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <Lock size={16} />
+          </div>
+          <input
+            type={showPassword ? 'text' : 'password'} id="signin-password" name="password"
+            value={formData.password} onChange={handleInputChange}
+            disabled={isLoading} placeholder="••••••••"
+            className={`${inputBase(!!errors.password)} pr-10`}
+          />
+          <button type="button" onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors">
+            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        </div>
+        {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+      </div>
+
+      {/* Remember + Forgot */}
+      <div className="flex items-center justify-between">
+        <label htmlFor="rememberMe" className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="rememberMe" name="rememberMe"
+            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 accent-blue-600"
+          />
+          <span className="text-sm text-gray-600">Remember me</span>
         </label>
-        <a href="#" className="text-sm text-blue-600 hover:text-blue-700">
+        <a href="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
           Forgot password?
         </a>
       </div>
+
+      {/* Submit */}
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
       >
         {isLoading ? (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Signing in...
-          </div>
-        ) : (
-          'Sign In'
-        )}
+          <><div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white mr-2" />Signing in...</>
+        ) : 'Sign In'}
       </button>
-      <div className="text-center text-sm text-gray-600">
+
+      <p className="text-center text-sm text-gray-500 pt-1">
         Don't have an account?{' '}
-        <button
-          type="button"
-          onClick={onSwitchToSignUp}
-          className="text-blue-600 hover:text-blue-700 font-medium"
-        >
+        <button type="button" onClick={onSwitchToSignUp}
+          className="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
           Sign up
         </button>
-      </div>
+      </p>
     </form>
   );
 };

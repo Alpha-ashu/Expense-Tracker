@@ -324,43 +324,68 @@ export const Accounts: React.FC = () => {
                     }}
                   >
                     <Card
-                      variant={isActive ? "mesh-pink" : "glass"}
+                      variant="flat"
                       className={cn(
-                        "w-full h-[210px] sm:h-[220px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[24px] cursor-pointer group hover:scale-[1.02] outline-none focus:ring-0",
+                        "w-full h-[210px] sm:h-[220px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[28px] cursor-pointer group hover:scale-[1.02] outline-none focus:ring-0",
                         isActive
-                          ? "shadow-[0_15px_35px_rgba(236,72,153,0.25)] border-0"
-                          : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
+                          ? "bg-gradient-to-br from-[#1a1a3a] via-[#3d2775] to-[#801869] border-0 shadow-[0_15px_35px_rgba(91,33,182,0.35)]"
+                          : "bg-white border hover:border-gray-300 shadow-[0_10px_25px_rgba(0,0,0,0.06)] text-gray-900 border-gray-200",
                         !account.isActive && "opacity-60 grayscale",
                       )}
                       onClick={() => handleCardClick(account.id!)}
                       tabIndex={-1} // Prevent keyboard focus
                     >
-                      <div className="relative z-10 p-5 h-full flex flex-col justify-between">
-                        {/* Top row - icon + badge */}
+                      {/* Premium Card Background Effects */}
+                      {isActive && (
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute -top-[30%] -right-[10%] w-[70%] h-[70%] bg-gradient-to-bl from-pink-500/30 to-purple-600/0 rounded-full blur-2xl" />
+                          <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] bg-gradient-to-tr from-blue-500/30 to-indigo-600/0 rounded-full blur-2xl" />
+                          <svg className="absolute inset-0 w-full h-full opacity-[0.12]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <path d="M0,50 Q25,20 50,50 T100,50 L100,100 L0,100 Z" fill="url(#card-grad-mobile)" />
+                            <defs>
+                              <linearGradient id="card-grad-mobile" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                                <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                          </svg>
+                        </div>
+                      )}
+
+                      <div className="relative z-10 p-5 sm:p-6 h-full flex flex-col justify-between">
+                        {/* Top row - Icon/Chip + Actions */}
                         <div className="flex justify-between items-start">
-                          <div
-                            className={cn(
-                              "w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm flex-shrink-0 backdrop-blur-md",
-                              isActive
-                                ? "bg-white/20 text-white"
-                                : "bg-gray-50 text-gray-600",
-                            )}
-                          >
-                            {getAccountIcon(account.type)}
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-10 h-8 sm:w-11 sm:h-8 rounded-md flex items-center justify-center relative overflow-hidden shadow-inner",
+                              isActive ? "bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 border border-yellow-300/50" : "bg-gray-200 border border-gray-300/50"
+                            )}>
+                              <div className={cn("absolute w-full h-[1px] top-1/2 -translate-y-1/2", isActive ? "bg-yellow-700/30" : "bg-gray-400/30")} />
+                              <div className={cn("absolute h-full w-[1px] left-1/2 -translate-x-1/2", isActive ? "bg-yellow-700/30" : "bg-gray-400/30")} />
+                              <div className={cn("absolute w-5 h-3.5 border rounded-sm", isActive ? "border-yellow-700/30" : "border-gray-400/30")} />
+                            </div>
+                            
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm",
+                              isActive ? "bg-white/10 text-white backdrop-blur-md" : "bg-gray-100 text-gray-600"
+                            )}>
+                              <div className="scale-75">{getAccountIcon(account.type)}</div>
+                            </div>
                           </div>
+
                           {isActive && (
                             <div className="flex items-center gap-2">
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
-                                className="bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full flex-shrink-0"
+                                className="bg-white/20 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 sm:px-3 sm:py-1 rounded-full flex-shrink-0 border border-white/10"
                               >
                                 ACTIVE
                               </motion.div>
                               <button
                                 onClick={(e) => handleEditAccount(account, e)}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/35 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all duration-200 active:scale-90 border border-white/10"
                                 title="Edit account"
                               >
                                 <Edit2 size={12} />
@@ -370,7 +395,7 @@ export const Accounts: React.FC = () => {
                                   e.stopPropagation();
                                   handleDeleteAccount(account.id!, account.name);
                                 }}
-                                className="w-7 h-7 flex items-center justify-center rounded-full bg-red-500/80 hover:bg-red-500 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-red-500/60 hover:bg-red-500 backdrop-blur-md text-white transition-all duration-200 active:scale-90 border border-white/10"
                                 title="Delete account"
                               >
                                 <Trash2 size={12} />
@@ -379,69 +404,83 @@ export const Accounts: React.FC = () => {
                           )}
                         </div>
 
-                        {/* Middle row - name + balance */}
-                        <div className="flex flex-col justify-center space-y-1 mt-2">
-                          <h3
-                            className={cn(
-                              "font-medium text-xs sm:text-sm truncate",
-                              isActive ? "text-white/80" : "text-gray-500",
-                            )}
-                          >
-                            {account.name}
-                          </h3>
-                          <p
-                            className={cn(
-                              "text-xl sm:text-2xl font-display font-bold truncate tracking-tight",
-                              isActive ? "text-white" : "text-gray-900",
-                            )}
-                          >
-                            {formatCurrency(account.balance)}
-                          </p>
-                        </div>
+                        {/* Middle & Bottom - Balance and Name laying out like a Credit Card */}
+                        <div className="flex flex-col mt-auto gap-4 sm:gap-5">
+                          <div>
+                            <p className={cn(
+                              "text-[9px] sm:text-[10px] font-semibold tracking-widest uppercase mb-1 opacity-80",
+                              isActive ? "text-white/70" : "text-gray-500"
+                            )}>
+                              Current Balance
+                            </p>
+                            <p className={cn(
+                              "text-2xl sm:text-3xl font-mono tracking-wider font-bold truncate",
+                              isActive ? "text-white" : "text-gray-900"
+                            )} style={isActive ? { textShadow: '0 2px 4px rgba(0,0,0,0.2)' } : undefined}>
+                              {formatCurrency(account.balance)}
+                            </p>
+                          </div>
 
-                        {/* Bottom row - buttons */}
-                        <div className="flex gap-2 items-end">
-                          <Button
-                            size="sm"
-                            variant={isActive ? "ghost" : "outline"}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCurrentPage("add-transaction");
-                            }}
-                            className={cn(
-                              "h-8 px-3 rounded-full text-xs font-medium flex-shrink-0",
-                              isActive &&
-                              "bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md",
-                            )}
-                          >
-                            <Plus size={12} className="mr-1" />
-                            Add
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setStatementImportOpen({
-                                accountId: account.id!,
-                                accountName: account.name,
-                                accountType: account.type,
-                              });
-                            }}
-                            className={cn(
-                              "h-8 px-3 rounded-full text-xs font-medium flex-shrink-0",
-                              isActive
-                                ? "bg-white text-pink-600 hover:bg-pink-50 border-0"
-                                : "bg-blue-600 text-white hover:bg-blue-700",
-                            )}
-                          >
-                            <Upload size={12} className="mr-1" />
-                            Upload
-                          </Button>
+                          <div className="flex justify-between items-end">
+                            <div className="min-w-0 pr-2">
+                              <p className={cn(
+                                "text-[9px] sm:text-[10px] font-semibold tracking-widest uppercase mb-0.5 opacity-80",
+                                isActive ? "text-white/70" : "text-gray-500"
+                              )}>
+                                Account Name
+                              </p>
+                              <h3 className={cn(
+                                "font-medium text-sm sm:text-base tracking-wide truncate max-w-[120px] sm:max-w-[160px]",
+                                isActive ? "text-white/90" : "text-gray-800"
+                              )}>
+                                {account.name}
+                              </h3>
+                            </div>
+                            
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCurrentPage("add-transaction");
+                                }}
+                                className={cn(
+                                  "h-8 px-3 rounded-full text-[10px] sm:text-xs font-medium",
+                                  isActive
+                                    ? "bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                                )}
+                              >
+                                <Plus size={12} className="mr-1 hidden sm:block" />
+                                <Plus size={14} className="sm:hidden" />
+                                <span className="hidden sm:inline">Add</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setStatementImportOpen({
+                                    accountId: account.id!,
+                                    accountName: account.name,
+                                    accountType: account.type,
+                                  });
+                                }}
+                                className={cn(
+                                  "h-8 px-3 rounded-full text-[10px] sm:text-xs font-medium",
+                                  isActive
+                                    ? "bg-white/20 hover:bg-white/30 text-white border border-white/20 backdrop-blur-md"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                )}
+                              >
+                                <Upload size={12} className="mr-1 hidden sm:block" />
+                                <Upload size={14} className="sm:hidden" />
+                                <span className="hidden sm:inline">Import</span>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      {isActive && (
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
-                      )}
                     </Card>
                   </div>
                 </div>
@@ -522,124 +561,162 @@ export const Accounts: React.FC = () => {
                           }}
                         >
                           <Card
-                            variant={isActive ? "mesh-pink" : "glass"}
+                            variant="flat"
                             className={cn(
-                              "w-[400px] h-[210px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[28px] cursor-pointer group outline-none focus:ring-0",
+                              "w-[400px] h-[224px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[28px] cursor-pointer group outline-none focus:ring-0",
                               isActive
-                                ? "shadow-[0_20px_40px_rgba(236,72,153,0.25)] border-0"
-                                : "border-white/40 hover:border-white/80 shadow-[0_10px_25px_rgba(0,0,0,0.06)] bg-white",
+                                ? "bg-gradient-to-br from-[#1a1a3a] via-[#3d2775] to-[#801869] border-0 shadow-[0_20px_40px_rgba(91,33,182,0.35)]"
+                                : "bg-white border hover:border-gray-300 shadow-[0_10px_25px_rgba(0,0,0,0.06)] text-gray-900 border-gray-200",
                               !account.isActive && "opacity-60 grayscale",
                             )}
                             onClick={() => handleCardClick(account.id!)}
                             tabIndex={-1}
                           >
-                            <div className="relative z-10 p-[20px] h-full grid grid-rows-[44px_1fr_40px]">
-                              {/* Top row - icon + badge */}
-                              <div className="flex justify-between items-center">
-                                <div
-                                  className={cn(
-                                    "w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-sm backdrop-blur-md",
-                                    isActive
-                                      ? "bg-white/20 text-white"
-                                      : "bg-gray-50 text-gray-600",
-                                  )}
-                                >
-                                  {getAccountIcon(account.type)}
+                            {/* Premium Card Background Effects */}
+                            {isActive && (
+                              <div className="absolute inset-0 pointer-events-none">
+                                <div className="absolute -top-[30%] -right-[10%] w-[70%] h-[70%] bg-gradient-to-bl from-pink-500/30 to-purple-600/0 rounded-full blur-2xl" />
+                                <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] bg-gradient-to-tr from-blue-500/30 to-indigo-600/0 rounded-full blur-2xl" />
+                                <svg className="absolute inset-0 w-full h-full opacity-[0.12]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                  <path d="M0,50 Q25,20 50,50 T100,50 L100,100 L0,100 Z" fill="url(#card-grad-desktop)" />
+                                  <defs>
+                                    <linearGradient id="card-grad-desktop" x1="0%" y1="0%" x2="100%" y2="100%">
+                                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+                                      <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+                                    </linearGradient>
+                                  </defs>
+                                </svg>
+                              </div>
+                            )}
+
+                            <div className="relative z-10 p-[24px] h-full flex flex-col justify-between">
+                              {/* Top row - Icon/Chip + Actions */}
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                  <div className={cn(
+                                    "w-12 h-9 rounded-md flex items-center justify-center relative overflow-hidden shadow-inner",
+                                    isActive ? "bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 border border-yellow-300/50" : "bg-gray-200 border border-gray-300/50"
+                                  )}>
+                                    <div className={cn("absolute w-full h-[1px] top-1/2 -translate-y-1/2", isActive ? "bg-yellow-700/30" : "bg-gray-400/30")} />
+                                    <div className={cn("absolute h-full w-[1px] left-1/2 -translate-x-1/2", isActive ? "bg-yellow-700/30" : "bg-gray-400/30")} />
+                                    <div className={cn("absolute w-6 h-4 border rounded-sm", isActive ? "border-yellow-700/30" : "border-gray-400/30")} />
+                                  </div>
+                                  
+                                  <div className={cn(
+                                    "w-9 h-9 rounded-full flex items-center justify-center transition-colors shadow-sm",
+                                    isActive ? "bg-white/10 text-white backdrop-blur-md" : "bg-gray-100 text-gray-600"
+                                  )}>
+                                    <div className="scale-75">{getAccountIcon(account.type)}</div>
+                                  </div>
                                 </div>
+
                                 {isActive && (
                                   <div className="flex items-center gap-2">
                                     <motion.div
                                       initial={{ opacity: 0, scale: 0.8 }}
                                       animate={{ opacity: 1, scale: 1 }}
                                       exit={{ opacity: 0, scale: 0.8 }}
-                                      className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full"
+                                      className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-3 py-1 rounded-full border border-white/10"
                                     >
                                       ACTIVE
                                     </motion.div>
                                     <button
                                       onClick={(e) => handleEditAccount(account, e)}
-                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/35 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white transition-all duration-200 active:scale-90 border border-white/10"
                                       title="Edit account"
                                     >
-                                      <Edit2 size={14} />
+                                      <Edit2 size={13} />
                                     </button>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleDeleteAccount(account.id!, account.name);
                                       }}
-                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/80 hover:bg-red-500 backdrop-blur-md text-white transition-all duration-200 active:scale-90"
+                                      className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/60 hover:bg-red-500 backdrop-blur-md text-white transition-all duration-200 active:scale-90 border border-white/10"
                                       title="Delete account"
                                     >
-                                      <Trash2 size={14} />
+                                      <Trash2 size={13} />
                                     </button>
                                   </div>
                                 )}
                               </div>
 
-                              {/* Middle row - name + balance */}
-                              <div className="flex flex-col justify-center mt-2">
-                                <h3
-                                  className={cn(
-                                    "font-medium text-sm truncate mb-1",
-                                    isActive
-                                      ? "text-white/80"
-                                      : "text-gray-500",
-                                  )}
-                                >
-                                  {account.name}
-                                </h3>
-                                <p
-                                  className={cn(
-                                    "text-2xl lg:text-3xl font-display font-bold tracking-tight",
-                                    isActive ? "text-white" : "text-gray-900",
-                                  )}
-                                >
-                                  {formatCurrency(account.balance)}
-                                </p>
-                              </div>
+                              {/* Middle & Bottom - Balance and Name layout imitating Card Number/Holder */}
+                              <div className="flex flex-col mt-auto gap-5">
+                                <div>
+                                  <p className={cn(
+                                    "text-[11px] font-semibold tracking-widest uppercase mb-1 opacity-80",
+                                    isActive ? "text-white/70" : "text-gray-500"
+                                  )}>
+                                    Current Balance
+                                  </p>
+                                  <p className={cn(
+                                    "text-3xl font-mono tracking-wider font-bold truncate",
+                                    isActive ? "text-white" : "text-gray-900"
+                                  )} style={isActive ? { textShadow: '0 2px 4px rgba(0,0,0,0.2)' } : undefined}>
+                                    {formatCurrency(account.balance)}
+                                  </p>
+                                </div>
 
-                              {/* Bottom row - buttons */}
-                              <div className="flex gap-2.5 items-end">
-                                <Button
-                                  size="sm"
-                                  variant={isActive ? "ghost" : "outline"}
-                                  onClick={() =>
-                                    setCurrentPage("add-transaction")
-                                  }
-                                  className={cn(
-                                    "h-9 px-4 rounded-full text-xs font-medium",
-                                    isActive &&
-                                    "bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md",
-                                  )}
-                                >
-                                  <Plus size={14} className="mr-1.5" />
-                                  Add Transaction
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    setStatementImportOpen({
-                                      accountId: account.id!,
-                                      accountName: account.name,
-                                      accountType: account.type,
-                                    })
-                                  }
-                                  className={cn(
-                                    "h-9 px-4 rounded-full text-xs font-medium",
-                                    isActive
-                                      ? "bg-white text-pink-600 hover:bg-pink-50 border-0"
-                                      : "bg-blue-600 text-white hover:bg-blue-700",
-                                  )}
-                                >
-                                  <Upload size={14} className="mr-1.5" />
-                                  Upload Statement
-                                </Button>
+                                <div className="flex justify-between items-end">
+                                  <div className="min-w-0 pr-4">
+                                    <p className={cn(
+                                      "text-[11px] font-semibold tracking-widest uppercase mb-0.5 opacity-80",
+                                      isActive ? "text-white/70" : "text-gray-500"
+                                    )}>
+                                      Account Name
+                                    </p>
+                                    <h3 className={cn(
+                                      "font-medium tracking-wide truncate max-w-[180px]",
+                                      isActive ? "text-white/90" : "text-gray-800"
+                                    )}>
+                                      {account.name}
+                                    </h3>
+                                  </div>
+                                  
+                                  {/* Actions */}
+                                  <div className="flex gap-2 flex-shrink-0">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCurrentPage("add-transaction");
+                                      }}
+                                      className={cn(
+                                        "h-9 px-4 rounded-full text-xs font-medium transition-colors",
+                                        isActive
+                                          ? "bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                                      )}
+                                    >
+                                      <Plus size={14} className="mr-1.5" />
+                                      Add
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setStatementImportOpen({
+                                          accountId: account.id!,
+                                          accountName: account.name,
+                                          accountType: account.type,
+                                        });
+                                      }}
+                                      className={cn(
+                                        "h-9 px-4 rounded-full text-xs font-medium transition-colors",
+                                        isActive
+                                          ? "bg-white/20 hover:bg-white/30 text-white border border-white/20 backdrop-blur-md shadow-sm"
+                                          : "bg-blue-600 text-white hover:bg-blue-700"
+                                      )}
+                                    >
+                                      <Upload size={14} className="mr-1.5" />
+                                      Import
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            {isActive && (
-                              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none" />
-                            )}
                           </Card>
                         </div>
                       </div>

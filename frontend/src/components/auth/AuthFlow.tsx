@@ -108,7 +108,7 @@ export const AuthFlow: React.FC = () => {
     }
   };
 
-  const handleSignUp = async (data: { firstName: string; lastName: string; email: string; password: string }) => {
+  const handleSignUp = async (data: { firstName: string; lastName: string; email: string; mobile: string; password: string }) => {
     setIsLoading(true);
     try {
       const { data: authData, error } = await supabase.auth.signUp({
@@ -118,6 +118,7 @@ export const AuthFlow: React.FC = () => {
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
+            phone: data.mobile,
           },
         },
       });
@@ -133,7 +134,7 @@ export const AuthFlow: React.FC = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        mobile: '',
+        mobile: data.mobile,
         dateOfBirth: '',
         jobType: '',
         jobIndustry: '',
@@ -342,47 +343,27 @@ export const AuthFlow: React.FC = () => {
     return deviceId;
   };
 
-  // Welcome Screen
+
   // Welcome Screen
   const renderWelcome = () => {
     const containerVariants = {
       hidden: { opacity: 0 },
-      show: {
-        opacity: 1,
-        transition: {
-          staggerChildren: 0.15
-        }
-      }
+      show: { opacity: 1, transition: { staggerChildren: 0.12 } }
     };
-
     const itemVariants = {
-      hidden: { opacity: 0, y: 30 },
+      hidden: { opacity: 0, y: 24 },
       show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
     };
 
     return (
-      <div className="relative min-h-screen bg-[#050D1A] flex flex-col overflow-hidden font-sans select-none">
-        {/* Dynamic Background */}
+      <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex flex-col overflow-hidden font-sans select-none">
+        {/* Subtle decorative blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <motion.div
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.3, 0.4, 0.3],
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -top-[20%] -left-[10%] w-[80vw] h-[80vw] md:w-[60vw] md:h-[60vw] bg-blue-600/40 rounded-full blur-[100px]"
-          />
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.2, 0.3, 0.2],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute top-[40%] text-right -right-[10%] w-[70vw] h-[70vw] md:w-[50vw] md:h-[50vw] bg-indigo-600/30 rounded-full blur-[100px]"
-          />
+          <div className="absolute -top-[15%] -left-[10%] w-[60vw] h-[60vw] md:w-[40vw] md:h-[40vw] bg-blue-200/40 rounded-full blur-[80px]" />
+          <div className="absolute top-[50%] -right-[10%] w-[50vw] h-[50vw] md:w-[35vw] md:h-[35vw] bg-indigo-200/30 rounded-full blur-[80px]" />
         </div>
 
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="show"
@@ -391,19 +372,19 @@ export const AuthFlow: React.FC = () => {
           {/* Logo Section */}
           <motion.div variants={itemVariants} className="mb-10 text-center w-full max-w-sm">
             <div className="relative w-24 h-24 mx-auto mb-6">
-              <motion.div 
+              <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 rounded-[2rem] border border-blue-500/30 border-dashed"
+                className="absolute inset-0 rounded-[2rem] border-2 border-blue-200 border-dashed"
               />
-              <div className="absolute inset-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(37,99,235,0.4)]">
+              <div className="absolute inset-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center shadow-[0_8px_32px_rgba(37,99,235,0.25)]">
                 <Wallet className="w-10 h-10 text-white" strokeWidth={1.5} />
               </div>
             </div>
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 tracking-tight mb-4">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
               Finora
             </h1>
-            <p className="text-base sm:text-lg text-gray-400 font-medium max-w-[280px] sm:max-w-md mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg text-gray-500 font-medium max-w-[280px] sm:max-w-md mx-auto leading-relaxed">
               Experience the future of personal finance. Track, grow, and master your wealth seamlessly.
             </p>
           </motion.div>
@@ -415,40 +396,37 @@ export const AuthFlow: React.FC = () => {
               { icon: Shield, text: 'Secure' },
               { icon: Sparkles, text: 'Smart' },
             ].map((feature, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-md rounded-full px-4 py-2 hover:bg-white/10 transition-colors cursor-default">
-                <feature.icon className="w-4 h-4 text-blue-400" />
-                <span className="text-sm font-medium text-gray-200">{feature.text}</span>
+              <div key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 cursor-default">
+                <feature.icon className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium text-gray-700">{feature.text}</span>
               </div>
             ))}
           </motion.div>
         </motion.div>
 
         {/* Call To Actions */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, type: "spring", stiffness: 300, damping: 30 }}
+          transition={{ delay: 0.5, type: "spring", stiffness: 300, damping: 30 }}
           className="relative z-10 px-6 sm:px-8 pb-12 w-full max-w-md mx-auto"
         >
-          <div className="space-y-4">
+          <div className="space-y-3">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setStep('signup')}
-              className="w-full relative group overflow-hidden xrounded-2xl p-[1px] block rounded-2xl"
+              className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-2xl py-4 text-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
             >
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative bg-[#050D1A]/80 backdrop-blur-xl px-6 py-4 rounded-2xl flex items-center justify-center gap-2 group-hover:bg-[#050D1A]/60 transition-colors">
-                <span className="text-white font-semibold text-lg">Create Account</span>
-                <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-white transition-colors group-hover:translate-x-1" />
-              </div>
+              Create Account
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setStep('signin')}
-              className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-2xl py-4 font-semibold text-lg backdrop-blur-md transition-all duration-300 flex items-center justify-center gap-2"
+              className="w-full bg-white hover:bg-gray-50 border border-gray-200 hover:border-gray-300 text-gray-700 rounded-2xl py-4 font-semibold text-lg shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2"
             >
               Sign In
             </motion.button>
@@ -457,6 +435,7 @@ export const AuthFlow: React.FC = () => {
       </div>
     );
   };
+
 
   // Profile Setup Step
   const renderProfileSetup = () => (
@@ -722,18 +701,20 @@ export const AuthFlow: React.FC = () => {
       return renderWelcome();
     case 'signin':
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden">
+            <div className="h-1 w-full bg-gradient-to-r from-blue-600 to-indigo-600" />
+            <div className="p-6 sm:p-8 border-b border-gray-100">
               <button
                 onClick={() => setStep('welcome')}
-                className="text-gray-600 hover:text-gray-800 mb-4 flex items-center gap-2"
+                className="text-gray-500 hover:text-gray-700 transition-colors mb-5 flex items-center gap-1.5 text-sm font-medium group"
               >
-                ← Back
+                <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Back
               </button>
-              <h2 className="text-xl font-semibold text-gray-800">Sign In</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+              <p className="text-gray-500 mt-1 text-sm">Sign in to continue your financial journey.</p>
             </div>
-            <div className="p-6">
+            <div className="p-6 sm:p-8 pt-6">
               <SignInForm
                 onSwitchToSignUp={() => setStep('signup')}
                 onSubmit={handleSignIn}
@@ -744,18 +725,20 @@ export const AuthFlow: React.FC = () => {
       );
     case 'signup':
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden">
+            <div className="h-1 w-full bg-gradient-to-r from-blue-600 to-indigo-600" />
+            <div className="p-6 sm:p-8 border-b border-gray-100">
               <button
                 onClick={() => setStep('welcome')}
-                className="text-gray-600 hover:text-gray-800 mb-4 flex items-center gap-2"
+                className="text-gray-500 hover:text-gray-700 transition-colors mb-5 flex items-center gap-1.5 text-sm font-medium group"
               >
-                ← Back
+                <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Back
               </button>
-              <h2 className="text-xl font-semibold text-gray-800">Create Account</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
+              <p className="text-gray-500 mt-1 text-sm">Join Finora to start mastering your wealth.</p>
             </div>
-            <div className="p-6">
+            <div className="p-6 sm:p-8 pt-6">
               <SignUpForm
                 onSwitchToSignIn={() => setStep('signin')}
                 onSubmit={handleSignUp}
