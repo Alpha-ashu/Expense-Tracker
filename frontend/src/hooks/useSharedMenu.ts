@@ -50,15 +50,12 @@ export const useSharedMenu = () => {
 
   // Filter menu items based on RBAC and user's feature visibility preferences
   const visibleMenuItems = useMemo(() => {
-    console.log('🔍 useSharedMenu filtering - role:', role, 'visibleFeatures:', visibleFeatures, 'updateTrigger:', updateTrigger);
-    
+
     return sidebarMenuItems.filter(item => {
       // If item has specific roles defined, check if user's role is in the list FIRST
       // This ensures role-based items are shown to authorized users regardless of feature toggle
       if (item.roles && item.roles.length > 0) {
-        const hasRole = item.roles.includes(role);
-        console.log(`📋 Role check for ${item.id}: roles=${item.roles.join(',')}, userRole=${role}, hasRole=${hasRole}`);
-        return hasRole;
+        return item.roles.includes(role);
       }
       
       // For non-role-restricted items, check user's feature visibility preference

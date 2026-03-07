@@ -14,7 +14,11 @@ import {
   TrendingUp,
   TrendingDown,
   Upload,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Repeat2,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { DeleteConfirmModal } from "@/app/components/DeleteConfirmModal";
 import { Card } from "@/app/components/ui/card";
@@ -43,6 +47,8 @@ export const Accounts: React.FC = () => {
     accountName: string;
     accountType: string;
   } | null>(null);
+  const [showTransactionTypeModal, setShowTransactionTypeModal] = useState(false);
+  const [activeCardAccountId, setActiveCardAccountId] = useState<number | null>(null);
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<{
@@ -87,7 +93,10 @@ export const Accounts: React.FC = () => {
     }
   };
   const carouselRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const mobileCarouselRef = useRef<HTMLDivElement>(null);
+  // Separate ref maps so mobile and desktop don't overwrite each other
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});        // desktop
+  const mobileCardRefs = useRef<Record<number, HTMLDivElement | null>>({});  // mobile
   const isClickScrolling = useRef(false);
 
   // Filter accounts based on active tab
@@ -104,58 +113,90 @@ export const Accounts: React.FC = () => {
     { id: "cash", label: "Cash", icon: Banknote },
   ];
 
-  // Scroll-to-sync: Track active account based on carousel scroll position
+  // Auto-select first account on load and when the filtered list changes
+  useEffect(() => {
+    if (filteredAccounts.length > 0 && (
+      selectedAccountId === null ||
+      !filteredAccounts.find(a => a.id === selectedAccountId)
+    )) {
+      setSelectedAccountId(filteredAccounts[0].id!);
+    }
+  }, [filteredAccounts]);
+
+  // Keep a ref so scroll handlers can read selectedAccountId without re-subscribing
+  const selectedAccountIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    selectedAccountIdRef.current = selectedAccountId;
+  }, [selectedAccountId]);
+
+  // ── Desktop scroll listener ──
   useEffect(() => {
     const carousel = carouselRef.current;
     if (!carousel) return;
 
-    const handleCarouselScroll = () => {
+    const handleScroll = () => {
       if (isClickScrolling.current) return;
-
-      const carouselRect = carousel.getBoundingClientRect();
-      const carouselCenter = carouselRect.left + carouselRect.width / 2;
-
-      let closestCard: { id: number; distance: number } | null = null;
-
+      const center = carousel.scrollLeft + carousel.clientWidth / 2;
+      let closest: { id: number; dist: number } | null = null;
       filteredAccounts.forEach((account) => {
-        const cardEl = cardRefs.current[account.id!];
-        if (!cardEl) return;
-
-        const cardRect = cardEl.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const distance = Math.abs(cardCenter - carouselCenter);
-
-        if (!closestCard || distance < closestCard.distance) {
-          closestCard = { id: account.id!, distance };
-        }
+        const el = cardRefs.current[account.id!];
+        if (!el) return;
+        const dist = Math.abs((el.offsetLeft + el.offsetWidth / 2) - center);
+        if (!closest || dist < closest.dist) closest = { id: account.id!, dist };
       });
-
-      if (closestCard && closestCard.id !== selectedAccountId) {
-        setSelectedAccountId(closestCard.id);
+      if (closest && closest.id !== selectedAccountIdRef.current) {
+        setSelectedAccountId(closest.id);
       }
     };
 
-    carousel.addEventListener("scroll", handleCarouselScroll);
-    // Initial check
-    setTimeout(handleCarouselScroll, 100);
+    carousel.addEventListener("scroll", handleScroll, { passive: true });
+    const t = setTimeout(handleScroll, 150);
+    return () => { carousel.removeEventListener("scroll", handleScroll); clearTimeout(t); };
+  }, [filteredAccounts]);
 
-    return () => {
-      carousel.removeEventListener("scroll", handleCarouselScroll);
+  // ── Mobile scroll listener (index-based — stride = full clientWidth) ──
+  useEffect(() => {
+    const carousel = mobileCarouselRef.current;
+    if (!carousel) return;
+
+    const handleMobileScroll = () => {
+      if (isClickScrolling.current) return;
+      // Each card slot is exactly one clientWidth wide (w-screen wrapper, no gap)
+      const stride = carousel.clientWidth;
+      if (stride === 0) return;
+      const idx = Math.round(carousel.scrollLeft / stride);
+      const clamped = Math.max(0, Math.min(filteredAccounts.length - 1, idx));
+      const account = filteredAccounts[clamped];
+      if (account && account.id !== selectedAccountIdRef.current) {
+        setSelectedAccountId(account.id!);
+      }
     };
-  }, [filteredAccounts, selectedAccountId]);
+
+    carousel.addEventListener("scroll", handleMobileScroll, { passive: true });
+    const t = setTimeout(handleMobileScroll, 150);
+    return () => { carousel.removeEventListener("scroll", handleMobileScroll); clearTimeout(t); };
+  }, [filteredAccounts]);
 
   const handleCardClick = (id: number) => {
     isClickScrolling.current = true;
     setSelectedAccountId(id);
+    const index = filteredAccounts.findIndex(a => a.id === id);
+
+    // Mobile: each slot is exactly one clientWidth, so stride = clientWidth
+    const mobileCarousel = mobileCarouselRef.current;
+    if (mobileCarousel) {
+      mobileCarousel.scrollTo({ left: index * mobileCarousel.clientWidth, behavior: "smooth" });
+    }
+
+    // Desktop: scroll the card element into view
     const cardEl = cardRefs.current[id];
     if (cardEl) {
       cardEl.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
     }
-    // Release scroll listener lock after smooth scroll animation completes
-    setTimeout(() => {
-      isClickScrolling.current = false;
-    }, 600);
+
+    setTimeout(() => { isClickScrolling.current = false; }, 700);
   };
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -202,6 +243,364 @@ export const Accounts: React.FC = () => {
         return <Wallet size={20} />;
     }
   };
+
+  // Smart bank/card brand logo renderer based on account name
+  const getBankCardLogo = (name: string, isActive: boolean, size: 'sm' | 'md' = 'md') => {
+    const n = name.toLowerCase();
+    const w = size === 'sm' ? 52 : 64;
+    const h = size === 'sm' ? 32 : 40;
+    const textSm = size === 'sm' ? '9' : '11';
+    const textMd = size === 'sm' ? '11' : '14';
+    const textLg = size === 'sm' ? '13' : '16';
+
+    // ── Indian Banks ──
+    if (n.includes('sbi') || n.includes('state bank')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex flex-col items-center justify-center rounded-lg overflow-hidden bg-[#22408C]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#22408C" />
+            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">SBI</text>
+            <text x="30" y="28" textAnchor="middle" fill="#a0b4e0" fontSize={textSm} fontFamily="Arial">State Bank</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('hdfc')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#004C8F]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#004C8F" />
+            <text x="30" y="14" textAnchor="middle" fill="#00AEEF" fontWeight="800" fontSize={textLg} fontFamily="Arial">HDFC</text>
+            <text x="30" y="27" textAnchor="middle" fill="#80c6f7" fontSize={textSm} fontFamily="Arial">BANK</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('icici')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#B02A2A]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#B02A2A" />
+            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textMd} fontFamily="Arial">ICICI</text>
+            <text x="30" y="27" textAnchor="middle" fill="#f0a0a0" fontSize={textSm} fontFamily="Arial">BANK</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('axis')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#97144D]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#97144D" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">AXIS</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('kotak')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#ED1C24]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#ED1C24" />
+            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">KOTAK</text>
+            <text x="30" y="27" textAnchor="middle" fill="#ffa0a4" fontSize={textSm} fontFamily="Arial">MAHINDRA</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('pnb') || n.includes('punjab national')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003366]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#003366" />
+            <text x="30" y="22" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textLg} fontFamily="Arial">PNB</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('bob') || n.includes('bank of baroda')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#E87722]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#E87722" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">BOB</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('canara')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#034694]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#034694" />
+            <text x="30" y="22" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">CANARA</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('union bank')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#003087" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">UNION</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('idbi')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#3D9A42]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#3D9A42" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">IDBI</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('yes bank')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#00539B]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#00539B" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">YES</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('indusind')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#7B2D8B]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#7B2D8B" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">IndusInd</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('idfc')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#009FE3]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#009FE3" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">IDFC</text>
+          </svg>
+        </div>
+      );
+    }
+
+    // ── International Banks ──
+    if (n.includes('chase') || n.includes('jpmorgan')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#117ACA]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#117ACA" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">Chase</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('bank of america') || n.includes('bofa')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#E31937]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#E31937" />
+            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Bank of</text>
+            <text x="30" y="27" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">America</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('citi') || n.includes('citibank')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003B8E]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#003B8E" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">Citi</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('wells fargo')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#CC0000]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#CC0000" />
+            <text x="30" y="15" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Wells</text>
+            <text x="30" y="27" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Fargo</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('hsbc')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#DB0011]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#DB0011" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">HSBC</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('barclays')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#00AEEF]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#00AEEF" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Barclays</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('standard chartered') || n.includes('stanchart')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#0A7F4F]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#0A7F4F" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Stan Chart</text>
+          </svg>
+        </div>
+      );
+    }
+
+    // ── Card Networks ──
+    if (n.includes('visa')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#1A1F71]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#1A1F71" />
+            <text x="30" y="24" textAnchor="middle" fill="#fff" fontWeight="800" fontSize={size === 'sm' ? '18' : '22'} fontFamily="Arial" fontStyle="italic">VISA</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('mastercard') || n.includes('master card')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#252525]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#252525" />
+            <circle cx="22" cy="18" r="11" fill="#EB001B" />
+            <circle cx="38" cy="18" r="11" fill="#F79E1B" />
+            <ellipse cx="30" cy="18" rx="5" ry="11" fill="#FF5F00" />
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('amex') || n.includes('american express')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#007BC1]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#007BC1" />
+            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">AMERICAN</text>
+            <text x="30" y="27" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">EXPRESS</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('rupay')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-r from-orange-600 to-green-600">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="transparent" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">RuPay</text>
+          </svg>
+        </div>
+      );
+    }
+
+    // ── Digital Wallets ──
+    if (n.includes('phonepe') || n.includes('phone pe')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#5F259F]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#5F259F" />
+            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Phone</text>
+            <text x="30" y="28" textAnchor="middle" fill="#CBB5F7" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Pe</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('gpay') || n.includes('google pay')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-white border border-gray-200">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#fff" />
+            <text x="7" y="24" fill="#4285F4" fontWeight="bold" fontSize={textLg} fontFamily="Arial">G</text>
+            <text x="20" y="24" fill="#34A853" fontWeight="bold" fontSize={textLg} fontFamily="Arial">P</text>
+            <text x="32" y="24" fill="#FBBC04" fontWeight="bold" fontSize={textLg} fontFamily="Arial">a</text>
+            <text x="43" y="24" fill="#EA4335" fontWeight="bold" fontSize={textLg} fontFamily="Arial">y</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('paytm')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#00BAF2]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#00BAF2" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textMd} fontFamily="Arial">Paytm</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('paypal')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#003087" />
+            <text x="30" y="22" textAnchor="middle" fill="#009CDE" fontWeight="bold" fontSize={textMd} fontFamily="Arial">PayPal</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('amazon pay')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#232F3E]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#232F3E" />
+            <text x="30" y="15" textAnchor="middle" fill="#FF9900" fontWeight="bold" fontSize={textSm} fontFamily="Arial">amazon</text>
+            <text x="30" y="28" textAnchor="middle" fill="#fff" fontSize={textSm} fontFamily="Arial">pay</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('mobikwik')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#E8203A]">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="#E8203A" />
+            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">MobiKwik</text>
+          </svg>
+        </div>
+      );
+    }
+    if (n.includes('cash') || n.includes('petty cash')) {
+      return (
+        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-br from-emerald-500 to-green-700">
+          <svg viewBox="0 0 60 36" width={w} height={h}>
+            <rect width="60" height="36" fill="transparent" />
+            <text x="30" y="15" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={textSm} fontFamily="Arial">💵</text>
+            <text x="30" y="28" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">CASH</text>
+          </svg>
+        </div>
+      );
+    }
+
+    // ── Fallback: beautiful initials logo ──
+    const initials = name.trim().split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').slice(0, 2).join('');
+    const fallbackColors = [
+      ['#1e3a5f', '#4a9ede'], ['#3d1f5c', '#a855f7'], ['#1f4d2f', '#4ade80'],
+      ['#5c1f1f', '#f87171'], ['#1f3d5c', '#38bdf8'], ['#5c4a1f', '#fbbf24'],
+    ];
+    const colorIdx = name.charCodeAt(0) % fallbackColors.length;
+    const [bg, text] = fallbackColors[colorIdx];
+    return (
+      <div style={{ width: w, height: h, background: bg }} className="flex items-center justify-center rounded-lg">
+        <span style={{ color: text, fontSize: size === 'sm' ? 15 : 18, fontWeight: 800, fontFamily: 'Arial', letterSpacing: 1 }}>{initials}</span>
+      </div>
+    );
+  };
+
 
   const totalBalance = accounts
     .filter((a) => a.isActive)
@@ -296,25 +695,22 @@ export const Accounts: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Mobile: 1 card per row, centered */}
+        {/* Mobile carousel — w-screen slot pattern */}
         <div className="lg:hidden">
-          <div className={cn(
-            "flex gap-4 overflow-x-auto pb-4 px-4 sm:px-6 snap-x snap-mandatory scrollbar-hide scroll-smooth",
-            filteredAccounts.length === 1 && "justify-center"
-          )}>
+          <div
+            ref={mobileCarouselRef}
+            className="flex overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
             {filteredAccounts.map((account) => {
               const isActive = selectedAccountId === account.id;
               return (
+                /* Each slot is exactly one viewport width — card fills slot with px-4 padding */
                 <div
                   key={account.id}
-                  ref={(el) => {
-                    if (el) cardRefs.current[account.id!] = el;
-                  }}
-                  className="snap-center shrink-0 w-full"
-                  style={{
-                    scrollSnapAlign: "center",
-                    scrollSnapStop: "always",
-                  }}
+                  ref={(el) => { if (el) mobileCardRefs.current[account.id!] = el; }}
+                  className="snap-start shrink-0 w-screen px-4"
+                  style={{ scrollSnapStop: "always" }}
                 >
                   <div
                     style={{
@@ -354,26 +750,11 @@ export const Accounts: React.FC = () => {
                       <div className="relative z-10 p-5 sm:p-6 h-full flex flex-col">
                         {/* Top row */}
                         <div className="flex justify-between items-start mb-auto">
-                          {/* EMV Chip + Account icon */}
+                          {/* Bank/Card logo */}
                           <div className="flex items-center gap-2.5">
-                            {/* SVG EMV Chip */}
-                            <svg width="38" height="30" viewBox="0 0 38 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
-                              <rect width="38" height="30" rx="5" fill={isActive ? "url(#chipGradM)" : "#d1d5db"} />
-                              <rect x="13" y="0" width="12" height="30" fill={isActive ? "rgba(180,140,0,0.35)" : "rgba(0,0,0,0.07)"} />
-                              <rect x="0" y="10" width="38" height="10" fill={isActive ? "rgba(180,140,0,0.35)" : "rgba(0,0,0,0.07)"} />
-                              <rect x="13" y="10" width="12" height="10" rx="2" fill={isActive ? "rgba(220,180,20,0.5)" : "rgba(0,0,0,0.08)"} />
-                              <rect x="14" y="2" width="10" height="8" rx="1" fill={isActive ? "rgba(255,220,60,0.3)" : "rgba(0,0,0,0.05)"} />
-                              <rect x="14" y="20" width="10" height="8" rx="1" fill={isActive ? "rgba(255,220,60,0.3)" : "rgba(0,0,0,0.05)"} />
-                              <defs>
-                                <linearGradient id="chipGradM" x1="0" y1="0" x2="38" y2="30" gradientUnits="userSpaceOnUse">
-                                  <stop offset="0%" stopColor="#f5e060" />
-                                  <stop offset="50%" stopColor="#d4a017" />
-                                  <stop offset="100%" stopColor="#b8860b" />
-                                </linearGradient>
-                              </defs>
-                            </svg>
-
-                            {/* Account type icon */}
+                            <div className="drop-shadow-md rounded-lg overflow-hidden">
+                              {getBankCardLogo(account.name, isActive, 'sm')}
+                            </div>
                             <div className={cn(
                               "w-7 h-7 rounded-full flex items-center justify-center",
                               isActive ? "bg-white/10 text-white/80" : "bg-gray-100 text-gray-500"
@@ -443,13 +824,12 @@ export const Accounts: React.FC = () => {
 
                           <div className="flex gap-1.5 flex-shrink-0">
                             <Button size="sm"
-                              onClick={(e) => { e.stopPropagation(); setCurrentPage("add-transaction"); }}
-                              className={cn(
-                                "h-7 px-2.5 rounded-full text-[10px] font-semibold",
-                                isActive
-                                  ? "bg-white/15 hover:bg-white/25 text-white border border-white/15"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
-                              )}>
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveCardAccountId(account.id!);
+                                setShowTransactionTypeModal(true);
+                              }}
+                              className="inline-flex items-center justify-center font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none font-display tracking-tight focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl shadow-lg bg-black text-white hover:bg-gray-900 text-xs h-8 px-3">
                               <Plus size={11} className="mr-0.5" />Add
                             </Button>
                             <Button size="sm"
@@ -515,14 +895,20 @@ export const Accounts: React.FC = () => {
             {/* Carousel Container */}
             <div
               ref={carouselRef}
-              className={cn(
-                "flex gap-3 md:gap-4 overflow-x-auto pb-4 px-3 sm:px-4 md:px-6 lg:px-8 snap-x snap-mandatory scrollbar-hide scroll-smooth",
-                filteredAccounts.length === 1 && "justify-center"
-              )}
+              className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"
               style={{
                 WebkitOverflowScrolling: "touch",
+                // scroll-padding ensures snap target is always the center
+                scrollPaddingLeft: "50%",
+                scrollPaddingRight: "50%",
               }}
             >
+              {/* Left spacer — allows first card to snap to center */}
+              <div
+                className="shrink-0"
+                style={{ width: `calc(50% - 210px)`, minWidth: 32 }}
+                aria-hidden
+              />
                   {filteredAccounts.map((account) => {
                     const isActive = selectedAccountId === account.id;
                     return (
@@ -574,22 +960,10 @@ export const Accounts: React.FC = () => {
                               {/* Top row */}
                               <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
-                                  {/* SVG EMV Chip */}
-                                  <svg width="46" height="36" viewBox="0 0 46 36" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
-                                    <rect width="46" height="36" rx="6" fill={isActive ? "url(#chipGradD)" : "#d1d5db"} />
-                                    <rect x="16" y="0" width="14" height="36" fill={isActive ? "rgba(180,140,0,0.3)" : "rgba(0,0,0,0.07)"} />
-                                    <rect x="0" y="12" width="46" height="12" fill={isActive ? "rgba(180,140,0,0.3)" : "rgba(0,0,0,0.07)"} />
-                                    <rect x="16" y="12" width="14" height="12" rx="3" fill={isActive ? "rgba(240,200,30,0.45)" : "rgba(0,0,0,0.08)"} />
-                                    <rect x="17" y="2" width="12" height="10" rx="2" fill={isActive ? "rgba(255,230,80,0.3)" : "rgba(0,0,0,0.05)"} />
-                                    <rect x="17" y="24" width="12" height="10" rx="2" fill={isActive ? "rgba(255,230,80,0.3)" : "rgba(0,0,0,0.05)"} />
-                                    <defs>
-                                      <linearGradient id="chipGradD" x1="0" y1="0" x2="46" y2="36" gradientUnits="userSpaceOnUse">
-                                        <stop offset="0%" stopColor="#f5e060" />
-                                        <stop offset="50%" stopColor="#d4a017" />
-                                        <stop offset="100%" stopColor="#b8860b" />
-                                      </linearGradient>
-                                    </defs>
-                                  </svg>
+                                  {/* Bank/Card logo */}
+                                  <div className="drop-shadow-lg rounded-lg overflow-hidden">
+                                    {getBankCardLogo(account.name, isActive, 'md')}
+                                  </div>
 
                                   <div className={cn(
                                     "w-9 h-9 rounded-full flex items-center justify-center",
@@ -658,13 +1032,12 @@ export const Accounts: React.FC = () => {
 
                                 <div className="flex gap-2 flex-shrink-0">
                                   <Button size="sm"
-                                    onClick={(e) => { e.stopPropagation(); setCurrentPage("add-transaction"); }}
-                                    className={cn(
-                                      "h-8 px-4 rounded-full text-xs font-semibold",
-                                      isActive
-                                        ? "bg-white/15 hover:bg-white/25 text-white border border-white/15"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
-                                    )}>
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveCardAccountId(account.id!);
+                                      setShowTransactionTypeModal(true);
+                                    }}
+                                    className="inline-flex items-center justify-center font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none font-display tracking-tight focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4">
                                     <Plus size={13} className="mr-1" />Add
                                   </Button>
                                   <Button size="sm"
@@ -685,6 +1058,12 @@ export const Accounts: React.FC = () => {
                       </div>
                     );
                   })}
+              {/* Right spacer — allows last card to snap to center */}
+              <div
+                className="shrink-0"
+                style={{ width: `calc(50% - 210px)`, minWidth: 32 }}
+                aria-hidden
+              />
             </div>
 
         {/* Swipe Guide & Dot Indicators */}
@@ -1024,6 +1403,65 @@ export const Accounts: React.FC = () => {
           }}
           onCancel={() => setStatementImportOpen(null)}
         />
+      )}
+
+      {/* Transaction Type Picker Modal */}
+      {showTransactionTypeModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] p-4">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            className="bg-white rounded-[28px] p-6 w-full max-w-md shadow-2xl border border-white/20"
+          >
+            <h3 className="text-xl font-display font-bold mb-1">New Transaction</h3>
+            <p className="text-gray-500 text-sm mb-6">What kind of transaction is this?</p>
+
+            <div className="space-y-3">
+              {[
+                { type: 'expense', label: 'Expense', desc: 'Money spent', color: 'bg-rose-50 text-rose-700 hover:bg-rose-100', icon: ArrowDownLeft },
+                { type: 'income',  label: 'Income',  desc: 'Money received', color: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100', icon: ArrowUpRight },
+                { type: 'transfer', label: 'Transfer', desc: 'Move between accounts', color: 'bg-blue-50 text-blue-700 hover:bg-blue-100', icon: Repeat2 },
+              ].map((opt) => (
+                <button
+                  key={opt.type}
+                  onClick={() => {
+                    setShowTransactionTypeModal(false);
+                    if (activeCardAccountId) {
+                      localStorage.setItem('quickAccountId', String(activeCardAccountId));
+                    }
+                    if (opt.type === 'transfer') {
+                      setCurrentPage('transfer');
+                    } else {
+                      localStorage.setItem('quickFormType', opt.type);
+                      setCurrentPage('add-transaction');
+                    }
+                  }}
+                  className={cn(
+                    "w-full p-4 flex items-center gap-4 rounded-2xl transition-all border border-transparent hover:scale-[1.02] active:scale-[0.98]",
+                    opt.color
+                  )}
+                >
+                  <div className="w-11 h-11 bg-white/60 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                    <opt.icon size={22} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold">{opt.label}</p>
+                    <p className="text-sm opacity-75 font-medium">{opt.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <Button
+              variant="ghost"
+              className="w-full mt-5 rounded-xl hover:bg-gray-100 text-gray-500"
+              onClick={() => setShowTransactionTypeModal(false)}
+            >
+              Cancel
+            </Button>
+          </motion.div>
+        </div>
       )}
     </div>
   );

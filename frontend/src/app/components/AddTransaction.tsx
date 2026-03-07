@@ -42,6 +42,15 @@ export const AddTransaction: React.FC = () => {
       }));
       localStorage.removeItem('quickFormType');
     }
+    // Pre-select account if launched from an account card
+    const rawAccountId = localStorage.getItem('quickAccountId');
+    if (rawAccountId) {
+      const accountId = parseInt(rawAccountId, 10);
+      if (!isNaN(accountId)) {
+        setFormData(prev => ({ ...prev, accountId }));
+      }
+      localStorage.removeItem('quickAccountId');
+    }
   }, []);
 
   useEffect(() => {

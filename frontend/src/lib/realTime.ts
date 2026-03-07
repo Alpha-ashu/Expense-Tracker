@@ -101,7 +101,6 @@ export class RealtimeSyncManager {
 // Initialize real-time sync manager
 export const initializeRealtimeSync = (): void => {
   RealtimeSyncManager.getInstance();
-  console.log('Real-time sync manager initialized');
 };
 
 // Helper function to track changes

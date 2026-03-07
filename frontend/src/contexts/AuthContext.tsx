@@ -221,7 +221,12 @@ const syncFromSupabase = async (userId: string) => {
     }
   } catch (err) {
     // Non-blocking — app works offline with local DB data
-    console.error('Supabase sync on login failed (non-blocking):', err);
+    if (isNetworkError(err)) {
+      // Supabase project is paused or unreachable — expected in offline/dev mode
+      console.info('ℹ️ Supabase unreachable — running on local data.');
+    } else {
+      console.error('Supabase sync on login failed (non-blocking):', err);
+    }
   }
 };
 
@@ -230,10 +235,12 @@ const isNetworkError = (error: any): boolean =>
   error?.name === 'AbortError' ||
   error?.name === 'TypeError' ||
   (error?.message && (
+    error.message === 'Timeout' ||
     error.message.includes('signal is aborted') ||
     error.message.toLowerCase().includes('failed to fetch') ||
     error.message.toLowerCase().includes('network') ||
-    error.message.toLowerCase().includes('timed out')
+    error.message.toLowerCase().includes('timed out') ||
+    error.message.toLowerCase().includes('timeout')
   ));
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
