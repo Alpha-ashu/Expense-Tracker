@@ -1,8 +1,7 @@
 // Backend API Service - Replaces local-only storage with cloud-based persistence
 import axios, { AxiosInstance } from 'axios';
 
-// Use a default API URL for development, can be overridden by environment variables
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
 
 class BackendService {
   // ===== GOLD =====

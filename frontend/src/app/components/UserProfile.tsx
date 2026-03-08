@@ -736,8 +736,8 @@ export const UserProfile: React.FC = () => {
                   {isEditingForm ? (
                     <input
                       type="number"
-                      value={tempData.monthlyIncome}
-                      onChange={(e) => setTempData({ ...tempData, monthlyIncome: parseFloat(e.target.value) })}
+                      value={tempData.monthlyIncome || ''}
+                      onChange={(e) => setTempData({ ...tempData, monthlyIncome: parseFloat(e.target.value) || 0 })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="0.00"
                       id="monthlyIncome"
@@ -1243,10 +1243,13 @@ export const UserProfile: React.FC = () => {
           >
             <div className="bg-gradient-to-br from-red-600 to-rose-700 p-6 text-white relative">
               <button
+                type="button"
                 onClick={() => {
                   setIsDeleteModalOpen(false);
                   setDeletePassword('');
                 }}
+                aria-label="Close delete account dialog"
+                title="Close delete account dialog"
                 className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 p-1.5 rounded-full transition-colors"
               >
                 <X size={20} />

@@ -66,6 +66,8 @@ export const setupPWAInstallPrompt = () => {
     // Stash the event so it can be triggered later
     deferredPrompt = e;
     console.log('PWA install prompt available');
+    // Notify listeners that the install prompt is now available
+    window.dispatchEvent(new Event('pwainstallready'));
   });
 
   window.addEventListener('appinstalled', () => {

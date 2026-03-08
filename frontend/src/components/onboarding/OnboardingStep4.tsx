@@ -42,7 +42,7 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({
       setSyncStatus('Creating your account...');
       setSyncProgress(20);
       
-      const registerResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/v1/auth/register`, {
+      const registerResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({
       setSyncStatus('Setting up your session...');
       setSyncProgress(40);
 
-      const loginResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/v1/auth/login`, {
+      const loginResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({
       setSyncStatus('Initializing sync service...');
       setSyncProgress(60);
 
-      const userResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/v1/auth/user`, {
+      const userResponse = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/auth/user`, {
         headers: {
           'Authorization': `Bearer ${loginData.accessToken}`,
         },
@@ -194,11 +194,28 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({
           <span>{syncProgress}%</span>
         </div>
         
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${syncProgress}%` }}
-          />
+        <div
+          className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"
+          role="progressbar"
+          aria-label="Account setup progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={syncProgress}
+        >
+          <svg
+            className="block h-full w-full"
+            viewBox="0 0 100 2"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <rect width="100" height="2" className="fill-gray-200" />
+            <rect
+              width={syncProgress}
+              height="2"
+              rx="1"
+              className="fill-blue-600"
+            />
+          </svg>
         </div>
       </div>
 

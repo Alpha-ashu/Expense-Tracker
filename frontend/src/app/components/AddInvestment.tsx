@@ -5,7 +5,17 @@ import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
 import { TrendingUp, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { searchStocks, fetchStockQuote, StockSearchResult } from '@/lib/stockApi';
+import { searchStocks, fetchStockQuote, StockSearchResult, displaySymbol } from '@/lib/stockApi';
+
+const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
+
+interface PendingInvestmentDraft {
+  symbol: string;
+  displayName?: string;
+  companyName?: string;
+  exchange?: string;
+  type?: 'stocks' | 'crypto';
+}
 
 export const AddInvestment: React.FC = () => {
   const { setCurrentPage, currency, refreshData } = useApp();
@@ -25,10 +35,67 @@ export const AddInvestment: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (formData.type !== 'stocks') {
+    const rawDraft = localStorage.getItem(PENDING_INVESTMENT_DRAFT_KEY);
+    if (!rawDraft) {
+      return;
+    }
+
+    localStorage.removeItem(PENDING_INVESTMENT_DRAFT_KEY);
+
+    let cancelled = false;
+    let parsedDraft: PendingInvestmentDraft | null = null;
+
+    try {
+      parsedDraft = JSON.parse(rawDraft) as PendingInvestmentDraft;
+    } catch {
+      return;
+    }
+
+    if (!parsedDraft?.symbol) {
+      return;
+    }
+
+    const draftType = parsedDraft.type === 'crypto' ? 'crypto' : 'stocks';
+    const draftName = parsedDraft.displayName || displaySymbol(parsedDraft.symbol);
+
+    setSelectedSymbol(parsedDraft.symbol);
+    setShowSuggestions(false);
+    setFormData(prev => ({
+      ...prev,
+      name: draftName,
+      type: draftType,
+    }));
+
+    setFetchingPrice(true);
+    fetchStockQuote(parsedDraft.symbol, draftType === 'crypto' ? 'crypto' : undefined)
+      .then((quote) => {
+        if (cancelled || !quote) {
+          return;
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          currentPrice: quote.lastPrice,
+          purchasePrice: prev.purchasePrice === 0 ? quote.lastPrice : prev.purchasePrice,
+        }));
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setFetchingPrice(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (formData.type !== 'stocks' && formData.type !== 'crypto') {
       setShowSuggestions(false);
       return;
     }
@@ -42,16 +109,18 @@ export const AddInvestment: React.FC = () => {
 
     setSearching(true);
     searchTimer.current = setTimeout(async () => {
-      const results = await searchStocks(formData.name.trim());
+      const market = formData.type === 'crypto' ? 'crypto' : undefined;
+      const results = await searchStocks(formData.name.trim(), market);
       setSearchResults(results);
       setSearching(false);
-    }, 500);
+    }, 300);
     
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [formData.name, formData.type, showSuggestions]);
 
   const handleSelectStock = async (stock: StockSearchResult) => {
-    setFormData(prev => ({ ...prev, name: stock.symbol }));
+    setSelectedSymbol(stock.symbol);
+    setFormData(prev => ({ ...prev, name: displaySymbol(stock.symbol) }));
     setShowSuggestions(false);
     
     setFetchingPrice(true);
@@ -63,13 +132,33 @@ export const AddInvestment: React.FC = () => {
           currentPrice: quote.lastPrice,
           purchasePrice: prev.purchasePrice === 0 ? quote.lastPrice : prev.purchasePrice
         }));
-        toast.success(`Fetched live price for ${stock.symbol}`);
+        toast.success(`Fetched live price for ${displaySymbol(stock.symbol)}`);
       }
     } catch (e) {
       toast.error('Failed to fetch live price');
     } finally {
       setFetchingPrice(false);
     }
+  };
+
+  const resolveAssetSymbol = async () => {
+    if (selectedSymbol) {
+      return selectedSymbol;
+    }
+
+    const typedName = formData.name.trim();
+    if (!typedName || (formData.type !== 'stocks' && formData.type !== 'crypto')) {
+      return typedName;
+    }
+
+    const market = formData.type === 'crypto' ? 'crypto' : undefined;
+    const matches = await searchStocks(typedName, market);
+    const exactMatch = matches.find(match =>
+      displaySymbol(match.symbol).toUpperCase() === typedName.toUpperCase() ||
+      match.symbol.toUpperCase() === typedName.toUpperCase(),
+    );
+
+    return exactMatch?.symbol ?? typedName;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,6 +170,8 @@ export const AddInvestment: React.FC = () => {
     }
 
     try {
+      const assetSymbol = await resolveAssetSymbol();
+
       // Helper to map UI type to DB assetType
       function mapInvestmentType(type: string): 'stock' | 'crypto' | 'forex' | 'gold' | 'silver' | 'other' {
         switch (type) {
@@ -94,7 +185,7 @@ export const AddInvestment: React.FC = () => {
       }
       await backendService.createInvestment({
         assetType: mapInvestmentType(formData.type),
-        assetName: formData.name,
+        assetName: assetSymbol,
         quantity: formData.quantity,
         buyPrice: formData.purchasePrice,
         currentPrice: formData.currentPrice,
@@ -142,10 +233,11 @@ export const AddInvestment: React.FC = () => {
                   type="text"
                   value={formData.name}
                   onChange={(e) => {
+                    setSelectedSymbol(null);
                     setFormData({ ...formData, name: e.target.value });
                     setShowSuggestions(true);
                   }}
-                  onFocus={() => { if (formData.type === 'stocks' && formData.name.length >= 2) setShowSuggestions(true); }}
+                  onFocus={() => { if ((formData.type === 'stocks' || formData.type === 'crypto') && formData.name.length >= 2) setShowSuggestions(true); }}
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                   placeholder="e.g., RELIANCE"
                   required
@@ -155,7 +247,7 @@ export const AddInvestment: React.FC = () => {
                 )}
               </div>
               
-              {showSuggestions && formData.type === 'stocks' && (searchResults.length > 0 || searching) && (
+              {showSuggestions && (formData.type === 'stocks' || formData.type === 'crypto') && (searchResults.length > 0 || searching) && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                   {searching ? (
                     <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
@@ -169,8 +261,8 @@ export const AddInvestment: React.FC = () => {
                         className="w-full text-left px-4 py-3 hover:bg-gray-50 flex flex-col border-b border-gray-50 last:border-0"
                         onClick={() => handleSelectStock(result)}
                       >
-                        <span className="font-bold text-sm text-gray-900">{result.symbol}</span>
-                        <span className="text-xs text-gray-500">{result.companyName}</span>
+                        <span className="font-bold text-sm text-gray-900">{displaySymbol(result.symbol)}</span>
+                        <span className="text-xs text-gray-500">{result.companyName}{result.exchange ? ` · ${result.exchange}` : ''}</span>
                       </button>
                     ))
                   )}
@@ -182,7 +274,10 @@ export const AddInvestment: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-900 mb-3">Type *</label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                onChange={(e) => {
+                  setSelectedSymbol(null);
+                  setFormData({ ...formData, type: e.target.value as any });
+                }}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                 aria-label="Investment Type"
                 title="Investment Type"

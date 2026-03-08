@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
-import { Plus, TrendingUp, TrendingDown, Edit2, Trash2, BarChart3, Activity } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Edit2, Trash2, BarChart3, Activity, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { Card } from '@/app/components/ui/card';
@@ -12,10 +12,44 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { cn } from '@/lib/utils';
 import { LiveMarket } from '@/app/components/LiveMarket';
 import { LiveMarketTicker } from '@/app/components/LiveMarketTicker';
+import { fetchMultipleQuotes, StockQuote, displaySymbol } from '@/lib/stockApi';
 
 const COLORS = ['#000000', '#666666', '#999999', '#CCCCCC', '#E5E5E5', '#F0F0F0'];
 
 type Tab = 'portfolio' | 'market';
+
+const resolvePortfolioQuoteSymbol = (assetName: string, assetType: string) => {
+  const trimmedName = assetName.trim();
+  const explicitTicker = trimmedName.match(/\(([A-Z0-9.=^-]+)\)\s*$/i)?.[1]?.toUpperCase();
+  const bareTicker = /^[A-Z0-9.=^-]+$/.test(trimmedName.toUpperCase())
+    ? trimmedName.toUpperCase()
+    : null;
+  const normalizedTicker = explicitTicker ?? bareTicker;
+
+  if (!normalizedTicker) {
+    return null;
+  }
+
+  if (explicitTicker) {
+    return explicitTicker;
+  }
+
+  if (
+    normalizedTicker.includes('.') ||
+    normalizedTicker.includes('=') ||
+    normalizedTicker.includes('^') ||
+    normalizedTicker.includes('-')
+  ) {
+    return normalizedTicker;
+  }
+
+  return assetType === 'crypto'
+    ? `${normalizedTicker}-USD`
+    : `${normalizedTicker}.NS`;
+};
+
+const getInvestmentDisplayName = (assetName: string) =>
+  assetName.includes(' ') ? assetName : displaySymbol(assetName);
 
 export const Investments: React.FC = () => {
   const { investments, currency, setCurrentPage } = useApp();
@@ -23,16 +57,78 @@ export const Investments: React.FC = () => {
   const [investmentToDelete, setInvestmentToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('portfolio');
+  const [liveQuotes, setLiveQuotes] = useState<Record<string, StockQuote | null>>({});
+  const [updatingPrices, setUpdatingPrices] = useState(false);
+  const priceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Get stock/crypto symbols from portfolio for live price updates
+  // Detect market from asset type and symbol pattern
+  const portfolioSymbols = useMemo(
+    () => investments
+      .filter(inv => inv.assetType === 'stock' || inv.assetType === 'crypto')
+      .map(inv => resolvePortfolioQuoteSymbol(inv.assetName, inv.assetType))
+      .filter((symbol): symbol is string => Boolean(symbol)),
+    [investments],
+  );
+
+  // Map from resolved symbol back to assetName for lookup
+  const symbolToAssetName = useMemo(() => {
+    const map: Record<string, string> = {};
+    investments
+      .filter(inv => inv.assetType === 'stock' || inv.assetType === 'crypto')
+      .forEach(inv => {
+        const resolvedSymbol = resolvePortfolioQuoteSymbol(inv.assetName, inv.assetType);
+        if (resolvedSymbol) {
+          map[resolvedSymbol] = inv.assetName;
+        }
+      });
+    return map;
+  }, [investments]);
+
+  const fetchLivePrices = useCallback(async (isManual = false) => {
+    if (!portfolioSymbols.length || !navigator.onLine) return;
+    if (isManual) setUpdatingPrices(true);
+    try {
+      const quotes = await fetchMultipleQuotes(portfolioSymbols);
+      // Re-map keys from resolved symbols (e.g. RELIANCE.NS) to assetNames (e.g. RELIANCE)
+      const mapped: Record<string, StockQuote | null> = {};
+      for (const [resolvedSym, quote] of Object.entries(quotes)) {
+        const assetName = symbolToAssetName[resolvedSym] ?? resolvedSym;
+        mapped[assetName] = quote;
+      }
+      setLiveQuotes(mapped);
+    } finally {
+      setUpdatingPrices(false);
+    }
+  }, [portfolioSymbols, symbolToAssetName]);
+
+  // Auto-fetch live prices every 10s when on portfolio tab
+  useEffect(() => {
+    if (activeTab !== 'portfolio' || !portfolioSymbols.length) return;
+    fetchLivePrices();
+    priceTimer.current = setInterval(() => fetchLivePrices(), 10_000);
+    return () => { if (priceTimer.current) clearInterval(priceTimer.current); };
+  }, [activeTab, fetchLivePrices, portfolioSymbols]);
+
+  // Helper: get live price or fallback to stored price
+  const getLivePrice = (inv: typeof investments[0]) => {
+    const q = liveQuotes[inv.assetName];
+    return q ? q.lastPrice : inv.currentPrice;
+  };
 
   const portfolioStats = useMemo(() => {
     const totalInvested = investments.reduce((sum, i) => sum + i.totalInvested, 0);
-    const currentValue = investments.reduce((sum, i) => sum + i.currentValue, 0);
+    const currentValue = investments.reduce((sum, i) => {
+      const price = getLivePrice(i);
+      return sum + (price * i.quantity);
+    }, 0);
     const profitLoss = currentValue - totalInvested;
     const profitLossPercent = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
 
     const assetAllocation = investments.reduce((acc: any, inv) => {
       if (!acc[inv.assetType]) acc[inv.assetType] = 0;
-      acc[inv.assetType] += inv.currentValue;
+      const price = getLivePrice(inv);
+      acc[inv.assetType] += price * inv.quantity;
       return acc;
     }, {});
 
@@ -42,7 +138,7 @@ export const Investments: React.FC = () => {
     }));
 
     return { totalInvested, currentValue, profitLoss, profitLossPercent, chartData };
-  }, [investments]);
+  }, [investments, liveQuotes]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
@@ -129,13 +225,13 @@ export const Investments: React.FC = () => {
             <Card variant="glass" className="p-6">
               <h3 className="text-lg font-display font-bold text-gray-900 mb-1">About Live Market Data</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Live prices from NSE and BSE via Yahoo Finance. No login required.
+                Live prices from global markets via the backend stock proxy, with direct Twelve Data fallback when configured.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { label: 'Exchange',    value: 'NSE + BSE',            icon: '🇮🇳' },
-                  { label: 'Delay',       value: '~15 min (after hours)', icon: '⏱️' },
-                  { label: 'Auth Needed', value: 'None — Free',           icon: '🔓' },
+                  { label: 'Markets',     value: 'NSE · BSE · US · Forex · Crypto', icon: '🌍' },
+                  { label: 'Refresh',     value: 'Every 10 seconds',                 icon: '⚡' },
+                  { label: 'Auth Needed', value: 'None — Free',                      icon: '🔓' },
                 ].map(({ label, value, icon }) => (
                   <div key={label} className="bg-gray-50 rounded-xl p-4">
                     <p className="text-2xl mb-2">{icon}</p>
@@ -237,21 +333,27 @@ export const Investments: React.FC = () => {
                 <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Top Performers</h3>
                 <div className="space-y-3">
                   {[...investments]
-                    .sort((a, b) => (b.profitLoss / b.totalInvested) - (a.profitLoss / a.totalInvested))
+                    .sort((a, b) => {
+                      const aPL = (getLivePrice(a) * a.quantity - a.totalInvested) / a.totalInvested;
+                      const bPL = (getLivePrice(b) * b.quantity - b.totalInvested) / b.totalInvested;
+                      return bPL - aPL;
+                    })
                     .slice(0, 5)
                     .map(inv => {
-                      const plPercent = (inv.profitLoss / inv.totalInvested) * 100;
+                      const livePrice = getLivePrice(inv);
+                      const livePL = livePrice * inv.quantity - inv.totalInvested;
+                      const plPercent = (livePL / inv.totalInvested) * 100;
                       return (
                         <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                           <div>
-                            <p className="font-display font-bold text-gray-900 text-sm">{inv.assetName}</p>
+                            <p className="font-display font-bold text-gray-900 text-sm">{getInvestmentDisplayName(inv.assetName)}</p>
                             <p className="text-xs text-gray-500 capitalize mt-0.5">{inv.assetType}</p>
                           </div>
                           <div className="text-right">
-                            <p className={`font-bold text-sm ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {inv.profitLoss >= 0 ? '+' : ''}{formatCurrency(inv.profitLoss)}
+                            <p className={`font-bold text-sm ${livePL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {livePL >= 0 ? '+' : ''}{formatCurrency(livePL)}
                             </p>
-                            <p className={`text-xs ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <p className={`text-xs ${livePL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                               {plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%
                             </p>
                           </div>
@@ -265,9 +367,25 @@ export const Investments: React.FC = () => {
 
           {/* ── Portfolio Table — desktop only ── */}
           <Card variant="glass" className="overflow-hidden hidden sm:block">
+            <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                Portfolio Holdings
+                {Object.keys(liveQuotes).length > 0 && (
+                  <span className="ml-2 text-emerald-600 font-normal">● Live</span>
+                )}
+              </p>
+              <button
+                onClick={() => fetchLivePrices(true)}
+                disabled={updatingPrices}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-40"
+              >
+                <RefreshCw size={12} className={cn(updatingPrices && 'animate-spin')} />
+                Update Prices
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-gray-50/50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
@@ -280,10 +398,16 @@ export const Investments: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {investments.map(inv => (
+                  {investments.map(inv => {
+                    const livePrice = getLivePrice(inv);
+                    const liveValue = livePrice * inv.quantity;
+                    const livePL = liveValue - inv.totalInvested;
+                    const livePLPct = inv.totalInvested > 0 ? (livePL / inv.totalInvested) * 100 : 0;
+                    const isLive = !!liveQuotes[inv.assetName];
+                    return (
                     <tr key={inv.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{inv.assetName}</div>
+                        <div className="font-medium text-gray-900">{getInvestmentDisplayName(inv.assetName)}</div>
                         <div className="text-sm text-gray-500">{new Date(inv.purchaseDate).toLocaleDateString()}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -291,15 +415,20 @@ export const Investments: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{inv.quantity}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{formatCurrency(inv.buyPrice)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{formatCurrency(inv.currentPrice)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">{formatCurrency(inv.currentValue)}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-semibold ${inv.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        <span className={isLive ? 'text-emerald-700 font-semibold' : ''}>
+                          {formatCurrency(livePrice)}
+                        </span>
+                        {isLive && <span className="ml-1 text-[10px] text-emerald-500">●</span>}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">{formatCurrency(liveValue)}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-semibold ${livePL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         <div className="flex items-center justify-end gap-1">
-                          {inv.profitLoss >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                          {inv.profitLoss >= 0 ? '+' : ''}{formatCurrency(inv.profitLoss)}
+                          {livePL >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                          {livePL >= 0 ? '+' : ''}{formatCurrency(livePL)}
                         </div>
                         <div className="text-xs">
-                          {inv.profitLoss >= 0 ? '+' : ''}{((inv.profitLoss / inv.totalInvested) * 100).toFixed(2)}%
+                          {livePL >= 0 ? '+' : ''}{livePLPct.toFixed(2)}%
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -321,7 +450,8 @@ export const Investments: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -331,14 +461,18 @@ export const Investments: React.FC = () => {
           {investments.length > 0 && (
             <div className="sm:hidden space-y-3">
               {investments.map(inv => {
-                const plPercent = (inv.profitLoss / inv.totalInvested) * 100;
-                const isProfit = inv.profitLoss >= 0;
+                const livePrice = getLivePrice(inv);
+                const liveValue = livePrice * inv.quantity;
+                const livePL = liveValue - inv.totalInvested;
+                const plPercent = inv.totalInvested > 0 ? (livePL / inv.totalInvested) * 100 : 0;
+                const isProfit = livePL >= 0;
+                const isLive = !!liveQuotes[inv.assetName];
                 return (
                   <Card key={inv.id} variant="glass" className="p-4">
                     {/* Row 1: name + actions */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="min-w-0">
-                        <p className="font-display font-bold text-gray-900 text-base truncate">{inv.assetName}</p>
+                        <p className="font-display font-bold text-gray-900 text-base truncate">{getInvestmentDisplayName(inv.assetName)}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700 capitalize">{inv.assetType}</span>
                           <span className="text-xs text-gray-400">{new Date(inv.purchaseDate).toLocaleDateString()}</span>
@@ -373,12 +507,12 @@ export const Investments: React.FC = () => {
                         <p className="text-sm font-bold text-gray-900">{formatCurrency(inv.buyPrice)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-400 mb-0.5">Current Price</p>
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(inv.currentPrice)}</p>
+                        <p className="text-xs text-gray-400 mb-0.5">Current Price {isLive && <span className="text-emerald-500">●</span>}</p>
+                        <p className={cn("text-sm font-bold", isLive ? "text-emerald-700" : "text-gray-900")}>{formatCurrency(livePrice)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
                         <p className="text-xs text-gray-400 mb-0.5">Total Value</p>
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(inv.currentValue)}</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(liveValue)}</p>
                       </div>
                     </div>
 
@@ -386,7 +520,7 @@ export const Investments: React.FC = () => {
                     <div className={`mt-3 flex items-center gap-1.5 px-3 py-2 rounded-xl ${isProfit ? 'bg-green-50' : 'bg-red-50'}`}>
                       {isProfit ? <TrendingUp size={15} className="text-green-600" /> : <TrendingDown size={15} className="text-red-600" />}
                       <span className={`text-sm font-bold ${isProfit ? 'text-green-700' : 'text-red-700'}`}>
-                        {isProfit ? '+' : ''}{formatCurrency(inv.profitLoss)}
+                        {isProfit ? '+' : ''}{formatCurrency(livePL)}
                       </span>
                       <span className={`text-xs font-medium ml-auto ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                         {isProfit ? '+' : ''}{plPercent.toFixed(2)}%

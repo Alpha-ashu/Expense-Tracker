@@ -5,11 +5,15 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/contexts/AppContext';
 
 const TICKER_SYMBOLS = [
-  { symbol: '^NSEI', name: 'NIFTY 50' },
-  { symbol: '^BSESN', name: 'SENSEX' },
-  { symbol: 'GC=F', name: 'Gold' },
-  { symbol: 'SI=F', name: 'Silver' },
-  { symbol: 'INR=X', name: 'USD/INR' }
+  { symbol: 'RELIANCE.NS', name: 'Reliance' },
+  { symbol: 'TCS.NS', name: 'TCS' },
+  { symbol: 'AAPL.US', name: 'Apple' },
+  { symbol: 'NVDA.US', name: 'NVIDIA' },
+  { symbol: 'BTC-USD', name: 'Bitcoin' },
+  { symbol: 'ETH-USD', name: 'Ethereum' },
+  { symbol: 'USDINR=X', name: 'USD/INR' },
+  { symbol: 'EURUSD=X', name: 'EUR/USD' },
+  { symbol: 'RELIANCE.BO', name: 'Reliance BSE' },
 ];
 
 export const LiveMarketTicker: React.FC = () => {
@@ -25,7 +29,7 @@ export const LiveMarketTicker: React.FC = () => {
       }
     };
     fetchQuotes();
-    const interval = setInterval(fetchQuotes, 60000); // refresh every minute it's on
+    const interval = setInterval(fetchQuotes, 10000); // refresh every 10s
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -58,7 +62,7 @@ export const LiveMarketTicker: React.FC = () => {
               >
                 <span className="font-display font-bold text-gray-900 text-sm">{item.name}</span>
                 <span className="text-sm font-semibold tabular-nums text-gray-700">
-                  {item.symbol === 'INR=X' ? '₹' : (item.symbol.includes('=F') ? '$' : '')}{fmt(quote.lastPrice)}
+                  {quote.currency || (item.symbol.includes('=X') || item.symbol.includes('=F') || item.symbol.includes('-USD') ? '$' : '₹')}{fmt(quote.lastPrice)}
                 </span>
                 <span className={cn(
                   "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-md",

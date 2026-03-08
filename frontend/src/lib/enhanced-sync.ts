@@ -69,7 +69,7 @@ class EnhancedSyncService {
     try {
       const deviceInfo = getDeviceInfo();
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/v1/sync/register-device`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/sync/register-device`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ class EnhancedSyncService {
     try {
       console.log('🔄 Pulling data from backend...');
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/v1/sync/pull`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/sync/pull`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ class EnhancedSyncService {
 
       console.log(`📤 Pushing ${this.syncQueue.length} changes to backend...`);
       
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/v1/sync/push`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/sync/push`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

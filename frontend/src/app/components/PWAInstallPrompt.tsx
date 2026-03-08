@@ -32,7 +32,18 @@ export const PWAInstallPrompt: React.FC = () => {
       }
     }, 3000);
 
-    return () => clearTimeout(timer);
+    // Also listen for the deferred prompt becoming available later
+    const onReady = () => {
+      if (!isAppInstalled()) {
+        setShowPrompt(true);
+      }
+    };
+    window.addEventListener('pwainstallready', onReady);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('pwainstallready', onReady);
+    };
   }, []);
 
   const handleInstall = async () => {
@@ -75,7 +86,10 @@ export const PWAInstallPrompt: React.FC = () => {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={handleDismiss}
+                  aria-label="Dismiss install prompt"
+                  title="Dismiss install prompt"
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                 >
                   <X size={18} />

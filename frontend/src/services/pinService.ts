@@ -12,7 +12,7 @@ export interface PinVerifyRequest {
 }
 
 class PinService {
-  private readonly API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  private readonly API_URL = import.meta.env.VITE_API_URL || '/api/v1';
   private readonly PIN_STORAGE_KEY = 'user_pin_hash';
   private readonly PIN_SETUP_KEY = 'pin_setup_completed';
 

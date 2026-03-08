@@ -10,6 +10,91 @@ interface PINAuthProps {
   onAuthenticated: (encryptionKey: string) => void;
 }
 
+const USER_PINS_UNAVAILABLE_KEY = 'supabase_user_pins_unavailable';
+
+let userPinsUnavailableInMemory = false;
+let userPinsUnavailableLogged = false;
+const remotePinLookupCache = new Map<string, Promise<{ pinHash: string | null; tableUnavailable: boolean }>>();
+
+const isUserPinsTableMissingError = (error: any) => {
+  const errorText = [
+    error?.code,
+    error?.message,
+    error?.details,
+    error?.hint,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return error?.status === 404 ||
+    error?.code === 'PGRST205' ||
+    errorText.includes('user_pins') ||
+    errorText.includes('relation') ||
+    errorText.includes('not found');
+};
+
+const isUserPinsTableUnavailable = () => {
+  if (userPinsUnavailableInMemory) return true;
+
+  try {
+    userPinsUnavailableInMemory = sessionStorage.getItem(USER_PINS_UNAVAILABLE_KEY) === 'true';
+  } catch {
+    userPinsUnavailableInMemory = false;
+  }
+
+  return userPinsUnavailableInMemory;
+};
+
+const markUserPinsTableUnavailable = () => {
+  userPinsUnavailableInMemory = true;
+
+  try {
+    sessionStorage.setItem(USER_PINS_UNAVAILABLE_KEY, 'true');
+  } catch {
+    // Ignore storage failures and keep the in-memory flag.
+  }
+
+  if (!userPinsUnavailableLogged) {
+    console.info('ℹ️ user_pins table unavailable — using local PIN only.');
+    userPinsUnavailableLogged = true;
+  }
+};
+
+const loadRemotePinHash = async (userId: string) => {
+  if (isUserPinsTableUnavailable()) {
+    return { pinHash: null, tableUnavailable: true };
+  }
+
+  const cachedLookup = remotePinLookupCache.get(userId);
+  if (cachedLookup) {
+    return cachedLookup;
+  }
+
+  const lookupPromise = (async () => {
+    const { data, error } = await supabase
+      .from('user_pins')
+      .select('pin_hash')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      if (isUserPinsTableMissingError(error)) {
+        markUserPinsTableUnavailable();
+        return { pinHash: null, tableUnavailable: true };
+      }
+
+      console.warn('PIN lookup from Supabase failed; continuing with local PIN only.', error);
+      return { pinHash: null, tableUnavailable: false };
+    }
+
+    return { pinHash: data?.pin_hash ?? null, tableUnavailable: false };
+  })();
+
+  remotePinLookupCache.set(userId, lookupPromise);
+  return lookupPromise;
+};
+
 export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -30,16 +115,28 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         // Attempt to fetch existing PIN from Supabase `user_pins`
         setIsLoading(true);
         try {
+          if (isUserPinsTableUnavailable()) {
+            if (isMounted) {
+              setIsCreating(true);
+              setIsLoading(false);
+            }
+            return;
+          }
+
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user?.id) {
-            const { data } = await supabase
-              .from('user_pins')
-              .select('pin_hash')
-              .eq('user_id', session.user.id)
-              .maybeSingle();
+            const { pinHash, tableUnavailable } = await loadRemotePinHash(session.user.id);
 
-            if (data?.pin_hash && isMounted) {
-              const [hash, salt] = data.pin_hash.split('|');
+            if (tableUnavailable) {
+              if (isMounted) {
+                setIsCreating(true);
+                setIsLoading(false);
+              }
+              return;
+            }
+
+            if (pinHash && isMounted) {
+              const [hash, salt] = pinHash.split('|');
               if (hash && salt) {
                 restorePINKeys({ hash, salt });
                 setIsCreating(false);
@@ -116,15 +213,23 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         // Backup to Supabase so it survives cache clear
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.id) {
+          if (session?.user?.id && !isUserPinsTableUnavailable()) {
             const backup = backupPINKeys(); 
             if (backup.hash && backup.salt) {
               const pinHashValue = `${backup.hash}|${backup.salt}`;
-              await supabase.from('user_pins').upsert({
+              const { error: backupError } = await supabase.from('user_pins').upsert({
                 user_id: session.user.id,
                 pin_hash: pinHashValue,
                 expires_at: new Date('2099-01-01').toISOString(), // Required NOT NULL column
               });
+
+              if (backupError) {
+                if (isUserPinsTableMissingError(backupError)) {
+                  markUserPinsTableUnavailable();
+                } else {
+                  console.warn('PIN backup to Supabase failed (working locally).', backupError);
+                }
+              }
             }
           }
         } catch (e) {

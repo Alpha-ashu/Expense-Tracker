@@ -1,26 +1,32 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   TrendingUp, TrendingDown, RefreshCw, Search, X,
-  Activity, BarChart2, ChevronRight, Wifi, WifiOff,
+  Activity, BarChart2, ChevronRight, Wifi, WifiOff, Clock,
 } from 'lucide-react';
 import {
   fetchStockQuote, fetchMultipleQuotes, searchStocks,
-  formatMarketCap, StockQuote, StockSearchResult,
+  formatMarketCap, formatPrice, getCacheAge, getDefaultWatchlist, displaySymbol, getStockDataSetupHint,
+  StockQuote, StockSearchResult, MarketCategory, MARKET_LABELS,
 } from '@/lib/stockApi';
+import { useApp } from '@/contexts/AppContext';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/* ── Default watchlist ─────────────────────────────────── */
-const DEFAULT_WATCHLIST = [
-  'RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK',
-  'WIPRO', 'SBIN', 'BAJFINANCE', 'AXISBANK', 'MARUTI',
-];
+const AUTO_REFRESH_MS = 10_000; // 10 s for faster updates
+const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
-const AUTO_REFRESH_MS = 60_000; // 60 s
+const MARKET_TABS: MarketCategory[] = ['all', 'nse', 'bse', 'us', 'forex', 'crypto'];
 
 /* ── Helpers ──────────────────────────────────────────── */
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+const fmtCurrency = (n: number, currency: string = '₹') => {
+  if (currency === '$') {
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  }
+  return fmt(n);
+};
 
 const PriceTag: React.FC<{ value: number; suffix?: string; size?: 'sm' | 'md' | 'lg' }> = ({
   value, suffix = '', size = 'md',
@@ -46,6 +52,7 @@ const StockRow: React.FC<{
   onClick: (q: StockQuote) => void;
 }> = ({ quote, onClick }) => {
   const positive = quote.change >= 0;
+  const cur = quote.currency || '₹';
   return (
     <motion.button
       layout
@@ -59,18 +66,18 @@ const StockRow: React.FC<{
         'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold',
         positive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
       )}>
-        {quote.symbol.slice(0, 2)}
+        {displaySymbol(quote.symbol).slice(0, 2)}
       </div>
 
       {/* Name */}
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-gray-900 text-sm truncate">{quote.symbol}</p>
-        <p className="text-xs text-gray-400 truncate">{quote.exchange} · {quote.sector}</p>
+        <p className="font-bold text-gray-900 text-sm truncate">{displaySymbol(quote.symbol)}</p>
+        <p className="text-xs text-gray-400 truncate">{quote.exchange} · {quote.companyName}</p>
       </div>
 
       {/* Price */}
       <div className="text-right shrink-0">
-        <p className="font-bold text-gray-900 text-sm tabular-nums">₹{fmt(quote.lastPrice)}</p>
+        <p className="font-bold text-gray-900 text-sm tabular-nums">{cur}{fmtCurrency(quote.lastPrice, cur)}</p>
         <div className="flex items-center justify-end gap-1">
           {positive ? (
             <TrendingUp size={11} className="text-emerald-500" />
@@ -89,25 +96,27 @@ const StockRow: React.FC<{
 /* ── Detail panel ─────────────────────────────────────── */
 const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quote, onClose }) => {
   const positive = quote.change >= 0;
+  const cur = quote.currency || '₹';
   const pct52 = quote.yearHigh > 0
     ? ((quote.lastPrice - quote.yearLow) / (quote.yearHigh - quote.yearLow)) * 100
     : 0;
 
   const rows = [
-    { label: 'Open', value: `₹${fmt(quote.open)}` },
-    { label: 'Prev Close', value: `₹${fmt(quote.previousClose)}` },
-    { label: "Day's High", value: `₹${fmt(quote.dayHigh)}` },
-    { label: "Day's Low", value: `₹${fmt(quote.dayLow)}` },
-    { label: '52W High', value: `₹${fmt(quote.yearHigh)}` },
-    { label: '52W Low', value: `₹${fmt(quote.yearLow)}` },
+    { label: 'Open', value: `${cur}${fmtCurrency(quote.open, cur)}` },
+    { label: 'Prev Close', value: `${cur}${fmtCurrency(quote.previousClose, cur)}` },
+    { label: "Day's High", value: `${cur}${fmtCurrency(quote.dayHigh, cur)}` },
+    { label: "Day's Low", value: `${cur}${fmtCurrency(quote.dayLow, cur)}` },
+    { label: '52W High', value: `${cur}${fmtCurrency(quote.yearHigh, cur)}` },
+    { label: '52W Low', value: `${cur}${fmtCurrency(quote.yearLow, cur)}` },
     { label: 'P/E Ratio', value: quote.peRatio ? `${fmt(quote.peRatio)}x` : '—' },
-    { label: 'EPS', value: quote.eps ? `₹${fmt(quote.eps)}` : '—' },
+    { label: 'EPS', value: quote.eps ? `${cur}${fmtCurrency(quote.eps, cur)}` : '—' },
     { label: 'Div Yield', value: quote.dividendYield ? `${fmt(quote.dividendYield)}%` : '—' },
-    { label: 'Market Cap', value: formatMarketCap(quote.marketCap) },
+    { label: 'Market Cap', value: formatMarketCap(quote.marketCap, cur) },
     {
       label: 'Volume',
       value: new Intl.NumberFormat('en-IN').format(quote.volume)
     },
+    { label: 'Market', value: quote.marketState === 'open' ? '🟢 Open' : quote.marketState === 'closed' ? '🔴 Closed' : '—' },
   ];
 
   return (
@@ -125,23 +134,28 @@ const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quo
       )}>
         <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
         <div className="flex items-center gap-3 mb-4 relative">
-          <button onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={`Close ${quote.companyName} details`}
+            title={`Close ${quote.companyName} details`}
+            className="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+          >
             <X size={16} className="text-white" />
           </button>
           <div className="flex-1 min-w-0">
             <p className="text-white/70 text-xs font-bold">{quote.exchange} · {quote.sector}</p>
             <h3 className="text-white font-display font-bold text-lg leading-tight truncate">{quote.companyName}</h3>
           </div>
-          <span className="text-xs font-bold bg-white/20 text-white px-2 py-1 rounded-lg">{quote.symbol}</span>
+          <span className="text-xs font-bold bg-white/20 text-white px-2 py-1 rounded-lg">{displaySymbol(quote.symbol)}</span>
         </div>
         <div className="relative">
           <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-0.5">Current Price</p>
-          <p className="text-white text-4xl font-display font-bold">₹{fmt(quote.lastPrice)}</p>
+          <p className="text-white text-4xl font-display font-bold">{cur}{fmtCurrency(quote.lastPrice, cur)}</p>
           <div className="flex items-center gap-2 mt-1">
             {positive ? <TrendingUp size={14} className="text-white/80" /> : <TrendingDown size={14} className="text-white/80" />}
             <span className="text-white/80 text-sm font-semibold">
-              {positive ? '+' : ''}₹{fmt(quote.change)} ({positive ? '+' : ''}{fmt(quote.percentChange)}%)
+              {positive ? '+' : ''}{cur}{fmtCurrency(Math.abs(quote.change), cur)} ({positive ? '+' : ''}{fmt(quote.percentChange)}%)
             </span>
           </div>
         </div>
@@ -150,17 +164,27 @@ const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quo
       {/* 52W Range bar */}
       <div className="px-5 py-4 border-b border-gray-100">
         <div className="flex justify-between text-xs text-gray-400 mb-1.5">
-          <span>52W Low ₹{fmt(quote.yearLow)}</span>
-          <span>52W High ₹{fmt(quote.yearHigh)}</span>
+          <span>52W Low {cur}{fmtCurrency(quote.yearLow, cur)}</span>
+          <span>52W High {cur}{fmtCurrency(quote.yearHigh, cur)}</span>
         </div>
         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={cn('h-full rounded-full transition-all', positive ? 'bg-emerald-500' : 'bg-rose-500')}
-            style={{ width: `${Math.min(100, Math.max(2, pct52))}%` }}
-          />
+          <svg
+            className="block h-full w-full"
+            viewBox="0 0 100 2"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <rect width="100" height="2" className="fill-gray-100" />
+            <rect
+              width={Math.min(100, Math.max(2, pct52))}
+              height="2"
+              rx="1"
+              className={cn(positive ? 'fill-emerald-500' : 'fill-rose-500')}
+            />
+          </svg>
         </div>
         <p className="text-xs text-gray-400 mt-1 text-center">
-          ₹{fmt(quote.lastPrice)} — {pct52.toFixed(0)}% from 52W low
+          {cur}{fmtCurrency(quote.lastPrice, cur)} — {pct52.toFixed(0)}% from 52W low
         </p>
       </div>
 
@@ -175,7 +199,7 @@ const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quo
           ))}
         </div>
         <p className="text-xs text-gray-400 text-center mt-4">
-          Last updated: {quote.lastUpdate} · Data via Yahoo Finance
+          Last updated: {quote.lastUpdate} · Data via backend proxy or Twelve Data
         </p>
       </div>
     </motion.div>
@@ -184,6 +208,7 @@ const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quo
 
 /* ── Main component ───────────────────────────────────── */
 export const LiveMarket: React.FC = () => {
+  const { setCurrentPage } = useApp();
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -193,7 +218,9 @@ export const LiveMarket: React.FC = () => {
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [watchlist, setWatchlist] = useState<string[]>(DEFAULT_WATCHLIST);
+  const [activeMarket, setActiveMarket] = useState<MarketCategory>('all');
+  const [watchlist, setWatchlist] = useState<string[]>(() => getDefaultWatchlist('all'));
+  const [usingCache, setUsingCache] = useState(false);
 
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -207,19 +234,33 @@ export const LiveMarket: React.FC = () => {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
+  /* ── Market tab change ── */
+  const handleMarketChange = useCallback((market: MarketCategory) => {
+    setActiveMarket(market);
+    const newWL = getDefaultWatchlist(market);
+    setWatchlist(newWL);
+    setSelected(null);
+    setSearchQuery('');
+    setSearchResults([]);
+  }, []);
+
   /* ── Fetch quotes ── */
   const loadQuotes = useCallback(async (symbols: string[], isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     try {
-      const data = await fetchMultipleQuotes(symbols);
+      const market = activeMarket === 'all' ? undefined : activeMarket;
+      const data = await fetchMultipleQuotes(symbols, market);
       setQuotes(prev => ({ ...prev, ...data }));
       setLastRefreshed(new Date());
+      const cacheAge = getCacheAge();
+      const hasAnyQuote = Object.values(data).some(q => q !== null);
+      setUsingCache(!navigator.onLine && hasAnyQuote && cacheAge !== null);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [activeMarket]);
 
   useEffect(() => {
     loadQuotes(watchlist);
@@ -233,21 +274,31 @@ export const LiveMarket: React.FC = () => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     setSearching(true);
     searchTimer.current = setTimeout(async () => {
-      const results = await searchStocks(searchQuery.trim());
+      const market = activeMarket === 'all' ? undefined : activeMarket;
+      const results = await searchStocks(searchQuery.trim(), market);
       setSearchResults(results);
       setSearching(false);
     }, 400);
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [searchQuery]);
+  }, [searchQuery, activeMarket]);
 
-  /* ── Add stock from search ── */
-  const handleAddToWatchlist = async (result: StockSearchResult) => {
+  /* ── Open add-investment with selected stock ── */
+  const handleAddInvestment = async (result: StockSearchResult) => {
     const sym = result.symbol;
     setSearchQuery('');
     setSearchResults([]);
-    if (watchlist.includes(sym)) return;
-    setWatchlist(prev => [...prev, sym]);
-    await loadQuotes([sym]);
+
+    const inferredType = sym.endsWith('-USD') || activeMarket === 'crypto' ? 'crypto' : 'stocks';
+    const draft = {
+      symbol: sym,
+      displayName: displaySymbol(sym),
+      companyName: result.companyName,
+      exchange: result.exchange,
+      type: inferredType,
+    };
+
+    localStorage.setItem(PENDING_INVESTMENT_DRAFT_KEY, JSON.stringify(draft));
+    setCurrentPage('add-investment');
   };
 
   /* ── Remove from watchlist ── */
@@ -257,9 +308,12 @@ export const LiveMarket: React.FC = () => {
     if (selected?.symbol === symbol) setSelected(null);
   };
 
+  const defaultWL = getDefaultWatchlist(activeMarket);
+
   const loadedQuotes = watchlist
     .map(s => quotes[s])
     .filter((q): q is StockQuote => q !== null && q !== undefined);
+  const setupHint = getStockDataSetupHint();
 
   const timeSince = lastRefreshed
     ? Math.round((Date.now() - lastRefreshed.getTime()) / 1000)
@@ -281,20 +335,54 @@ export const LiveMarket: React.FC = () => {
               <WifiOff size={10} className="text-red-400" />
             )}
             <p className="text-[10px] text-gray-400">
-              {isOnline ? (
-                timeSince !== null ? `Updated ${timeSince}s ago` : 'Connecting…'
-              ) : 'Offline — cached data'}
+              {!isOnline ? (
+                'Offline — cached data'
+              ) : usingCache ? (
+                (() => {
+                  const age = getCacheAge();
+                  if (!age) return 'Cached data';
+                  const mins = Math.round(age / 60000);
+                  return mins < 1 ? 'Cached — just now' : `Cached — ${mins}m ago`;
+                })()
+              ) : (
+                timeSince !== null ? `Updated ${timeSince}s ago · Auto-refresh 10s` : 'Connecting…'
+              )}
             </p>
+            {usingCache && isOnline && (
+              <Clock size={10} className="text-amber-400" />
+            )}
           </div>
         </div>
         <button
+          type="button"
           onClick={() => loadQuotes(watchlist, true)}
           disabled={refreshing || loading}
+          aria-label="Refresh market data"
           className="w-8 h-8 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors disabled:opacity-40"
           title="Refresh"
         >
           <RefreshCw size={14} className={cn('text-gray-500', refreshing && 'animate-spin')} />
         </button>
+      </div>
+
+      {/* Market filter tabs */}
+      <div className="px-4 py-2 border-b border-gray-100 shrink-0 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-1.5 min-w-max">
+          {MARKET_TABS.map((market) => (
+            <button
+              key={market}
+              onClick={() => handleMarketChange(market)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap',
+                activeMarket === market
+                  ? 'bg-gray-900 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+              )}
+            >
+              {MARKET_LABELS[market]}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search bar */}
@@ -305,12 +393,17 @@ export const LiveMarket: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search stocks… e.g. HDFC, Infosys"
+            placeholder={`Search ${MARKET_LABELS[activeMarket]} stocks…`}
             className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-300 focus:bg-white transition-colors"
           />
           {searchQuery && (
-            <button onClick={() => { setSearchQuery(''); setSearchResults([]); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); setSearchResults([]); }}
+              aria-label="Clear market search"
+              title="Clear market search"
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
               <X size={13} className="text-gray-400" />
             </button>
           )}
@@ -330,33 +423,28 @@ export const LiveMarket: React.FC = () => {
                   <RefreshCw size={11} className="animate-spin" /> Searching…
                 </div>
               )}
-              {searchResults.slice(0, 6).map(r => {
-                const isAdded = watchlist.includes(r.symbol);
+              {searchResults.slice(0, 8).map(r => {
                 return (
-                  <button
+                  <div
                     key={r.symbol}
-                    onClick={() => handleAddToWatchlist(r)}
                     className={cn(
-                      "w-full flex items-center justify-between px-4 py-2.5 transition-colors",
-                      isAdded ? "bg-emerald-50/50 cursor-default" : "hover:bg-gray-50"
+                      'w-full flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50'
                     )}
                   >
-                    <div className="text-left">
-                      <p className={cn("text-sm font-bold", isAdded ? "text-emerald-700" : "text-gray-900")}>
-                        {r.symbol}
+                    <div className="min-w-0 text-left">
+                      <p className="text-sm font-bold text-gray-900">
+                        {displaySymbol(r.symbol)}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">{r.companyName}</p>
+                      <p className="text-xs text-gray-400 truncate">{r.companyName} · {r.exchange}</p>
                     </div>
-                    {isAdded ? (
-                      <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider px-2 py-0.5">
-                        Added
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">
+                    <button
+                      type="button"
+                      onClick={() => handleAddInvestment(r)}
+                      className="shrink-0 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors"
+                    >
                         + Add
-                      </span>
-                    )}
-                  </button>
+                    </button>
+                  </div>
                 );
               })}
             </motion.div>
@@ -380,6 +468,22 @@ export const LiveMarket: React.FC = () => {
                   <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
                   <p className="text-xs text-gray-400">Fetching live prices…</p>
                 </div>
+              ) : !loading && loadedQuotes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48 gap-3">
+                  <Activity size={24} className="text-gray-300" />
+                  <p className="text-xs text-gray-500 font-medium">Unable to load market data</p>
+                  {setupHint && (
+                    <p className="max-w-[18rem] text-center text-[11px] text-gray-400">
+                      {setupHint}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => loadQuotes(watchlist)}
+                    className="text-xs bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : (
                 <div className="divide-y divide-gray-50 relative">
                   {watchlist.map(symbol => {
@@ -394,8 +498,13 @@ export const LiveMarket: React.FC = () => {
                             <div className="h-2 w-14 bg-gray-100 rounded animate-pulse" />
                           </div>
                         </div>
-                        <button onClick={() => handleRemove(symbol)}
-                          className="text-gray-300 hover:text-gray-500 p-1">
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(symbol)}
+                          aria-label={`Remove ${displaySymbol(symbol)} from watchlist`}
+                          title={`Remove ${displaySymbol(symbol)} from watchlist`}
+                          className="text-gray-300 hover:text-gray-500 p-1"
+                        >
                           <X size={12} />
                         </button>
                       </div>
@@ -405,9 +514,12 @@ export const LiveMarket: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <StockRow quote={q} onClick={setSelected} />
                         </div>
-                        {!DEFAULT_WATCHLIST.includes(symbol) && (
+                        {!defaultWL.includes(symbol) && (
                           <button
+                            type="button"
                             onClick={() => handleRemove(symbol)}
+                            aria-label={`Remove ${displaySymbol(symbol)} from watchlist`}
+                            title={`Remove ${displaySymbol(symbol)} from watchlist`}
                             className="px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <X size={13} className="text-gray-400 hover:text-red-500" />
@@ -423,7 +535,7 @@ export const LiveMarket: React.FC = () => {
               <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2">
                 <BarChart2 size={12} className="text-gray-300" />
                 <p className="text-[10px] text-gray-400">
-                  NSE/BSE data via Yahoo Finance · Delayed ~15 min outside market hours
+                  Global market data via backend proxy or Twelve Data · Auto-refreshing every 10s
                 </p>
               </div>
             </motion.div>

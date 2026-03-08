@@ -1,8 +1,12 @@
 /* eslint-disable no-restricted-globals */
-// Simple, lightweight Service Worker for offline support
+// Service Worker with offline support and API response caching
 
-const CACHE_NAME = 'financelife-v1';
+const CACHE_NAME = 'financelife-v2';
+const API_CACHE_NAME = 'financelife-api-v1';
 const OFFLINE_URL = '/offline.html';
+
+// Max age for cached API responses (30 minutes)
+const API_CACHE_MAX_AGE = 30 * 60 * 1000;
 
 // URLs to always cache on install
 const URLS_TO_CACHE = [
@@ -26,11 +30,12 @@ self.addEventListener('install', (event) => {
 
 // Activate event: clean up old caches
 self.addEventListener('activate', (event) => {
+  const currentCaches = [CACHE_NAME, API_CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (!currentCaches.includes(cacheName)) {
             return caches.delete(cacheName);
           }
         })
@@ -49,10 +54,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip service worker for email confirmation redirects and API calls
+  // Skip service worker for email confirmation redirects and auth API calls
   if (request.url.includes('/confirm-email') || 
-      request.url.includes('/api/') ||
-      request.url.includes('/auth/')) {
+      request.url.includes('/api/v1/auth/')) {
+    return;
+  }
+
+  // Stock API: network-first with cache fallback
+  if (request.url.includes('/api/v1/stocks/')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(API_CACHE_NAME).then((cache) => {
+              cache.put(request, clone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request).then((cached) => {
+            if (cached) return cached;
+            return new Response(
+              JSON.stringify({ status: 'error', error: 'Offline' }),
+              { status: 503, headers: { 'Content-Type': 'application/json' } }
+            );
+          });
+        })
+    );
+    return;
+  }
+
+  // Other API calls: network-only (no caching)
+  if (request.url.includes('/api/')) {
     return;
   }
 
