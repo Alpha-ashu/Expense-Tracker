@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { AuthTokens } from '../modules/auth/auth.types';
 
-const secret = process.env.JWT_SECRET || 'fallback-secret';
+const secret = process.env.JWT_SECRET;
+if (!secret) throw new Error('JWT_SECRET environment variable is required');
 
 // API Keys and Credentials
 export const getApiKey = (key: string): string | undefined => {

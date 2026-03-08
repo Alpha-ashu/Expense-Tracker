@@ -46,11 +46,11 @@ export const Diagnostics: React.FC = () => {
   };
 
   const handleCopyEnvVars = () => {
-    const envVars = `VITE_SUPABASE_URL=https://mmwrckfqeqjfqciymemh.supabase.co
-VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq`;
-    
+    const url = import.meta.env.VITE_SUPABASE_URL || '<your-supabase-url>';
+    // Never hardcode keys here — read from env only
+    const envVars = `VITE_SUPABASE_URL=${url}\nVITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<your-anon-key>`;
     navigator.clipboard.writeText(envVars);
-    toast.success('Environment variables copied to clipboard');
+    toast.success('Template copied — fill in your actual key from the Supabase dashboard');
   };
 
   return (
@@ -184,7 +184,7 @@ VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRi
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">Email Confirmation Setup</h3>
             <a
-              href="https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh/auth/url-configuration"
+              href={`https://supabase.com/dashboard/project/${import.meta.env.VITE_SUPABASE_URL?.split('//')[1]?.split('.')[0] ?? 'YOUR_PROJECT'}/auth/url-configuration`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"

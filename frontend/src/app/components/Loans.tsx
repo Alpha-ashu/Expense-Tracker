@@ -166,7 +166,7 @@ export const Loans: React.FC = () => {
                 {loanStats.overdueCount}
               </h3>
             </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+            <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           </Card>
         </motion.div>
       </div>

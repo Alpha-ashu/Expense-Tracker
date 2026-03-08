@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
-const supabaseUrl = 'https://mmwrckfqeqjfqciymemh.supabase.co';
-const supabaseServiceKey = 'sb_secret_rLtUWQRvgcjFaM5mzR4c0w_bQd6Oywx';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment variables.');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
@@ -20,8 +26,12 @@ async function cleanDB() {
 
         let deletedCount = 0;
 
-        // We only keep the admin
-        const ADMIN_EMAIL = 'shaik.job.details@gmail.com';
+        // We only keep the admin — set ADMIN_EMAIL in your .env
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+        if (!ADMIN_EMAIL) {
+            console.error('❌ ADMIN_EMAIL must be set in environment variables. Aborting to prevent data loss.');
+            process.exit(1);
+        }
 
         for (const user of users) {
             if (user.email === ADMIN_EMAIL) {

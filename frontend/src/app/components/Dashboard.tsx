@@ -158,8 +158,8 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35 } };
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50">
-      <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full">
+    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50" style={{ maxWidth: '100vw' }}>
+      <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full overflow-x-hidden">
 
         {/* Header */}
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-4 lg:pb-6">
@@ -175,7 +175,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
         </div>
 
         {/* ── 1. Financial Health Hero ── */}
-        <div className="flex justify-center px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
+        <div className="flex justify-center px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">
           <Card variant="mesh-pink" className="w-full max-w-md lg:max-w-lg p-6 lg:p-8 relative overflow-hidden">
             <div className="relative z-10">
               <p className="text-white/80 font-medium mb-1 text-sm text-center">Total Net Worth</p>
@@ -208,7 +208,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 </div>
               )}
             </div>
-            <div className="absolute top-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-white/10 rounded-full blur-3xl -mr-16 sm:-mr-32 -mt-16 sm:-mt-32 pointer-events-none" />
+            {/* Intentionally no decorative absolute element here — blur-3xl with negative margins escapes overflow-hidden on mobile WebKit */}
           </Card>
         </div>
 

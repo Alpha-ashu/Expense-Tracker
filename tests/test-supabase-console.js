@@ -19,11 +19,16 @@
   try {
     const { createClient } = await import('@supabase/supabase-js');
     
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mmwrckfqeqjfqciymemh.supabase.co';
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY || 'sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq';
-    
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('❌ VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY must be set.');
+      return;
+    }
+
     console.log('📍 URL:', supabaseUrl);
-    console.log('🔑 Key:', supabaseKey ? '✅ Configured' : '❌ Missing');
+    console.log('🔑 Key:', '✅ Configured');
     console.log('━'.repeat(50));
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -93,7 +98,7 @@
     console.log('   1. Create tables in Supabase Dashboard');
     console.log('   2. Enable Row Level Security');
     console.log('   3. Start building your app!');
-    console.log('\n🔗 Dashboard: https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh');
+    console.log('\n🔗 Open your Supabase Dashboard to manage your project');
     
   } catch (err) {
     console.error('❌ Test failed to load:', err);

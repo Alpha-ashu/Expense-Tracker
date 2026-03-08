@@ -5,7 +5,11 @@ import { apiRoutes } from './routes/index';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: (process.env.CORS_ORIGIN || 'http://localhost:5173').split(',').map(o => o.trim()),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+}));
 app.use(express.json());
 
 // Health check
@@ -25,8 +29,4 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 export { app };
-
-// Error handling
-app.use(errorHandler);
-
 export default app;

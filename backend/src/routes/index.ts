@@ -13,6 +13,7 @@ import { sessionRoutes } from '../modules/sessions/session.routes';
 import { paymentRoutes } from '../modules/payments/payment.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { notificationRoutes } from '../modules/notifications/notification.routes';
+import { stockRoutes } from '../modules/stocks/stock.routes';
 
 const router = Router();
 
@@ -43,5 +44,8 @@ router.use('/notifications', notificationRoutes);
 
 // Admin routes (requires admin role)
 router.use('/admin', adminRoutes);
+
+// Public stock routes
+router.use('/stocks', stockRoutes);
 
 export { router as apiRoutes };

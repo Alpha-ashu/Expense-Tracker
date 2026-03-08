@@ -6,6 +6,12 @@
 /* Uncomment for debugging mobile issues: */
 /* @import './mobile-test-classes.css'; */
 
+/* ─── Universal horizontal overflow prevention ───────────────────────────── */
+html, body, #root {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
 /* CSS Variables for Layout */
 :root {
   /* Bottom navigation height (64px = h-16) */
@@ -117,6 +123,7 @@
 @media (max-width: 1024px) {
   main {
     min-height: calc(100vh - var(--header-height) - var(--bottom-reserved-space));
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -125,6 +132,7 @@
 @media (min-width: 1025px) {
   main {
     min-height: calc(100vh - var(--header-height));
+    overflow-x: hidden;
   }
 }
 

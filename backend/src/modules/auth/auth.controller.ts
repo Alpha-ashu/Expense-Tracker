@@ -9,11 +9,6 @@ export const register = async (req: Request, res: Response) => {
   try {
     const input: RegisterInput = req.body;
 
-    console.log('Register request received:', {
-      email: input.email,
-      name: input.name,
-      hasPassword: !!input.password
-    });
 
     // Validate input
     if (!input.email || !input.name || !input.password) {
@@ -41,7 +36,6 @@ export const register = async (req: Request, res: Response) => {
 
     // For now, return a mock response to test the flow
     // TODO: Fix database issues and implement actual registration
-    console.log('Database registration skipped - returning mock response');
     
     const mockTokens = {
       accessToken: 'mock-access-token-' + Date.now(),
@@ -93,10 +87,6 @@ export const login = async (req: Request, res: Response) => {
   try {
     const input: LoginInput = req.body;
 
-    console.log('Login request received:', {
-      email: input.email,
-      hasPassword: !!input.password
-    });
 
     // Validate input
     if (!input.email || !input.password) {
@@ -116,7 +106,6 @@ export const login = async (req: Request, res: Response) => {
 
     // For now, return a mock response to test the flow
     // TODO: Fix database issues and implement actual login
-    console.log('Database login skipped - returning mock response');
     
     const mockTokens = {
       accessToken: 'mock-access-token-' + Date.now(),

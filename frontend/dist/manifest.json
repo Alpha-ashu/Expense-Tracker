@@ -1,6 +1,6 @@
 {
-  "name": "FinanceLife - Your Financial OS",
-  "short_name": "FinanceLife",
+  "name": "Finora - Your Financial OS",
+  "short_name": "Finora",
   "description": "Privacy-first financial life management platform. Track expenses, loans, goals, investments, and shared bills in one unified system.",
   "start_url": "/",
   "scope": "/",
@@ -17,7 +17,11 @@
     }
   ],
   "screenshots": [],
-  "categories": ["finance", "productivity", "utilities"],
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ],
   "shortcuts": [],
   "prefer_related_applications": false,
   "related_applications": [],
@@ -32,14 +36,17 @@
       "files": [
         {
           "name": "receipt",
-          "accept": ["image/*", "application/pdf"]
+          "accept": [
+            "image/*",
+            "application/pdf"
+          ]
         }
       ]
     }
   },
   "protocol_handlers": [
     {
-      "protocol": "web+financelife",
+      "protocol": "web+finora",
       "url": "/?action=%s"
     }
   ],

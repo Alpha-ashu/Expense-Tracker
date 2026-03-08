@@ -19,7 +19,7 @@ export const getSettings = async (req: AuthRequest, res: Response) => {
           language: 'en',
           currency: 'USD',
           timezone: 'UTC',
-          settings: {},
+          settings: '{}',
         },
       });
     }
@@ -47,7 +47,7 @@ export const updateSettings = async (req: AuthRequest, res: Response) => {
           language: language || 'en',
           currency: currency || 'USD',
           timezone: timezone || 'UTC',
-          settings: settings || {},
+          settings: settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : '{}',
         },
       });
     } else {
@@ -58,7 +58,7 @@ export const updateSettings = async (req: AuthRequest, res: Response) => {
           language: language || userSettings.language,
           currency: currency || userSettings.currency,
           timezone: timezone || userSettings.timezone,
-          settings: settings || userSettings.settings,
+          settings: settings ? (typeof settings === 'string' ? settings : JSON.stringify(settings)) : userSettings.settings,
           updatedAt: new Date(),
         },
       });

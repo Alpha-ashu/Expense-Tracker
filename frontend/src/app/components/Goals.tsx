@@ -138,7 +138,7 @@ export const Goals: React.FC = () => {
                 {overallProgress.toFixed(0)}%
               </h3>
             </div>
-            <div className="absolute top-0 right-0 w-48 h-48 sm:w-64 sm:h-64 bg-white/10 rounded-full blur-3xl -mr-16 sm:-mr-32 -mt-16 sm:-mt-32 pointer-events-none" />
+            <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           </Card>
         </motion.div>
       </div>

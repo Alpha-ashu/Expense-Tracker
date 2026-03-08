@@ -1,5 +1,4 @@
 import app from './app';
-import { setupSocketIO } from './sockets';
 import { logger } from './config/logger';
 import { initializeSocket } from './sockets/index';
 
@@ -40,6 +39,5 @@ const server = app.listen(PORT, () => {
 
 // Initialize WebSocket
 initializeSocket(server);
-setupSocketIO(server);
 
 export default server;

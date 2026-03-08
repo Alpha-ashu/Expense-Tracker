@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext'; import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { searchStocks, fetchStockQuote, StockSearchResult } from '@/lib/stockApi';
 
 export const AddInvestment: React.FC = () => {
   const { setCurrentPage, currency, refreshData } = useApp();
@@ -19,6 +20,57 @@ export const AddInvestment: React.FC = () => {
     broker: '',
     description: '',
   });
+
+  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (formData.type !== 'stocks') {
+      setShowSuggestions(false);
+      return;
+    }
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!formData.name.trim() || formData.name.length < 2) { 
+      setSearchResults([]); 
+      return; 
+    }
+    
+    if (!showSuggestions) return;
+
+    setSearching(true);
+    searchTimer.current = setTimeout(async () => {
+      const results = await searchStocks(formData.name.trim());
+      setSearchResults(results);
+      setSearching(false);
+    }, 500);
+    
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
+  }, [formData.name, formData.type, showSuggestions]);
+
+  const handleSelectStock = async (stock: StockSearchResult) => {
+    setFormData(prev => ({ ...prev, name: stock.symbol }));
+    setShowSuggestions(false);
+    
+    setFetchingPrice(true);
+    try {
+      const quote = await fetchStockQuote(stock.symbol);
+      if (quote) {
+        setFormData(prev => ({ 
+          ...prev, 
+          currentPrice: quote.lastPrice,
+          purchasePrice: prev.purchasePrice === 0 ? quote.lastPrice : prev.purchasePrice
+        }));
+        toast.success(`Fetched live price for ${stock.symbol}`);
+      }
+    } catch (e) {
+      toast.error('Failed to fetch live price');
+    } finally {
+      setFetchingPrice(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,16 +135,47 @@ export const AddInvestment: React.FC = () => {
         {/* Form */}
         <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-2xl">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
+            <div className="relative">
               <label className="block text-sm font-semibold text-gray-900 mb-3">Investment Name *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                placeholder="e.g., Apple Stock"
-                required
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => {
+                    setFormData({ ...formData, name: e.target.value });
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => { if (formData.type === 'stocks' && formData.name.length >= 2) setShowSuggestions(true); }}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                  placeholder="e.g., RELIANCE"
+                  required
+                />
+                {fetchingPrice && (
+                  <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" />
+                )}
+              </div>
+              
+              {showSuggestions && formData.type === 'stocks' && (searchResults.length > 0 || searching) && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {searching ? (
+                    <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
+                       <Loader2 size={14} className="animate-spin" /> Searching...
+                    </div>
+                  ) : (
+                    searchResults.map(result => (
+                      <button
+                        key={result.symbol}
+                        type="button"
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex flex-col border-b border-gray-50 last:border-0"
+                        onClick={() => handleSelectStock(result)}
+                      >
+                        <span className="font-bold text-sm text-gray-900">{result.symbol}</span>
+                        <span className="text-xs text-gray-500">{result.companyName}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
