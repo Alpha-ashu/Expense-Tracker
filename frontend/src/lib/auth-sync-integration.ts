@@ -7,7 +7,6 @@ import { db } from '@/lib/database';
  */
 export async function handleLoginSuccess(userId: string, token: string) {
   // Now handled correctly by AuthContext's syncFromSupabase
-  console.log('🔓 Login successful for user:', userId);
 }
 
 /**
@@ -16,48 +15,65 @@ export async function handleLoginSuccess(userId: string, token: string) {
  */
 export async function handleLogout() {
   // Now handled correctly by AuthContext's clearLocalUserData
-  console.log('🔐 User logging out');
 }
 
 /**
- * For any new transaction, save to local DB and Supabase
+ * For any new transaction, save to local DB and attempt Supabase sync.
+ * Local save is ALWAYS guaranteed. Supabase sync is best-effort / non-blocking.
  */
 export async function saveTransactionWithBackendSync(transaction: any) {
   try {
-    // 1. Always save locally first for fast UI response
+    // 1. Always save locally first — fast, works offline
     const dbTransaction = {
       ...transaction,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
     const savedId = await db.transactions.add(dbTransaction);
     const savedTransaction = { ...dbTransaction, id: savedId, local_id: savedId };
 
-    // 2. Try to save to Supabase directly if user is logged in
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const record = {
-        local_id: savedId,
-        type: transaction.type,
-        amount: transaction.amount,
-        description: transaction.description || '',
-        category: transaction.category || 'Other',
-        account_id: transaction.accountId,
-        date: new Date(transaction.date).toISOString(),
-        user_id: user.id
-      };
-      
-      // Fire and forget, don't block
-      supabase.from('transactions').insert([record])
-        .then(({ error }) => {
-           if (error) console.error('Supabase sync failed (non-blocking):', error)
-        })
-        .catch(err => console.error('Supabase sync error (non-blocking):', err));
-    }
+    // 2. Background Supabase sync — fire-and-forget, NEVER blocks UI or throws
+    supabase.auth.getUser()
+      .then(({ data: { user } }) => {
+        if (!user) return; // not logged in — skip
+
+        const record = {
+          local_id: savedId,
+          type: transaction.type,
+          amount: transaction.amount,
+          description: transaction.description || '',
+          category: transaction.category || 'Other',
+          account_id: transaction.accountId,
+          date: new Date(transaction.date).toISOString(),
+          user_id: user.id,
+        };
+
+        supabase.from('transactions').insert([record])
+          .then(({ error }) => {
+            if (!error) return; // success
+            const code = String(error?.code ?? '');
+            const msg = error?.message ?? '';
+            if (code === '23503') {
+              // Account FK not in Supabase yet — will resolve on next full sync
+              console.info('ℹ️ TX not synced: account not yet in remote DB');
+            } else if (code === '23505' || code === '409' || msg.includes('duplicate')) {
+              // Duplicate — already exists, safe to ignore
+              console.info('ℹ️ TX not synced: already exists in remote DB');
+            } else {
+              console.warn('⚠️ TX Supabase sync failed (non-blocking):', code, msg);
+            }
+          })
+          .catch(() => {
+            // Network error — expected when Supabase is paused
+            console.info('ℹ️ TX sync skipped: Supabase unreachable');
+          });
+      })
+      .catch(() => { /* session fetch failed — skip entirely */ });
 
     return savedTransaction;
   } catch (error) {
-    console.error('❌ Failed to save transaction:', error);
+    // Only local DB failures propagate
+    console.error('❌ Failed to save transaction locally:', error);
     throw error;
   }
 }
@@ -70,34 +86,34 @@ export async function saveAccountWithBackendSync(account: any) {
     const dbAccount = {
       ...account,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-    
     const savedId = await db.accounts.add(dbAccount);
     const savedAccount = { ...dbAccount, id: savedId, local_id: savedId };
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const record = {
-        local_id: savedId,
-        name: account.name,
-        type: account.type,
-        balance: account.balance || 0,
-        currency: account.currency || 'INR',
-        is_active: account.isActive ?? true,
-        user_id: user.id
-      };
-      
-      supabase.from('accounts').insert([record])
-        .then(({ error }) => {
-           if (error) console.error('Supabase sync failed:', error)
-        })
-        .catch(err => console.error('Supabase sync error:', err));
-    }
+    supabase.auth.getUser()
+      .then(({ data: { user } }) => {
+        if (!user) return;
+        const record = {
+          local_id: savedId,
+          name: account.name,
+          type: account.type,
+          balance: account.balance || 0,
+          currency: account.currency || 'INR',
+          is_active: account.isActive ?? true,
+          user_id: user.id,
+        };
+        supabase.from('accounts').insert([record])
+          .then(({ error }) => {
+            if (error) console.warn('⚠️ Account sync failed (non-blocking):', error?.code, error?.message);
+          })
+          .catch(() => console.info('ℹ️ Account sync skipped: Supabase unreachable'));
+      })
+      .catch(() => {});
 
     return savedAccount;
   } catch (error) {
-    console.error('❌ Failed to save account:', error);
+    console.error('❌ Failed to save account locally:', error);
     throw error;
   }
 }
@@ -110,35 +126,35 @@ export async function saveGoalWithBackendSync(goal: any) {
     const dbGoal = {
       ...goal,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
-    
     const savedId = await db.goals.add(dbGoal);
     const savedGoal = { ...dbGoal, id: savedId, local_id: savedId };
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const record = {
-        local_id: savedId,
-        name: goal.name,
-        target_amount: goal.targetAmount,
-        current_amount: goal.currentAmount || 0,
-        target_date: new Date(goal.targetDate).toISOString(),
-        category: goal.category || 'other',
-        is_group_goal: goal.isGroupGoal || false,
-        user_id: user.id
-      };
-      
-      supabase.from('goals').insert([record])
-        .then(({ error }) => {
-           if (error) console.error('Supabase sync failed:', error)
-        })
-        .catch(err => console.error('Supabase sync error:', err));
-    }
+    supabase.auth.getUser()
+      .then(({ data: { user } }) => {
+        if (!user) return;
+        const record = {
+          local_id: savedId,
+          name: goal.name,
+          target_amount: goal.targetAmount,
+          current_amount: goal.currentAmount || 0,
+          target_date: new Date(goal.targetDate).toISOString(),
+          category: goal.category || 'other',
+          is_group_goal: goal.isGroupGoal || false,
+          user_id: user.id,
+        };
+        supabase.from('goals').insert([record])
+          .then(({ error }) => {
+            if (error) console.warn('⚠️ Goal sync failed (non-blocking):', error?.code, error?.message);
+          })
+          .catch(() => console.info('ℹ️ Goal sync skipped: Supabase unreachable'));
+      })
+      .catch(() => {});
 
     return savedGoal;
   } catch (error) {
-    console.error('❌ Failed to save goal:', error);
+    console.error('❌ Failed to save goal locally:', error);
     throw error;
   }
 }
