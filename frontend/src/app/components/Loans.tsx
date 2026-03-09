@@ -1,18 +1,35 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
-import { Plus, DollarSign, Calendar, TrendingUp, AlertCircle, Edit2, Trash2, Home, Users } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, AlertCircle, Edit2, Trash2, Home, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
-import { AddLoanModalWithFriends } from '@/app/components/AddLoanModalWithFriends';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+const isOpenLoan = (loan: { status?: string; outstandingBalance: number }) =>
+  loan.outstandingBalance > 0 && loan.status !== 'completed';
+
+const getLoanStatusFromDueDate = (dueDate?: Date | string, outstandingBalance?: number) => {
+  if ((outstandingBalance ?? 0) <= 0) return 'completed' as const;
+  if (!dueDate) return 'active' as const;
+
+  const date = new Date(dueDate);
+  const today = new Date();
+  const dueKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  return dueKey < todayKey ? 'overdue' as const : 'active' as const;
+};
+
+const getEffectiveLoanStatus = (loan: { dueDate?: Date | string; outstandingBalance: number }) =>
+  getLoanStatusFromDueDate(loan.dueDate, loan.outstandingBalance);
+
 export const Loans: React.FC = () => {
-  const { loans, currency, accounts, friends, setCurrentPage } = useApp();
+  const { loans, currency, accounts, setCurrentPage } = useApp();
   const [showPaymentModal, setShowPaymentModal] = useState<number | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
@@ -21,19 +38,15 @@ export const Loans: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loanStats = useMemo(() => {
-    const borrowed = loans.filter(l => l.type === 'borrowed' && l.status === 'active');
-    const lent = loans.filter(l => l.type === 'lent' && l.status === 'active');
-    const emis = loans.filter(l => l.type === 'emi' && l.status === 'active');
+    const borrowed = loans.filter(l => l.type === 'borrowed' && isOpenLoan(l));
+    const lent = loans.filter(l => l.type === 'lent' && isOpenLoan(l));
+    const emis = loans.filter(l => l.type === 'emi' && isOpenLoan(l));
 
     return {
       totalBorrowed: borrowed.reduce((sum, l) => sum + l.outstandingBalance, 0),
       totalLent: lent.reduce((sum, l) => sum + l.outstandingBalance, 0),
       totalEMI: emis.reduce((sum, l) => sum + (l.emiAmount || 0), 0),
-      overdueCount: loans.filter(l => 
-        l.status === 'active' && 
-        l.dueDate && 
-        new Date(l.dueDate) < new Date()
-      ).length,
+      overdueCount: loans.filter(l => isOpenLoan(l) && getLoanStatusFromDueDate(l.dueDate, l.outstandingBalance) === 'overdue').length,
     };
   }, [loans]);
 
@@ -45,8 +58,9 @@ export const Loans: React.FC = () => {
   };
 
   const getLoanStatusColor = (loan: any) => {
-    if (loan.status === 'completed') return 'bg-green-100 text-green-700';
-    if (loan.status === 'overdue') return 'bg-red-100 text-red-700';
+    const status = getEffectiveLoanStatus(loan);
+    if (status === 'completed') return 'bg-green-100 text-green-700';
+    if (status === 'overdue') return 'bg-red-100 text-red-700';
     return 'bg-black/10 text-gray-900';
   };
 
@@ -58,6 +72,7 @@ export const Loans: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingLoanId) return;
     try {
+      const nextStatus = getLoanStatusFromDueDate(editFormData.dueDate, editFormData.outstandingBalance);
       await db.loans.update(editingLoanId, {
         name: editFormData.name,
         principalAmount: editFormData.principalAmount,
@@ -65,6 +80,7 @@ export const Loans: React.FC = () => {
         interestRate: editFormData.interestRate,
         emiAmount: editFormData.emiAmount,
         dueDate: editFormData.dueDate ? new Date(editFormData.dueDate) : undefined,
+        status: nextStatus,
       });
       setEditingLoanId(null);
       toast.success('Loan updated successfully');
@@ -199,8 +215,10 @@ export const Loans: React.FC = () => {
               <h3 className="text-xl font-display font-bold text-gray-900 mb-4 capitalize">{type === 'emi' ? 'EMI Loans' : `${type} Loans`}</h3>
               <div className="space-y-3">
                 {loans
-                  .filter(l => l.type === type && l.status === 'active')
-                  .map(loan => (
+                  .filter(l => l.type === type && isOpenLoan(l))
+                  .map(loan => {
+                    const effectiveStatus = getEffectiveLoanStatus(loan);
+                    return (
                     <motion.div key={loan.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -225,7 +243,7 @@ export const Loans: React.FC = () => {
                             <Trash2 size={14} />
                           </button>
                           <span className={cn("px-2 py-0.5 text-xs font-bold rounded-full", getLoanStatusColor(loan))}>
-                            {loan.status}
+                            {effectiveStatus}
                           </span>
                         </div>
                       </div>
@@ -327,10 +345,11 @@ export const Loans: React.FC = () => {
                         </button>
                       </>
                     )}
-                </motion.div>
-                ))}
-                {loans.filter(l => l.type === type && l.status === 'active').length === 0 && (
-                  <p className="text-gray-500 text-center py-8 text-sm">No active {type} loans</p>
+                    </motion.div>
+                  );
+                })}
+                {loans.filter(l => l.type === type && isOpenLoan(l)).length === 0 && (
+                  <p className="text-gray-500 text-center py-8 text-sm">No open {type} loans</p>
                 )}
               </div>
             </Card>
@@ -390,13 +409,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
     const newOutstanding = Math.max(0, loan.outstandingBalance - amount);
     await db.loans.update(loanId, {
       outstandingBalance: newOutstanding,
-      status: newOutstanding === 0 ? 'completed' : 'active',
+      status: getLoanStatusFromDueDate(loan.dueDate, newOutstanding),
     });
 
     const account = accounts.find(a => a.id === accountId);
     if (account) {
+      const nextBalance = loan.type === 'lent'
+        ? account.balance + amount
+        : account.balance - amount;
       await db.accounts.update(accountId, {
-        balance: account.balance - amount,
+        balance: nextBalance,
       });
     }
 

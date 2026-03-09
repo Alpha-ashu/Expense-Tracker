@@ -5,36 +5,40 @@ import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { Card } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { cn } from '@/lib/utils';
 import {
   downloadDataToFile,
-  uploadDataFromFile,
-  exportDataToJSON,
-  exportDataToCSV,
   createBackup,
   listBackups
 } from '@/lib/importExport';
 import supabase from '@/utils/supabase/client';
 import { permissionService } from '@/services/permissionService';
+import { ImportDataModal } from '@/app/components/ImportDataModal';
 
 export const Settings: React.FC = () => {
-  const { currency, setCurrency, language, setLanguage, setCurrentPage, visibleFeatures, setVisibleFeatures } = useApp();
+  const { currency, setCurrency, language, setLanguage, visibleFeatures, setVisibleFeatures, accounts, refreshData } = useApp();
   const { user, signOut } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
   const [backups, setBackups] = useState<Array<any>>([]);
   const [showBackups, setShowBackups] = useState(false);
+  const [importHistory, setImportHistory] = useState<Array<any>>([]);
+  const [showImportHistory, setShowImportHistory] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   React.useEffect(() => {
     loadBackups();
+    loadImportHistory();
   }, []);
 
   const loadBackups = async () => {
     const backupList = await listBackups();
     setBackups(backupList);
+  };
+
+  const loadImportHistory = async () => {
+    const history = await db.importHistories.orderBy('createdAt').reverse().limit(8).toArray();
+    setImportHistory(history);
   };
 
   const handleSignOut = async () => {
@@ -157,20 +161,6 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      if (confirm('This will replace all existing data. Are you sure?')) {
-        await uploadDataFromFile(file);
-        window.location.reload();
-      }
-    } catch (error) {
-      toast.error('Import failed. Please check the file format.');
-    }
-  };
-
   const handleClearAllData = async () => {
     if (confirm('This will delete ALL your data. This action cannot be undone. Are you sure?')) {
       if (confirm('Are you ABSOLUTELY sure? This is your last warning!')) {
@@ -181,6 +171,8 @@ export const Settings: React.FC = () => {
         await db.investments.clear();
         await db.groupExpenses.clear();
         await db.notifications.clear();
+        await db.categories.clear();
+        await db.importHistories.clear();
 
         toast.success('All data cleared');
         window.location.reload();
@@ -198,47 +190,10 @@ export const Settings: React.FC = () => {
         backTo="dashboard"
       />
 
-
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
-      >
-        <div className="p-6 border-b border-white/10">
-          <h3 className="text-lg font-semibold text-gray-900">System</h3>
-          <p className="text-sm text-gray-500 mt-1">Diagnostics and environment checks</p>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Database className="text-purple-600" size={20} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Diagnostics</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Check Supabase env vars, connectivity, and session status
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setCurrentPage('diagnostics')}
-                className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-900 transition-all active:scale-95 shadow-lg"
-              >
-                Open
-              </button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
         className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
         <div className="p-6 border-b border-white/10">
@@ -286,19 +241,16 @@ export const Settings: React.FC = () => {
                 <div>
                   <h4 className="font-medium text-gray-900">Import Data</h4>
                   <p className="text-sm text-gray-500 mt-1">
-                    Restore your data from a previously exported JSON file
+                    Preview and import CSV or JSON from other expense trackers, or restore a Finora backup
                   </p>
                 </div>
               </div>
-              <label className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-900 transition-all active:scale-95 cursor-pointer shadow-lg">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="px-4 py-2 bg-black text-white rounded-full hover:bg-gray-900 transition-all active:scale-95 cursor-pointer shadow-lg"
+              >
                 Import
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportFile}
-                  className="hidden"
-                />
-              </label>
+              </button>
             </div>
           </div>
 
@@ -350,6 +302,51 @@ export const Settings: React.FC = () => {
             </div>
           )}
 
+          {importHistory.length > 0 && (
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="font-medium text-gray-900">Recent Imports ({importHistory.length})</h4>
+                  <p className="text-sm text-gray-500 mt-1">Track imported files, skipped duplicates, and created categories</p>
+                </div>
+                <button
+                  onClick={() => setShowImportHistory(!showImportHistory)}
+                  className="text-black hover:text-gray-700 text-sm font-medium"
+                >
+                  {showImportHistory ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              {showImportHistory && (
+                <div className="space-y-3">
+                  {importHistory.map((entry, idx) => (
+                    <div key={entry.id ?? idx} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{entry.fileName}</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {new Date(entry.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-right text-sm">
+                          <p className="text-gray-900 font-medium">{entry.importedRecords} imported</p>
+                          <p className="text-gray-500">{entry.skippedRecords} skipped · {entry.duplicateRecords} duplicates</p>
+                        </div>
+                      </div>
+                      {entry.createdCategories?.length > 0 && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Created categories: {entry.createdCategories.join(', ')}
+                        </p>
+                      )}
+                      {entry.sourceKind === 'backup' && (
+                        <p className="text-sm text-gray-500 mt-2">Backup restore</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
@@ -373,6 +370,18 @@ export const Settings: React.FC = () => {
           </div>
         </div>
       </motion.div>
+
+      {showImportModal && (
+        <ImportDataModal
+          accounts={accounts}
+          userId={user?.id}
+          onClose={() => setShowImportModal(false)}
+          onImported={async () => {
+            await loadImportHistory();
+            await refreshData();
+          }}
+        />
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

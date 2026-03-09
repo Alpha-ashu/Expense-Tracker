@@ -112,6 +112,13 @@ const toDateInputValue = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+const getLoanStatusFromDates = (dueDateInput: string, referenceDate = new Date()) => {
+  const dueDate = new Date(dueDateInput);
+  const todayKey = toDateInputValue(referenceDate);
+  const dueKey = toDateInputValue(dueDate);
+  return dueKey < todayKey ? 'overdue' as const : 'active' as const;
+};
+
 interface LoanDraft {
   friendId?: number;
   contactName: string;
@@ -171,6 +178,8 @@ export const AddTransaction: React.FC = () => {
   const incomeSubcategoryPickerRef = useRef<HTMLDivElement | null>(null);
   const groupFriendPickerRef = useRef<HTMLDivElement | null>(null);
   const loanFriendPickerRef = useRef<HTMLDivElement | null>(null);
+  const loanDateInputRef = useRef<HTMLInputElement | null>(null);
+  const loanDueDateInputRef = useRef<HTMLInputElement | null>(null);
 
   /* ── pre-fill from localStorage ── */
   useEffect(() => {
@@ -493,6 +502,15 @@ export const AddTransaction: React.FC = () => {
     setFormData(prev => ({ ...prev, amount: parseFloat(val) || 0 }));
   };
 
+  const openDateInputPicker = (input: HTMLInputElement | null) => {
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      input.showPicker();
+      return;
+    }
+    input.click();
+  };
+
   const addGroupParticipant = (seed: Partial<GroupParticipantDraft> = {}) => {
     setGroupParticipants((prev) => [...prev, createEmptyParticipant(seed)]);
   };
@@ -731,7 +749,7 @@ export const AddTransaction: React.FC = () => {
             interestRate: loanDraft.interestRate > 0 ? loanDraft.interestRate : undefined,
             dueDate,
             frequency: 'custom',
-            status: dueDate.getTime() < now.getTime() ? 'overdue' : 'active',
+            status: getLoanStatusFromDates(loanDraft.dueDate, now),
             contactPerson: contactName,
             friendId: loanDraft.friendId,
             contactEmail: loanDraft.contactEmail.trim() || undefined,
@@ -1488,25 +1506,34 @@ export const AddTransaction: React.FC = () => {
 
             <FieldRow icon={<CalendarDays size={16} className="text-gray-500" />} label="Timeline">
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="relative block cursor-pointer">
-                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => openDateInputPicker(loanDateInputRef.current)}
+                    className="block w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 text-left shadow-sm transition-colors hover:border-gray-300"
+                  >
                     <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
                       {loanType === 'borrowed' ? 'Borrow date' : 'Lend date'}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">{formattedTransactionDate}</p>
-                  </div>
+                  </button>
                   <input
+                    ref={loanDateInputRef}
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
-                    className="absolute inset-0 cursor-pointer opacity-0"
+                    className="pointer-events-none absolute inset-0 opacity-0"
                     required
                     title="Select loan date"
                   />
-                </label>
+                </div>
 
-                <label className="relative block cursor-pointer">
-                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => openDateInputPicker(loanDueDateInputRef.current)}
+                    className="block w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 text-left shadow-sm transition-colors hover:border-gray-300"
+                  >
                     <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Due date</p>
                     <p className="mt-1 text-sm font-semibold text-gray-900">
                       {loanDraft.dueDate ? new Intl.DateTimeFormat('en-IN', {
@@ -1515,16 +1542,18 @@ export const AddTransaction: React.FC = () => {
                         year: 'numeric',
                       }).format(new Date(loanDraft.dueDate)) : 'Select due date'}
                     </p>
-                  </div>
+                  </button>
                   <input
+                    ref={loanDueDateInputRef}
                     type="date"
                     value={loanDraft.dueDate}
                     onChange={(e) => setLoanDraft((prev) => ({ ...prev, dueDate: e.target.value }))}
-                    className="absolute inset-0 cursor-pointer opacity-0"
+                    className="pointer-events-none absolute inset-0 opacity-0"
                     required={isLoanExpense}
+                    min={formData.date}
                     title="Select due date"
                   />
-                </label>
+                </div>
               </div>
             </FieldRow>
 

@@ -1,0 +1,491 @@
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Database,
+  FileJson,
+  FileSpreadsheet,
+  Loader2,
+  RefreshCcw,
+  Upload,
+  X,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { type Account } from '@/lib/database';
+import { INCOME_CATEGORIES, getExpenseCategoryNames } from '@/lib/expenseCategories';
+import {
+  smartExpenseImportService,
+  type ImportPreviewRow,
+  type SmartImportPreview,
+} from '@/services/smartExpenseImportService';
+
+interface ImportDataModalProps {
+  accounts: Account[];
+  userId?: string;
+  onClose: () => void;
+  onImported?: () => void;
+}
+
+const formatAmount = (amount: number) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+  }).format(amount || 0);
+
+const formatDate = (date: Date | null) =>
+  date
+    ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    : 'Invalid date';
+
+const expenseCategoryOptions = getExpenseCategoryNames();
+const incomeCategoryOptions = Object.values(INCOME_CATEGORIES).map((category) => category.name);
+
+export const ImportDataModal: React.FC<ImportDataModalProps> = ({
+  accounts,
+  userId,
+  onClose,
+  onImported,
+}) => {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<SmartImportPreview | null>(null);
+  const [rows, setRows] = useState<ImportPreviewRow[]>([]);
+  const [fallbackAccountId, setFallbackAccountId] = useState<number>(accounts[0]?.id ?? 0);
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [isParsing, setIsParsing] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const visibleRows = useMemo(() => rows.slice(0, 120), [rows]);
+
+  const handleFileSelection = async (file: File) => {
+    if (!file.name.match(/\.(csv|json)$/i)) {
+      toast.error('Select a CSV or JSON file');
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error('File size must be under 20MB');
+      return;
+    }
+
+    setSelectedFile(file);
+    setPreview(null);
+    setRows([]);
+    setIsParsing(true);
+
+    try {
+      const nextPreview = await smartExpenseImportService.analyzeFile(file, {
+        defaultAccountId: fallbackAccountId,
+      });
+      setPreview(nextPreview);
+      if (nextPreview.kind === 'third-party') {
+        setRows(nextPreview.rows);
+      }
+    } catch (error) {
+      console.error('Import preview failed:', error);
+      toast.error('Could not read this file');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleFallbackAccountChange = (accountId: number) => {
+    setFallbackAccountId(accountId);
+    setRows((currentRows) => currentRows.map((row) => ({ ...row, accountId })));
+  };
+
+  const handleCategoryChange = (rowId: string, category: string) => {
+    setRows((currentRows) =>
+      currentRows.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              category,
+              categoryResolution: 'manual',
+            }
+          : row,
+      ),
+    );
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile || !preview) return;
+
+    setIsImporting(true);
+
+    try {
+      if (preview.kind === 'backup') {
+        if (!window.confirm('This backup restore will replace all existing local data. Continue?')) {
+          setIsImporting(false);
+          return;
+        }
+
+        await smartExpenseImportService.restoreBackup({
+          fileName: selectedFile.name,
+          jsonText: await selectedFile.text(),
+          userId,
+        });
+
+        toast.success('Backup restored successfully');
+        onImported?.();
+        onClose();
+        window.location.reload();
+        return;
+      }
+
+      const result = await smartExpenseImportService.applyPreviewImport({
+        rows,
+        fileName: selectedFile.name,
+        fileType: preview.fileType,
+        skipDuplicates,
+        userId,
+      });
+
+      toast.success(`Imported ${result.importedCount} record${result.importedCount === 1 ? '' : 's'}`);
+      onImported?.();
+      onClose();
+    } catch (error) {
+      console.error('Import failed:', error);
+      toast.error('Import failed');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const canImportThirdParty = rows.some((row) => row.errors.length === 0 && (!skipDuplicates || !row.duplicate));
+
+  return (
+    <div className="fixed inset-0 z-[90] bg-black/50 p-4 sm:p-6">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12, scale: 0.98 }}
+        className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+      >
+        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900">Smart Import</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Import CSV or JSON from other expense trackers with preview, mapping, and duplicate checks.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 text-gray-500 transition hover:bg-gray-50"
+            aria-label="Close import modal"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          {!selectedFile && !isParsing && (
+            <div className="flex h-full flex-col items-center justify-center rounded-[28px] border border-dashed border-gray-300 bg-gray-50/80 px-6 py-16 text-center">
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white">
+                <Upload size={24} />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900">Import transactions from another app</h4>
+              <p className="mt-2 max-w-xl text-sm text-gray-500">
+                Supports CSV and JSON. We preview rows first, map categories, preserve extra fields in metadata,
+                and only then import.
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-6 rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900"
+              >
+                Choose file
+              </button>
+            </div>
+          )}
+
+          {isParsing && (
+            <div className="flex h-full flex-col items-center justify-center py-16 text-center">
+              <Loader2 size={36} className="animate-spin text-gray-500" />
+              <h4 className="mt-4 text-lg font-semibold text-gray-900">Preparing preview</h4>
+              <p className="mt-1 text-sm text-gray-500">Parsing rows, matching categories, and checking duplicates.</p>
+            </div>
+          )}
+
+          {selectedFile && preview?.kind === 'backup' && !isParsing && (
+            <div className="space-y-5">
+              <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-2xl bg-amber-100 p-2 text-amber-700">
+                    <Database size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-amber-900">Finora backup detected</h4>
+                    <p className="mt-1 text-sm text-amber-800">
+                      Restoring this file will replace your current local data.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {preview.counts.map((item) => (
+                  <div key={item.label} className="rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">{item.label}</p>
+                    <p className="mt-2 text-2xl font-semibold text-gray-900">{item.count}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-[24px] border border-gray-200 bg-white px-5 py-4">
+                <div className="flex flex-wrap gap-6 text-sm text-gray-600">
+                  <div>
+                    <span className="font-medium text-gray-900">File:</span> {preview.fileName}
+                  </div>
+                  {preview.version && (
+                    <div>
+                      <span className="font-medium text-gray-900">Version:</span> {preview.version}
+                    </div>
+                  )}
+                  {preview.exportedAt && (
+                    <div>
+                      <span className="font-medium text-gray-900">Exported:</span>{' '}
+                      {new Date(preview.exportedAt).toLocaleString('en-IN')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedFile && preview?.kind === 'third-party' && !isParsing && (
+            <div className="space-y-5">
+              {accounts.length === 0 && (
+                <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
+                  Create at least one account before importing third-party transactions. Backup restore still works without this.
+                </div>
+              )}
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Ready</p>
+                  <p className="mt-2 text-2xl font-semibold text-gray-900">{preview.summary.readyRecords}</p>
+                </div>
+                <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-600">Duplicates</p>
+                  <p className="mt-2 text-2xl font-semibold text-amber-900">{preview.summary.duplicateRecords}</p>
+                </div>
+                <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">Invalid</p>
+                  <p className="mt-2 text-2xl font-semibold text-red-700">{preview.summary.invalidRecords}</p>
+                </div>
+                <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">New Categories</p>
+                  <p className="mt-2 text-2xl font-semibold text-emerald-800">{preview.summary.createdCategories.length}</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 rounded-[28px] border border-gray-200 bg-gray-50/80 p-4 lg:grid-cols-[1.2fr_0.8fr]">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Import Into Account</p>
+                  <select
+                    value={fallbackAccountId}
+                    onChange={(event) => handleFallbackAccountChange(Number(event.target.value))}
+                    className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/5"
+                    aria-label="Select import target account"
+                  >
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>
+                        {account.name} ({account.currency} {account.balance.toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Extra payment method or account fields from the source file are still preserved in transaction metadata.
+                  </p>
+                </div>
+
+                <div className="flex flex-col justify-between rounded-[24px] border border-gray-200 bg-white px-4 py-4">
+                  <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={skipDuplicates}
+                      onChange={(event) => setSkipDuplicates(event.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                    />
+                    Skip duplicate rows on import
+                  </label>
+                  <div className="mt-3 text-xs text-gray-500">
+                    Duplicate rule: same date + amount + description.
+                  </div>
+                </div>
+              </div>
+
+              {preview.errors.length > 0 && (
+                <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                  {preview.errors.map((error) => (
+                    <div key={error}>{error}</div>
+                  ))}
+                </div>
+              )}
+
+              <div className="overflow-hidden rounded-[28px] border border-gray-200 bg-white">
+                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">Import Preview</h4>
+                    <p className="text-sm text-gray-500">
+                      Review mappings before import. Showing {visibleRows.length} of {rows.length} rows.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => selectedFile && handleFileSelection(selectedFile)}
+                    className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    <RefreshCcw size={14} />
+                    Re-scan
+                  </button>
+                </div>
+
+                <div className="max-h-[48vh] overflow-auto">
+                  <table className="min-w-full divide-y divide-gray-100 text-sm">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="text-left text-xs uppercase tracking-[0.18em] text-gray-400">
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Category</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {visibleRows.map((row) => {
+                        const isError = row.errors.length > 0;
+                        const isDuplicate = row.duplicate;
+                        return (
+                          <tr key={row.id} className="align-top">
+                            <td className="px-4 py-3 text-gray-700">
+                              <div>{formatDate(row.date)}</div>
+                              <div className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
+                                {row.transactionType}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-gray-900">{formatAmount(row.amount)}</td>
+                            <td className="px-4 py-3">
+                              <select
+                                value={row.category}
+                                onChange={(event) => handleCategoryChange(row.id, event.target.value)}
+                                className="h-11 min-w-[200px] rounded-2xl border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/5"
+                                aria-label={`Category for row ${row.rowNumber}`}
+                              >
+                                {(row.transactionType === 'expense' ? expenseCategoryOptions : incomeCategoryOptions)
+                                  .concat(row.category)
+                                  .filter((value, index, array) => array.indexOf(value) === index)
+                                  .map((value) => (
+                                    <option key={value} value={value}>
+                                      {value}
+                                    </option>
+                                  ))}
+                              </select>
+                              {row.rawCategory && row.rawCategory !== row.category && (
+                                <p className="mt-1 text-xs text-gray-500">Source: {row.rawCategory}</p>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              {isError ? (
+                                <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                                  <AlertTriangle size={14} />
+                                  {row.errors.join(', ')}
+                                </div>
+                              ) : isDuplicate ? (
+                                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                                  <RefreshCcw size={14} />
+                                  Duplicate
+                                </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                  <CheckCircle2 size={14} />
+                                  {row.categoryResolution === 'created'
+                                    ? 'New category'
+                                    : row.categoryResolution === 'mapped'
+                                      ? 'Will map'
+                                      : row.categoryResolution === 'detected'
+                                        ? 'Auto-detected'
+                                        : row.categoryResolution === 'manual'
+                                          ? 'Manually set'
+                                          : 'Ready'}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-gray-600">
+                              <div className="max-w-[360px] truncate font-medium text-gray-900">{row.description}</div>
+                              {row.merchant && <div className="mt-1 text-xs text-gray-500">Merchant: {row.merchant}</div>}
+                              {Object.keys(row.metadata).length > 0 && (
+                                <div className="mt-1 text-xs text-gray-400">
+                                  {Object.keys(row.metadata).length} extra field{Object.keys(row.metadata).length === 1 ? '' : 's'} preserved
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-gray-100 px-5 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-gray-500">
+              {selectedFile ? (
+                <div className="flex items-center gap-2">
+                  {selectedFile.name.toLowerCase().endsWith('.csv') ? <FileSpreadsheet size={16} /> : <FileJson size={16} />}
+                  {selectedFile.name}
+                </div>
+              ) : (
+                'Choose a file to begin.'
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                {selectedFile ? 'Change File' : 'Choose File'}
+              </button>
+              <button
+                onClick={handleImport}
+                disabled={
+                  isParsing ||
+                  isImporting ||
+                  !selectedFile ||
+                  !preview ||
+                  (preview.kind === 'third-party' && accounts.length === 0) ||
+                  (preview.kind === 'third-party' && !canImportThirdParty)
+                }
+                className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isImporting
+                  ? 'Importing...'
+                  : preview?.kind === 'backup'
+                    ? 'Restore Backup'
+                    : 'Confirm Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,.json"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) handleFileSelection(file);
+            event.target.value = '';
+          }}
+        />
+      </motion.div>
+    </div>
+  );
+};

@@ -7,6 +7,7 @@ export const exportDataToJSON = async (): Promise<string> => {
     const data = {
       accounts: await db.accounts.toArray(),
       transactions: await db.transactions.toArray(),
+      categories: await db.categories.toArray(),
       loans: await db.loans.toArray(),
       loanPayments: await db.loanPayments.toArray(),
       goals: await db.goals.toArray(),
@@ -15,6 +16,7 @@ export const exportDataToJSON = async (): Promise<string> => {
       investments: await db.investments.toArray(),
       notifications: await db.notifications.toArray(),
       friends: await db.friends.toArray(),
+      importHistories: await db.importHistories.toArray(),
       exportedAt: new Date().toISOString(),
       version: '1.0.0'
     };
@@ -77,6 +79,7 @@ export const importDataFromJSON = async (jsonData: string): Promise<void> => {
     // Clear existing data
     await db.accounts.clear();
     await db.transactions.clear();
+    await db.categories.clear();
     await db.loans.clear();
     await db.loanPayments.clear();
     await db.goals.clear();
@@ -85,6 +88,7 @@ export const importDataFromJSON = async (jsonData: string): Promise<void> => {
     await db.investments.clear();
     await db.notifications.clear();
     await db.friends.clear();
+    await db.importHistories.clear();
 
     // Import data
     if (data.accounts.length > 0) {
@@ -92,6 +96,9 @@ export const importDataFromJSON = async (jsonData: string): Promise<void> => {
     }
     if (data.transactions?.length > 0) {
       await db.transactions.bulkAdd(data.transactions);
+    }
+    if (data.categories?.length > 0) {
+      await db.categories.bulkAdd(data.categories);
     }
     if (data.loans?.length > 0) {
       await db.loans.bulkAdd(data.loans);
@@ -116,6 +123,9 @@ export const importDataFromJSON = async (jsonData: string): Promise<void> => {
     }
     if (data.friends?.length > 0) {
       await db.friends.bulkAdd(data.friends);
+    }
+    if (data.importHistories?.length > 0) {
+      await db.importHistories.bulkAdd(data.importHistories);
     }
 
     toast.success('Data imported successfully');

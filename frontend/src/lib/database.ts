@@ -56,6 +56,10 @@ export interface Transaction {
   groupExpenseId?: number;
   groupName?: string;
   splitType?: 'equal' | 'custom';
+  importSource?: string;
+  importMetadata?: Record<string, string>;
+  originalCategory?: string;
+  importedAt?: Date;
   // Transfer specific fields
   transferToAccountId?: number;
   transferType?: 'self-transfer' | 'other-transfer'; // self-transfer is between own accounts
@@ -281,6 +285,40 @@ export interface ExpenseCategory {
   type: 'expense' | 'income';
 }
 
+export interface AppCategory {
+  id: string;
+  name: string;
+  type: 'expense' | 'income';
+  color: string;
+  icon: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date;
+  userId?: string;
+  createdFromImport?: boolean;
+}
+
+export interface ImportHistory {
+  id?: number;
+  fileName: string;
+  fileType: 'csv' | 'json';
+  sourceKind: 'third-party' | 'backup';
+  totalRecords: number;
+  importedRecords: number;
+  skippedRecords: number;
+  duplicateRecords: number;
+  createdCategories: string[];
+  errors: string[];
+  createdAt: Date;
+  userId?: string;
+  metadata?: {
+    restoredBackup?: boolean;
+    exportedAt?: string;
+    version?: string;
+    fallbackAccountId?: number;
+  };
+}
+
 export interface ExpenseBill {
   id?: number;
   transactionId: number;
@@ -437,7 +475,8 @@ export class ProductionDB extends FinoraDB {
   errorReports!: Table<{ id: string; report: string; timestamp: Date }>;
   backups!: Table<{ id: string; data: string; timestamp: Date; size: number }>;
   settings!: Table<{ key: string; value: any; timestamp: Date }>;
-  categories!: Table<{ id: string; name: string; type: string; color: string; icon: string }>;
+  categories!: Table<AppCategory>;
+  importHistories!: Table<ImportHistory>;
   budgets!: Table<{ id: string; category: string; amount: number; period: string; spent: number; createdAt: Date }>;
   groups!: Table<{ id: string; name: string; members: string[]; createdAt: Date }>;
   taxCalculations!: Table<TaxCalculation>;
@@ -591,6 +630,40 @@ export class ProductionDB extends FinoraDB {
           closeNotes: record.closeNotes ?? '',
         });
       }
+    });
+
+    this.version(6).stores({
+      accounts: '++id, type, isActive',
+      friends: '++id, name, createdAt',
+      transactions: '++id, type, accountId, category, date',
+      loans: '++id, type, status, dueDate, friendId',
+      loanPayments: '++id, loanId, date',
+      goals: '++id, isGroupGoal, targetDate',
+      goalContributions: '++id, goalId, date',
+      groupExpenses: '++id, date',
+      investments: '++id, assetType, positionStatus, assetCurrency, baseCurrency',
+      notifications: '++id, type, userId, isRead, createdAt',
+      gold: '++id, type, unit, purchaseDate',
+      logs: 'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups: 'id, timestamp',
+      settings: 'key',
+      categories: 'id, type',
+      importHistories: '++id, createdAt, fileType, sourceKind, userId',
+      budgets: 'id, category, period',
+      groups: 'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills: '++id, transactionId, uploadedAt',
+      toDoLists: '++id, ownerId, createdAt, archived',
+      toDoItems: '++id, listId, completed, dueDate, priority',
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
     });
   }
 }
