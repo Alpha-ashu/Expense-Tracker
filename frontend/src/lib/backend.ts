@@ -141,6 +141,31 @@ export interface InvestmentSync {
   profitLoss: number;
   purchaseDate: Date;
   lastUpdated: Date;
+  broker?: string;
+  description?: string;
+  assetCurrency?: string;
+  baseCurrency?: string;
+  buyFxRate?: number;
+  lastKnownFxRate?: number;
+  totalInvestedNative?: number;
+  currentValueNative?: number;
+  valuationVersion?: number;
+  positionStatus?: 'open' | 'closed';
+  closedAt?: Date;
+  closePrice?: number;
+  closeFxRate?: number;
+  grossSaleValue?: number;
+  netSaleValue?: number;
+  fundingAccountId?: string;
+  purchaseFees?: number;
+  purchaseTransactionId?: string;
+  purchaseFeeTransactionId?: string;
+  saleTransactionId?: string;
+  saleFeeTransactionId?: string;
+  closingFees?: number;
+  realizedProfitLoss?: number;
+  settlementAccountId?: string;
+  closeNotes?: string;
   deletedAt?: Date;
 }
 
@@ -415,6 +440,31 @@ export class CloudSyncService {
       profitLoss: inv.profitLoss,
       purchaseDate: inv.purchaseDate,
       lastUpdated: inv.lastUpdated,
+      broker: inv.broker,
+      description: inv.description,
+      assetCurrency: inv.assetCurrency,
+      baseCurrency: inv.baseCurrency,
+      buyFxRate: inv.buyFxRate,
+      lastKnownFxRate: inv.lastKnownFxRate,
+      totalInvestedNative: inv.totalInvestedNative,
+      currentValueNative: inv.currentValueNative,
+      valuationVersion: inv.valuationVersion,
+      positionStatus: inv.positionStatus,
+      closedAt: inv.closedAt,
+      closePrice: inv.closePrice,
+      closeFxRate: inv.closeFxRate,
+      grossSaleValue: inv.grossSaleValue,
+      netSaleValue: inv.netSaleValue,
+      fundingAccountId: inv.fundingAccountId?.toString(),
+      purchaseFees: inv.purchaseFees,
+      purchaseTransactionId: inv.purchaseTransactionId?.toString(),
+      purchaseFeeTransactionId: inv.purchaseFeeTransactionId?.toString(),
+      saleTransactionId: inv.saleTransactionId?.toString(),
+      saleFeeTransactionId: inv.saleFeeTransactionId?.toString(),
+      closingFees: inv.closingFees,
+      realizedProfitLoss: inv.realizedProfitLoss,
+      settlementAccountId: inv.settlementAccountId?.toString(),
+      closeNotes: inv.closeNotes,
       deletedAt: inv.deletedAt
     }));
   }

@@ -3,9 +3,13 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { backendService } from '@/lib/backend-api';
+import { queueTransactionInsertSync } from '@/lib/auth-sync-integration';
+import { db } from '@/lib/database';
 import { TrendingUp, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { searchStocks, fetchStockQuote, StockQuote, StockSearchResult, displaySymbol } from '@/lib/stockApi';
+import { formatNativeMoney, getCurrencySymbol, normalizeCurrencyCode } from '@/lib/currencyUtils';
+import { fetchCurrencyConversionRate } from '@/lib/investmentUtils';
 
 const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
@@ -19,6 +23,7 @@ interface PendingInvestmentDraft {
   type?: 'stocks' | 'crypto';
   currentPrice?: number;
   currency?: string;
+  currencyCode?: string;
   marketState?: string;
   lastUpdate?: string;
 }
@@ -27,19 +32,10 @@ interface QuoteSnapshot {
   companyName: string;
   exchange: string;
   currentPrice: number;
-  currency: string;
+  currencyCode: string;
   marketState?: string;
   lastUpdate?: string;
 }
-
-const APP_CURRENCY_SYMBOLS: Record<string, string> = {
-  INR: '₹',
-  USD: '$',
-  EUR: '€',
-  GBP: '£',
-};
-
-const getAppCurrencySymbol = (currency: string) => APP_CURRENCY_SYMBOLS[currency] ?? currency;
 
 const resolveSelectedType = (symbol: string, fallback: InvestmentFormType): InvestmentFormType =>
   symbol.endsWith('-USD') ? 'crypto' : (fallback === 'crypto' ? 'crypto' : 'stocks');
@@ -48,21 +44,14 @@ const buildQuoteSnapshot = (quote: StockQuote): QuoteSnapshot => ({
   companyName: quote.companyName,
   exchange: quote.exchange,
   currentPrice: quote.lastPrice,
-  currency: quote.currency,
+  currencyCode: normalizeCurrencyCode(quote.currencyCode || quote.currency),
   marketState: quote.marketState,
   lastUpdate: quote.lastUpdate,
 });
 
-const formatAssetMoney = (amount: number, currencySymbol: string) => {
-  const locale = currencySymbol === '$' ? 'en-US' : 'en-IN';
-  return `${currencySymbol}${new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(amount) ? amount : 0)}`;
-};
-
 export const AddInvestment: React.FC = () => {
-  const { setCurrentPage, currency, refreshData } = useApp();
+  const { accounts, setCurrentPage, currency, refreshData } = useApp();
+  const activeAccounts = accounts.filter((account) => account.isActive);
   const [formData, setFormData] = useState({
     name: '',
     type: 'stocks' as InvestmentFormType,
@@ -72,6 +61,8 @@ export const AddInvestment: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     broker: '',
     description: '',
+    fundingAccountId: activeAccounts[0]?.id || 0,
+    purchaseFees: 0,
   });
 
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
@@ -83,12 +74,25 @@ export const AddInvestment: React.FC = () => {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isMarketAsset = formData.type === 'stocks' || formData.type === 'crypto';
-  const assetCurrency = quoteSnapshot?.currency || getAppCurrencySymbol(currency);
+  const assetCurrencyCode = quoteSnapshot?.currencyCode || normalizeCurrencyCode(currency);
+  const assetCurrency = getCurrencySymbol(assetCurrencyCode);
+  const showConversionHint = assetCurrencyCode !== normalizeCurrencyCode(currency);
   const livePrice = quoteSnapshot?.currentPrice || formData.currentPrice;
   const totalInvested = formData.purchasePrice * formData.quantity;
   const currentValue = livePrice * formData.quantity;
   const investmentGain = (livePrice - formData.purchasePrice) * formData.quantity;
   const gainPercentage = totalInvested > 0 ? (investmentGain / totalInvested) * 100 : 0;
+
+  useEffect(() => {
+    if (formData.fundingAccountId || !activeAccounts.length) {
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      fundingAccountId: activeAccounts[0]?.id || 0,
+    }));
+  }, [activeAccounts, formData.fundingAccountId]);
 
   const applyQuoteSnapshot = useCallback((quote: QuoteSnapshot, prefillBuyPrice = false) => {
     setQuoteSnapshot(quote);
@@ -159,12 +163,12 @@ export const AddInvestment: React.FC = () => {
       type: draftType,
     }));
 
-    if (parsedDraft.currentPrice && parsedDraft.currency) {
+    if (parsedDraft.currentPrice && (parsedDraft.currency || parsedDraft.currencyCode)) {
       applyQuoteSnapshot({
         companyName: parsedDraft.companyName || draftName,
         exchange: parsedDraft.exchange || '',
         currentPrice: parsedDraft.currentPrice,
-        currency: parsedDraft.currency,
+        currencyCode: normalizeCurrencyCode(parsedDraft.currencyCode || parsedDraft.currency, normalizeCurrencyCode(currency)),
         marketState: parsedDraft.marketState,
         lastUpdate: parsedDraft.lastUpdate,
       }, true);
@@ -270,9 +274,16 @@ export const AddInvestment: React.FC = () => {
       return;
     }
 
+    if (!formData.fundingAccountId) {
+      toast.error('Select a payment account for this purchase');
+      return;
+    }
+
     try {
       const assetSymbol = await resolveAssetSymbol();
       let effectiveCurrentPrice = livePrice;
+      const resolvedAssetCurrency = normalizeCurrencyCode(quoteSnapshot?.currencyCode || currency);
+      const fundingAccount = activeAccounts.find((account) => account.id === formData.fundingAccountId);
 
       if (isMarketAsset && selectedSymbol && effectiveCurrentPrice <= 0) {
         const quote = await loadLiveQuote(selectedSymbol, formData.type === 'crypto' ? 'crypto' : 'stocks', {
@@ -283,6 +294,11 @@ export const AddInvestment: React.FC = () => {
 
       if (isMarketAsset && effectiveCurrentPrice <= 0) {
         toast.error('Live market price is unavailable. Refresh the quote and try again.');
+        return;
+      }
+
+      if (!fundingAccount?.id) {
+        toast.error('Selected payment account is unavailable');
         return;
       }
 
@@ -298,8 +314,18 @@ export const AddInvestment: React.FC = () => {
       }
 
       const nextTotalInvested = formData.purchasePrice * formData.quantity;
-      const nextCurrentValue = effectiveCurrentPrice * formData.quantity;
-      const nextProfitLoss = (effectiveCurrentPrice - formData.purchasePrice) * formData.quantity;
+      const nextCurrentValueNative = effectiveCurrentPrice * formData.quantity;
+      const buyFxRate = await fetchCurrencyConversionRate(resolvedAssetCurrency, currency);
+      const currentFxRate = await fetchCurrencyConversionRate(resolvedAssetCurrency, currency);
+      const assetCostInBaseCurrency = nextTotalInvested * buyFxRate;
+      const totalPurchaseCost = assetCostInBaseCurrency + formData.purchaseFees;
+      const nextCurrentValue = nextCurrentValueNative * currentFxRate;
+      const nextProfitLoss = nextCurrentValue - totalPurchaseCost;
+
+      if (fundingAccount.balance < totalPurchaseCost) {
+        toast.error('Selected account does not have enough balance for this purchase');
+        return;
+      }
 
       const savedInvestment = await backendService.createInvestment({
         assetType: mapInvestmentType(formData.type),
@@ -307,7 +333,7 @@ export const AddInvestment: React.FC = () => {
         quantity: formData.quantity,
         buyPrice: formData.purchasePrice,
         currentPrice: effectiveCurrentPrice,
-        totalInvested: nextTotalInvested,
+        totalInvested: totalPurchaseCost,
         currentValue: nextCurrentValue,
         profitLoss: nextProfitLoss,
         purchaseDate: new Date(formData.date),
@@ -316,7 +342,107 @@ export const AddInvestment: React.FC = () => {
         deletedAt: undefined,
         broker: formData.broker,
         description: formData.description,
+        assetCurrency: resolvedAssetCurrency,
+        baseCurrency: currency,
+        buyFxRate,
+        lastKnownFxRate: currentFxRate,
+        totalInvestedNative: nextTotalInvested,
+        currentValueNative: nextCurrentValueNative,
+        valuationVersion: 2,
+        positionStatus: 'open',
+        fundingAccountId: fundingAccount.id,
+        purchaseFees: formData.purchaseFees,
       });
+
+      const localInvestmentId = Number(savedInvestment?.localId ?? savedInvestment?.id);
+      const investmentLabel = displaySymbol(assetSymbol);
+      const transactionDate = new Date(formData.date);
+      const createdAt = new Date();
+      let purchaseTransactionId: number | undefined;
+      let purchaseFeeTransactionId: number | undefined;
+
+      await db.transaction('rw', db.accounts, db.transactions, db.investments, async () => {
+        purchaseTransactionId = await db.transactions.add({
+          type: 'expense',
+          amount: assetCostInBaseCurrency,
+          accountId: fundingAccount.id!,
+          category: 'Investment Purchase',
+          subcategory: mapInvestmentType(formData.type),
+          description: `Bought ${investmentLabel}`,
+          merchant: formData.broker,
+          date: transactionDate,
+          tags: ['investment', 'purchase'],
+          createdAt,
+          updatedAt: createdAt,
+        });
+
+        if (formData.purchaseFees > 0) {
+          purchaseFeeTransactionId = await db.transactions.add({
+            type: 'expense',
+            amount: formData.purchaseFees,
+            accountId: fundingAccount.id!,
+            category: 'Investment Fees',
+            subcategory: mapInvestmentType(formData.type),
+            description: `Purchase fees for ${investmentLabel}`,
+            merchant: formData.broker,
+            date: transactionDate,
+            tags: ['investment', 'fee'],
+            createdAt,
+            updatedAt: createdAt,
+          });
+        }
+
+        await db.accounts.update(fundingAccount.id!, {
+          balance: fundingAccount.balance - totalPurchaseCost,
+          updatedAt: createdAt,
+        });
+
+        if (Number.isFinite(localInvestmentId)) {
+          await db.investments.update(localInvestmentId, {
+            purchaseTransactionId,
+            purchaseFeeTransactionId,
+          });
+        }
+      });
+
+      if (purchaseTransactionId) {
+        queueTransactionInsertSync(purchaseTransactionId, {
+          type: 'expense',
+          amount: assetCostInBaseCurrency,
+          accountId: fundingAccount.id!,
+          category: 'Investment Purchase',
+          subcategory: mapInvestmentType(formData.type),
+          description: `Bought ${investmentLabel}`,
+          merchant: formData.broker,
+          date: transactionDate,
+        });
+      }
+
+      if (purchaseFeeTransactionId) {
+        queueTransactionInsertSync(purchaseFeeTransactionId, {
+          type: 'expense',
+          amount: formData.purchaseFees,
+          accountId: fundingAccount.id!,
+          category: 'Investment Fees',
+          subcategory: mapInvestmentType(formData.type),
+          description: `Purchase fees for ${investmentLabel}`,
+          merchant: formData.broker,
+          date: transactionDate,
+        });
+      }
+
+      if (Number.isFinite(localInvestmentId)) {
+        try {
+          await backendService.updateInvestment(String(localInvestmentId), {
+            purchaseTransactionId,
+            purchaseFeeTransactionId,
+            fundingAccountId: fundingAccount.id,
+            purchaseFees: formData.purchaseFees,
+          });
+        } catch (syncError) {
+          console.error('Failed to sync purchase transaction metadata:', syncError);
+        }
+      }
 
       toast.success(savedInvestment?.storage === 'local'
         ? 'Investment added to your local portfolio'
@@ -361,6 +487,8 @@ export const AddInvestment: React.FC = () => {
                     date: formData.date,
                     broker: formData.broker,
                     description: formData.description,
+                    fundingAccountId: formData.fundingAccountId,
+                    purchaseFees: formData.purchaseFees,
                   });
                 }}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
@@ -461,7 +589,7 @@ export const AddInvestment: React.FC = () => {
                       <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">Live Price</p>
                         <p className="mt-1 text-lg font-bold text-gray-900">
-                          {quoteSnapshot?.currentPrice ? formatAssetMoney(quoteSnapshot.currentPrice, assetCurrency) : 'Unavailable'}
+                          {quoteSnapshot?.currentPrice ? formatNativeMoney(quoteSnapshot.currentPrice, assetCurrencyCode) : 'Unavailable'}
                         </p>
                       </div>
                       <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
@@ -581,6 +709,52 @@ export const AddInvestment: React.FC = () => {
             )}
 
             <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Payment Account *</label>
+              <select
+                value={formData.fundingAccountId || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(e.target.value, 10) || 0 }))}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                required
+              >
+                <option value="">Select an account</option>
+                {activeAccounts.map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name} ({formatNativeMoney(account.balance, currency)})
+                  </option>
+                ))}
+              </select>
+              {activeAccounts.length === 0 && (
+                <p className="mt-2 text-sm text-rose-600">
+                  Add an active account first so the buy amount can be deducted correctly.
+                </p>
+              )}
+              {activeAccounts.length > 0 && (
+                <p className="mt-2 text-sm text-gray-500">
+                  The stock purchase and any buy-side fees will be recorded against this account.
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-3">Buy-side Fees (Optional)</label>
+              <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <span className="text-gray-600 font-medium">{currency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.purchaseFees || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, purchaseFees: parseFloat(e.target.value) || 0 }))}
+                  className="w-full bg-transparent focus:outline-none"
+                  placeholder="0.00"
+                />
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Brokerage, platform charges, taxes, or any buy-side execution cost.
+              </p>
+            </div>
+
+            <div>
               <label className="block text-sm font-semibold text-gray-900 mb-3">Purchase Date *</label>
               <input
                 type="date"
@@ -621,22 +795,37 @@ export const AddInvestment: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Invested</p>
-                    <p className="mt-1 text-lg font-bold text-gray-900">{formatAssetMoney(totalInvested, assetCurrency)}</p>
+                    <p className="mt-1 text-lg font-bold text-gray-900">{formatNativeMoney(totalInvested, assetCurrencyCode)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Current Value</p>
-                    <p className="mt-1 text-lg font-bold text-gray-900">{formatAssetMoney(currentValue, assetCurrency)}</p>
+                    <p className="mt-1 text-lg font-bold text-gray-900">{formatNativeMoney(currentValue, assetCurrencyCode)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Profit / Loss</p>
                     <p className={`mt-1 text-lg font-bold ${investmentGain >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {investmentGain >= 0 ? '+' : '-'}{formatAssetMoney(Math.abs(investmentGain), assetCurrency)}
+                      {investmentGain >= 0 ? '+' : '-'}{formatNativeMoney(Math.abs(investmentGain), assetCurrencyCode)}
                     </p>
                     <p className={`text-sm ${investmentGain >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {gainPercentage >= 0 ? '+' : ''}{gainPercentage.toFixed(2)}%
                     </p>
                   </div>
                 </div>
+                {showConversionHint && (
+                  <p className="mt-4 text-sm text-gray-500">
+                    Portfolio totals and account deduction will be converted to {currency} using the latest FX rate when this holding is saved.
+                  </p>
+                )}
+                {!!formData.fundingAccountId && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Payment account: {activeAccounts.find((account) => account.id === formData.fundingAccountId)?.name || 'Selected account'}
+                  </p>
+                )}
+                {!!formData.purchaseFees && (
+                  <p className="mt-2 text-sm text-gray-500">
+                    Additional buy-side fees recorded: {formatNativeMoney(formData.purchaseFees, currency)}
+                  </p>
+                )}
               </div>
             )}
 

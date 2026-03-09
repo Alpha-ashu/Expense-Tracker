@@ -144,6 +144,31 @@ export interface Investment {
   profitLoss: number;
   purchaseDate: Date;
   lastUpdated: Date;
+  broker?: string;
+  description?: string;
+  assetCurrency?: string;
+  baseCurrency?: string;
+  buyFxRate?: number;
+  lastKnownFxRate?: number;
+  totalInvestedNative?: number;
+  currentValueNative?: number;
+  valuationVersion?: number;
+  positionStatus?: 'open' | 'closed';
+  closedAt?: Date;
+  closePrice?: number;
+  closeFxRate?: number;
+  grossSaleValue?: number;
+  netSaleValue?: number;
+  fundingAccountId?: number;
+  purchaseFees?: number;
+  purchaseTransactionId?: number;
+  purchaseFeeTransactionId?: number;
+  saleTransactionId?: number;
+  saleFeeTransactionId?: number;
+  closingFees?: number;
+  realizedProfitLoss?: number;
+  settlementAccountId?: number;
+  closeNotes?: string;
   updatedAt?: Date;
   deletedAt?: Date;
 }
@@ -465,6 +490,78 @@ export class ProductionDB extends FinoraDB {
       chatMessages: '++id, conversationId, timestamp, isRead',
       chatConversations: '++id, conversationId, advisorId, userId',
       bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+    });
+
+    this.version(5).stores({
+      accounts: '++id, type, isActive',
+      friends: '++id, name, createdAt',
+      transactions: '++id, type, accountId, category, date',
+      loans: '++id, type, status, dueDate, friendId',
+      loanPayments: '++id, loanId, date',
+      goals: '++id, isGroupGoal, targetDate',
+      goalContributions: '++id, goalId, date',
+      groupExpenses: '++id, date',
+      investments: '++id, assetType, positionStatus, assetCurrency, baseCurrency',
+      notifications: '++id, type, userId, isRead, createdAt',
+      gold: '++id, type, unit, purchaseDate',
+      logs: 'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups: 'id, timestamp',
+      settings: 'key',
+      categories: 'id, type',
+      budgets: 'id, category, period',
+      groups: 'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills: '++id, transactionId, uploadedAt',
+      toDoLists: '++id, ownerId, createdAt, archived',
+      toDoItems: '++id, listId, completed, dueDate, priority',
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+    }).upgrade(async (tx) => {
+      const investmentTable = tx.table('investments');
+      const legacyInvestments = await investmentTable.toArray();
+
+      for (const record of legacyInvestments as Array<Record<string, any>>) {
+        const assetName = String(record.assetName || '').toUpperCase();
+        const assetType = String(record.assetType || '').toLowerCase();
+        let inferredCurrency = 'USD';
+
+        if (assetName.endsWith('.NS') || assetName.endsWith('.BO')) {
+          inferredCurrency = 'INR';
+        } else if (assetName.endsWith('-USD') || assetType === 'crypto') {
+          inferredCurrency = 'USD';
+        } else if (assetName.endsWith('=X') && assetName.length >= 6) {
+          inferredCurrency = assetName.slice(3, 6);
+        } else if (assetType === 'gold' || assetType === 'silver' || assetType === 'other') {
+          inferredCurrency = record.baseCurrency || 'USD';
+        }
+
+        await investmentTable.put({
+          ...record,
+          broker: record.broker ?? '',
+          description: record.description ?? '',
+          assetCurrency: record.assetCurrency ?? inferredCurrency,
+          baseCurrency: record.baseCurrency ?? inferredCurrency,
+          buyFxRate: record.buyFxRate ?? 1,
+          lastKnownFxRate: record.lastKnownFxRate ?? 1,
+          totalInvestedNative: record.totalInvestedNative ?? (Number(record.buyPrice) || 0) * (Number(record.quantity) || 0),
+          currentValueNative: record.currentValueNative ?? (Number(record.currentPrice) || 0) * (Number(record.quantity) || 0),
+          positionStatus: record.positionStatus ?? 'open',
+          fundingAccountId: record.fundingAccountId ?? undefined,
+          purchaseFees: record.purchaseFees ?? 0,
+          purchaseTransactionId: record.purchaseTransactionId ?? undefined,
+          purchaseFeeTransactionId: record.purchaseFeeTransactionId ?? undefined,
+          saleTransactionId: record.saleTransactionId ?? undefined,
+          saleFeeTransactionId: record.saleFeeTransactionId ?? undefined,
+          closeNotes: record.closeNotes ?? '',
+        });
+      }
     });
   }
 }

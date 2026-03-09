@@ -85,27 +85,27 @@ export const Transactions: React.FC = () => {
         title="Transactions"
         subtitle="Track your financial activity"
         icon={<Wallet size={20} className="sm:w-6 sm:h-6" />}
-      />
-
-      {/* Action Buttons */}
-      <div className="flex gap-2 sm:gap-3 flex-wrap">
-        <Button
-          variant="secondary"
-          onClick={() => setShowScanModal(true)}
-          className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4"
-        >
-          <Camera size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-          <span className="hidden sm:inline">Scan Bill</span>
-          <span className="inline sm:hidden">Scan</span>
-        </Button>
-        <Button
-          onClick={() => setShowTransactionTypeModal(true)}
-          className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
-        >
-          <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-          Add
-        </Button>
-      </div>
+      >
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => setShowScanModal(true)}
+            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4"
+          >
+            <Camera size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Scan Bill</span>
+            <span className="inline sm:hidden">Scan</span>
+          </Button>
+          <Button
+            onClick={() => setShowTransactionTypeModal(true)}
+            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+          >
+            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Add Transaction</span>
+            <span className="inline sm:hidden">Add</span>
+          </Button>
+        </div>
+      </PageHeader>
 
       {/* Time Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

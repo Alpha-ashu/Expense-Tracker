@@ -149,7 +149,7 @@ export const LiveMarketTicker: React.FC = () => {
                 )}>
                   {item.badge}
                 </span>
-                <span className="font-display text-sm font-bold text-gray-900">{item.label}</span>
+                <span className="font-display text-sm font-bold text-gray-900">{item.displayLabel || item.label}</span>
                 <span className="text-sm font-semibold tabular-nums text-gray-700">
                   {formatFlashPrice(item)}
                 </span>

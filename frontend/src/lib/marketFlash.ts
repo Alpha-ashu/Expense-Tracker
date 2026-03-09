@@ -1,3 +1,4 @@
+import { getConversionRateFromQuotes } from '@/lib/currencyUtils';
 import type { StockQuote } from '@/lib/stockApi';
 
 export type FlashAssetKind = 'local' | 'global' | 'commodity' | 'forex' | 'crypto';
@@ -13,15 +14,18 @@ export interface FlashItem {
   id: string;
   badge: string;
   label: string;
+  displayLabel?: string;
   symbol: string;
   kind: FlashAssetKind;
   tone: FlashTone;
   quote: StockQuote;
+  displayPriceText?: string;
 }
 
 interface CountryFlashProfile {
   label: string;
   localAssets: FlashAsset[];
+  supportAssets?: FlashAsset[];
 }
 
 const GLOBAL_ASSETS: FlashAsset[] = [
@@ -59,6 +63,9 @@ const COUNTRY_FLASH_PROFILES: Record<string, CountryFlashProfile> = {
       { symbol: 'INFY.NS', label: 'Infosys', kind: 'local' },
       { symbol: 'HDFCBANK.NS', label: 'HDFC Bank', kind: 'local' },
       { symbol: 'RELIANCE.BO', label: 'Reliance BSE', kind: 'local' },
+    ],
+    supportAssets: [
+      { symbol: 'USDINR=X', label: 'USD/INR', kind: 'forex' },
     ],
   },
   'united states': {
@@ -174,6 +181,7 @@ export function getFlashAssets(country: string | undefined, currency: string) {
     countryLabel: profile?.label || inferCountryFromCurrency(currency),
     assets: [
       ...(profile?.localAssets || []),
+      ...(profile?.supportAssets || []),
       ...GLOBAL_ASSETS,
       ...COMMODITY_ASSETS,
       fxAsset,
@@ -208,6 +216,52 @@ function dedupeBySymbol(items: FlashAsset[]) {
     seen.add(item.symbol);
     return true;
   });
+}
+
+const TROY_OUNCE_TO_GRAMS = 31.1034768;
+const GOLD_22K_PURITY_FACTOR = 22 / 24;
+
+function formatIndianCommodityPrice(amount: number, unit: string) {
+  return `₹${new Intl.NumberFormat('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: amount >= 1000 ? 0 : 2,
+  }).format(amount)}/${unit}`;
+}
+
+function getCommodityDisplayOverrides(
+  asset: FlashAsset,
+  quote: StockQuote,
+  quotes: Record<string, StockQuote | null>,
+  countryLabel: string,
+) {
+  if (countryLabel === 'India') {
+    const usdInr = getConversionRateFromQuotes('USD', 'INR', quotes);
+    if (usdInr > 0) {
+      if (asset.label === 'Gold') {
+        const inrPerGram22k = (quote.lastPrice * usdInr / TROY_OUNCE_TO_GRAMS) * GOLD_22K_PURITY_FACTOR;
+        return {
+          displayLabel: '22k Gold',
+          displayPriceText: formatIndianCommodityPrice(inrPerGram22k, 'gm'),
+        };
+      }
+
+      if (asset.label === 'Silver') {
+        const inrPerKg = (quote.lastPrice * usdInr / TROY_OUNCE_TO_GRAMS) * 1000;
+        return {
+          displayLabel: 'Silver',
+          displayPriceText: formatIndianCommodityPrice(inrPerKg, 'kg'),
+        };
+      }
+    }
+  }
+
+  if (asset.label === 'Oil') {
+    return {
+      displayLabel: 'Crude Oil',
+    };
+  }
+
+  return {};
 }
 
 export function buildFlashItems(
@@ -249,14 +303,17 @@ export function buildFlashItems(
     }
 
     usedSymbols.add(source.symbol);
+    const displayOverrides = getCommodityDisplayOverrides(source, source.quote, quotes, countryLabel);
     output.push({
       id: `${badge}-${source.symbol}`,
       badge,
       label: source.label,
+      displayLabel: displayOverrides.displayLabel,
       symbol: source.symbol,
       kind: source.kind,
       tone,
       quote: source.quote,
+      displayPriceText: displayOverrides.displayPriceText,
     });
   };
 
@@ -296,6 +353,10 @@ export function buildFlashItems(
 }
 
 export function formatFlashPrice(item: FlashItem) {
+  if (item.displayPriceText) {
+    return item.displayPriceText;
+  }
+
   if (item.kind === 'forex') {
     const value = item.quote.lastPrice;
     return new Intl.NumberFormat('en-US', {

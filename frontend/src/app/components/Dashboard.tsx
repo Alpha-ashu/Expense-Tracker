@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import {
@@ -13,6 +13,14 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
+import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
+import { formatCurrencyAmount } from '@/lib/currencyUtils';
+import {
+  getInvestmentDisplayName,
+  getInvestmentMetrics,
+  getRequiredInvestmentQuoteSymbols,
+  isClosedInvestment,
+} from '@/lib/investmentUtils';
 
 interface DashboardProps {
   setCurrentPage?: (page: string) => void;
@@ -22,6 +30,12 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   const { accounts, transactions, goals, loans, investments, groupExpenses, currency } = useApp();
   const [activeTab, setActiveTab] = useState<'all' | 'bank' | 'card' | 'wallet' | 'cash'>('all');
   const [timePeriod, setTimePeriod] = useState<TimeFilterPeriod>('monthly');
+  const [investmentQuotes, setInvestmentQuotes] = useState<Record<string, StockQuote | null>>({});
+  const investmentPriceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const openInvestments = useMemo(
+    () => investments.filter((investment) => !isClosedInvestment(investment)),
+    [investments],
+  );
 
   const filteredAccounts = useMemo(() => {
     if (activeTab === 'all') return accounts;
@@ -118,17 +132,63 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   }, [loans, groupExpenses]);
 
   // ── Investments ────────────────────────────────────────────────────────────
+  const portfolioSymbols = useMemo(
+    () => getRequiredInvestmentQuoteSymbols(openInvestments, currency),
+    [currency, openInvestments],
+  );
+
+  const fetchDashboardInvestmentQuotes = useCallback(async () => {
+    if (!portfolioSymbols.length || !navigator.onLine) {
+      return;
+    }
+
+    const quotes = await fetchMultipleQuotes(portfolioSymbols);
+    setInvestmentQuotes(quotes);
+  }, [portfolioSymbols]);
+
+  useEffect(() => {
+    if (investmentPriceTimer.current) {
+      clearInterval(investmentPriceTimer.current);
+      investmentPriceTimer.current = null;
+    }
+
+    if (!portfolioSymbols.length) {
+      setInvestmentQuotes({});
+      return;
+    }
+
+    void fetchDashboardInvestmentQuotes();
+    investmentPriceTimer.current = setInterval(() => {
+      void fetchDashboardInvestmentQuotes();
+    }, 10_000);
+
+    return () => {
+      if (investmentPriceTimer.current) {
+        clearInterval(investmentPriceTimer.current);
+        investmentPriceTimer.current = null;
+      }
+    };
+  }, [portfolioSymbols, fetchDashboardInvestmentQuotes]);
+
+  const getDashboardInvestmentMetrics = useCallback(
+    (investment: typeof investments[number]) => getInvestmentMetrics(investment, currency, investmentQuotes),
+    [currency, investmentQuotes],
+  );
+
   const investmentStats = useMemo(() => {
-    const totalInvested = investments.reduce((s, i) => s + i.totalInvested, 0);
-    const currentValue = investments.reduce((s, i) => s + i.currentValue, 0);
+    const totalInvested = openInvestments.reduce((sum, investment) => sum + getDashboardInvestmentMetrics(investment).totalInvested, 0);
+    const currentValue = openInvestments.reduce((sum, investment) => sum + getDashboardInvestmentMetrics(investment).currentValue, 0);
     const totalReturns = currentValue - totalInvested;
     const returnsPercent = totalInvested > 0 ? (totalReturns / totalInvested) * 100 : 0;
-    return { totalInvested, currentValue, totalReturns, returnsPercent, count: investments.length };
-  }, [investments]);
+    return { totalInvested, currentValue, totalReturns, returnsPercent, count: openInvestments.length };
+  }, [getDashboardInvestmentMetrics, openInvestments]);
 
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', {
-    style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 0
-  }).format(amount);
+  const totalNetWorth = stats.totalBalance + investmentStats.currentValue;
+
+  const formatCurrency = (amount: number) => formatCurrencyAmount(amount, currency, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
 
   const tabs = [
     { id: 'all', label: 'All Assets', icon: TrendingUp },
@@ -180,7 +240,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             <div className="relative z-10">
               <p className="text-white/80 font-medium mb-1 text-sm text-center">Total Net Worth</p>
               <h2 className="text-3xl lg:text-4xl font-display font-bold text-white tracking-tight mb-6 text-center">
-                {formatCurrency(stats.totalBalance)}
+                {formatCurrency(totalNetWorth)}
               </h2>
               <div className="grid grid-cols-2 gap-3 lg:gap-4">
                 <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3">
@@ -521,20 +581,23 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 </div>
                 {/* Individual investments */}
                 <div className="divide-y divide-gray-100">
-                  {investments.slice(0, 3).map((inv) => (
+                  {openInvestments.slice(0, 3).map((inv) => {
+                    const metrics = getDashboardInvestmentMetrics(inv);
+                    return (
                     <div key={inv.id} className="flex items-center justify-between py-2.5">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{inv.assetName}</p>
-                        <p className="text-xs text-gray-400 capitalize">{inv.assetType}</p>
+                        <p className="text-sm font-semibold text-gray-900">{getInvestmentDisplayName(inv.assetName)}</p>
+                        <p className="text-xs text-gray-400 capitalize">{inv.assetType} · {metrics.assetCurrency}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(inv.currentValue)}</p>
-                        <p className={cn("text-xs font-semibold", inv.profitLoss >= 0 ? "text-green-600" : "text-red-500")}>
-                          {inv.profitLoss >= 0 ? '+' : ''}{formatCurrency(inv.profitLoss)}
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(metrics.currentValue)}</p>
+                        <p className={cn("text-xs font-semibold", metrics.profitLoss >= 0 ? "text-green-600" : "text-red-500")}>
+                          {metrics.profitLoss >= 0 ? '+' : ''}{formatCurrency(metrics.profitLoss)}
                         </p>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="flex items-center justify-end mt-2 text-xs text-gray-400 gap-1">
                   <span>View all investments</span>

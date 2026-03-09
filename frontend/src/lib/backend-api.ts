@@ -13,6 +13,42 @@ function shouldUseLocalFallback(error: unknown) {
   return status == null || status >= 500 || status === 404;
 }
 
+function normalizeInvestmentDates<T extends Record<string, any>>(investment: T): T {
+  const normalized: Record<string, any> = { ...investment };
+
+  if (normalized.purchaseDate) {
+    normalized.purchaseDate = normalized.purchaseDate instanceof Date
+      ? normalized.purchaseDate
+      : new Date(normalized.purchaseDate);
+  }
+
+  if (normalized.lastUpdated) {
+    normalized.lastUpdated = normalized.lastUpdated instanceof Date
+      ? normalized.lastUpdated
+      : new Date(normalized.lastUpdated);
+  }
+
+  if (normalized.updatedAt) {
+    normalized.updatedAt = normalized.updatedAt instanceof Date
+      ? normalized.updatedAt
+      : new Date(normalized.updatedAt);
+  }
+
+  if (normalized.deletedAt) {
+    normalized.deletedAt = normalized.deletedAt instanceof Date
+      ? normalized.deletedAt
+      : new Date(normalized.deletedAt);
+  }
+
+  if (normalized.closedAt) {
+    normalized.closedAt = normalized.closedAt instanceof Date
+      ? normalized.closedAt
+      : new Date(normalized.closedAt);
+  }
+
+  return normalized as T;
+}
+
 class BackendService {
   // ===== GOLD =====
   async createGold(gold: {
@@ -74,7 +110,32 @@ class BackendService {
     deletedAt?: Date;
     broker?: string;
     description?: string;
+    assetCurrency?: string;
+    baseCurrency?: string;
+    buyFxRate?: number;
+    lastKnownFxRate?: number;
+    totalInvestedNative?: number;
+    currentValueNative?: number;
+    valuationVersion?: number;
+    positionStatus?: 'open' | 'closed';
+    closedAt?: Date;
+    closePrice?: number;
+    closeFxRate?: number;
+    grossSaleValue?: number;
+    netSaleValue?: number;
+    fundingAccountId?: number;
+    purchaseFees?: number;
+    purchaseTransactionId?: number;
+    purchaseFeeTransactionId?: number;
+    saleTransactionId?: number;
+    saleFeeTransactionId?: number;
+    closingFees?: number;
+    realizedProfitLoss?: number;
+    settlementAccountId?: number;
+    closeNotes?: string;
   }) {
+    const localInvestment = normalizeInvestmentDates(investment);
+
     try {
       const response = await this.api.post('/investments', {
         ...investment,
@@ -82,25 +143,25 @@ class BackendService {
         lastUpdated: investment.lastUpdated.toISOString(),
         updatedAt: investment.updatedAt.toISOString(),
         deletedAt: investment.deletedAt ? investment.deletedAt.toISOString() : undefined,
+        closedAt: investment.closedAt ? investment.closedAt.toISOString() : undefined,
       });
-      return response.data;
+
+      const localId = await RealtimeDataManager.addInvestment(localInvestment);
+      return {
+        ...response.data,
+        localId,
+      };
     } catch (error) {
       if (!shouldUseLocalFallback(error)) {
         throw error;
       }
 
-      const id = await RealtimeDataManager.addInvestment({
-        ...investment,
-        purchaseDate: investment.purchaseDate,
-        lastUpdated: investment.lastUpdated,
-        updatedAt: investment.updatedAt,
-        deletedAt: investment.deletedAt,
-      });
+      const id = await RealtimeDataManager.addInvestment(localInvestment);
 
       console.info('ℹ️ Investments API unavailable — saved investment locally.');
       return {
         id,
-        ...investment,
+        ...localInvestment,
         storage: 'local' as const,
       };
     }
@@ -337,8 +398,43 @@ class BackendService {
 
   // ===== INVESTMENTS =====
   async updateInvestment(id: string, updates: any) {
-    const response = await this.api.put(`/investments/${id}`, updates);
-    return response.data;
+    const localId = Number(id);
+    const localUpdates = normalizeInvestmentDates(updates);
+
+    try {
+      const response = await this.api.put(`/investments/${id}`, updates);
+
+      if (Number.isFinite(localId)) {
+        await RealtimeDataManager.updateInvestment(localId, localUpdates);
+      }
+
+      return response.data;
+    } catch (error) {
+      if (!shouldUseLocalFallback(error) || !Number.isFinite(localId)) {
+        throw error;
+      }
+
+      await RealtimeDataManager.updateInvestment(localId, localUpdates);
+      console.info('ℹ️ Investments API unavailable — updated investment locally.');
+
+      return {
+        id: localId,
+        ...localUpdates,
+        storage: 'local' as const,
+      };
+    }
+  }
+
+  async deleteInvestment(id: string) {
+    try {
+      await this.api.delete(`/investments/${id}`);
+    } catch (error) {
+      if (!shouldUseLocalFallback(error)) {
+        throw error;
+      }
+
+      console.info('ℹ️ Investments API unavailable — removed investment locally only.');
+    }
   }
 
   // ===== BILLS =====

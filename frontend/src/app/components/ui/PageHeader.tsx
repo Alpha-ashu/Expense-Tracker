@@ -32,10 +32,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     };
 
     return (
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 lg:mb-8 pt-4">
-            {/* Left: Title Section */}
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-1">
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 mb-6 lg:mb-8 pt-4">
+            <div className="min-w-0">
+                <div className="flex items-center gap-3">
                     {showBack && (
                         <button
                             onClick={handleBackClick}
@@ -50,18 +49,18 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                         {title}
                     </h1>
                 </div>
-                {subtitle && (
-                    <p className={`text-gray-500 font-medium text-sm lg:text-base truncate ${showBack ? 'ml-10' : ''}`}>
-                        {subtitle}
-                    </p>
-                )}
             </div>
 
-            {/* Right: Action Button */}
             {children && (
-                <div className="flex-shrink-0">
+                <div className="justify-self-end self-start flex-shrink-0">
                     {children}
                 </div>
+            )}
+
+            {subtitle && (
+                <p className={`col-span-full text-gray-500 font-medium text-sm lg:text-base ${showBack ? 'ml-10' : ''}`}>
+                    {subtitle}
+                </p>
             )}
         </header>
     );

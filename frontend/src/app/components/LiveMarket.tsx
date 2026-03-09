@@ -261,6 +261,7 @@ export const LiveMarket: React.FC = () => {
       type: inferredType,
       currentPrice: quote.lastPrice,
       currency: quote.currency,
+      currencyCode: quote.currencyCode,
       marketState: quote.marketState ?? '',
       lastUpdate: quote.lastUpdate ?? '',
     };
@@ -380,6 +381,7 @@ export const LiveMarket: React.FC = () => {
       companyName: result.companyName,
       exchange: result.exchange,
       currency: isRupeeMarket ? '₹' : '$',
+      currencyCode: isRupeeMarket ? 'INR' : 'USD',
       marketState: undefined,
       lastPrice: 0,
       change: 0,
@@ -417,6 +419,7 @@ export const LiveMarket: React.FC = () => {
       type: inferredType,
       currentPrice: currentQuote?.lastPrice ?? 0,
       currency: currentQuote?.currency ?? '',
+      currencyCode: currentQuote?.currencyCode ?? '',
       marketState: currentQuote?.marketState ?? '',
       lastUpdate: currentQuote?.lastUpdate ?? '',
     };

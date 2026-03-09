@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
+import { backendService } from '@/lib/backend-api';
+import { queueTransactionDeleteSync } from '@/lib/auth-sync-integration';
 import { Plus, TrendingUp, TrendingDown, Edit2, Trash2, BarChart3, Activity, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
@@ -12,95 +14,56 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { cn } from '@/lib/utils';
 import { LiveMarket } from '@/app/components/LiveMarket';
 import { LiveMarketTicker } from '@/app/components/LiveMarketTicker';
-import { fetchMultipleQuotes, StockQuote, displaySymbol } from '@/lib/stockApi';
+import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
+import { formatCurrencyAmount, formatNativeMoney } from '@/lib/currencyUtils';
+import { CloseInvestmentModal } from '@/app/components/CloseInvestmentModal';
+import {
+  getInvestmentDisplayName,
+  getInvestmentMetrics,
+  getRequiredInvestmentQuoteSymbols,
+  isClosedInvestment,
+} from '@/lib/investmentUtils';
 
 const COLORS = ['#000000', '#666666', '#999999', '#CCCCCC', '#E5E5E5', '#F0F0F0'];
 
 type Tab = 'portfolio' | 'market';
 
-const resolvePortfolioQuoteSymbol = (assetName: string, assetType: string) => {
-  const trimmedName = assetName.trim();
-  const explicitTicker = trimmedName.match(/\(([A-Z0-9.=^-]+)\)\s*$/i)?.[1]?.toUpperCase();
-  const bareTicker = /^[A-Z0-9.=^-]+$/.test(trimmedName.toUpperCase())
-    ? trimmedName.toUpperCase()
-    : null;
-  const normalizedTicker = explicitTicker ?? bareTicker;
-
-  if (!normalizedTicker) {
-    return null;
-  }
-
-  if (explicitTicker) {
-    return explicitTicker;
-  }
-
-  if (
-    normalizedTicker.includes('.') ||
-    normalizedTicker.includes('=') ||
-    normalizedTicker.includes('^') ||
-    normalizedTicker.includes('-')
-  ) {
-    return normalizedTicker;
-  }
-
-  return assetType === 'crypto'
-    ? `${normalizedTicker}-USD`
-    : `${normalizedTicker}.NS`;
-};
-
-const getInvestmentDisplayName = (assetName: string) =>
-  assetName.includes(' ') ? assetName : displaySymbol(assetName);
-
 export const Investments: React.FC = () => {
-  const { investments, currency, setCurrentPage } = useApp();
+  const { investments, currency, setCurrentPage, refreshData } = useApp();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [investmentToDelete, setInvestmentToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('portfolio');
   const [liveQuotes, setLiveQuotes] = useState<Record<string, StockQuote | null>>({});
   const [updatingPrices, setUpdatingPrices] = useState(false);
+  const [closingInvestment, setClosingInvestment] = useState<(typeof investments)[number] | null>(null);
   const priceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Get stock/crypto symbols from portfolio for live price updates
-  // Detect market from asset type and symbol pattern
-  const portfolioSymbols = useMemo(
-    () => investments
-      .filter(inv => inv.assetType === 'stock' || inv.assetType === 'crypto')
-      .map(inv => resolvePortfolioQuoteSymbol(inv.assetName, inv.assetType))
-      .filter((symbol): symbol is string => Boolean(symbol)),
+  const openInvestments = useMemo(
+    () => investments.filter((investment) => !isClosedInvestment(investment)),
     [investments],
   );
 
-  // Map from resolved symbol back to assetName for lookup
-  const symbolToAssetName = useMemo(() => {
-    const map: Record<string, string> = {};
-    investments
-      .filter(inv => inv.assetType === 'stock' || inv.assetType === 'crypto')
-      .forEach(inv => {
-        const resolvedSymbol = resolvePortfolioQuoteSymbol(inv.assetName, inv.assetType);
-        if (resolvedSymbol) {
-          map[resolvedSymbol] = inv.assetName;
-        }
-      });
-    return map;
-  }, [investments]);
+  const completedInvestments = useMemo(
+    () => investments.filter((investment) => isClosedInvestment(investment)),
+    [investments],
+  );
+
+  const portfolioSymbols = useMemo(
+    () => getRequiredInvestmentQuoteSymbols(openInvestments, currency),
+    [openInvestments, currency],
+  );
 
   const fetchLivePrices = useCallback(async (isManual = false) => {
     if (!portfolioSymbols.length || !navigator.onLine) return;
     if (isManual) setUpdatingPrices(true);
     try {
       const quotes = await fetchMultipleQuotes(portfolioSymbols);
-      // Re-map keys from resolved symbols (e.g. RELIANCE.NS) to assetNames (e.g. RELIANCE)
-      const mapped: Record<string, StockQuote | null> = {};
-      for (const [resolvedSym, quote] of Object.entries(quotes)) {
-        const assetName = symbolToAssetName[resolvedSym] ?? resolvedSym;
-        mapped[assetName] = quote;
-      }
-      setLiveQuotes(mapped);
+      setLiveQuotes(quotes);
     } finally {
       setUpdatingPrices(false);
     }
-  }, [portfolioSymbols, symbolToAssetName]);
+  }, [portfolioSymbols]);
 
   // Auto-fetch live prices every 10s when on portfolio tab
   useEffect(() => {
@@ -110,25 +73,21 @@ export const Investments: React.FC = () => {
     return () => { if (priceTimer.current) clearInterval(priceTimer.current); };
   }, [activeTab, fetchLivePrices, portfolioSymbols]);
 
-  // Helper: get live price or fallback to stored price
-  const getLivePrice = (inv: typeof investments[0]) => {
-    const q = liveQuotes[inv.assetName];
-    return q ? q.lastPrice : inv.currentPrice;
-  };
+  const getMetrics = useCallback(
+    (investment: typeof investments[number]) => getInvestmentMetrics(investment, currency, liveQuotes),
+    [currency, liveQuotes],
+  );
 
   const portfolioStats = useMemo(() => {
-    const totalInvested = investments.reduce((sum, i) => sum + i.totalInvested, 0);
-    const currentValue = investments.reduce((sum, i) => {
-      const price = getLivePrice(i);
-      return sum + (price * i.quantity);
-    }, 0);
+    const totalInvested = openInvestments.reduce((sum, investment) => sum + getMetrics(investment).totalInvested, 0);
+    const currentValue = openInvestments.reduce((sum, investment) => sum + getMetrics(investment).currentValue, 0);
     const profitLoss = currentValue - totalInvested;
     const profitLossPercent = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
 
-    const assetAllocation = investments.reduce((acc: any, inv) => {
-      if (!acc[inv.assetType]) acc[inv.assetType] = 0;
-      const price = getLivePrice(inv);
-      acc[inv.assetType] += price * inv.quantity;
+    const assetAllocation = openInvestments.reduce((acc: any, investment) => {
+      const metrics = getMetrics(investment);
+      if (!acc[investment.assetType]) acc[investment.assetType] = 0;
+      acc[investment.assetType] += metrics.currentValue;
       return acc;
     }, {});
 
@@ -138,10 +97,9 @@ export const Investments: React.FC = () => {
     }));
 
     return { totalInvested, currentValue, profitLoss, profitLossPercent, chartData };
-  }, [investments, liveQuotes]);
+  }, [getMetrics, openInvestments]);
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+  const formatCurrency = (amount: number) => formatCurrencyAmount(amount, currency);
 
   const handleDeleteInvestment = (investmentId: number, investmentName: string) => {
     setInvestmentToDelete({ id: investmentId, name: investmentName });
@@ -152,7 +110,62 @@ export const Investments: React.FC = () => {
     if (!investmentToDelete) return;
     setIsDeleting(true);
     try {
-      await db.investments.delete(investmentToDelete.id);
+      const deletedTransactionIds: number[] = [];
+      const now = new Date();
+
+      await db.transaction('rw', db.accounts, db.transactions, db.investments, async () => {
+        const investment = await db.investments.get(investmentToDelete.id);
+        if (!investment?.id) {
+          return;
+        }
+
+        const linkedTransactionIds = [
+          investment.purchaseTransactionId,
+          investment.purchaseFeeTransactionId,
+          investment.saleTransactionId,
+          investment.saleFeeTransactionId,
+        ].filter((transactionId): transactionId is number => Number.isFinite(transactionId));
+
+        for (const transactionId of linkedTransactionIds) {
+          const transaction = await db.transactions.get(transactionId);
+          if (!transaction?.id) {
+            continue;
+          }
+
+          const account = await db.accounts.get(transaction.accountId);
+          if (account?.id) {
+            const balanceDelta = transaction.type === 'expense'
+              ? transaction.amount
+              : transaction.type === 'income'
+                ? -transaction.amount
+                : 0;
+
+            if (balanceDelta !== 0) {
+              await db.accounts.update(account.id, {
+                balance: account.balance + balanceDelta,
+                updatedAt: now,
+              });
+            }
+          }
+
+          await db.transactions.delete(transaction.id);
+          deletedTransactionIds.push(transaction.id);
+        }
+
+        await db.investments.delete(investment.id);
+      });
+
+      deletedTransactionIds.forEach((transactionId) => {
+        queueTransactionDeleteSync(transactionId);
+      });
+
+      try {
+        await backendService.deleteInvestment(String(investmentToDelete.id));
+      } catch (syncError) {
+        console.error('Failed to sync investment deletion to backend:', syncError);
+      }
+
+      refreshData();
       toast.success('Investment deleted successfully');
       setDeleteModalOpen(false);
       setInvestmentToDelete(null);
@@ -281,7 +294,7 @@ export const Investments: React.FC = () => {
           </div>
 
           {/* Charts */}
-          {investments.length > 0 && (
+          {openInvestments.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card variant="glass" className="p-6">
                 <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Asset Allocation</h3>
@@ -309,29 +322,23 @@ export const Investments: React.FC = () => {
               <Card variant="glass" className="p-6">
                 <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Top Performers</h3>
                 <div className="space-y-3">
-                  {[...investments]
-                    .sort((a, b) => {
-                      const aPL = (getLivePrice(a) * a.quantity - a.totalInvested) / a.totalInvested;
-                      const bPL = (getLivePrice(b) * b.quantity - b.totalInvested) / b.totalInvested;
-                      return bPL - aPL;
-                    })
+                  {[...openInvestments]
+                    .sort((a, b) => getMetrics(b).percentChange - getMetrics(a).percentChange)
                     .slice(0, 5)
                     .map(inv => {
-                      const livePrice = getLivePrice(inv);
-                      const livePL = livePrice * inv.quantity - inv.totalInvested;
-                      const plPercent = (livePL / inv.totalInvested) * 100;
+                      const metrics = getMetrics(inv);
                       return (
                         <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                           <div>
                             <p className="font-display font-bold text-gray-900 text-sm">{getInvestmentDisplayName(inv.assetName)}</p>
-                            <p className="text-xs text-gray-500 capitalize mt-0.5">{inv.assetType}</p>
+                            <p className="text-xs text-gray-500 capitalize mt-0.5">{inv.assetType} · {metrics.assetCurrency}</p>
                           </div>
                           <div className="text-right">
-                            <p className={`font-bold text-sm ${livePL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {livePL >= 0 ? '+' : ''}{formatCurrency(livePL)}
+                            <p className={`font-bold text-sm ${metrics.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {metrics.profitLoss >= 0 ? '+' : ''}{formatCurrency(metrics.profitLoss)}
                             </p>
-                            <p className={`text-xs ${livePL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {plPercent >= 0 ? '+' : ''}{plPercent.toFixed(2)}%
+                            <p className={`text-xs ${metrics.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {metrics.percentChange >= 0 ? '+' : ''}{metrics.percentChange.toFixed(2)}%
                             </p>
                           </div>
                         </div>
@@ -343,107 +350,116 @@ export const Investments: React.FC = () => {
           )}
 
           {/* ── Portfolio Table — desktop only ── */}
-          <Card variant="glass" className="overflow-hidden hidden sm:block">
-            <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                Portfolio Holdings
-                {Object.keys(liveQuotes).length > 0 && (
-                  <span className="ml-2 text-emerald-600 font-normal">● Live</span>
-                )}
-              </p>
-              <button
-                onClick={() => fetchLivePrices(true)}
-                disabled={updatingPrices}
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-40"
-              >
-                <RefreshCw size={12} className={cn(updatingPrices && 'animate-spin')} />
-                Update Prices
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50/50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Buy Price</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Current</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">P/L</th>
-                    <th className="px-6 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {investments.map(inv => {
-                    const livePrice = getLivePrice(inv);
-                    const liveValue = livePrice * inv.quantity;
-                    const livePL = liveValue - inv.totalInvested;
-                    const livePLPct = inv.totalInvested > 0 ? (livePL / inv.totalInvested) * 100 : 0;
-                    const isLive = !!liveQuotes[inv.assetName];
-                    return (
-                    <tr key={inv.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{getInvestmentDisplayName(inv.assetName)}</div>
-                        <div className="text-sm text-gray-500">{new Date(inv.purchaseDate).toLocaleDateString()}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize">{inv.assetType}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{inv.quantity}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{formatCurrency(inv.buyPrice)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                        <span className={isLive ? 'text-emerald-700 font-semibold' : ''}>
-                          {formatCurrency(livePrice)}
-                        </span>
-                        {isLive && <span className="ml-1 text-[10px] text-emerald-500">●</span>}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">{formatCurrency(liveValue)}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-semibold ${livePL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        <div className="flex items-center justify-end gap-1">
-                          {livePL >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                          {livePL >= 0 ? '+' : ''}{formatCurrency(livePL)}
-                        </div>
-                        <div className="text-xs">
-                          {livePL >= 0 ? '+' : ''}{livePLPct.toFixed(2)}%
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex gap-2 justify-center">
-                          <button
-                            onClick={() => { localStorage.setItem('editingInvestmentId', inv.id.toString()); setCurrentPage('edit-investment'); }}
-                            className="text-gray-600 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
-                            title="Edit"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteInvestment(inv.id!, inv.assetName)}
-                            className="text-red-600 hover:text-red-900 transition-colors p-1.5 hover:bg-red-100 rounded-lg"
-                            title="Delete"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
+          {openInvestments.length > 0 && (
+            <Card variant="glass" className="overflow-hidden hidden sm:block">
+              <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Portfolio Holdings
+                  {Object.keys(liveQuotes).length > 0 && (
+                    <span className="ml-2 text-emerald-600 font-normal">● Live</span>
+                  )}
+                </p>
+                <button
+                  onClick={() => fetchLivePrices(true)}
+                  disabled={updatingPrices}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-40"
+                >
+                  <RefreshCw size={12} className={cn(updatingPrices && 'animate-spin')} />
+                  Update Prices
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50/50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Asset</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Buy Price</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Current</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">P/L</th>
+                      <th className="px-6 py-3" />
                     </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {openInvestments.map(inv => {
+                      const metrics = getMetrics(inv);
+                      return (
+                        <tr key={inv.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{getInvestmentDisplayName(inv.assetName)}</div>
+                            <div className="text-sm text-gray-500">{new Date(inv.purchaseDate).toLocaleDateString()}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 capitalize">{inv.assetType}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{inv.quantity}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                            <div>{formatNativeMoney(metrics.nativeBuyPrice, metrics.assetCurrency)}</div>
+                            {metrics.assetCurrency !== currency && (
+                              <div className="text-xs text-gray-400">{formatCurrency(metrics.convertedBuyPrice)}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                            <div className={cn(metrics.isLive && 'text-emerald-700 font-semibold')}>
+                              {formatNativeMoney(metrics.nativeCurrentPrice, metrics.assetCurrency)}
+                              {metrics.isLive && <span className="ml-1 text-[10px] text-emerald-500">●</span>}
+                            </div>
+                            {metrics.assetCurrency !== currency && (
+                              <div className="text-xs text-gray-400">{formatCurrency(metrics.convertedCurrentPrice)}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">{formatCurrency(metrics.currentValue)}</td>
+                          <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-semibold ${metrics.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <div className="flex items-center justify-end gap-1">
+                              {metrics.profitLoss >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+                              {metrics.profitLoss >= 0 ? '+' : ''}{formatCurrency(metrics.profitLoss)}
+                            </div>
+                            <div className="text-xs">
+                              {metrics.percentChange >= 0 ? '+' : ''}{metrics.percentChange.toFixed(2)}%
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex gap-2 justify-center">
+                              <button
+                                onClick={() => { localStorage.setItem('editingInvestmentId', inv.id!.toString()); setCurrentPage('edit-investment'); }}
+                                className="text-gray-600 hover:text-gray-900 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => setClosingInvestment(inv)}
+                                className="px-3 py-1.5 rounded-lg bg-black text-white text-xs font-semibold hover:bg-gray-900 transition-colors"
+                                title="Complete Order"
+                              >
+                                Complete Order
+                              </button>
+                              <button
+                                onClick={() => handleDeleteInvestment(inv.id!, inv.assetName)}
+                                className="text-red-600 hover:text-red-900 transition-colors p-1.5 hover:bg-red-100 rounded-lg"
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
 
           {/* ── Portfolio Cards — mobile only ── */}
-          {investments.length > 0 && (
+          {openInvestments.length > 0 && (
             <div className="sm:hidden space-y-3">
-              {investments.map(inv => {
-                const livePrice = getLivePrice(inv);
-                const liveValue = livePrice * inv.quantity;
-                const livePL = liveValue - inv.totalInvested;
-                const plPercent = inv.totalInvested > 0 ? (livePL / inv.totalInvested) * 100 : 0;
-                const isProfit = livePL >= 0;
-                const isLive = !!liveQuotes[inv.assetName];
+              {openInvestments.map(inv => {
+                const metrics = getMetrics(inv);
+                const isProfit = metrics.profitLoss >= 0;
                 return (
                   <Card key={inv.id} variant="glass" className="p-4">
                     {/* Row 1: name + actions */}
@@ -457,7 +473,7 @@ export const Investments: React.FC = () => {
                       </div>
                       <div className="flex gap-1.5 shrink-0">
                         <button
-                          onClick={() => { localStorage.setItem('editingInvestmentId', inv.id.toString()); setCurrentPage('edit-investment'); }}
+                          onClick={() => { localStorage.setItem('editingInvestmentId', inv.id!.toString()); setCurrentPage('edit-investment'); }}
                           className="text-gray-500 hover:text-gray-900 transition-colors p-2 hover:bg-gray-100 rounded-xl"
                           title="Edit"
                         >
@@ -481,15 +497,17 @@ export const Investments: React.FC = () => {
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
                         <p className="text-xs text-gray-400 mb-0.5">Buy Price</p>
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(inv.buyPrice)}</p>
+                        <p className="text-sm font-bold text-gray-900">{formatNativeMoney(metrics.nativeBuyPrice, metrics.assetCurrency)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-400 mb-0.5">Current Price {isLive && <span className="text-emerald-500">●</span>}</p>
-                        <p className={cn("text-sm font-bold", isLive ? "text-emerald-700" : "text-gray-900")}>{formatCurrency(livePrice)}</p>
+                        <p className="text-xs text-gray-400 mb-0.5">Current Price {metrics.isLive && <span className="text-emerald-500">●</span>}</p>
+                        <p className={cn("text-sm font-bold", metrics.isLive ? "text-emerald-700" : "text-gray-900")}>
+                          {formatNativeMoney(metrics.nativeCurrentPrice, metrics.assetCurrency)}
+                        </p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
                         <p className="text-xs text-gray-400 mb-0.5">Total Value</p>
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(liveValue)}</p>
+                        <p className="text-sm font-bold text-gray-900">{formatCurrency(metrics.currentValue)}</p>
                       </div>
                     </div>
 
@@ -497,16 +515,74 @@ export const Investments: React.FC = () => {
                     <div className={`mt-3 flex items-center gap-1.5 px-3 py-2 rounded-xl ${isProfit ? 'bg-green-50' : 'bg-red-50'}`}>
                       {isProfit ? <TrendingUp size={15} className="text-green-600" /> : <TrendingDown size={15} className="text-red-600" />}
                       <span className={`text-sm font-bold ${isProfit ? 'text-green-700' : 'text-red-700'}`}>
-                        {isProfit ? '+' : ''}{formatCurrency(livePL)}
+                        {isProfit ? '+' : ''}{formatCurrency(metrics.profitLoss)}
                       </span>
                       <span className={`text-xs font-medium ml-auto ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
-                        {isProfit ? '+' : ''}{plPercent.toFixed(2)}%
+                        {metrics.percentChange >= 0 ? '+' : ''}{metrics.percentChange.toFixed(2)}%
                       </span>
                     </div>
+
+                    <button
+                      onClick={() => setClosingInvestment(inv)}
+                      className="mt-3 w-full rounded-xl bg-black text-white py-2.5 text-sm font-semibold hover:bg-gray-900 transition-colors"
+                    >
+                      Complete Order
+                    </button>
                   </Card>
                 );
               })}
             </div>
+          )}
+
+          {openInvestments.length === 0 && completedInvestments.length > 0 && (
+            <Card variant="glass" className="p-8 text-center">
+              <h3 className="text-xl font-display font-bold text-gray-900">No open holdings</h3>
+              <p className="text-gray-500 mt-2">All your tracked positions are completed. Add a new investment to start another order.</p>
+            </Card>
+          )}
+
+          {completedInvestments.length > 0 && (
+            <Card variant="glass" className="p-6">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-lg font-display font-bold text-gray-900">Completed Orders</h3>
+                  <p className="text-sm text-gray-500">Closed positions with realized returns and fees</p>
+                </div>
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                  {completedInvestments.length} closed
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {completedInvestments.map((investment) => {
+                  const metrics = getMetrics(investment);
+                  return (
+                    <div key={investment.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-display font-bold text-gray-900 truncate">{getInvestmentDisplayName(investment.assetName)}</p>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold">Closed</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Sold at {formatNativeMoney(investment.closePrice || metrics.nativeCurrentPrice, metrics.assetCurrency)}
+                          {investment.closedAt ? ` on ${new Date(investment.closedAt).toLocaleDateString()}` : ''}
+                        </p>
+                        {!!investment.closeNotes && (
+                          <p className="text-xs text-gray-400 mt-1">{investment.closeNotes}</p>
+                        )}
+                      </div>
+                      <div className="sm:text-right">
+                        <p className="text-sm font-semibold text-gray-500">Net Proceeds</p>
+                        <p className="text-base font-bold text-gray-900">{formatCurrency(metrics.netSaleValue ?? 0)}</p>
+                        <p className={`text-sm font-semibold ${metrics.profitLoss >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {metrics.profitLoss >= 0 ? '+' : ''}{formatCurrency(metrics.profitLoss)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
           )}
 
           {/* Empty state */}
@@ -534,11 +610,19 @@ export const Investments: React.FC = () => {
       <DeleteConfirmModal
         isOpen={deleteModalOpen}
         title="Delete Investment"
-        message="This investment record will be permanently deleted. All transaction history will be lost."
+        message="This investment record will be deleted, linked investment cashflows will be reversed, and related order transactions will be removed."
         itemName={investmentToDelete?.name}
         isLoading={isDeleting}
         onConfirm={confirmDeleteInvestment}
         onCancel={() => { setDeleteModalOpen(false); setInvestmentToDelete(null); }}
+      />
+
+      <CloseInvestmentModal
+        investment={closingInvestment}
+        quotes={liveQuotes}
+        isOpen={Boolean(closingInvestment)}
+        onClose={() => setClosingInvestment(null)}
+        onCompleted={() => setClosingInvestment(null)}
       />
     </div>
   );

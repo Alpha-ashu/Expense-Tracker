@@ -1,4 +1,5 @@
 import { API_CONFIG } from '@/constants';
+import { getCurrencySymbol, normalizeCurrencyCode } from '@/lib/currencyUtils';
 
 const API_BASE = (import.meta.env.VITE_API_URL || API_CONFIG.BASE_URL || '/api/v1').replace(/\/+$/, '');
 const TWELVE_DATA_BASE = (import.meta.env.VITE_TWELVEDATA_BASE_URL || 'https://api.twelvedata.com').replace(/\/+$/, '');
@@ -65,6 +66,7 @@ export interface StockQuote {
   companyName: string;
   exchange: string;
   currency: string;
+  currencyCode?: string;
   marketState?: string;
   lastPrice: number;
   change: number;
@@ -253,38 +255,42 @@ function isForexInstrument(exchange?: string, instrumentType?: string, micCode?:
     /^[A-Z]{3}\/[A-Z]{3}$/.test(normalizedSymbol);
 }
 
-function currencyCodeToSymbol(currency?: string, market?: ProviderMarket, symbol?: string) {
-  const normalized = (currency || '').toUpperCase();
-  const symbols: Record<string, string> = {
-    INR: '₹',
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    JPY: '¥',
-    AUD: 'A$',
-    CAD: 'C$',
-    SGD: 'S$',
-    CHF: 'CHF',
-  };
+function resolveQuoteCurrencyCode(currency?: string, market?: ProviderMarket, symbol?: string) {
+  const normalizedSymbol = (symbol || '').trim().toUpperCase();
 
-  if (symbols[normalized]) {
-    return symbols[normalized];
+  if (normalizedSymbol.endsWith('=F')) {
+    return 'USD';
+  }
+
+  if (normalizedSymbol.endsWith('=X')) {
+    const pair = normalizedSymbol.replace(/=X$/, '');
+    if (pair.length === 3) {
+      return normalizeCurrencyCode(pair, 'USD');
+    }
+
+    if (pair.length >= 6) {
+      return normalizeCurrencyCode(pair.slice(-3), 'USD');
+    }
+  }
+
+  const normalized = normalizeCurrencyCode(currency, '');
+  if (normalized) {
+    return normalized;
   }
 
   if (market === 'crypto') {
-    return '$';
+    return 'USD';
   }
 
   if (market === 'forex' && symbol?.includes('/')) {
-    const quoteCurrency = symbol.split('/')[1]?.toUpperCase();
-    return symbols[quoteCurrency] ?? quoteCurrency ?? '$';
+    return normalizeCurrencyCode(symbol.split('/')[1], 'USD');
   }
 
   if (market === 'nse' || market === 'bse') {
-    return '₹';
+    return 'INR';
   }
 
-  return '$';
+  return 'USD';
 }
 
 function normalizeAppSymbol(symbol: string, exchange?: string, instrumentType?: string, micCode?: string) {
@@ -390,11 +396,13 @@ function resolveTwelveDataTarget(symbol: string, market?: string): TwelveDataTar
 
 function mapApiResponse(data: any, symbol: string): StockQuote {
   const details = data.data;
+  const currencyCode = resolveQuoteCurrencyCode(data.currency, undefined, symbol);
   return {
     symbol,
     companyName: details.company_name ?? symbol,
     exchange: data.exchange ?? 'NSE',
-    currency: data.currency ?? '₹',
+    currency: getCurrencySymbol(currencyCode),
+    currencyCode,
     marketState: data.marketState,
     lastPrice: Number(details.last_price) || 0,
     change: Number(details.change) || 0,
@@ -422,12 +430,14 @@ function mapTwelveDataQuote(data: any, target: TwelveDataTarget): StockQuote {
   const percentChange = Number(data.percent_change ?? (previousClose ? (change / previousClose) * 100 : 0)) || 0;
   const fiftyTwoWeek = data.fifty_two_week || {};
   const quoteTimestamp = data.last_quote_at || data.timestamp;
+  const currencyCode = resolveQuoteCurrencyCode(data.currency, target.market, target.symbol);
 
   return {
     symbol: target.requestSymbol,
     companyName: data.name ?? target.requestSymbol,
     exchange: data.exchange || target.exchange || target.market.toUpperCase(),
-    currency: currencyCodeToSymbol(data.currency, target.market, target.symbol),
+    currency: getCurrencySymbol(currencyCode),
+    currencyCode,
     marketState: typeof data.is_market_open === 'boolean'
       ? (data.is_market_open ? 'open' : 'closed')
       : undefined,

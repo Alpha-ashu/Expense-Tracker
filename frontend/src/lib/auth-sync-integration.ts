@@ -1,6 +1,88 @@
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 
+function mapTransactionRecord(transaction: any) {
+  return {
+    type: transaction.type,
+    amount: transaction.amount,
+    description: transaction.description || '',
+    category: transaction.category || 'Other',
+    account_id: transaction.accountId,
+    date: new Date(transaction.date).toISOString(),
+  };
+}
+
+export function queueTransactionInsertSync(localId: number, transaction: any) {
+  supabase.auth.getUser()
+    .then(({ data: { user } }) => {
+      if (!user) return;
+
+      const record = {
+        local_id: localId,
+        ...mapTransactionRecord(transaction),
+        user_id: user.id,
+      };
+
+      supabase.from('transactions').insert([record])
+        .then(({ error }) => {
+          if (!error) return;
+          const code = String(error?.code ?? '');
+          const msg = error?.message ?? '';
+          if (code === '23503') {
+            console.info('ℹ️ TX not synced: account not yet in remote DB');
+          } else if (code === '23505' || code === '409' || msg.includes('duplicate')) {
+            console.info('ℹ️ TX not synced: already exists in remote DB');
+          } else {
+            console.warn('⚠️ TX Supabase sync failed (non-blocking):', code, msg);
+          }
+        })
+        .catch(() => {
+          console.info('ℹ️ TX sync skipped: Supabase unreachable');
+        });
+    })
+    .catch(() => {});
+}
+
+export function queueTransactionUpdateSync(localId: number, transaction: any) {
+  supabase.auth.getUser()
+    .then(({ data: { user } }) => {
+      if (!user) return;
+
+      supabase.from('transactions')
+        .update(mapTransactionRecord(transaction))
+        .eq('local_id', localId)
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (!error) return;
+          console.warn('⚠️ TX update sync failed (non-blocking):', error?.code, error?.message);
+        })
+        .catch(() => {
+          console.info('ℹ️ TX update sync skipped: Supabase unreachable');
+        });
+    })
+    .catch(() => {});
+}
+
+export function queueTransactionDeleteSync(localId: number) {
+  supabase.auth.getUser()
+    .then(({ data: { user } }) => {
+      if (!user) return;
+
+      supabase.from('transactions')
+        .delete()
+        .eq('local_id', localId)
+        .eq('user_id', user.id)
+        .then(({ error }) => {
+          if (!error) return;
+          console.warn('⚠️ TX delete sync failed (non-blocking):', error?.code, error?.message);
+        })
+        .catch(() => {
+          console.info('ℹ️ TX delete sync skipped: Supabase unreachable');
+        });
+    })
+    .catch(() => {});
+}
+
 /**
  * Call this after successful login
  * This syncs all user data from backend to local cache
@@ -33,42 +115,7 @@ export async function saveTransactionWithBackendSync(transaction: any) {
     const savedTransaction = { ...dbTransaction, id: savedId, local_id: savedId };
 
     // 2. Background Supabase sync — fire-and-forget, NEVER blocks UI or throws
-    supabase.auth.getUser()
-      .then(({ data: { user } }) => {
-        if (!user) return; // not logged in — skip
-
-        const record = {
-          local_id: savedId,
-          type: transaction.type,
-          amount: transaction.amount,
-          description: transaction.description || '',
-          category: transaction.category || 'Other',
-          account_id: transaction.accountId,
-          date: new Date(transaction.date).toISOString(),
-          user_id: user.id,
-        };
-
-        supabase.from('transactions').insert([record])
-          .then(({ error }) => {
-            if (!error) return; // success
-            const code = String(error?.code ?? '');
-            const msg = error?.message ?? '';
-            if (code === '23503') {
-              // Account FK not in Supabase yet — will resolve on next full sync
-              console.info('ℹ️ TX not synced: account not yet in remote DB');
-            } else if (code === '23505' || code === '409' || msg.includes('duplicate')) {
-              // Duplicate — already exists, safe to ignore
-              console.info('ℹ️ TX not synced: already exists in remote DB');
-            } else {
-              console.warn('⚠️ TX Supabase sync failed (non-blocking):', code, msg);
-            }
-          })
-          .catch(() => {
-            // Network error — expected when Supabase is paused
-            console.info('ℹ️ TX sync skipped: Supabase unreachable');
-          });
-      })
-      .catch(() => { /* session fetch failed — skip entirely */ });
+    queueTransactionInsertSync(savedId, transaction);
 
     return savedTransaction;
   } catch (error) {

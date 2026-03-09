@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 // Service Worker with offline support and API response caching
 
-const CACHE_NAME = 'financelife-v2';
-const API_CACHE_NAME = 'financelife-api-v1';
+const CACHE_NAME = 'financelife-v3';
+const API_CACHE_NAME = 'financelife-api-v2';
 const OFFLINE_URL = '/offline.html';
 
 // Max age for cached API responses (30 minutes)
@@ -43,6 +43,12 @@ self.addEventListener('activate', (event) => {
     })
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch event: network first, fall back to cache
