@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { ChevronLeft, ChevronRight, Plus, X, Clock, CheckCircle2, AlertCircle, Calendar as CalendarIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Clock, CheckCircle2, AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
+import { Button } from '@/app/components/ui/button';
+import { TimeFilter, TimeFilterPeriod, filterByTimePeriod } from '@/app/components/ui/TimeFilter';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -145,6 +146,16 @@ export const Calendar: React.FC = () => {
     }).format(Math.abs(amount));
   };
 
+  const formatSignedCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+      signDisplay: 'always',
+    }).format(amount);
+  };
+
   const getDateKey = (date: Date) => {
     return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
   };
@@ -263,6 +274,8 @@ export const Calendar: React.FC = () => {
 
   const today = new Date();
   const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
+  const summaryAmountClass = 'w-full text-center text-[clamp(0.98rem,1.55vw,1.55rem)] font-bold tracking-[-0.03em] leading-tight tabular-nums break-words [overflow-wrap:anywhere]';
+  const summaryCardClass = 'rounded-[20px] px-3 py-4 sm:px-4 sm:py-4.5 shadow-sm transition-transform hover:-translate-y-0.5 min-w-0';
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
@@ -271,25 +284,29 @@ export const Calendar: React.FC = () => {
         title="Calendar"
         subtitle="Track activities, reminders & transactions"
         icon={<CalendarIcon size={20} className="sm:w-6 sm:h-6" />}
-      />
-
-      {/* Time Filter & Actions Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <TimeFilter value={timePeriod} onChange={setTimePeriod} />
-        <div className="flex items-center gap-3">
-          <button
+      >
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            variant="secondary"
             onClick={handleToday}
-            className="px-4 py-2.5 rounded-xl bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all border border-gray-200 shadow-sm text-sm"
+            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
           >
             Today
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setShowReminderModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 text-sm shadow-lg shadow-blue-500/25"
+            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
           >
-            <Plus size={18} /> Add Reminder
-          </button>
+            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Add Reminder</span>
+            <span className="inline sm:hidden">Add</span>
+          </Button>
         </div>
+      </PageHeader>
+
+      {/* Time Filter */}
+      <div className="flex justify-start">
+        <TimeFilter value={timePeriod} onChange={setTimePeriod} />
       </div>
 
       {/* Summary Stats Row */}
@@ -297,60 +314,51 @@ export const Calendar: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+          className={cn(summaryCardClass, 'bg-emerald-50/80')}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-              <TrendingUp size={16} className="text-green-600" />
+          <div className="space-y-2 min-w-0">
+            <p className="text-center text-base sm:text-xl font-semibold text-emerald-600">Income</p>
+            <div className="min-h-[2.2rem] sm:min-h-[2.5rem] flex items-center justify-center">
+              <p className={cn(summaryAmountClass, 'text-emerald-700')}>
+                {formatSignedCurrency(summaryStats.income)}
+              </p>
             </div>
-            <span className="text-xs sm:text-sm font-medium text-gray-500">Income</span>
           </div>
-          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-            {formatCurrency(summaryStats.income)}
-          </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+          className={cn(summaryCardClass, 'bg-rose-50/80')}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-              <TrendingDown size={16} className="text-red-600" />
+          <div className="space-y-2 min-w-0">
+            <p className="text-center text-base sm:text-xl font-semibold text-red-600">Expense</p>
+            <div className="min-h-[2.2rem] sm:min-h-[2.5rem] flex items-center justify-center">
+              <p className={cn(summaryAmountClass, 'text-red-700')}>
+                {formatSignedCurrency(-summaryStats.expense)}
+              </p>
             </div>
-            <span className="text-xs sm:text-sm font-medium text-gray-500">Expense</span>
           </div>
-          <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
-            {formatCurrency(summaryStats.expense)}
-          </p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+          className={cn(summaryCardClass, 'bg-blue-50/80')}
         >
-          <div className="flex items-center gap-2 mb-2">
-            <div className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center",
-              summaryStats.total >= 0 ? "bg-blue-100" : "bg-orange-100"
-            )}>
-              <span className={cn(
-                "text-sm font-bold",
-                summaryStats.total >= 0 ? "text-blue-600" : "text-orange-600"
-              )}>=</span>
+          <div className="space-y-2 min-w-0">
+            <p className="text-center text-base sm:text-xl font-semibold text-blue-600">Net</p>
+            <div className="min-h-[2.2rem] sm:min-h-[2.5rem] flex items-center justify-center">
+              <p className={cn(
+                summaryAmountClass,
+                summaryStats.total >= 0 ? 'text-blue-700' : 'text-orange-700'
+              )}>
+                {formatSignedCurrency(summaryStats.total)}
+              </p>
             </div>
-            <span className="text-xs sm:text-sm font-medium text-gray-500">Balance</span>
           </div>
-          <p className={cn(
-            "text-lg sm:text-xl lg:text-2xl font-bold",
-            summaryStats.total >= 0 ? "text-green-600" : "text-red-600"
-          )}>
-            {summaryStats.total >= 0 ? '+' : ''}{formatCurrency(summaryStats.total)}
-          </p>
         </motion.div>
       </div>
 

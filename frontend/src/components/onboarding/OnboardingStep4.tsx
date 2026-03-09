@@ -194,14 +194,7 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({
           <span>{syncProgress}%</span>
         </div>
         
-        <div
-          className="w-full bg-gray-200 rounded-full h-2 overflow-hidden"
-          role="progressbar"
-          aria-label="Account setup progress"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={syncProgress}
-        >
+        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden" aria-hidden="true">
           <svg
             className="block h-full w-full"
             viewBox="0 0 100 2"
@@ -217,6 +210,14 @@ export const OnboardingStep4: React.FC<OnboardingStep4Props> = ({
             />
           </svg>
         </div>
+        <progress
+          className="sr-only"
+          value={syncProgress}
+          max={100}
+          aria-label="Account setup progress"
+        >
+          {syncProgress}%
+        </progress>
       </div>
 
       {/* Device Info */}

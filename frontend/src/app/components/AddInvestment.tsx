@@ -469,8 +469,9 @@ export const AddInvestment: React.FC = () => {
         <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">Type *</label>
+              <label htmlFor="investment-type" className="block text-sm font-semibold text-gray-900 mb-3">Type *</label>
               <select
+                id="investment-type"
                 value={formData.type}
                 onChange={(e) => {
                   const nextType = e.target.value as InvestmentFormType;
@@ -709,11 +710,13 @@ export const AddInvestment: React.FC = () => {
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">Payment Account *</label>
+              <label htmlFor="investment-payment-account" className="block text-sm font-semibold text-gray-900 mb-3">Payment Account *</label>
               <select
+                id="investment-payment-account"
                 value={formData.fundingAccountId || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(e.target.value, 10) || 0 }))}
                 className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+                aria-describedby={activeAccounts.length === 0 ? 'investment-payment-account-empty' : 'investment-payment-account-help'}
                 required
               >
                 <option value="">Select an account</option>
@@ -724,12 +727,12 @@ export const AddInvestment: React.FC = () => {
                 ))}
               </select>
               {activeAccounts.length === 0 && (
-                <p className="mt-2 text-sm text-rose-600">
+                <p id="investment-payment-account-empty" className="mt-2 text-sm text-rose-600">
                   Add an active account first so the buy amount can be deducted correctly.
                 </p>
               )}
               {activeAccounts.length > 0 && (
-                <p className="mt-2 text-sm text-gray-500">
+                <p id="investment-payment-account-help" className="mt-2 text-sm text-gray-500">
                   The stock purchase and any buy-side fees will be recorded against this account.
                 </p>
               )}

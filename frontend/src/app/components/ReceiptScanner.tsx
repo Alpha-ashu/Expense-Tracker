@@ -5,6 +5,11 @@ import { toast } from 'sonner';
 import { db } from '@/lib/database';
 import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { useApp } from '@/contexts/AppContext';
+import {
+  detectExpenseCategoryFromText,
+  getExpenseCategoryNames,
+  normalizeCategorySelection,
+} from '@/lib/expenseCategories';
 import { cn } from '@/lib/utils';
 
 /* ─────────────────────────────────────────────────────────────
@@ -15,6 +20,7 @@ interface ReceiptScanResult {
   amount?: number;
   date?: Date;
   category?: string;
+  subcategory?: string;
   items?: Array<{ name: string; amount: number }>;
   confidence?: number;
   rawText?: string;
@@ -129,21 +135,19 @@ function parseReceiptText(rawText: string): ReceiptScanResult {
     }
   }
 
-  /* ── 5. Category heuristics ── */
-  const allText = rawText.toLowerCase();
-  let category = 'Shopping';
-  if (/restaurant|cafe|menu|dining|food|kitchen|biryani|pizza|burger|chai|tea|coffee|hotel|motel|bar |pub |lounge/i.test(rawText)) category = 'Dining';
-  else if (/grocery|mart|supermarket|kirana|fruits|vegetables|dairy|meat|fish/i.test(rawText)) category = 'Groceries';
-  else if (/pharmacy|medical|hospital|clinic|doctor|health|medicine|drug/i.test(rawText)) category = 'Health';
-  else if (/petrol|diesel|fuel|shell|indian oil|hp gas|pump/i.test(rawText)) category = 'Transport';
-  else if (/uber|ola|rapido|auto|taxi|metro|bus|train|flight/i.test(rawText)) category = 'Transport';
-  else if (/amazon|flipkart|myntra|nykaa|ajio|zara|h&m|fashion|cloth/i.test(rawText)) category = 'Shopping';
-  else if (/electricity|water|gas|broadband|internet|mobile|recharge|bill/i.test(rawText)) category = 'Bills & Utilities';
+  /* ── 5. Category + subcategory detection ── */
+  const detectionText = [merchantName, ...items.map((item) => item.name), rawText]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  const detectedExpense = detectExpenseCategoryFromText(detectionText);
+  const category = detectedExpense?.category ?? 'Shopping';
+  const subcategory = detectedExpense?.subcategory ?? '';
 
   /* ── 6. Confidence: higher when we reliably matched total keywords ── */
   const confidence = totalAmount > 0 ? (items.length > 0 ? 0.92 : 0.75) : 0.4;
 
-  return { merchantName, amount: totalAmount, date, category, items, confidence, rawText };
+  return { merchantName, amount: totalAmount, date, category, subcategory, items, confidence, rawText };
 }
 
 /** Extract all numeric amounts from a string, handling commas and decimals */
@@ -160,6 +164,7 @@ function extractAmounts(text: string): number[] {
 ───────────────────────────────────────────────────────────── */
 export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose, onTransactionCreated }) => {
   const { accounts, currency, refreshData, setCurrentPage } = useApp();
+  const expenseCategoryOptions = getExpenseCategoryNames();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
@@ -240,12 +245,16 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
       return;
     }
     try {
+      const category = normalizeCategorySelection(scanResult.category || 'Shopping', 'expense');
+      const subcategory = scanResult.subcategory?.trim() || '';
+
       // Save transaction (syncs to backend if online)
       await saveTransactionWithBackendSync({
         type: 'expense',
         amount,
         accountId: selectedAccountId,
-        category: scanResult.category || 'Shopping',
+        category,
+        subcategory,
         description: scanResult.merchantName || 'Receipt',
         merchant: scanResult.merchantName || '',
         date: scanResult.date || new Date(),
@@ -280,8 +289,14 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-xl max-h-[92vh] flex flex-col overflow-hidden">
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4"
+      style={{
+        paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+      }}
+    >
+      <div className="flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:rounded-3xl">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
@@ -452,14 +467,41 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Category</label>
                     <select
                       value={scanResult.category || ''}
-                      onChange={e => setScanResult({ ...scanResult, category: e.target.value })}
+                      onChange={e => setScanResult({ ...scanResult, category: normalizeCategorySelection(e.target.value, 'expense') })}
                       className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none appearance-none"
                     >
-                      {['Dining', 'Groceries', 'Shopping', 'Transport', 'Health', 'Bills & Utilities', 'Entertainment', 'Other'].map(c =>
+                      {expenseCategoryOptions.map(c =>
                         <option key={c} value={c}>{c}</option>
                       )}
                     </select>
                   </div>
+                </div>
+
+                <div className="p-4">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Subcategory</label>
+                  <input
+                    type="text"
+                    value={scanResult.subcategory || ''}
+                    onChange={e => {
+                      const nextSubcategory = e.target.value;
+                      const detected = detectExpenseCategoryFromText(
+                        [nextSubcategory, scanResult.merchantName, scanResult.rawText]
+                          .filter(Boolean)
+                          .join(' '),
+                      );
+
+                      setScanResult({
+                        ...scanResult,
+                        subcategory: nextSubcategory,
+                        category: detected?.category ?? scanResult.category ?? 'Shopping',
+                      });
+                    }}
+                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                    placeholder="Groceries, Fuel / Petrol, Netflix, Uber Ride..."
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    Edit this if the scan found the wrong expense type. The main category updates automatically.
+                  </p>
                 </div>
 
                 {/* Detected items */}

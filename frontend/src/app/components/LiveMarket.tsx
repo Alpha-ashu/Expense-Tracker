@@ -554,34 +554,24 @@ export const LiveMarket: React.FC = () => {
                 return (
                   <div
                     key={r.symbol}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => void handleOpenSearchResult(r)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        void handleOpenSearchResult(r);
-                      }
-                    }}
-                    className={cn(
-                      'w-full flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50 cursor-pointer'
-                    )}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50 focus-within:bg-gray-50"
                   >
-                    <div className="min-w-0 text-left">
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenSearchResult(r)}
+                      className="min-w-0 flex-1 text-left"
+                    >
                       <p className="text-sm font-bold text-gray-900">
                         {displaySymbol(r.symbol)}
                       </p>
                       <p className="text-xs text-gray-400 truncate">{r.companyName} · {r.exchange}</p>
-                    </div>
+                    </button>
                     <button
                       type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void handleAddInvestment(r);
-                      }}
+                      onClick={() => void handleAddInvestment(r)}
                       className="shrink-0 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors"
                     >
-                        + Add
+                      + Add
                     </button>
                   </div>
                 );
