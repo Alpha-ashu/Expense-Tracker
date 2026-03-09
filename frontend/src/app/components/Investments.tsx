@@ -213,34 +213,11 @@ export const Investments: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start"
+          className="w-full"
         >
           {/* LiveMarket panel — grows with viewport, min capped so it's usable on short screens */}
-          <div className="lg:col-span-2 min-h-[480px] h-auto lg:h-[calc(100svh-22rem)] lg:max-h-[820px]">
+          <div className="min-h-[480px] h-auto lg:h-[calc(100svh-22rem)] lg:max-h-[820px]">
             <LiveMarket />
-          </div>
-
-          {/* Info sidebar */}
-          <div className="lg:col-span-3 space-y-4">
-            <Card variant="glass" className="p-6">
-              <h3 className="text-lg font-display font-bold text-gray-900 mb-1">About Live Market Data</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Live prices from global markets via the backend stock proxy, with direct Twelve Data fallback when configured.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                  { label: 'Markets',     value: 'NSE · BSE · US · Forex · Crypto', icon: '🌍' },
-                  { label: 'Refresh',     value: 'Every 10 seconds',                 icon: '⚡' },
-                  { label: 'Auth Needed', value: 'None — Free',                      icon: '🔓' },
-                ].map(({ label, value, icon }) => (
-                  <div key={label} className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-2xl mb-2">{icon}</p>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">{label}</p>
-                    <p className="text-sm font-bold text-gray-900 mt-0.5">{value}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
           </div>
         </motion.div>
       )}

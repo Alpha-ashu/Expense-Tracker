@@ -519,22 +519,6 @@ export const Settings: React.FC = () => {
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
-      >
-        <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">About Finora</h3>
-          <div className="space-y-2 text-sm text-gray-600">
-            <p><strong>Version:</strong> 1.0.0</p>
-            <p><strong>Storage:</strong> All data is stored locally on your device using IndexedDB</p>
-            <p><strong>Privacy:</strong> Your financial data never leaves your device</p>
-            <p><strong>Offline:</strong> Works completely offline, no internet required</p>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 };

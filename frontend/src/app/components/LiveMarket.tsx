@@ -156,7 +156,21 @@ const StockDetail: React.FC<{
             <p className="text-white/70 text-xs font-bold">{subtitle}</p>
             <h3 className="text-white font-display font-bold text-lg leading-tight truncate">{quote.companyName}</h3>
           </div>
-          <span className="text-xs font-bold bg-white/20 text-white px-2 py-1 rounded-lg">{displaySymbol(quote.symbol)}</span>
+          <div className="flex flex-col-reverse items-end gap-2 shrink-0 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => onAddToPortfolio(quote)}
+              aria-label={`Add ${quote.companyName} to portfolio`}
+              title={`Add ${quote.companyName} to portfolio`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-gray-900 shadow-sm transition-colors hover:bg-gray-100"
+            >
+              <Plus size={13} />
+              Add
+            </button>
+            <span className="text-xs font-bold bg-white/20 text-white px-2 py-1 rounded-lg">
+              {displaySymbol(quote.symbol)}
+            </span>
+          </div>
         </div>
         <div className="relative">
           <p className="text-white/60 text-xs font-bold uppercase tracking-widest mb-0.5">Current Price</p>
@@ -165,19 +179,6 @@ const StockDetail: React.FC<{
             {positive ? <TrendingUp size={14} className="text-white/80" /> : <TrendingDown size={14} className="text-white/80" />}
             <span className="text-white/80 text-sm font-semibold">
               {positive ? '+' : ''}{cur}{fmtCurrency(Math.abs(quote.change), cur)} ({positive ? '+' : ''}{fmt(quote.percentChange)}%)
-            </span>
-          </div>
-          <div className="mt-4 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onAddToPortfolio(quote)}
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-bold text-gray-900 shadow-sm transition-colors hover:bg-gray-100"
-            >
-              <Plus size={14} />
-              Add to Portfolio
-            </button>
-            <span className="text-xs font-medium text-white/75">
-              Opens the investment form with this live quote.
             </span>
           </div>
         </div>
@@ -358,6 +359,47 @@ export const LiveMarket: React.FC = () => {
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [searchQuery, activeMarket]);
 
+  const handleOpenSearchResult = useCallback(async (result: StockSearchResult) => {
+    const sym = result.symbol;
+    const marketHint = resolveMarketHint(sym);
+    const currentQuote = quotes[sym] ?? await fetchStockQuote(sym, marketHint);
+
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearching(false);
+
+    if (currentQuote) {
+      setQuotes(prev => ({ ...prev, [sym]: currentQuote }));
+      setSelected(currentQuote);
+      return;
+    }
+
+    const isRupeeMarket = marketHint === 'nse' || marketHint === 'bse';
+    setSelected({
+      symbol: sym,
+      companyName: result.companyName,
+      exchange: result.exchange,
+      currency: isRupeeMarket ? '₹' : '$',
+      marketState: undefined,
+      lastPrice: 0,
+      change: 0,
+      percentChange: 0,
+      previousClose: 0,
+      open: 0,
+      dayHigh: 0,
+      dayLow: 0,
+      yearHigh: 0,
+      yearLow: 0,
+      volume: 0,
+      marketCap: 0,
+      peRatio: 0,
+      dividendYield: 0,
+      eps: 0,
+      sector: 'Unknown',
+      lastUpdate: new Date().toISOString(),
+    });
+  }, [quotes, resolveMarketHint]);
+
   /* ── Open add-investment with selected stock ── */
   const handleAddInvestment = async (result: StockSearchResult) => {
     const sym = result.symbol;
@@ -509,8 +551,17 @@ export const LiveMarket: React.FC = () => {
                 return (
                   <div
                     key={r.symbol}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => void handleOpenSearchResult(r)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        void handleOpenSearchResult(r);
+                      }
+                    }}
                     className={cn(
-                      'w-full flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50'
+                      'w-full flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-gray-50 cursor-pointer'
                     )}
                   >
                     <div className="min-w-0 text-left">
@@ -521,7 +572,10 @@ export const LiveMarket: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleAddInvestment(r)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleAddInvestment(r);
+                      }}
                       className="shrink-0 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium hover:bg-gray-900 hover:text-white transition-colors"
                     >
                         + Add
