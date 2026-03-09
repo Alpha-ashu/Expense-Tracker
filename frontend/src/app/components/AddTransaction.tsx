@@ -77,7 +77,8 @@ const DropdownCaret: React.FC<{ open?: boolean; size?: number; className?: strin
   </span>
 );
 
-type ExpenseEntryMode = 'individual' | 'group';
+type ExpenseEntryMode = 'individual' | 'group' | 'loan';
+type LoanEntryType = 'borrowed' | 'lent';
 
 interface GroupParticipantDraft {
   id: string;
@@ -111,6 +112,25 @@ const toDateInputValue = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
+interface LoanDraft {
+  friendId?: number;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string;
+  dueDate: string;
+  interestRate: number;
+  notes: string;
+}
+
+const createDefaultLoanDraft = (baseDate: string): LoanDraft => ({
+  contactName: '',
+  contactEmail: '',
+  contactPhone: '',
+  dueDate: baseDate,
+  interestRate: 0,
+  notes: '',
+});
+
 /* ─────────────── main component ─────────────── */
 export const AddTransaction: React.FC = () => {
   const { accounts, friends, transactions, setCurrentPage, currency, refreshData } = useApp();
@@ -135,6 +155,9 @@ export const AddTransaction: React.FC = () => {
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [showIncomeSubcategoryPicker, setShowIncomeSubcategoryPicker] = useState(false);
   const [expenseMode, setExpenseMode] = useState<ExpenseEntryMode>('individual');
+  const [loanType, setLoanType] = useState<LoanEntryType>('borrowed');
+  const [loanDraft, setLoanDraft] = useState<LoanDraft>(() => createDefaultLoanDraft(new Date().toISOString().split('T')[0]));
+  const [showLoanFriendPicker, setShowLoanFriendPicker] = useState(false);
   const [returnPage, setReturnPage] = useState('transactions');
   const [groupName, setGroupName] = useState('');
   const [groupSplitType, setGroupSplitType] = useState<'equal' | 'custom'>('equal');
@@ -147,6 +170,7 @@ export const AddTransaction: React.FC = () => {
   const accountPickerRef = useRef<HTMLDivElement | null>(null);
   const incomeSubcategoryPickerRef = useRef<HTMLDivElement | null>(null);
   const groupFriendPickerRef = useRef<HTMLDivElement | null>(null);
+  const loanFriendPickerRef = useRef<HTMLDivElement | null>(null);
 
   /* ── pre-fill from localStorage ── */
   useEffect(() => {
@@ -154,13 +178,16 @@ export const AddTransaction: React.FC = () => {
     const rawExpenseMode = localStorage.getItem('quickExpenseMode');
     const rawBackPage = localStorage.getItem('quickBackPage');
     if (rawFormType === 'income' || rawFormType === 'expense') {
+      const nextExpenseMode = rawFormType === 'expense'
+        ? (rawExpenseMode === 'group' || rawExpenseMode === 'loan' ? rawExpenseMode : 'individual')
+        : 'individual';
       setFormData(prev => ({
         ...prev,
         type: rawFormType as 'expense' | 'income',
         category: DEFAULT_CATEGORY[rawFormType as 'expense' | 'income'],
         subcategory: '',
       }));
-      setExpenseMode(rawFormType === 'expense' && rawExpenseMode === 'group' ? 'group' : 'individual');
+      setExpenseMode(nextExpenseMode);
       setSubcategoryQuery('');
       setShowCategoryPicker(false);
       setManualExpenseCategory(false);
@@ -223,6 +250,7 @@ export const AddTransaction: React.FC = () => {
   const selectedAccount = accounts.find(a => a.id === formData.accountId);
   const isExpense = formData.type === 'expense';
   const isGroupExpense = isExpense && expenseMode === 'group';
+  const isLoanExpense = isExpense && expenseMode === 'loan';
   const currentUserDisplayName = useMemo(() => {
     const fullName = user?.user_metadata?.full_name
       || [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(' ')
@@ -258,6 +286,15 @@ export const AddTransaction: React.FC = () => {
     () => friends.filter((friend) => !activeGroupParticipants.some((participant) => participant.friendId === friend.id)),
     [activeGroupParticipants, friends],
   );
+  const loanInterestAmount = useMemo(
+    () => roundCurrencyAmount(formData.amount * ((loanDraft.interestRate || 0) / 100)),
+    [formData.amount, loanDraft.interestRate],
+  );
+  const loanTotalDue = useMemo(
+    () => roundCurrencyAmount(formData.amount + loanInterestAmount),
+    [formData.amount, loanInterestAmount],
+  );
+  const loanAccountLabel = loanType === 'borrowed' ? 'Received in' : 'Paid from';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -270,11 +307,30 @@ export const AddTransaction: React.FC = () => {
       if (groupFriendPickerRef.current && !groupFriendPickerRef.current.contains(event.target as Node)) {
         setShowGroupFriendPicker(false);
       }
+      if (loanFriendPickerRef.current && !loanFriendPickerRef.current.contains(event.target as Node)) {
+        setShowLoanFriendPicker(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isLoanExpense) {
+      setShowLoanFriendPicker(false);
+      return;
+    }
+
+    setShowScanner(false);
+    setShowCategoryPicker(false);
+    setShowIncomeSubcategoryPicker(false);
+    setShowOptionalFields(false);
+    setLoanDraft((prev) => ({
+      ...prev,
+      dueDate: prev.dueDate || formData.date,
+    }));
+  }, [formData.date, isLoanExpense]);
 
   const recentExpenseSuggestions = useMemo(() => {
     const recent: Array<{ name: string; category: string }> = [];
@@ -329,17 +385,17 @@ export const AddTransaction: React.FC = () => {
   }, [transactions, customExpenseSubcategories]);
 
   const smartExpenseSuggestion = useMemo(() => {
-    if (!isExpense) return null;
+    if (!isExpense || isLoanExpense) return null;
     const combinedText = [subcategoryQuery, formData.description, formData.merchant]
       .filter(Boolean)
       .join(' ')
       .trim();
     if (!combinedText) return null;
     return detectExpenseCategoryFromText(combinedText, customExpenseSubcategories);
-  }, [customExpenseSubcategories, formData.description, formData.merchant, isExpense, subcategoryQuery]);
+  }, [customExpenseSubcategories, formData.description, formData.merchant, isExpense, isLoanExpense, subcategoryQuery]);
 
   useEffect(() => {
-    if (!isExpense) return;
+    if (!isExpense || isLoanExpense) return;
     if (!subcategoryQuery.trim()) return;
     if (formData.subcategory.trim()) return;
     if (!smartExpenseSuggestion) return;
@@ -360,13 +416,14 @@ export const AddTransaction: React.FC = () => {
     formData.category,
     formData.subcategory,
     isExpense,
+    isLoanExpense,
     manualExpenseCategory,
     smartExpenseSuggestion,
     subcategoryQuery,
   ]);
 
   const expenseSuggestions = useMemo(() => {
-    if (!isExpense) return [] as ExpenseSubcategorySuggestion[];
+    if (!isExpense || isLoanExpense) return [] as ExpenseSubcategorySuggestion[];
 
     const recentNames = recentExpenseSuggestions.map((item) => item.name);
     const frequentNames = frequentExpenseSuggestions.map((item) => item.name);
@@ -419,6 +476,7 @@ export const AddTransaction: React.FC = () => {
     formData.category,
     frequentExpenseSuggestions,
     isExpense,
+    isLoanExpense,
     recentExpenseSuggestions,
     subcategories,
     subcategoryQuery,
@@ -464,6 +522,17 @@ export const AddTransaction: React.FC = () => {
     setShowGroupFriendPicker(false);
   };
 
+  const addSavedFriendToLoan = (friend: typeof friends[number]) => {
+    setLoanDraft((prev) => ({
+      ...prev,
+      friendId: friend.id,
+      contactName: friend.name,
+      contactEmail: friend.email ?? '',
+      contactPhone: friend.phone ?? '',
+    }));
+    setShowLoanFriendPicker(false);
+  };
+
   const notifyGroupParticipants = async (
     groupExpenseId: number,
     expenseName: string,
@@ -490,7 +559,7 @@ export const AddTransaction: React.FC = () => {
       }
 
       try {
-        await backendService.createNotification({
+        const notificationResult = await backendService.createNotification({
           type: 'group',
           title: 'New Group Expense Added',
           message: `Hello ${participant.name}, you have been added to "${expenseName}". Total ${currency} ${totalAmount.toFixed(2)}. Your share is ${currency} ${participant.share.toFixed(2)}. Added by ${currentUserDisplayName}.`,
@@ -500,6 +569,10 @@ export const AddTransaction: React.FC = () => {
           createdAt: new Date().toISOString(),
           deepLink: '/groups',
         });
+        if (notificationResult?.delivery === 'skipped') {
+          failedCount += 1;
+          return;
+        }
         sentCount += 1;
       } catch (error) {
         console.info('ℹ️ Group expense email notification skipped:', participant.email, error);
@@ -518,10 +591,25 @@ export const AddTransaction: React.FC = () => {
     setShowCategoryPicker(false);
     setShowIncomeSubcategoryPicker(false);
     setShowGroupFriendPicker(false);
+    setShowLoanFriendPicker(false);
     if (t === 'income') {
       setExpenseMode('individual');
     }
     setManualExpenseCategory(false);
+  };
+
+  const switchExpenseMode = (mode: ExpenseEntryMode) => {
+    setExpenseMode(mode);
+    setShowGroupFriendPicker(false);
+    setShowLoanFriendPicker(false);
+    setShowCategoryPicker(false);
+    if (mode === 'loan') {
+      setShowScanner(false);
+      setLoanDraft((prev) => ({
+        ...prev,
+        dueDate: prev.dueDate || formData.date,
+      }));
+    }
   };
 
   const applyExpenseSuggestion = (subcategory: string, category: string) => {
@@ -582,6 +670,24 @@ export const AddTransaction: React.FC = () => {
     e.preventDefault();
     if (!selectedAccount) { toast.error('Please select an account'); return; }
     if (!formData.amount || formData.amount <= 0) { toast.error('Enter a valid amount'); return; }
+    if (isLoanExpense) {
+      if (!loanDraft.contactName.trim()) {
+        toast.error('Please enter a friend or contact name');
+        return;
+      }
+      if (!loanDraft.dueDate) {
+        toast.error('Please select a due date');
+        return;
+      }
+      if (Number.isNaN(new Date(loanDraft.dueDate).getTime())) {
+        toast.error('Please enter a valid due date');
+        return;
+      }
+      if (loanType === 'lent' && selectedAccount.balance < formData.amount) {
+        toast.error(`Not enough balance in ${selectedAccount.name}`);
+        return;
+      }
+    }
     if (isGroupExpense) {
       if (!groupName.trim()) {
         toast.error('Please add a group name');
@@ -608,6 +714,52 @@ export const AddTransaction: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
+      if (isLoanExpense) {
+        const now = new Date();
+        const dueDate = new Date(loanDraft.dueDate);
+        const contactName = loanDraft.contactName.trim();
+        const newBalance = loanType === 'borrowed'
+          ? selectedAccount.balance + formData.amount
+          : selectedAccount.balance - formData.amount;
+
+        await db.transaction('rw', db.loans, db.accounts, async () => {
+          await db.loans.add({
+            type: loanType,
+            name: contactName,
+            principalAmount: formData.amount,
+            outstandingBalance: loanTotalDue,
+            interestRate: loanDraft.interestRate > 0 ? loanDraft.interestRate : undefined,
+            dueDate,
+            frequency: 'custom',
+            status: dueDate.getTime() < now.getTime() ? 'overdue' : 'active',
+            contactPerson: contactName,
+            friendId: loanDraft.friendId,
+            contactEmail: loanDraft.contactEmail.trim() || undefined,
+            contactPhone: loanDraft.contactPhone.trim() || undefined,
+            accountId: formData.accountId,
+            loanDate: new Date(formData.date),
+            notes: loanDraft.notes.trim() || undefined,
+            totalPayable: loanTotalDue,
+            createdAt: now,
+            updatedAt: now,
+          });
+
+          await db.accounts.update(formData.accountId, {
+            balance: newBalance,
+            updatedAt: now,
+          });
+        });
+
+        toast.success(
+          loanType === 'borrowed'
+            ? `Borrowed ${currency} ${formData.amount.toFixed(2)} recorded`
+            : `Lent ${currency} ${formData.amount.toFixed(2)} recorded`,
+        );
+        refreshData();
+        setCurrentPage('loans');
+        return;
+      }
+
       let nextCategory = formData.category;
       let nextSubcategory = formData.subcategory.trim();
 
@@ -786,7 +938,21 @@ export const AddTransaction: React.FC = () => {
   };
 
   /* ── color system ── */
-  const accent = isExpense
+  const accent = isLoanExpense
+    ? {
+        heroSurface: 'from-sky-50 via-white to-cyan-50',
+        heroLine: 'from-sky-500 via-sky-500 to-cyan-500',
+        iconShell: 'bg-sky-100 text-sky-600',
+        actionShell: 'border-sky-100 bg-white text-sky-500 hover:bg-sky-50',
+        subtitle: 'text-sky-500',
+        switchShell: 'bg-sky-50 border border-sky-100',
+        switchActive: 'bg-white text-sky-600 shadow-sm',
+        switchInactive: 'text-sky-500 hover:text-sky-700',
+        amountCard: 'from-sky-500 via-sky-500 to-cyan-500',
+        amountMeta: 'bg-white/15 text-white/85',
+        btn: 'from-sky-500 to-cyan-500 hover:from-sky-600 hover:to-cyan-600 shadow-sky-300',
+      }
+    : isExpense
     ? {
         heroSurface: 'from-rose-50 via-white to-pink-50',
         heroLine: 'from-rose-500 via-rose-500 to-pink-500',
@@ -813,11 +979,17 @@ export const AddTransaction: React.FC = () => {
         amountMeta: 'bg-white/15 text-white/85',
         btn: 'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-300',
       };
-  const optionalFieldsOpen = showOptionalFields || !!formData.description.trim() || !!formData.merchant.trim();
-  const pageTitle = isGroupExpense ? 'Create Group Expense' : 'Add Transaction';
-  const pageSubtitle = isGroupExpense
-    ? 'Split a bill and track who owes what'
-    : `Record a new ${formData.type}`;
+  const optionalFieldsOpen = !isLoanExpense && (showOptionalFields || !!formData.description.trim() || !!formData.merchant.trim());
+  const pageTitle = isLoanExpense
+    ? (loanType === 'borrowed' ? 'Record Borrowed Money' : 'Record Lent Money')
+    : isGroupExpense
+      ? 'Create Group Expense'
+      : 'Add Transaction';
+  const pageSubtitle = isLoanExpense
+    ? 'Track money you owe and money others owe you'
+    : isGroupExpense
+      ? 'Split a bill and track who owes what'
+      : `Record a new ${formData.type}`;
   const resolvedExpenseCategory = normalizeCategorySelection(
     isExpense && !manualExpenseCategory && !formData.subcategory.trim()
       ? (smartExpenseSuggestion?.category || formData.category || DEFAULT_CATEGORY.expense)
@@ -837,8 +1009,8 @@ export const AddTransaction: React.FC = () => {
       year: 'numeric',
     });
   }, [formData.date]);
-  const optionalDetailsTitle = isExpense ? 'More details' : 'Income details';
-  const optionalDetailsLabel = isExpense ? 'Merchant and note are optional' : 'Source / payer and note are optional';
+  const optionalDetailsTitle = isLoanExpense ? 'Loan notes' : isExpense ? 'More details' : 'Income details';
+  const optionalDetailsLabel = isLoanExpense ? 'Add optional context for this loan' : isExpense ? 'Merchant and note are optional' : 'Source / payer and note are optional';
   const visibleExpenseSuggestions = expenseSuggestions.slice(0, 5);
   const formatAccountBalance = (amount: number) => {
     try {
@@ -900,7 +1072,7 @@ export const AddTransaction: React.FC = () => {
               <h1 className="font-display text-xl font-bold leading-tight text-gray-900">{pageTitle}</h1>
               <p className={cn('text-sm font-medium', accent.subtitle)}>{pageSubtitle}</p>
             </div>
-            {isExpense && (
+            {isExpense && !isLoanExpense && (
               <button
                 type="button"
                 onClick={() => setShowScanner(true)}
@@ -942,7 +1114,7 @@ export const AddTransaction: React.FC = () => {
               <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
                 Expense mode
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 md:grid-cols-3">
                 <label
                   className={cn(
                     'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
@@ -956,7 +1128,7 @@ export const AddTransaction: React.FC = () => {
                     name="expense-mode"
                     className="sr-only"
                     checked={expenseMode === 'individual'}
-                    onChange={() => setExpenseMode('individual')}
+                    onChange={() => switchExpenseMode('individual')}
                   />
                   <span
                     className={cn(
@@ -988,7 +1160,7 @@ export const AddTransaction: React.FC = () => {
                     name="expense-mode"
                     className="sr-only"
                     checked={expenseMode === 'group'}
-                    onChange={() => setExpenseMode('group')}
+                    onChange={() => switchExpenseMode('group')}
                   />
                   <span
                     className={cn(
@@ -1004,6 +1176,38 @@ export const AddTransaction: React.FC = () => {
                     <span className="block text-sm font-semibold">Group</span>
                     <span className={cn('mt-0.5 block text-xs', expenseMode === 'group' ? 'text-white/75' : 'text-gray-500')}>
                       Split this bill with friends
+                    </span>
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
+                    expenseMode === 'loan'
+                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="expense-mode"
+                    className="sr-only"
+                    checked={expenseMode === 'loan'}
+                    onChange={() => switchExpenseMode('loan')}
+                  />
+                  <span
+                    className={cn(
+                      'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                      expenseMode === 'loan'
+                        ? 'border-white bg-white text-gray-900'
+                        : 'border-gray-300 bg-white',
+                    )}
+                  >
+                    {expenseMode === 'loan' && <span className="h-2 w-2 rounded-full bg-current" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">Loan</span>
+                    <span className={cn('mt-0.5 block text-xs', expenseMode === 'loan' ? 'text-white/75' : 'text-gray-500')}>
+                      Borrow or lend money
                     </span>
                   </span>
                 </label>
@@ -1032,7 +1236,9 @@ export const AddTransaction: React.FC = () => {
               </div>
               {selectedAccount && (
                 <div className={cn('max-w-[46%] rounded-2xl px-3 py-2 text-right backdrop-blur-sm', accent.amountMeta)}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">{isGroupExpense ? 'Paid from' : 'Account'}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">
+                    {isGroupExpense ? 'Paid from' : isLoanExpense ? loanAccountLabel : 'Account'}
+                  </p>
                   <p className="truncate text-xs font-semibold text-white">{selectedAccount.name}</p>
                 </div>
               )}
@@ -1050,7 +1256,10 @@ export const AddTransaction: React.FC = () => {
       <div className="flex-1 bg-white -mt-3 rounded-t-[28px] shadow-xl divide-y divide-gray-100 overflow-hidden">
         {/* Account */}
         {selectedAccount && (
-          <FieldRow icon={<Wallet size={16} className="text-gray-500" />} label={isGroupExpense ? 'Payment account' : 'Account'}>
+          <FieldRow
+            icon={<Wallet size={16} className="text-gray-500" />}
+            label={isGroupExpense ? 'Payment account' : isLoanExpense ? loanAccountLabel : 'Account'}
+          >
             <div className="space-y-2" ref={accountPickerRef}>
               <button
                 type="button"
@@ -1135,6 +1344,237 @@ export const AddTransaction: React.FC = () => {
               </AnimatePresence>
             </div>
           </FieldRow>
+        )}
+
+        {isLoanExpense && (
+          <>
+            <FieldRow icon={<CreditCard size={16} className="text-gray-500" />} label="Loan type">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLoanType('borrowed')}
+                  className={cn(
+                    'rounded-2xl border px-3 py-3 text-left transition-all',
+                    loanType === 'borrowed'
+                      ? 'border-sky-600 bg-sky-600 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <ArrowDownLeft size={16} />
+                    <p className="text-sm font-semibold">Borrow</p>
+                  </div>
+                  <p className={cn('mt-1 text-xs', loanType === 'borrowed' ? 'text-white/80' : 'text-gray-500')}>
+                    Money received into your account
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoanType('lent')}
+                  className={cn(
+                    'rounded-2xl border px-3 py-3 text-left transition-all',
+                    loanType === 'lent'
+                      ? 'border-sky-600 bg-sky-600 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <ArrowUpRight size={16} />
+                    <p className="text-sm font-semibold">Lend</p>
+                  </div>
+                  <p className={cn('mt-1 text-xs', loanType === 'lent' ? 'text-white/80' : 'text-gray-500')}>
+                    Money paid out from your account
+                  </p>
+                </button>
+              </div>
+            </FieldRow>
+
+            <FieldRow icon={<Users size={16} className="text-gray-500" />} label={loanType === 'borrowed' ? 'Lender' : 'Borrower'}>
+              <div className="space-y-3">
+                {friends.length > 0 && (
+                  <div className="space-y-2" ref={loanFriendPickerRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowLoanFriendPicker((prev) => !prev)}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                    >
+                      <Users size={14} />
+                      Pick saved friend
+                      <DropdownCaret open={showLoanFriendPicker} size={14} className="h-7 w-7 rounded-lg border-gray-100 text-gray-500 shadow-none" />
+                    </button>
+
+                    <AnimatePresence>
+                      {showLoanFriendPicker && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
+                        >
+                          <div className="border-b border-gray-100 bg-gray-50 px-3 py-2.5">
+                            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Saved friends</p>
+                          </div>
+                          <div className="max-h-56 divide-y divide-gray-100 overflow-y-auto">
+                            {friends.map((friend) => (
+                              <button
+                                key={friend.id}
+                                type="button"
+                                onClick={() => addSavedFriendToLoan(friend)}
+                                className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-gray-50"
+                              >
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-sm font-semibold text-gray-700">
+                                  {friend.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-semibold text-gray-900">{friend.name}</p>
+                                  <p className="truncate text-xs text-gray-500">
+                                    {[friend.email, friend.phone].filter(Boolean).join(' · ') || 'No contact saved'}
+                                  </p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+
+                <input
+                  type="text"
+                  value={loanDraft.contactName}
+                  onChange={(e) => setLoanDraft((prev) => ({
+                    ...prev,
+                    friendId: undefined,
+                    contactName: e.target.value,
+                  }))}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0"
+                  placeholder={loanType === 'borrowed' ? 'Who gave you this loan?' : 'Who received this loan?'}
+                  required={isLoanExpense}
+                />
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3">
+                    <Mail size={14} className="text-gray-400" />
+                    <input
+                      type="email"
+                      value={loanDraft.contactEmail}
+                      onChange={(e) => setLoanDraft((prev) => ({
+                        ...prev,
+                        friendId: undefined,
+                        contactEmail: e.target.value,
+                      }))}
+                      className="w-full bg-transparent text-sm text-gray-900 focus:outline-none placeholder:text-gray-300"
+                      placeholder="Email (optional)"
+                    />
+                  </label>
+                  <label className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3">
+                    <Phone size={14} className="text-gray-400" />
+                    <input
+                      type="tel"
+                      value={loanDraft.contactPhone}
+                      onChange={(e) => setLoanDraft((prev) => ({
+                        ...prev,
+                        friendId: undefined,
+                        contactPhone: e.target.value,
+                      }))}
+                      className="w-full bg-transparent text-sm text-gray-900 focus:outline-none placeholder:text-gray-300"
+                      placeholder="Phone (optional)"
+                    />
+                  </label>
+                </div>
+              </div>
+            </FieldRow>
+
+            <FieldRow icon={<CalendarDays size={16} className="text-gray-500" />} label="Timeline">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="relative block cursor-pointer">
+                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+                      {loanType === 'borrowed' ? 'Borrow date' : 'Lend date'}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formattedTransactionDate}</p>
+                  </div>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, date: e.target.value }))}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    required
+                    title="Select loan date"
+                  />
+                </label>
+
+                <label className="relative block cursor-pointer">
+                  <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Due date</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      {loanDraft.dueDate ? new Intl.DateTimeFormat('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      }).format(new Date(loanDraft.dueDate)) : 'Select due date'}
+                    </p>
+                  </div>
+                  <input
+                    type="date"
+                    value={loanDraft.dueDate}
+                    onChange={(e) => setLoanDraft((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    required={isLoanExpense}
+                    title="Select due date"
+                  />
+                </label>
+              </div>
+            </FieldRow>
+
+            <FieldRow icon={<Banknote size={16} className="text-gray-500" />} label="Interest">
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={loanDraft.interestRate ? String(loanDraft.interestRate) : ''}
+                    onChange={(e) => setLoanDraft((prev) => ({
+                      ...prev,
+                      interestRate: parseFloat(e.target.value) || 0,
+                    }))}
+                    className="w-full bg-transparent text-sm font-semibold text-gray-900 focus:outline-none placeholder:text-gray-300"
+                    placeholder="Interest rate (optional)"
+                  />
+                  <span className="text-sm font-semibold text-gray-500">%</span>
+                </label>
+
+                <div className="grid gap-2 rounded-2xl border border-sky-100 bg-sky-50/70 p-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-sky-500">Principal</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formatAccountBalance(formData.amount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-sky-500">Interest</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formatAccountBalance(loanInterestAmount)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-sky-500">Total due</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formatAccountBalance(loanTotalDue)}</p>
+                  </div>
+                </div>
+              </div>
+            </FieldRow>
+
+            <FieldRow icon={<AlignLeft size={16} className="text-gray-500" />} label="Notes">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <input
+                  type="text"
+                  value={loanDraft.notes}
+                  onChange={(e) => setLoanDraft((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="w-full bg-transparent text-sm text-gray-900 focus:outline-none placeholder:text-gray-300"
+                  placeholder="Optional note about this loan"
+                />
+              </div>
+            </FieldRow>
+          </>
         )}
 
         {isGroupExpense && (
@@ -1390,7 +1830,7 @@ export const AddTransaction: React.FC = () => {
 
         {/* Subcategory */}
         <AnimatePresence>
-          {(isExpense || subcategories.length > 0) && (
+          {((isExpense && !isLoanExpense) || (!isExpense && subcategories.length > 0)) && (
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
               <FieldRow
                 icon={isExpense ? <Sparkles size={16} className="text-gray-500" /> : <Tag size={16} className="text-gray-500" />}
@@ -1656,7 +2096,8 @@ export const AddTransaction: React.FC = () => {
         </AnimatePresence>
 
         {/* Date */}
-        <FieldRow icon={<CalendarDays size={16} className="text-gray-500" />} label="Date">
+        {!isLoanExpense && (
+          <FieldRow icon={<CalendarDays size={16} className="text-gray-500" />} label="Date">
           <label className="relative block cursor-pointer">
             <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
               <div className="flex items-center justify-between gap-3">
@@ -1678,8 +2119,10 @@ export const AddTransaction: React.FC = () => {
               title="Select date"
             />
           </label>
-        </FieldRow>
+          </FieldRow>
+        )}
 
+        {!isLoanExpense && (
         <div className="px-4 py-3">
           <button
             type="button"
@@ -1708,9 +2151,10 @@ export const AddTransaction: React.FC = () => {
             <DropdownCaret open={optionalFieldsOpen} />
           </button>
         </div>
+        )}
 
         <AnimatePresence initial={false}>
-          {optionalFieldsOpen && (
+          {!isLoanExpense && optionalFieldsOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -1772,7 +2216,13 @@ export const AddTransaction: React.FC = () => {
         >
           {isSubmitting
             ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving…</>
-            : <><Zap size={15} /> {isGroupExpense ? 'Create Group Expense' : `Add ${isExpense ? 'Expense' : 'Income'}`}</>
+            : <><Zap size={15} /> {
+              isLoanExpense
+                ? (loanType === 'borrowed' ? 'Create Borrow Record' : 'Create Lend Record')
+                : isGroupExpense
+                  ? 'Create Group Expense'
+                  : `Add ${isExpense ? 'Expense' : 'Income'}`
+            }</>
           }
         </motion.button>
       </div>
@@ -1804,7 +2254,7 @@ export const AddTransaction: React.FC = () => {
           isOpen={showScanner}
           onClose={() => setShowScanner(false)}
           initialAccountId={formData.accountId}
-          expenseMode={expenseMode}
+          expenseMode={expenseMode === 'group' ? 'group' : 'individual'}
           onApplyScan={handleApplyReceiptScan}
         />
       )}

@@ -324,3 +324,5 @@ export const useApp = () => {
   }
   return context;
 };
+
+export const useOptionalApp = () => useContext(AppContext);

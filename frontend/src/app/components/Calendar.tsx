@@ -401,7 +401,7 @@ export const Calendar: React.FC = () => {
 
           {/* Calendar Days */}
           <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {calendarDays.map((date, index) => {
                 const isToday = isCurrentMonth && date.getDate() === today.getDate();
                 const isSelected = selectedDate && getDateKey(date) === getDateKey(selectedDate);

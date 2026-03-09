@@ -71,12 +71,18 @@ export interface Loan {
   principalAmount: number;
   outstandingBalance: number;
   interestRate?: number;
+  totalPayable?: number;
   emiAmount?: number;
   dueDate?: Date;
+  loanDate?: Date;
   frequency?: 'monthly' | 'weekly' | 'custom';
   status: 'active' | 'overdue' | 'completed';
   contactPerson?: string;
   friendId?: number; // Reference to Friend
+  contactEmail?: string;
+  contactPhone?: string;
+  accountId?: number;
+  notes?: string;
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;

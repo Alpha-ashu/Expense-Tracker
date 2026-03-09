@@ -103,7 +103,12 @@ export const Loans: React.FC = () => {
         icon={<DollarSign size={20} className="sm:w-6 sm:h-6" />}
       >
         <Button
-          onClick={() => setCurrentPage('add-loan')}
+          onClick={() => {
+            localStorage.setItem('quickFormType', 'expense');
+            localStorage.setItem('quickExpenseMode', 'loan');
+            localStorage.setItem('quickBackPage', 'loans');
+            setCurrentPage('add-transaction');
+          }}
           className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
         >
           <Plus size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />

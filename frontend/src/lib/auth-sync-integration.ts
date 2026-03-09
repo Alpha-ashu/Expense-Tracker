@@ -23,10 +23,7 @@ export function queueTransactionInsertSync(localId: number, transaction: any) {
         user_id: user.id,
       };
 
-      supabase.from('transactions').upsert([record], {
-        onConflict: 'local_id,user_id',
-        ignoreDuplicates: true,
-      })
+      supabase.from('transactions').insert([record])
         .then(({ error }) => {
           if (!error) return;
           const code = String(error?.code ?? '');

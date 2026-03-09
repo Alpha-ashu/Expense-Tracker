@@ -1,8 +1,10 @@
 // Backend API Service - Replaces local-only storage with cloud-based persistence
 import axios, { AxiosInstance } from 'axios';
 import RealtimeDataManager from './realtimeData';
+import { db } from './database';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+const SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS = import.meta.env.DEV && !import.meta.env.VITE_API_URL;
 
 function shouldUseLocalFallback(error: unknown) {
   if (!axios.isAxiosError(error)) {
@@ -86,12 +88,66 @@ class BackendService {
     category?: string;
     date?: Date;
   }) {
-    const response = await this.api.post('/groups', {
-      ...group,
-      createdAt: group.createdAt.toISOString(),
-      date: group.date ? group.date.toISOString() : undefined,
-    });
-    return response.data;
+    const localGroup = {
+      name: group.name,
+      totalAmount: group.totalAmount ?? 0,
+      paidBy: 0,
+      date: group.date ?? group.createdAt,
+      members: group.members.map((member) => ({
+        name: member,
+        share: group.amountPerPerson ?? 0,
+        paid: false,
+        paymentStatus: 'pending' as const,
+      })),
+      description: group.description,
+      category: group.category,
+      splitType: 'equal' as const,
+      yourShare: group.amountPerPerson ?? 0,
+      status: (group.amountPerPerson ?? 0) > 0 ? 'pending' as const : 'settled' as const,
+      createdAt: group.createdAt,
+      updatedAt: group.createdAt,
+    };
+
+    const saveLocalGroup = async () => {
+      const localId = group.id ? Number(group.id) : Number.NaN;
+      if (Number.isFinite(localId)) {
+        const existing = await db.groupExpenses.get(localId);
+        if (existing) {
+          return {
+            id: localId,
+            ...existing,
+            storage: 'local' as const,
+          };
+        }
+      }
+
+      const id = await RealtimeDataManager.addGroupExpense(localGroup);
+      console.info('ℹ️ Groups API unavailable — saved group locally.');
+      return {
+        id,
+        ...localGroup,
+        storage: 'local' as const,
+      };
+    };
+
+    if (SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS) {
+      return saveLocalGroup();
+    }
+
+    try {
+      const response = await this.api.post('/groups', {
+        ...group,
+        createdAt: group.createdAt.toISOString(),
+        date: group.date ? group.date.toISOString() : undefined,
+      });
+      return response.data;
+    } catch (error) {
+      if (!shouldUseLocalFallback(error)) {
+        throw error;
+      }
+
+      return saveLocalGroup();
+    }
   }
 
   // ===== INVESTMENTS =====
@@ -396,6 +452,21 @@ class BackendService {
       updatedAt: friend.updatedAt,
     };
 
+    const saveLocalFriend = async () => {
+      const id = await RealtimeDataManager.addFriend(localFriend);
+      console.info('ℹ️ Friends API unavailable — saved friend locally.');
+
+      return {
+        id,
+        ...localFriend,
+        storage: 'local' as const,
+      };
+    };
+
+    if (SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS) {
+      return saveLocalFriend();
+    }
+
     try {
       const response = await this.api.post('/friends', {
         ...localFriend,
@@ -413,14 +484,7 @@ class BackendService {
         throw error;
       }
 
-      const id = await RealtimeDataManager.addFriend(localFriend);
-      console.info('ℹ️ Friends API unavailable — saved friend locally.');
-
-      return {
-        id,
-        ...localFriend,
-        storage: 'local' as const,
-      };
+      return saveLocalFriend();
     }
   }
 
@@ -541,8 +605,58 @@ class BackendService {
 
   async createNotification(notification: any, advisorId?: string) {
     const url = advisorId ? `/notifications/${advisorId}` : '/notifications';
-    const response = await this.api.post(url, notification);
-    return response.data;
+
+    const saveLocalNotification = async () => {
+      const canStoreInApp = !notification?.email && !notification?.phone
+        && notification?.type
+        && notification?.title
+        && notification?.message;
+
+      if (canStoreInApp) {
+        const localNotification = {
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          dueDate: notification.dueDate ? new Date(notification.dueDate) : undefined,
+          isRead: Boolean(notification.isRead),
+          relatedId: notification.relatedId,
+          createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date(),
+          userId: notification.userId,
+          deepLink: notification.deepLink,
+        };
+
+        const id = await db.notifications.add(localNotification);
+        console.info('ℹ️ Notifications API unavailable — saved notification locally.');
+
+        return {
+          id,
+          ...localNotification,
+          storage: 'local' as const,
+          delivery: 'local' as const,
+        };
+      }
+
+      console.info('ℹ️ Notifications API unavailable — skipped external notification delivery.');
+      return {
+        storage: 'local' as const,
+        delivery: 'skipped' as const,
+      };
+    };
+
+    if (SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS) {
+      return saveLocalNotification();
+    }
+
+    try {
+      const response = await this.api.post(url, notification);
+      return response.data;
+    } catch (error) {
+      if (!shouldUseLocalFallback(error)) {
+        throw error;
+      }
+
+      return saveLocalNotification();
+    }
   }
 }
 
