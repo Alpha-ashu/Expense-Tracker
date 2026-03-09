@@ -60,6 +60,21 @@ const FieldRow: React.FC<{
   </div>
 );
 
+const DropdownCaret: React.FC<{ open?: boolean; size?: number; className?: string }> = ({
+  open = false,
+  size = 16,
+  className,
+}) => (
+  <span
+    className={cn(
+      'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm',
+      className,
+    )}
+  >
+    <ChevronDown size={size} className={cn('transition-transform', open && 'rotate-180')} />
+  </span>
+);
+
 /* ─────────────── main component ─────────────── */
 export const AddTransaction: React.FC = () => {
   const { accounts, transactions, setCurrentPage, currency, refreshData } = useApp();
@@ -647,7 +662,7 @@ export const AddTransaction: React.FC = () => {
                     </p>
                   </div>
                   {accounts.length > 1 && (
-                    <ChevronDown size={16} className={cn('shrink-0 text-gray-400 transition-transform', showAccountPicker && 'rotate-180')} />
+                    <DropdownCaret open={showAccountPicker} />
                   )}
                 </div>
               </button>
@@ -787,7 +802,7 @@ export const AddTransaction: React.FC = () => {
                         className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 shadow-sm transition-colors hover:bg-gray-50"
                       >
                         {showCategoryPicker ? 'Hide category' : 'Change category'}
-                        <ChevronDown size={14} className={cn('transition-transform', showCategoryPicker && 'rotate-180')} />
+                        <DropdownCaret open={showCategoryPicker} size={14} className="h-7 w-7 rounded-lg border-gray-100 text-gray-500 shadow-none" />
                       </button>
                       {(formData.subcategory || smartExpenseSuggestion) && (
                         <span className="text-xs text-gray-500">
@@ -921,10 +936,7 @@ export const AddTransaction: React.FC = () => {
                           </p>
                         </div>
                         {subcategories.length > 0 && (
-                          <ChevronDown
-                            size={16}
-                            className={cn('shrink-0 text-gray-400 transition-transform', showIncomeSubcategoryPicker && 'rotate-180')}
-                          />
+                          <DropdownCaret open={showIncomeSubcategoryPicker} />
                         )}
                       </div>
                     </button>
@@ -995,37 +1007,27 @@ export const AddTransaction: React.FC = () => {
 
         {/* Date */}
         <FieldRow icon={<CalendarDays size={16} className="text-gray-500" />} label="Date">
-          {isExpense ? (
+          <label className="relative block cursor-pointer">
+            <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Transaction date</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">{formattedTransactionDate}</p>
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm">
+                  <CalendarDays size={16} />
+                </div>
+              </div>
+            </div>
             <input
               type="date"
               value={formData.date}
               onChange={e => setFormData(p => ({ ...p, date: e.target.value }))}
-              className="w-full bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
-              required title="Select date"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              required
+              title="Select date"
             />
-          ) : (
-            <label className="relative block cursor-pointer">
-              <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-gray-50 px-4 py-3 shadow-sm transition-colors hover:border-gray-300">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Transaction date</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900">{formattedTransactionDate}</p>
-                  </div>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm">
-                    <CalendarDays size={16} />
-                  </div>
-                </div>
-              </div>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={e => setFormData(p => ({ ...p, date: e.target.value }))}
-                className="absolute inset-0 cursor-pointer opacity-0"
-                required
-                title="Select date"
-              />
-            </label>
-          )}
+          </label>
         </FieldRow>
 
         <div className="px-4 py-3">
@@ -1053,7 +1055,7 @@ export const AddTransaction: React.FC = () => {
                 <p className="text-xs text-gray-500">{optionalDetailsLabel}</p>
               </div>
             </div>
-            <ChevronDown size={16} className={cn('text-gray-400 transition-transform', optionalFieldsOpen && 'rotate-180')} />
+            <DropdownCaret open={optionalFieldsOpen} />
           </button>
         </div>
 
