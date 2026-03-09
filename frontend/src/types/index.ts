@@ -62,6 +62,10 @@ export interface Transaction {
   date: Date;
   tags?: string[];
   attachment?: string;
+  expenseMode?: 'individual' | 'group';
+  groupExpenseId?: string;
+  groupName?: string;
+  splitType?: 'equal' | 'custom';
   // Transfer specific
   transferToAccountId?: string;
   transferType?: 'self-transfer' | 'other-transfer';
@@ -181,16 +185,25 @@ export interface GroupExpense {
   paidBy: string; // userId
   date: Date;
   members: GroupMember[];
+  category?: string;
+  subcategory?: string;
+  splitType?: 'equal' | 'custom';
+  yourShare?: number;
+  expenseTransactionId?: string;
   settled: boolean;
   createdAt: Date;
   updatedAt?: Date;
 }
 
 export interface GroupMember {
-  userId: string;
+  userId?: string;
   name: string;
   share: number;
   paid: boolean;
+  email?: string;
+  phone?: string;
+  isCurrentUser?: boolean;
+  paymentStatus?: 'pending' | 'partial' | 'paid';
 }
 
 // ==================== Reports & Analytics ====================

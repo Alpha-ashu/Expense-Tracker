@@ -142,14 +142,21 @@ const AppContent: React.FC = () => {
     switch (action) {
       case 'add-expense':
         localStorage.setItem('quickFormType', 'expense');
+        localStorage.setItem('quickBackPage', 'transactions');
         setCurrentPage('add-transaction');
         break;
       case 'add-income':
         localStorage.setItem('quickFormType', 'income');
+        localStorage.setItem('quickBackPage', 'transactions');
         setCurrentPage('add-transaction');
         break;
       case 'pay-emi': setCurrentPage('pay-emi'); break;
-      case 'split-bill': setCurrentPage('add-group'); break;
+      case 'split-bill':
+        localStorage.setItem('quickFormType', 'expense');
+        localStorage.setItem('quickExpenseMode', 'group');
+        localStorage.setItem('quickBackPage', 'groups');
+        setCurrentPage('add-transaction');
+        break;
       case 'add-goal': setCurrentPage('add-goal'); break;
       case 'transfer': setCurrentPage('transfer'); break;
       case 'voice-entry': setCurrentPage('voice-input'); break;

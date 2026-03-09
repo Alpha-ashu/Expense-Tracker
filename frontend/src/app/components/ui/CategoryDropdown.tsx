@@ -68,23 +68,25 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
           'transition-all duration-200',
           isOpen && 'ring-2 ring-blue-500 border-transparent'
         )}
-      >
+        >
         {selectedOption ? (
           <>
             <div className="flex-shrink-0">
               {getCategoryCartoonIcon(selectedOption, 36)}
             </div>
-            <span className="flex-1 text-left font-medium text-gray-900">{selectedOption}</span>
+            <span className="min-w-0 flex-1 truncate text-left font-medium text-gray-900">{selectedOption}</span>
           </>
         ) : (
-          <span className="flex-1 text-left text-gray-500">{placeholder}</span>
+          <span className="min-w-0 flex-1 truncate text-left text-gray-500">{placeholder}</span>
         )}
-        <ChevronDown 
-          className={cn(
-            'w-5 h-5 text-gray-400 transition-transform duration-200',
-            isOpen && 'transform rotate-180'
-          )} 
-        />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-400 shadow-sm">
+          <ChevronDown 
+            className={cn(
+              'w-5 h-5 transition-transform duration-200',
+              isOpen && 'rotate-180'
+            )} 
+          />
+        </span>
       </button>
 
       {/* Dropdown Menu */}

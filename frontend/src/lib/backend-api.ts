@@ -388,12 +388,40 @@ class BackendService {
     createdAt: Date;
     updatedAt: Date;
   }) {
-    const response = await this.api.post('/friends', {
-      ...friend,
-      createdAt: friend.createdAt.toISOString(),
-      updatedAt: friend.updatedAt.toISOString(),
-    });
-    return response.data;
+    const localFriend = {
+      name: friend.name,
+      email: friend.email?.trim() || undefined,
+      phone: friend.phone?.trim() || undefined,
+      createdAt: friend.createdAt,
+      updatedAt: friend.updatedAt,
+    };
+
+    try {
+      const response = await this.api.post('/friends', {
+        ...localFriend,
+        createdAt: friend.createdAt.toISOString(),
+        updatedAt: friend.updatedAt.toISOString(),
+      });
+
+      const localId = await RealtimeDataManager.addFriend(localFriend);
+      return {
+        ...response.data,
+        localId,
+      };
+    } catch (error) {
+      if (!shouldUseLocalFallback(error)) {
+        throw error;
+      }
+
+      const id = await RealtimeDataManager.addFriend(localFriend);
+      console.info('ℹ️ Friends API unavailable — saved friend locally.');
+
+      return {
+        id,
+        ...localFriend,
+        storage: 'local' as const,
+      };
+    }
   }
 
   // ===== INVESTMENTS =====

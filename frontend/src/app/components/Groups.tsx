@@ -1,14 +1,46 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
-import { Plus, Users, Trash2, Edit2, Check, X } from 'lucide-react';
+import { queueTransactionDeleteSync } from '@/lib/auth-sync-integration';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
+import { getCategoryCartoonIcon, getCategoryColor } from '@/app/components/ui/CartoonCategoryIcons';
+import { Plus, Users, Trash2, Edit2, Check, X, CalendarDays } from 'lucide-react';
 import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 
+const avatarToneClasses = [
+  'bg-rose-100 text-rose-700',
+  'bg-sky-100 text-sky-700',
+  'bg-amber-100 text-amber-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-violet-100 text-violet-700',
+  'bg-orange-100 text-orange-700',
+];
+
+const getToneClass = (seed: string) => {
+  const sum = [...seed].reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return avatarToneClasses[sum % avatarToneClasses.length];
+};
+
+const formatDateLabel = (value: Date) =>
+  new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+
+const formatDisplayName = (value: string) =>
+  value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+
 export const Groups: React.FC = () => {
-  const { groupExpenses, accounts, currency, setCurrentPage } = useApp();
+  const { groupExpenses, friends, currency, setCurrentPage } = useApp();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -16,11 +48,37 @@ export const Groups: React.FC = () => {
   const [editedName, setEditedName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+  const sortedExpenses = useMemo(
+    () => [...groupExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [groupExpenses],
+  );
+  const savedFriends = useMemo(
+    () => [...friends].sort((a, b) => a.name.localeCompare(b.name)),
+    [friends],
+  );
+  const friendAvatarById = useMemo(
+    () => new Map(savedFriends.map((friend) => [friend.id, friend.avatar])),
+    [savedFriends],
+  );
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency,
+      currency,
+      maximumFractionDigits: 2,
     }).format(amount);
+
+  const openGroupExpenseForm = () => {
+    localStorage.setItem('quickFormType', 'expense');
+    localStorage.setItem('quickExpenseMode', 'group');
+    localStorage.setItem('quickBackPage', 'groups');
+    setCurrentPage('add-transaction');
+  };
+
+  const openFriendEditor = (friendId: number) => {
+    localStorage.setItem('editingFriendId', String(friendId));
+    localStorage.setItem('editingFriendBackPage', 'groups');
+    setCurrentPage('add-friends');
   };
 
   const handleDeleteGroup = (groupId: number, groupName: string) => {
@@ -32,7 +90,36 @@ export const Groups: React.FC = () => {
     if (!groupToDelete) return;
     setIsDeleting(true);
     try {
-      await db.groupExpenses.delete(groupToDelete.id);
+      const group = groupExpenses.find((expense) => expense.id === groupToDelete.id);
+      if (!group) throw new Error('Group expense not found');
+
+      await db.transaction('rw', db.groupExpenses, db.transactions, db.accounts, async () => {
+        await db.groupExpenses.delete(groupToDelete.id);
+
+        if (group.expenseTransactionId) {
+          const linkedTransaction = await db.transactions.get(group.expenseTransactionId);
+
+          if (linkedTransaction) {
+            const linkedAccount = await db.accounts.get(linkedTransaction.accountId);
+            if (linkedAccount) {
+              const restoredBalance = linkedTransaction.type === 'expense'
+                ? linkedAccount.balance + linkedTransaction.amount
+                : linkedAccount.balance - linkedTransaction.amount;
+              await db.accounts.update(linkedAccount.id!, {
+                balance: restoredBalance,
+                updatedAt: new Date(),
+              });
+            }
+
+            await db.transactions.delete(linkedTransaction.id!);
+          }
+        }
+      });
+
+      if (group.expenseTransactionId) {
+        queueTransactionDeleteSync(group.expenseTransactionId);
+      }
+
       toast.success('Group expense deleted successfully');
       setDeleteModalOpen(false);
       setGroupToDelete(null);
@@ -56,7 +143,25 @@ export const Groups: React.FC = () => {
     }
     setIsSaving(true);
     try {
-      await db.groupExpenses.update(groupId, { name: editedName });
+      const group = groupExpenses.find((expense) => expense.id === groupId);
+      await db.groupExpenses.update(groupId, { name: editedName.trim(), updatedAt: new Date() });
+      if (group?.expenseTransactionId) {
+        const linkedTransaction = await db.transactions.get(group.expenseTransactionId);
+        if (linkedTransaction) {
+          const transactionUpdates: {
+            groupName: string;
+            updatedAt: Date;
+            description?: string;
+          } = {
+            groupName: editedName.trim(),
+            updatedAt: new Date(),
+          };
+          if (!linkedTransaction.description || linkedTransaction.description === group.name) {
+            transactionUpdates.description = editedName.trim();
+          }
+          await db.transactions.update(group.expenseTransactionId, transactionUpdates);
+        }
+      }
       toast.success('Group name updated successfully');
       setEditingGroupId(null);
     } catch (error) {
@@ -69,180 +174,336 @@ export const Groups: React.FC = () => {
 
   const handleToggleMemberPayment = async (groupId: number, memberIndex: number, paid: boolean) => {
     try {
-      const group = groupExpenses.find(g => g.id === groupId);
+      const group = groupExpenses.find((expense) => expense.id === groupId);
       if (!group) return;
-      
+
       const updatedMembers = [...group.members];
-      updatedMembers[memberIndex] = { ...updatedMembers[memberIndex], paid: !paid };
-      
-      await db.groupExpenses.update(groupId, { members: updatedMembers });
-      toast.success(`Member marked as ${!paid ? 'paid' : 'pending'}`);
+      const targetMember = updatedMembers[memberIndex];
+      const nextPaidState = !paid;
+
+      updatedMembers[memberIndex] = {
+        ...targetMember,
+        paid: nextPaidState,
+        paidAmount: nextPaidState ? targetMember.share : 0,
+        paymentStatus: nextPaidState ? 'paid' : 'pending',
+      };
+
+      const hasPendingFriends = updatedMembers.some(
+        (member) => !member.isCurrentUser && member.share > 0 && !(member.paymentStatus === 'paid' || member.paid),
+      );
+
+      await db.groupExpenses.update(groupId, {
+        members: updatedMembers,
+        status: hasPendingFriends ? 'pending' : 'settled',
+        updatedAt: new Date(),
+      });
+      toast.success(`Member marked as ${nextPaidState ? 'paid' : 'pending'}`);
     } catch (error) {
       console.error('Failed to update member payment:', error);
       toast.error('Failed to update member status');
     }
   };
 
-
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+    <div className="px-3 sm:px-4 md:px-6 py-6 lg:py-10 max-w-[1080px] mx-auto space-y-6 pb-24">
       <PageHeader
         title="Group Expenses"
-        subtitle="Split bills fairly with friends"
+        subtitle="Track shared bills and pending collections"
         icon={<Users size={20} className="sm:w-6 sm:h-6" />}
       >
         <div className="flex gap-2">
           <Button
             onClick={() => setCurrentPage('add-friends')}
-            className="shadow-lg bg-gray-600 text-white hover:bg-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+            className="shadow-sm bg-gray-100 text-gray-800 hover:bg-gray-200 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
           >
             <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
             Add Friend
           </Button>
           <Button
-            onClick={() => setCurrentPage('add-group')}
+            onClick={openGroupExpenseForm}
             className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
           >
             <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-            Add Group
+            Add Group Expense
           </Button>
         </div>
       </PageHeader>
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {groupExpenses.map(expense => {
-          const totalPaid = expense.members.filter(m => m.paid).reduce((sum, m) => sum + m.share, 0);
-          const totalUnpaid = expense.totalAmount - totalPaid;
+
+      <section className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-base font-semibold text-gray-900">Friends</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+              {savedFriends.length > 0 ? (
+                <>
+                  <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-sky-100 px-2 text-xs font-bold text-sky-700">
+                    {savedFriends.length}
+                  </span>
+                  <span>Ready for your next split</span>
+                </>
+              ) : (
+                <span>Add friends first to start splitting bills</span>
+              )}
+            </div>
+          </div>
+          <Button
+            onClick={() => setCurrentPage('add-friends')}
+            className="shadow-sm bg-sky-50 text-sky-700 hover:bg-sky-100 text-xs sm:text-sm h-9 px-3"
+          >
+            Manage Friends
+          </Button>
+        </div>
+
+        {savedFriends.length > 0 ? (
+          <div className="mt-4 overflow-hidden rounded-[24px] border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-white p-4">
+            <div className="-mx-1 -my-1 flex gap-3 overflow-x-auto overflow-y-visible px-1 py-1">
+              {savedFriends.map((friend) => (
+                <button
+                  key={friend.id}
+                  type="button"
+                  onClick={() => friend.id && openFriendEditor(friend.id)}
+                  className="flex w-[82px] shrink-0 flex-col items-center text-center transition-transform hover:-translate-y-0.5"
+                  title={`Edit ${formatDisplayName(friend.name)}`}
+                  aria-label={`Edit ${formatDisplayName(friend.name)}`}
+                >
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-sky-200 bg-white p-0.5 shadow-sm transition-colors hover:border-sky-300">
+                    <Avatar className="h-full w-full rounded-full">
+                      <AvatarImage src={friend.avatar} alt={friend.name} className="object-cover" />
+                      <AvatarFallback className={`${getToneClass(friend.name)} text-sm font-bold`}>
+                        {friend.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <p className="mt-2 w-full truncate text-sm font-semibold text-gray-800">
+                    {formatDisplayName(friend.name)}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-3xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center">
+            <p className="text-sm text-gray-500">No saved friends yet.</p>
+          </div>
+        )}
+      </section>
+
+      <div className="space-y-4">
+        {sortedExpenses.map((expense) => {
+          const allMembersWithIndex = expense.members.map((member, index) => ({ ...member, originalIndex: index }));
+          const friendMembers = allMembersWithIndex.filter((member) => !member.isCurrentUser);
+          const avatarMembers = allMembersWithIndex.slice(0, 4);
+          const extraMembers = Math.max(allMembersWithIndex.length - avatarMembers.length, 0);
+          const yourShare = expense.yourShare ?? allMembersWithIndex.find((member) => member.isCurrentUser)?.share ?? 0;
+          const pendingCollection = friendMembers
+            .filter((member) => !(member.paymentStatus === 'paid' || member.paid))
+            .reduce((sum, member) => sum + member.share, 0);
+          const groupStatus = expense.status
+            ?? (friendMembers.some((member) => !(member.paymentStatus === 'paid' || member.paid) && member.share > 0) ? 'pending' : 'settled');
+          const coverColor = getCategoryColor(expense.category || 'Miscellaneous');
+          const coverStyle = {
+            background: `linear-gradient(135deg, ${coverColor}, ${coverColor}99)`,
+          };
 
           return (
-            <div key={expense.id} className="bg-white rounded-xl border-2 border-gray-200 p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  {editingGroupId === expense.id ? (
-                    <div className="flex gap-2 items-center mb-2">
-                      <input
-                        type="text"
-                        value={editedName}
-                        onChange={(e) => setEditedName(e.target.value)}
-                        className="flex-1 px-3 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold"
-                        placeholder="Enter expense name"
-                        aria-label="Expense name"
-                      />
-                      <button
-                        onClick={() => handleSaveEdit(expense.id!)}
-                        disabled={isSaving}
-                        className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
-                        title="Save"
-                      >
-                        <Check size={18} />
-                      </button>
-                      <button
-                        onClick={() => setEditingGroupId(null)}
-                        disabled={isSaving}
-                        className="p-1.5 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
-                        title="Cancel"
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-xl font-bold text-gray-900">{expense.name}</h3>
-                      <button
-                        onClick={() => handleEditClick(expense.id!, expense.name)}
-                        className="p-1 hover:bg-blue-100 rounded transition-colors text-blue-600"
-                        title="Edit group name"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    </div>
-                  )}
-                  <p className="text-sm text-gray-500">{new Date(expense.date).toLocaleDateString()}</p>
-                </div>
-                <button
-                  onClick={() => handleDeleteGroup(expense.id!, expense.name)}
-                  className="p-1 hover:bg-red-100 rounded transition-colors text-red-600"
-                  title="Delete group"
+            <div
+              key={expense.id}
+              className="rounded-[30px] border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <div className="flex gap-4">
+                <div
+                  className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[26px] shadow-sm"
+                  style={coverStyle}
                 >
-                  <Trash2 size={16} />
-                </button>
-                <div className="text-right ml-4">
-                  <p className="text-sm text-gray-500">Total</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(expense.totalAmount)}</p>
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.45),transparent_55%)]" />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/85 shadow-sm backdrop-blur">
+                    {getCategoryCartoonIcon(expense.category || 'Miscellaneous', 34)}
+                  </div>
                 </div>
-              </div>
 
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-500">Payment Progress</span>
-                  <span className="font-medium text-gray-900">
-                    {formatCurrency(totalPaid)} / {formatCurrency(expense.totalAmount)}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all"
-                    style={{ 
-                      width: `calc(${(totalPaid / expense.totalAmount) * 100}% - 4px)`
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 mb-2">Members & Shares</p>
-                {expense.members.map((member, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleToggleMemberPayment(expense.id!, idx, member.paid)}
-                    className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                    title="Click to toggle payment status"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                          member.paid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                        }`}
-                      >
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{member.name}</p>
-                        <p className={`text-xs ${member.paid ? 'text-green-600' : 'text-orange-600'}`}>
-                          {member.paid ? '✓ Paid' : '⏱ Pending'}
-                        </p>
-                      </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {editingGroupId === expense.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editedName}
+                            onChange={(e) => setEditedName(e.target.value)}
+                            className="min-w-0 flex-1 rounded-2xl border border-gray-300 px-3 py-2 text-base font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            placeholder="Enter expense name"
+                            aria-label="Expense name"
+                          />
+                          <button
+                            onClick={() => handleSaveEdit(expense.id!)}
+                            disabled={isSaving}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-green-50 text-green-600 transition-colors hover:bg-green-100"
+                            title="Save"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            onClick={() => setEditingGroupId(null)}
+                            disabled={isSaving}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200"
+                            title="Cancel"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <h3 className="truncate text-2xl font-bold tracking-tight text-gray-900">{expense.name}</h3>
+                          <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
+                            <CalendarDays size={14} className="shrink-0" />
+                            <span>{formatDateLabel(expense.date)}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <p className="font-semibold text-gray-900">{formatCurrency(member.share)}</p>
-                  </button>
-                ))}
-              </div>
 
-              {expense.items && expense.items.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Items</p>
-                  {expense.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between text-sm py-1">
-                      <span className="text-gray-600">{item.name}</span>
-                      <span className="font-medium text-gray-900">{formatCurrency(item.amount)}</span>
-                    </div>
-                  ))}
+                    {editingGroupId !== expense.id && (
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          onClick={() => handleEditClick(expense.id!, expense.name)}
+                          className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200"
+                          title="Edit group name"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteGroup(expense.id!, expense.name)}
+                          className="flex h-9 w-9 items-center justify-center rounded-2xl bg-red-50 text-red-600 transition-colors hover:bg-red-100"
+                          title="Delete group"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {editingGroupId !== expense.id && (
+                    <>
+                      <div className="mt-3 flex items-center gap-3">
+                        <div className="flex items-center">
+                          {avatarMembers.map((member, index) => {
+                            const avatarSrc = member.friendId ? friendAvatarById.get(member.friendId) : undefined;
+                            return (
+                              <Avatar
+                                key={`${expense.id}-${member.name}-${index}`}
+                                className={`h-9 w-9 rounded-full border-2 border-white shadow-sm ${index > 0 ? '-ml-2.5' : ''}`}
+                              >
+                                <AvatarImage src={avatarSrc} alt={member.name} className="object-cover" />
+                                <AvatarFallback className={`${getToneClass(member.name)} text-xs font-bold`}>
+                                  {member.name.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            );
+                          })}
+                          {extraMembers > 0 && (
+                            <div className="-ml-2.5 flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-[11px] font-bold text-gray-600 shadow-sm">
+                              +{extraMembers}
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-700">
+                            {friendMembers.length} friend{friendMembers.length === 1 ? '' : 's'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {groupStatus === 'settled' ? 'Everyone is settled' : 'Collection is still pending'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                          {expense.category || 'Miscellaneous'}
+                        </span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          groupStatus === 'settled'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {groupStatus === 'settled' ? 'Settled' : 'Pending'}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Total</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">{formatCurrency(expense.totalAmount)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Your share</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">{formatCurrency(yourShare)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-gray-50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Pending</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">{formatCurrency(pendingCollection)}</p>
+                        </div>
+                      </div>
+
+                      {expense.description && (
+                        <p className="mt-3 line-clamp-2 text-sm text-gray-500">{expense.description}</p>
+                      )}
+
+                      {friendMembers.length > 0 && (
+                        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                          {friendMembers.map((member) => {
+                            const isPaid = member.paymentStatus === 'paid' || member.paid;
+                            const avatarSrc = member.friendId ? friendAvatarById.get(member.friendId) : undefined;
+                            return (
+                              <button
+                                key={`${expense.id}-${member.originalIndex}-${member.name}`}
+                                onClick={() => handleToggleMemberPayment(expense.id!, member.originalIndex, member.paid)}
+                                className={`shrink-0 rounded-2xl border px-3 py-2 text-left transition-colors ${
+                                  isPaid
+                                    ? 'border-emerald-200 bg-emerald-50'
+                                    : 'border-amber-200 bg-amber-50'
+                                }`}
+                                title="Toggle payment status"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-7 w-7 rounded-full">
+                                    <AvatarImage src={avatarSrc} alt={member.name} className="object-cover" />
+                                    <AvatarFallback className={`${getToneClass(member.name)} text-[11px] font-bold`}>
+                                      {member.name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="text-xs font-semibold text-gray-900">{member.name}</p>
+                                    <p className={`text-[11px] ${isPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                      {isPaid ? 'Paid' : 'Pending'} · {formatCurrency(member.share)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {groupExpenses.length === 0 && (
-        <div className="bg-white p-12 rounded-xl border-2 border-dashed border-gray-300 text-center">
-          <Users className="mx-auto text-gray-400 mb-4" size={48} />
+      {sortedExpenses.length === 0 && (
+        <div className="rounded-[30px] border-2 border-dashed border-gray-300 bg-white px-6 py-14 text-center">
+          <Users className="mx-auto text-gray-400 mb-4" size={44} />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No group expenses yet</h3>
-          <p className="text-gray-500 mb-4">Start splitting bills with friends</p>
+          <p className="mx-auto max-w-sm text-sm text-gray-500 mb-5">
+            Start a shared bill and it will appear here as a compact tracker card.
+          </p>
           <button
-            onClick={() => setCurrentPage('add-group')}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={openGroupExpenseForm}
+            className="inline-flex items-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
           >
+            <Plus size={16} />
             Create Group Expense
           </button>
         </div>
@@ -260,8 +521,6 @@ export const Groups: React.FC = () => {
           setGroupToDelete(null);
         }}
       />
-
-      </div>
     </div>
   );
 };

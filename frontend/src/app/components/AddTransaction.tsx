@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/database';
-import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
+import { queueTransactionInsertSync, saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
+import { backendService } from '@/lib/backend-api';
 import {
   ChevronLeft, ArrowDownLeft, ArrowUpRight, Camera,
   CalendarDays, Wallet, Tag, AlignLeft, Store, Sparkles,
   CreditCard, Banknote, Smartphone,
-  Zap, ChevronDown, Search, Check,
+  Zap, ChevronDown, Search, Check, Users, UserPlus, Mail, Phone, Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -23,7 +25,7 @@ import {
   type CustomExpenseSubcategory,
   type ExpenseSubcategorySuggestion,
 } from '@/lib/expenseCategories';
-import { ReceiptScanner } from '@/app/components/ReceiptScanner';
+import { ReceiptScanner, type ReceiptScanPayload } from '@/app/components/ReceiptScanner';
 import { getCategoryCartoonIcon } from '@/app/components/ui/CartoonCategoryIcons';
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -75,9 +77,44 @@ const DropdownCaret: React.FC<{ open?: boolean; size?: number; className?: strin
   </span>
 );
 
+type ExpenseEntryMode = 'individual' | 'group';
+
+interface GroupParticipantDraft {
+  id: string;
+  friendId?: number;
+  name: string;
+  email: string;
+  phone: string;
+  share: number;
+}
+
+const createDraftId = () =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+const createEmptyParticipant = (seed: Partial<GroupParticipantDraft> = {}): GroupParticipantDraft => ({
+  id: createDraftId(),
+  name: '',
+  email: '',
+  phone: '',
+  share: 0,
+  ...seed,
+});
+
+const roundCurrencyAmount = (value: number) => Number((Number.isFinite(value) ? value : 0).toFixed(2));
+
+const toDateInputValue = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 /* ─────────────── main component ─────────────── */
 export const AddTransaction: React.FC = () => {
-  const { accounts, transactions, setCurrentPage, currency, refreshData } = useApp();
+  const { accounts, friends, transactions, setCurrentPage, currency, refreshData } = useApp();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState(() => ({
     type: 'expense' as 'expense' | 'income',
@@ -97,16 +134,25 @@ export const AddTransaction: React.FC = () => {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [showIncomeSubcategoryPicker, setShowIncomeSubcategoryPicker] = useState(false);
+  const [expenseMode, setExpenseMode] = useState<ExpenseEntryMode>('individual');
+  const [returnPage, setReturnPage] = useState('transactions');
+  const [groupName, setGroupName] = useState('');
+  const [groupSplitType, setGroupSplitType] = useState<'equal' | 'custom'>('equal');
+  const [groupParticipants, setGroupParticipants] = useState<GroupParticipantDraft[]>([]);
+  const [showGroupFriendPicker, setShowGroupFriendPicker] = useState(false);
   const [manualExpenseCategory, setManualExpenseCategory] = useState(false);
   const [customExpenseSubcategories, setCustomExpenseSubcategories] = useState<CustomExpenseSubcategory[]>(() =>
     loadCustomExpenseSubcategories(),
   );
   const accountPickerRef = useRef<HTMLDivElement | null>(null);
   const incomeSubcategoryPickerRef = useRef<HTMLDivElement | null>(null);
+  const groupFriendPickerRef = useRef<HTMLDivElement | null>(null);
 
   /* ── pre-fill from localStorage ── */
   useEffect(() => {
     const rawFormType = localStorage.getItem('quickFormType');
+    const rawExpenseMode = localStorage.getItem('quickExpenseMode');
+    const rawBackPage = localStorage.getItem('quickBackPage');
     if (rawFormType === 'income' || rawFormType === 'expense') {
       setFormData(prev => ({
         ...prev,
@@ -114,10 +160,16 @@ export const AddTransaction: React.FC = () => {
         category: DEFAULT_CATEGORY[rawFormType as 'expense' | 'income'],
         subcategory: '',
       }));
+      setExpenseMode(rawFormType === 'expense' && rawExpenseMode === 'group' ? 'group' : 'individual');
       setSubcategoryQuery('');
       setShowCategoryPicker(false);
       setManualExpenseCategory(false);
       localStorage.removeItem('quickFormType');
+      localStorage.removeItem('quickExpenseMode');
+    }
+    if (rawBackPage) {
+      setReturnPage(rawBackPage);
+      localStorage.removeItem('quickBackPage');
     }
     const rawAccountId = localStorage.getItem('quickAccountId');
     if (rawAccountId) {
@@ -152,6 +204,7 @@ export const AddTransaction: React.FC = () => {
         description: draft.description ?? prev.description,
         date: draft.date ?? prev.date,
       }));
+      setExpenseMode(nextType === 'expense' ? 'individual' : 'individual');
       setSubcategoryQuery('');
       setShowCategoryPicker(false);
       setManualExpenseCategory(false);
@@ -169,6 +222,42 @@ export const AddTransaction: React.FC = () => {
   );
   const selectedAccount = accounts.find(a => a.id === formData.accountId);
   const isExpense = formData.type === 'expense';
+  const isGroupExpense = isExpense && expenseMode === 'group';
+  const currentUserDisplayName = useMemo(() => {
+    const fullName = user?.user_metadata?.full_name
+      || [user?.user_metadata?.first_name, user?.user_metadata?.last_name].filter(Boolean).join(' ')
+      || user?.email?.split('@')[0];
+    return fullName || 'You';
+  }, [user]);
+  const activeGroupParticipants = useMemo(
+    () => groupParticipants.filter((participant) =>
+      participant.name.trim() || participant.email.trim() || participant.phone.trim()
+    ),
+    [groupParticipants],
+  );
+  const participantCountForSplit = activeGroupParticipants.length + 1;
+  const equalPerPersonShare = participantCountForSplit > 0
+    ? roundCurrencyAmount(formData.amount / participantCountForSplit)
+    : 0;
+  const normalizedFriendShares = useMemo(
+    () => activeGroupParticipants.map((participant) => ({
+      ...participant,
+      share: groupSplitType === 'equal'
+        ? equalPerPersonShare
+        : roundCurrencyAmount(participant.share),
+    })),
+    [activeGroupParticipants, equalPerPersonShare, groupSplitType],
+  );
+  const totalFriendShares = normalizedFriendShares.reduce((sum, participant) => sum + participant.share, 0);
+  const currentUserShare = roundCurrencyAmount(Math.max(formData.amount - totalFriendShares, 0));
+  const hasOverAllocatedGroupShares = groupSplitType === 'custom' && roundCurrencyAmount(totalFriendShares) > roundCurrencyAmount(formData.amount);
+  const totalAmountToCollect = normalizedFriendShares
+    .filter((participant) => participant.share > 0)
+    .reduce((sum, participant) => sum + participant.share, 0);
+  const availableSavedFriends = useMemo(
+    () => friends.filter((friend) => !activeGroupParticipants.some((participant) => participant.friendId === friend.id)),
+    [activeGroupParticipants, friends],
+  );
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -177,6 +266,9 @@ export const AddTransaction: React.FC = () => {
       }
       if (incomeSubcategoryPickerRef.current && !incomeSubcategoryPickerRef.current.contains(event.target as Node)) {
         setShowIncomeSubcategoryPicker(false);
+      }
+      if (groupFriendPickerRef.current && !groupFriendPickerRef.current.contains(event.target as Node)) {
+        setShowGroupFriendPicker(false);
       }
     };
 
@@ -343,11 +435,92 @@ export const AddTransaction: React.FC = () => {
     setFormData(prev => ({ ...prev, amount: parseFloat(val) || 0 }));
   };
 
+  const addGroupParticipant = (seed: Partial<GroupParticipantDraft> = {}) => {
+    setGroupParticipants((prev) => [...prev, createEmptyParticipant(seed)]);
+  };
+
+  const updateGroupParticipant = (id: string, updates: Partial<GroupParticipantDraft>) => {
+    setGroupParticipants((prev) => prev.map((participant) =>
+      participant.id === id ? { ...participant, ...updates } : participant
+    ));
+  };
+
+  const removeGroupParticipant = (id: string) => {
+    setGroupParticipants((prev) => prev.filter((participant) => participant.id !== id));
+  };
+
+  const addSavedFriendToGroup = (friend: typeof friends[number]) => {
+    if (activeGroupParticipants.some((participant) => participant.friendId === friend.id)) {
+      toast.error(`${friend.name} is already added`);
+      return;
+    }
+
+    addGroupParticipant({
+      friendId: friend.id,
+      name: friend.name,
+      email: friend.email ?? '',
+      phone: friend.phone ?? '',
+    });
+    setShowGroupFriendPicker(false);
+  };
+
+  const notifyGroupParticipants = async (
+    groupExpenseId: number,
+    expenseName: string,
+    totalAmount: number,
+    participants: Array<{ name: string; email?: string; phone?: string; share: number }>,
+  ) => {
+    let sentCount = 0;
+    let failedCount = 0;
+
+    await db.notifications.add({
+      type: 'group',
+      title: 'Group expense created',
+      message: `${expenseName} has been split with ${participants.length} friend${participants.length === 1 ? '' : 's'}.`,
+      isRead: false,
+      relatedId: groupExpenseId,
+      createdAt: new Date(),
+      deepLink: '/groups',
+    });
+
+    await Promise.allSettled(participants.map(async (participant) => {
+      if (!participant.email?.trim()) {
+        failedCount += 1;
+        return;
+      }
+
+      try {
+        await backendService.createNotification({
+          type: 'group',
+          title: 'New Group Expense Added',
+          message: `Hello ${participant.name}, you have been added to "${expenseName}". Total ${currency} ${totalAmount.toFixed(2)}. Your share is ${currency} ${participant.share.toFixed(2)}. Added by ${currentUserDisplayName}.`,
+          email: participant.email.trim(),
+          phone: participant.phone?.trim() || undefined,
+          relatedId: groupExpenseId,
+          createdAt: new Date().toISOString(),
+          deepLink: '/groups',
+        });
+        sentCount += 1;
+      } catch (error) {
+        console.info('ℹ️ Group expense email notification skipped:', participant.email, error);
+        failedCount += 1;
+      }
+    }));
+
+    if (sentCount === 0) return 'pending' as const;
+    if (failedCount > 0) return 'partial' as const;
+    return 'sent' as const;
+  };
+
   const switchType = (t: 'expense' | 'income') => {
     setFormData(prev => ({ ...prev, type: t, category: DEFAULT_CATEGORY[t], subcategory: '' }));
     setSubcategoryQuery('');
     setShowCategoryPicker(false);
     setShowIncomeSubcategoryPicker(false);
+    setShowGroupFriendPicker(false);
+    if (t === 'income') {
+      setExpenseMode('individual');
+    }
     setManualExpenseCategory(false);
   };
 
@@ -380,10 +553,59 @@ export const AddTransaction: React.FC = () => {
     toast.success(`Saved "${saved.name}" under ${saved.category}`);
   };
 
+  const handleApplyReceiptScan = (scan: ReceiptScanPayload) => {
+    const nextCategory = normalizeCategorySelection(scan.category || formData.category || DEFAULT_CATEGORY.expense, 'expense');
+    const nextSubcategory = scan.subcategory?.trim() || '';
+    const nextDate = scan.date instanceof Date && !Number.isNaN(scan.date.getTime())
+      ? toDateInputValue(scan.date)
+      : formData.date;
+
+    setFormData((prev) => ({
+      ...prev,
+      type: 'expense',
+      amount: scan.amount || prev.amount,
+      accountId: scan.accountId || prev.accountId,
+      category: nextCategory,
+      subcategory: nextSubcategory,
+      merchant: scan.merchantName?.trim() || prev.merchant,
+      description: prev.description || '',
+      date: nextDate,
+    }));
+    setAmountStr(scan.amount ? String(scan.amount) : amountStr);
+    setSubcategoryQuery(nextSubcategory);
+    setManualExpenseCategory(false);
+    setShowCategoryPicker(false);
+    setShowScanner(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAccount) { toast.error('Please select an account'); return; }
     if (!formData.amount || formData.amount <= 0) { toast.error('Enter a valid amount'); return; }
+    if (isGroupExpense) {
+      if (!groupName.trim()) {
+        toast.error('Please add a group name');
+        return;
+      }
+      if (activeGroupParticipants.length === 0) {
+        toast.error('Add at least one friend to split this expense');
+        return;
+      }
+      if (activeGroupParticipants.some((participant) => !participant.name.trim())) {
+        toast.error('Add a name for each participant');
+        return;
+      }
+      if (groupSplitType === 'custom') {
+        if (normalizedFriendShares.some((participant) => participant.share <= 0)) {
+          toast.error('Each friend needs a share amount greater than 0');
+          return;
+        }
+        if (hasOverAllocatedGroupShares) {
+          toast.error('Friend shares cannot exceed the total amount');
+          return;
+        }
+      }
+    }
     setIsSubmitting(true);
     try {
       let nextCategory = formData.category;
@@ -428,21 +650,133 @@ export const AddTransaction: React.FC = () => {
         subcategory: nextSubcategory,
       };
 
+      const now = new Date();
+      const newBalance = isExpense
+        ? selectedAccount.balance - formData.amount
+        : selectedAccount.balance + formData.amount;
+
+      if (isGroupExpense) {
+        const expenseName = groupName.trim();
+        const friendParticipants = normalizedFriendShares.map((participant) => ({
+          friendId: participant.friendId,
+          name: participant.name.trim(),
+          email: participant.email.trim(),
+          phone: participant.phone.trim(),
+          share: participant.share,
+          paid: false,
+          paidAmount: 0,
+          paymentStatus: 'pending' as const,
+        }));
+        const memberRecords = [
+          {
+            name: currentUserDisplayName,
+            email: user?.email?.trim(),
+            share: currentUserShare,
+            paid: true,
+            isCurrentUser: true,
+            paidAmount: currentUserShare,
+            paymentStatus: 'paid' as const,
+          },
+          ...friendParticipants,
+        ];
+        const transactionRecord = {
+          ...payload,
+          description: payload.description.trim() || expenseName,
+          date: new Date(formData.date),
+          tags: [],
+          expenseMode: 'group' as const,
+          groupName: expenseName,
+          splitType: groupSplitType,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        let transactionId = 0;
+        let groupExpenseId = 0;
+
+        await db.transaction('rw', db.transactions, db.accounts, db.groupExpenses, async () => {
+          transactionId = await db.transactions.add(transactionRecord);
+          await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
+          groupExpenseId = await db.groupExpenses.add({
+            name: expenseName,
+            totalAmount: payload.amount,
+            paidBy: formData.accountId,
+            date: new Date(formData.date),
+            members: memberRecords,
+            description: payload.description.trim() || undefined,
+            category: payload.category,
+            subcategory: payload.subcategory || undefined,
+            splitType: groupSplitType,
+            yourShare: currentUserShare,
+            expenseTransactionId: transactionId,
+            createdBy: user?.id,
+            createdByName: currentUserDisplayName,
+            status: friendParticipants.some((participant) => participant.share > 0) ? 'pending' : 'settled',
+            notificationStatus: 'pending',
+            createdAt: now,
+            updatedAt: now,
+          });
+          await db.transactions.update(transactionId, { groupExpenseId });
+        });
+
+        queueTransactionInsertSync(transactionId, transactionRecord);
+
+        let notificationStatus: 'pending' | 'partial' | 'sent' | 'failed' = 'pending';
+        try {
+          notificationStatus = await notifyGroupParticipants(
+            groupExpenseId,
+            expenseName,
+            payload.amount,
+            friendParticipants,
+          );
+        } catch (error) {
+          console.info('ℹ️ Group expense notifications skipped:', error);
+          notificationStatus = 'failed';
+        }
+
+        await db.groupExpenses.update(groupExpenseId, {
+          notificationStatus,
+          updatedAt: new Date(),
+        });
+
+        try {
+          await backendService.createGroup({
+            id: String(groupExpenseId),
+            name: expenseName,
+            members: friendParticipants.map((participant) => participant.name),
+            createdAt: now,
+            description: payload.description.trim() || undefined,
+            totalAmount: payload.amount,
+            amountPerPerson: roundCurrencyAmount(payload.amount / (friendParticipants.length + 1)),
+            category: payload.category,
+            date: new Date(formData.date),
+          });
+        } catch (error) {
+          console.info('ℹ️ Group expense backend sync skipped:', error);
+        }
+
+        if (payload.subcategory) {
+          noteExpenseSubcategoryUsage(payload.subcategory, payload.category);
+        }
+        toast.success(`Group expense created. ${friendParticipants.length} share request${friendParticipants.length === 1 ? '' : 's'} ready.`);
+        refreshData();
+        setCurrentPage('groups');
+        return;
+      }
+
       await saveTransactionWithBackendSync({
         ...payload,
         date: new Date(formData.date),
         tags: [],
+        expenseMode: 'individual',
       });
-      const newBalance = isExpense
-        ? selectedAccount.balance - formData.amount
-        : selectedAccount.balance + formData.amount;
-      await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: new Date() });
+      await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
       if (payload.type === 'expense' && payload.subcategory) {
         noteExpenseSubcategoryUsage(payload.subcategory, payload.category);
       }
       toast.success(`${isExpense ? '📉' : '📈'} ${isExpense ? 'Expense' : 'Income'} of ${currency} ${formData.amount.toFixed(2)} recorded`);
       refreshData();
-      setCurrentPage('transactions');
+      setCurrentPage(returnPage);
     } catch (err) {
       console.error(err);
       toast.error('Failed to add transaction. Please try again.');
@@ -480,6 +814,10 @@ export const AddTransaction: React.FC = () => {
         btn: 'from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-300',
       };
   const optionalFieldsOpen = showOptionalFields || !!formData.description.trim() || !!formData.merchant.trim();
+  const pageTitle = isGroupExpense ? 'Create Group Expense' : 'Add Transaction';
+  const pageSubtitle = isGroupExpense
+    ? 'Split a bill and track who owes what'
+    : `Record a new ${formData.type}`;
   const resolvedExpenseCategory = normalizeCategorySelection(
     isExpense && !manualExpenseCategory && !formData.subcategory.trim()
       ? (smartExpenseSuggestion?.category || formData.category || DEFAULT_CATEGORY.expense)
@@ -553,23 +891,25 @@ export const AddTransaction: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setCurrentPage('transactions')}
+              onClick={() => setCurrentPage(returnPage)}
               className={cn('flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-colors', accent.actionShell)}
             >
               <ChevronLeft size={19} />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="font-display text-xl font-bold leading-tight text-gray-900">Add Transaction</h1>
-              <p className={cn('text-sm font-medium', accent.subtitle)}>Record a new {formData.type}</p>
+              <h1 className="font-display text-xl font-bold leading-tight text-gray-900">{pageTitle}</h1>
+              <p className={cn('text-sm font-medium', accent.subtitle)}>{pageSubtitle}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowScanner(true)}
-              className={cn('flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-colors', accent.actionShell)}
-              title="Scan receipt"
-            >
-              <Camera size={18} />
-            </button>
+            {isExpense && (
+              <button
+                type="button"
+                onClick={() => setShowScanner(true)}
+                className={cn('flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-colors', accent.actionShell)}
+                title="Scan receipt"
+              >
+                <Camera size={18} />
+              </button>
+            )}
           </div>
 
           <div className={cn('mt-4 flex rounded-2xl p-1', accent.switchShell)}>
@@ -597,6 +937,80 @@ export const AddTransaction: React.FC = () => {
             </button>
           </div>
 
+          {isExpense && (
+            <div className="mt-4 rounded-2xl border border-gray-200 bg-white/90 p-1.5 shadow-sm">
+              <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+                Expense mode
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={cn(
+                    'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
+                    expenseMode === 'individual'
+                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="expense-mode"
+                    className="sr-only"
+                    checked={expenseMode === 'individual'}
+                    onChange={() => setExpenseMode('individual')}
+                  />
+                  <span
+                    className={cn(
+                      'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                      expenseMode === 'individual'
+                        ? 'border-white bg-white text-gray-900'
+                        : 'border-gray-300 bg-white',
+                    )}
+                  >
+                    {expenseMode === 'individual' && <span className="h-2 w-2 rounded-full bg-current" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">Individual</span>
+                    <span className={cn('mt-0.5 block text-xs', expenseMode === 'individual' ? 'text-white/75' : 'text-gray-500')}>
+                      Regular expense for yourself
+                    </span>
+                  </span>
+                </label>
+                <label
+                  className={cn(
+                    'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
+                    expenseMode === 'group'
+                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="expense-mode"
+                    className="sr-only"
+                    checked={expenseMode === 'group'}
+                    onChange={() => setExpenseMode('group')}
+                  />
+                  <span
+                    className={cn(
+                      'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                      expenseMode === 'group'
+                        ? 'border-white bg-white text-gray-900'
+                        : 'border-gray-300 bg-white',
+                    )}
+                  >
+                    {expenseMode === 'group' && <span className="h-2 w-2 rounded-full bg-current" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">Group</span>
+                    <span className={cn('mt-0.5 block text-xs', expenseMode === 'group' ? 'text-white/75' : 'text-gray-500')}>
+                      Split this bill with friends
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className={cn('mt-4 rounded-[26px] bg-gradient-to-br px-4 py-4 text-white shadow-lg', accent.amountCard)}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -618,7 +1032,7 @@ export const AddTransaction: React.FC = () => {
               </div>
               {selectedAccount && (
                 <div className={cn('max-w-[46%] rounded-2xl px-3 py-2 text-right backdrop-blur-sm', accent.amountMeta)}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">Account</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">{isGroupExpense ? 'Paid from' : 'Account'}</p>
                   <p className="truncate text-xs font-semibold text-white">{selectedAccount.name}</p>
                 </div>
               )}
@@ -636,7 +1050,7 @@ export const AddTransaction: React.FC = () => {
       <div className="flex-1 bg-white -mt-3 rounded-t-[28px] shadow-xl divide-y divide-gray-100 overflow-hidden">
         {/* Account */}
         {selectedAccount && (
-          <FieldRow icon={<Wallet size={16} className="text-gray-500" />} label="Account">
+          <FieldRow icon={<Wallet size={16} className="text-gray-500" />} label={isGroupExpense ? 'Payment account' : 'Account'}>
             <div className="space-y-2" ref={accountPickerRef}>
               <button
                 type="button"
@@ -721,6 +1135,242 @@ export const AddTransaction: React.FC = () => {
               </AnimatePresence>
             </div>
           </FieldRow>
+        )}
+
+        {isGroupExpense && (
+          <>
+            <FieldRow icon={<Users size={16} className="text-gray-500" />} label="Group">
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0"
+                  placeholder="Dinner, Goa trip, team lunch..."
+                  required={isGroupExpense}
+                />
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGroupSplitType('equal')}
+                    className={cn(
+                      'rounded-2xl border px-3 py-3 text-left transition-all',
+                      groupSplitType === 'equal'
+                        ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                    )}
+                  >
+                    <p className="text-sm font-semibold">Equal split</p>
+                    <p className={cn('mt-1 text-xs', groupSplitType === 'equal' ? 'text-white/75' : 'text-gray-500')}>
+                      Everyone pays the same share
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGroupSplitType('custom')}
+                    className={cn(
+                      'rounded-2xl border px-3 py-3 text-left transition-all',
+                      groupSplitType === 'custom'
+                        ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                    )}
+                  >
+                    <p className="text-sm font-semibold">Custom split</p>
+                    <p className={cn('mt-1 text-xs', groupSplitType === 'custom' ? 'text-white/75' : 'text-gray-500')}>
+                      Set each friend&apos;s share manually
+                    </p>
+                  </button>
+                </div>
+
+                <div className="grid gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Friends</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{activeGroupParticipants.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Your share</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formatAccountBalance(currentUserShare)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">To collect</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formatAccountBalance(totalAmountToCollect)}</p>
+                  </div>
+                </div>
+              </div>
+            </FieldRow>
+
+            <FieldRow icon={<UserPlus size={16} className="text-gray-500" />} label="Participants">
+              <div className="space-y-3">
+                <div className="space-y-3" ref={groupFriendPickerRef}>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (friends.length > 0) {
+                          setShowGroupFriendPicker((prev) => !prev);
+                        } else {
+                          setCurrentPage('add-friends');
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                    >
+                      <Users size={14} />
+                      {friends.length > 0 ? 'Add from friends' : 'Add friends first'}
+                      {friends.length > 0 && (
+                        <DropdownCaret open={showGroupFriendPicker} size={14} className="h-7 w-7 rounded-lg border-gray-100 text-gray-500 shadow-none" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => addGroupParticipant()}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                    >
+                      <UserPlus size={14} />
+                      Add participant
+                    </button>
+                  </div>
+
+                  <AnimatePresence>
+                    {showGroupFriendPicker && availableSavedFriends.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg"
+                      >
+                        <div className="border-b border-gray-100 bg-gray-50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Saved friends</p>
+                        </div>
+                        <div className="max-h-56 divide-y divide-gray-100 overflow-y-auto">
+                          {availableSavedFriends.map((friend) => (
+                            <button
+                              key={friend.id}
+                              type="button"
+                              onClick={() => addSavedFriendToGroup(friend)}
+                              className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-gray-50"
+                            >
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-sm font-semibold text-gray-700">
+                                {friend.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-semibold text-gray-900">{friend.name}</p>
+                                <p className="truncate text-xs text-gray-500">
+                                  {[friend.email, friend.phone].filter(Boolean).join(' · ') || 'No contact saved'}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {groupParticipants.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-4 text-sm text-gray-500">
+                    Add at least one friend. You are included automatically as the payer.
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {groupParticipants.map((participant, index) => {
+                    const resolvedShare = groupSplitType === 'equal'
+                      ? equalPerPersonShare
+                      : roundCurrencyAmount(participant.share);
+
+                    return (
+                      <div key={participant.id} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">Friend {index + 1}</p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              {groupSplitType === 'equal'
+                                ? `Share ${formatAccountBalance(resolvedShare)}`
+                                : 'Set contact info and custom share'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeGroupParticipant(participant.id)}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 transition-colors hover:bg-red-100"
+                            title="Remove participant"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+
+                        <div className="grid gap-2">
+                          <input
+                            type="text"
+                            value={participant.name}
+                            onChange={(e) => updateGroupParticipant(participant.id, { name: e.target.value })}
+                            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900 focus:border-gray-400 focus:outline-none focus:ring-0"
+                            placeholder="Friend name"
+                          />
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <label className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3">
+                              <Mail size={14} className="text-gray-400" />
+                              <input
+                                type="email"
+                                value={participant.email}
+                                onChange={(e) => updateGroupParticipant(participant.id, { email: e.target.value })}
+                                className="w-full bg-transparent text-sm text-gray-900 focus:outline-none placeholder:text-gray-300"
+                                placeholder="Email"
+                              />
+                            </label>
+                            <label className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-3 py-3">
+                              <Phone size={14} className="text-gray-400" />
+                              <input
+                                type="tel"
+                                value={participant.phone}
+                                onChange={(e) => updateGroupParticipant(participant.id, { phone: e.target.value })}
+                                className="w-full bg-transparent text-sm text-gray-900 focus:outline-none placeholder:text-gray-300"
+                                placeholder="Phone"
+                              />
+                            </label>
+                          </div>
+                          {groupSplitType === 'custom' && (
+                            <label className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                              <span className="text-sm font-semibold text-gray-500">{currency}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={participant.share ? String(participant.share) : ''}
+                                onChange={(e) => updateGroupParticipant(participant.id, {
+                                  share: roundCurrencyAmount(parseFloat(e.target.value) || 0),
+                                })}
+                                className="w-full bg-transparent text-sm font-semibold text-gray-900 focus:outline-none placeholder:text-gray-300"
+                                placeholder="Share amount"
+                              />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={cn(
+                  'rounded-2xl border px-4 py-3 text-sm',
+                  hasOverAllocatedGroupShares
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-gray-200 bg-gray-50 text-gray-600'
+                )}>
+                  <p className="font-semibold text-gray-900">Split preview</p>
+                  <p className="mt-1">
+                    You paid {formatAccountBalance(formData.amount)} from {selectedAccount?.name}. Your share is {formatAccountBalance(currentUserShare)}.
+                  </p>
+                  <p className="mt-1">
+                    {groupSplitType === 'equal'
+                      ? `Each friend owes ${formatAccountBalance(equalPerPersonShare)}.`
+                      : `Friends owe ${formatAccountBalance(totalFriendShares)} in total.`}
+                  </p>
+                </div>
+              </div>
+            </FieldRow>
+          </>
         )}
 
         {/* Category */}
@@ -1106,7 +1756,7 @@ export const AddTransaction: React.FC = () => {
       <div className="bg-white border-t border-gray-100 px-4 py-3 flex gap-3 shrink-0">
         <button
           type="button"
-          onClick={() => setCurrentPage('transactions')}
+          onClick={() => setCurrentPage(returnPage)}
           className="flex-[0.4] py-3.5 rounded-2xl border-2 border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
         >
           Cancel
@@ -1122,7 +1772,7 @@ export const AddTransaction: React.FC = () => {
         >
           {isSubmitting
             ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving…</>
-            : <><Zap size={15} /> Add {isExpense ? 'Expense' : 'Income'}</>
+            : <><Zap size={15} /> {isGroupExpense ? 'Create Group Expense' : `Add ${isExpense ? 'Expense' : 'Income'}`}</>
           }
         </motion.button>
       </div>
@@ -1153,7 +1803,9 @@ export const AddTransaction: React.FC = () => {
         <ReceiptScanner
           isOpen={showScanner}
           onClose={() => setShowScanner(false)}
-          onTransactionCreated={() => { setShowScanner(false); refreshData(); setCurrentPage('transactions'); }}
+          initialAccountId={formData.accountId}
+          expenseMode={expenseMode}
+          onApplyScan={handleApplyReceiptScan}
         />
       )}
     </>

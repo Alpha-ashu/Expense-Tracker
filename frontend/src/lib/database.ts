@@ -52,6 +52,10 @@ export interface Transaction {
   date: Date;
   tags?: string[];
   attachment?: string;
+  expenseMode?: 'individual' | 'group';
+  groupExpenseId?: number;
+  groupName?: string;
+  splitType?: 'equal' | 'custom';
   // Transfer specific fields
   transferToAccountId?: number;
   transferType?: 'self-transfer' | 'other-transfer'; // self-transfer is between own accounts
@@ -117,13 +121,32 @@ export interface GroupExpense {
   date: Date;
   members: GroupMember[];
   items?: GroupItem[];
+  description?: string;
+  category?: string;
+  subcategory?: string;
+  splitType?: 'equal' | 'custom';
+  yourShare?: number;
+  expenseTransactionId?: number;
+  createdBy?: string;
+  createdByName?: string;
+  status?: 'pending' | 'settled';
+  notificationStatus?: 'pending' | 'partial' | 'sent' | 'failed';
   createdAt: Date;
+  updatedAt?: Date;
+  deletedAt?: Date;
 }
 
 export interface GroupMember {
   name: string;
   share: number;
   paid: boolean;
+  friendId?: number;
+  email?: string;
+  phone?: string;
+  isCurrentUser?: boolean;
+  paidAmount?: number;
+  paymentStatus?: 'pending' | 'partial' | 'paid';
+  reminderSentAt?: Date;
 }
 
 export interface GroupItem {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createWorker } from 'tesseract.js';
 import { Upload, Camera, X, CheckCircle2, AlertCircle, Loader, ScanLine, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 /* ─────────────────────────────────────────────────────────────
    Receipt scan result
 ───────────────────────────────────────────────────────────── */
-interface ReceiptScanResult {
+export interface ReceiptScanResult {
   merchantName?: string;
   amount?: number;
   date?: Date;
@@ -26,10 +26,17 @@ interface ReceiptScanResult {
   rawText?: string;
 }
 
+export interface ReceiptScanPayload extends ReceiptScanResult {
+  accountId: number;
+}
+
 interface ReceiptScannerProps {
   isOpen: boolean;
   onClose: () => void;
   onTransactionCreated?: (transactionId: number) => void;
+  onApplyScan?: (scan: ReceiptScanPayload) => void;
+  expenseMode?: 'individual' | 'group';
+  initialAccountId?: number | null;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -162,7 +169,14 @@ function extractAmounts(text: string): number[] {
 /* ─────────────────────────────────────────────────────────────
    Component
 ───────────────────────────────────────────────────────────── */
-export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose, onTransactionCreated }) => {
+export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
+  isOpen,
+  onClose,
+  onTransactionCreated,
+  onApplyScan,
+  expenseMode = 'individual',
+  initialAccountId,
+}) => {
   const { accounts, currency, refreshData, setCurrentPage } = useApp();
   const expenseCategoryOptions = getExpenseCategoryNames();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -172,10 +186,16 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
   const [scanStatus, setScanStatus] = useState('');
   const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
-    accounts[0]?.id ?? null
+    initialAccountId ?? accounts[0]?.id ?? null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const isFormPrefillMode = !!onApplyScan;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedAccountId(initialAccountId ?? accounts[0]?.id ?? null);
+  }, [accounts, initialAccountId, isOpen]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -249,7 +269,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
       const subcategory = scanResult.subcategory?.trim() || '';
 
       // Save transaction (syncs to backend if online)
-      await saveTransactionWithBackendSync({
+      const savedTransaction = await saveTransactionWithBackendSync({
         type: 'expense',
         amount,
         accountId: selectedAccountId,
@@ -267,6 +287,9 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
 
       toast.success(`📦 Expense of ${currency} ${amount.toFixed(2)} added to ${account.name}`);
       refreshData();
+      if (savedTransaction?.id) {
+        onTransactionCreated?.(savedTransaction.id);
+      }
       handleClose();
       // Navigate back to transactions
       setCurrentPage('transactions');
@@ -274,6 +297,20 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
       console.error('Failed to save scanned transaction:', err);
       toast.error('Failed to add transaction. Please try again.');
     }
+  };
+
+  const handleApplyScanToForm = () => {
+    if (!scanResult || !selectedAccountId) {
+      toast.error('Select an account to continue');
+      return;
+    }
+
+    onApplyScan?.({
+      ...scanResult,
+      accountId: selectedAccountId,
+    });
+    toast.success(`Receipt applied to ${expenseMode === 'group' ? 'group' : 'individual'} expense form`);
+    handleClose();
   };
 
   const handleClose = () => {
@@ -306,6 +343,11 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
             <div>
               <h2 className="font-display font-bold text-gray-900 text-base">Receipt Scanner</h2>
               <p className="text-xs text-gray-400">AI-powered OCR — reads any receipt</p>
+              {isFormPrefillMode && (
+                <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                  Filling {expenseMode === 'group' ? 'group expense' : 'individual expense'} form
+                </p>
+              )}
             </div>
           </div>
           <button onClick={handleClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors">
@@ -544,11 +586,13 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ isOpen, onClose,
                   <RefreshCw size={13} /> Rescan
                 </button>
                 <button
-                  onClick={handleCreateTransaction}
+                  onClick={isFormPrefillMode ? handleApplyScanToForm : handleCreateTransaction}
                   disabled={!selectedAccountId || !scanResult.amount}
                   className="flex-1 py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-900 disabled:opacity-40 transition-colors shadow-lg"
                 >
-                  Add Transaction
+                  {isFormPrefillMode
+                    ? `Use in ${expenseMode === 'group' ? 'Group' : 'Individual'} Expense`
+                    : 'Add Transaction'}
                 </button>
               </div>
             </div>
