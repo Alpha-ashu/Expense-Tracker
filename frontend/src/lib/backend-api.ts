@@ -1,7 +1,17 @@
 // Backend API Service - Replaces local-only storage with cloud-based persistence
 import axios, { AxiosInstance } from 'axios';
+import RealtimeDataManager from './realtimeData';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+
+function shouldUseLocalFallback(error: unknown) {
+  if (!axios.isAxiosError(error)) {
+    return false;
+  }
+
+  const status = error.response?.status;
+  return status == null || status >= 500 || status === 404;
+}
 
 class BackendService {
   // ===== GOLD =====
@@ -65,14 +75,35 @@ class BackendService {
     broker?: string;
     description?: string;
   }) {
-    const response = await this.api.post('/investments', {
-      ...investment,
-      purchaseDate: investment.purchaseDate.toISOString(),
-      lastUpdated: investment.lastUpdated.toISOString(),
-      updatedAt: investment.updatedAt.toISOString(),
-      deletedAt: investment.deletedAt ? investment.deletedAt.toISOString() : undefined,
-    });
-    return response.data;
+    try {
+      const response = await this.api.post('/investments', {
+        ...investment,
+        purchaseDate: investment.purchaseDate.toISOString(),
+        lastUpdated: investment.lastUpdated.toISOString(),
+        updatedAt: investment.updatedAt.toISOString(),
+        deletedAt: investment.deletedAt ? investment.deletedAt.toISOString() : undefined,
+      });
+      return response.data;
+    } catch (error) {
+      if (!shouldUseLocalFallback(error)) {
+        throw error;
+      }
+
+      const id = await RealtimeDataManager.addInvestment({
+        ...investment,
+        purchaseDate: investment.purchaseDate,
+        lastUpdated: investment.lastUpdated,
+        updatedAt: investment.updatedAt,
+        deletedAt: investment.deletedAt,
+      });
+
+      console.info('ℹ️ Investments API unavailable — saved investment locally.');
+      return {
+        id,
+        ...investment,
+        storage: 'local' as const,
+      };
+    }
   }
   private api: AxiosInstance;
   private token: string | null = null;

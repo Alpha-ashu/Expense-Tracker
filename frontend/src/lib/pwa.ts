@@ -1,4 +1,6 @@
 // PWA Registration and Setup
+let hasReloadedForServiceWorkerUpdate = false;
+
 export const registerServiceWorker = async () => {
   // Don't register service worker in development or for email confirmation flows
   if (import.meta.env.DEV || 
@@ -16,6 +18,20 @@ export const registerServiceWorker = async () => {
       });
 
       console.log('Service Worker registered successfully:', registration.scope);
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hasReloadedForServiceWorkerUpdate) {
+          return;
+        }
+
+        hasReloadedForServiceWorkerUpdate = true;
+        window.location.reload();
+      });
+
+      await registration.update();
+
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
 
       // Check for updates periodically
       setInterval(() => {

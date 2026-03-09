@@ -1,0 +1,313 @@
+import type { StockQuote } from '@/lib/stockApi';
+
+export type FlashAssetKind = 'local' | 'global' | 'commodity' | 'forex' | 'crypto';
+export type FlashTone = 'bullish' | 'bearish' | 'local' | 'global' | 'commodity' | 'forex' | 'crypto';
+
+export interface FlashAsset {
+  symbol: string;
+  label: string;
+  kind: FlashAssetKind;
+}
+
+export interface FlashItem {
+  id: string;
+  badge: string;
+  label: string;
+  symbol: string;
+  kind: FlashAssetKind;
+  tone: FlashTone;
+  quote: StockQuote;
+}
+
+interface CountryFlashProfile {
+  label: string;
+  localAssets: FlashAsset[];
+}
+
+const GLOBAL_ASSETS: FlashAsset[] = [
+  { symbol: 'AAPL.US', label: 'Apple', kind: 'global' },
+  { symbol: 'MSFT.US', label: 'Microsoft', kind: 'global' },
+  { symbol: 'NVDA.US', label: 'NVIDIA', kind: 'global' },
+  { symbol: 'AMZN.US', label: 'Amazon', kind: 'global' },
+];
+
+const COMMODITY_ASSETS: FlashAsset[] = [
+  { symbol: 'GC=F', label: 'Gold', kind: 'commodity' },
+  { symbol: 'SI=F', label: 'Silver', kind: 'commodity' },
+  { symbol: 'CL=F', label: 'Oil', kind: 'commodity' },
+];
+
+const CRYPTO_ASSETS: FlashAsset[] = [
+  { symbol: 'BTC-USD', label: 'Bitcoin', kind: 'crypto' },
+  { symbol: 'ETH-USD', label: 'Ethereum', kind: 'crypto' },
+];
+
+const COUNTRY_ALIASES: Record<string, string> = {
+  usa: 'united states',
+  us: 'united states',
+  uk: 'united kingdom',
+  england: 'united kingdom',
+  bharat: 'india',
+};
+
+const COUNTRY_FLASH_PROFILES: Record<string, CountryFlashProfile> = {
+  india: {
+    label: 'India',
+    localAssets: [
+      { symbol: 'RELIANCE.NS', label: 'Reliance', kind: 'local' },
+      { symbol: 'TCS.NS', label: 'TCS', kind: 'local' },
+      { symbol: 'INFY.NS', label: 'Infosys', kind: 'local' },
+      { symbol: 'HDFCBANK.NS', label: 'HDFC Bank', kind: 'local' },
+      { symbol: 'RELIANCE.BO', label: 'Reliance BSE', kind: 'local' },
+    ],
+  },
+  'united states': {
+    label: 'US',
+    localAssets: [
+      { symbol: 'AAPL.US', label: 'Apple', kind: 'local' },
+      { symbol: 'MSFT.US', label: 'Microsoft', kind: 'local' },
+      { symbol: 'NVDA.US', label: 'NVIDIA', kind: 'local' },
+      { symbol: 'TSLA.US', label: 'Tesla', kind: 'local' },
+      { symbol: 'AMZN.US', label: 'Amazon', kind: 'local' },
+    ],
+  },
+  'united kingdom': {
+    label: 'UK',
+    localAssets: [
+      { symbol: 'SHEL.L', label: 'Shell', kind: 'local' },
+      { symbol: 'HSBA.L', label: 'HSBC', kind: 'local' },
+      { symbol: 'AZN.L', label: 'AstraZeneca', kind: 'local' },
+      { symbol: 'BP.L', label: 'BP', kind: 'local' },
+      { symbol: 'VOD.L', label: 'Vodafone', kind: 'local' },
+    ],
+  },
+  canada: {
+    label: 'Canada',
+    localAssets: [
+      { symbol: 'SHOP.TO', label: 'Shopify', kind: 'local' },
+      { symbol: 'RY.TO', label: 'Royal Bank', kind: 'local' },
+      { symbol: 'TD.TO', label: 'TD Bank', kind: 'local' },
+      { symbol: 'ENB.TO', label: 'Enbridge', kind: 'local' },
+      { symbol: 'BNS.TO', label: 'Scotiabank', kind: 'local' },
+    ],
+  },
+  australia: {
+    label: 'Australia',
+    localAssets: [
+      { symbol: 'CBA.AX', label: 'CBA', kind: 'local' },
+      { symbol: 'BHP.AX', label: 'BHP', kind: 'local' },
+      { symbol: 'CSL.AX', label: 'CSL', kind: 'local' },
+      { symbol: 'WBC.AX', label: 'Westpac', kind: 'local' },
+      { symbol: 'NAB.AX', label: 'NAB', kind: 'local' },
+    ],
+  },
+  germany: {
+    label: 'Germany',
+    localAssets: [
+      { symbol: 'SAP.DE', label: 'SAP', kind: 'local' },
+      { symbol: 'SIE.DE', label: 'Siemens', kind: 'local' },
+      { symbol: 'BMW.DE', label: 'BMW', kind: 'local' },
+      { symbol: 'MBG.DE', label: 'Mercedes', kind: 'local' },
+      { symbol: 'ALV.DE', label: 'Allianz', kind: 'local' },
+    ],
+  },
+  singapore: {
+    label: 'Singapore',
+    localAssets: [
+      { symbol: 'D05.SI', label: 'DBS', kind: 'local' },
+      { symbol: 'O39.SI', label: 'OCBC', kind: 'local' },
+      { symbol: 'U11.SI', label: 'UOB', kind: 'local' },
+      { symbol: 'Z74.SI', label: 'Singtel', kind: 'local' },
+      { symbol: 'C6L.SI', label: 'SIA', kind: 'local' },
+    ],
+  },
+};
+
+const FX_BY_CURRENCY: Record<string, FlashAsset> = {
+  INR: { symbol: 'USDINR=X', label: 'USD/INR', kind: 'forex' },
+  USD: { symbol: 'EURUSD=X', label: 'EUR/USD', kind: 'forex' },
+  GBP: { symbol: 'GBPUSD=X', label: 'GBP/USD', kind: 'forex' },
+  EUR: { symbol: 'EURUSD=X', label: 'EUR/USD', kind: 'forex' },
+  JPY: { symbol: 'USDJPY=X', label: 'USD/JPY', kind: 'forex' },
+  AUD: { symbol: 'AUDUSD=X', label: 'AUD/USD', kind: 'forex' },
+  CAD: { symbol: 'USDCAD=X', label: 'USD/CAD', kind: 'forex' },
+  SGD: { symbol: 'USDSGD=X', label: 'USD/SGD', kind: 'forex' },
+  CHF: { symbol: 'USDCHF=X', label: 'USD/CHF', kind: 'forex' },
+};
+
+function normalizeCountry(country?: string | null) {
+  const normalized = (country || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+  return COUNTRY_ALIASES[normalized] || normalized;
+}
+
+export function inferCountryFromCurrency(currency: string) {
+  switch ((currency || '').toUpperCase()) {
+    case 'INR':
+      return 'India';
+    case 'USD':
+      return 'United States';
+    case 'GBP':
+      return 'United Kingdom';
+    case 'CAD':
+      return 'Canada';
+    case 'AUD':
+      return 'Australia';
+    case 'EUR':
+      return 'Germany';
+    case 'SGD':
+      return 'Singapore';
+    default:
+      return 'Global';
+  }
+}
+
+export function getFlashAssets(country: string | undefined, currency: string) {
+  const countryKey = normalizeCountry(country);
+  const profile = COUNTRY_FLASH_PROFILES[countryKey];
+  const fxAsset = FX_BY_CURRENCY[(currency || '').toUpperCase()] || FX_BY_CURRENCY.USD;
+
+  return {
+    countryLabel: profile?.label || inferCountryFromCurrency(currency),
+    assets: [
+      ...(profile?.localAssets || []),
+      ...GLOBAL_ASSETS,
+      ...COMMODITY_ASSETS,
+      fxAsset,
+      ...CRYPTO_ASSETS,
+    ],
+  };
+}
+
+function getToneForKind(kind: FlashAssetKind): FlashTone {
+  switch (kind) {
+    case 'commodity':
+      return 'commodity';
+    case 'forex':
+      return 'forex';
+    case 'crypto':
+      return 'crypto';
+    case 'global':
+      return 'global';
+    default:
+      return 'local';
+  }
+}
+
+function dedupeBySymbol(items: FlashAsset[]) {
+  const seen = new Set<string>();
+
+  return items.filter(item => {
+    if (seen.has(item.symbol)) {
+      return false;
+    }
+
+    seen.add(item.symbol);
+    return true;
+  });
+}
+
+export function buildFlashItems(
+  quotes: Record<string, StockQuote | null>,
+  assets: FlashAsset[],
+  countryLabel: string,
+): FlashItem[] {
+  const available = dedupeBySymbol(assets)
+    .map(asset => {
+      const quote = quotes[asset.symbol];
+      return quote && Number.isFinite(quote.lastPrice) && quote.lastPrice > 0
+        ? { ...asset, quote }
+        : null;
+    })
+    .filter((item): item is FlashAsset & { quote: StockQuote } => Boolean(item));
+
+  const stocks = available.filter(item => item.kind === 'local' || item.kind === 'global');
+  const locals = available.filter(item => item.kind === 'local');
+  const globals = available.filter(item => item.kind === 'global');
+  const commodities = available.filter(item => item.kind === 'commodity');
+  const forex = available.find(item => item.kind === 'forex');
+  const crypto = available.filter(item => item.kind === 'crypto');
+
+  const byBest = <T extends { quote: StockQuote }>(items: T[]) =>
+    [...items].sort((a, b) => b.quote.percentChange - a.quote.percentChange);
+  const byWorst = <T extends { quote: StockQuote }>(items: T[]) =>
+    [...items].sort((a, b) => a.quote.percentChange - b.quote.percentChange);
+
+  const usedSymbols = new Set<string>();
+  const output: FlashItem[] = [];
+
+  const pushItem = (
+    source: (FlashAsset & { quote: StockQuote }) | undefined,
+    badge: string,
+    tone: FlashTone,
+  ) => {
+    if (!source || usedSymbols.has(source.symbol)) {
+      return;
+    }
+
+    usedSymbols.add(source.symbol);
+    output.push({
+      id: `${badge}-${source.symbol}`,
+      badge,
+      label: source.label,
+      symbol: source.symbol,
+      kind: source.kind,
+      tone,
+      quote: source.quote,
+    });
+  };
+
+  const topBullish = byBest(stocks)[0];
+  const topBearish = byWorst(stocks)[0];
+  const localLeader = byBest(locals)[0];
+  const globalLeader = byBest(globals)[0];
+  const cryptoLeader = byBest(crypto)[0];
+
+  pushItem(topBullish, 'Top Bullish', topBullish?.quote.percentChange >= 0 ? 'bullish' : 'local');
+  pushItem(topBearish, 'Top Bearish', 'bearish');
+  pushItem(localLeader, `${countryLabel} Lead`, localLeader?.quote.percentChange >= 0 ? 'local' : 'bearish');
+  pushItem(globalLeader, 'Global Lead', globalLeader?.quote.percentChange >= 0 ? 'global' : 'bearish');
+
+  const commodityPriority = ['Gold', 'Silver', 'Oil'];
+  for (const commodityLabel of commodityPriority) {
+    pushItem(
+      commodities.find(item => item.label === commodityLabel),
+      'Commodity',
+      'commodity',
+    );
+  }
+
+  pushItem(forex, 'FX Pulse', 'forex');
+  pushItem(cryptoLeader, 'Crypto Pulse', 'crypto');
+
+  if (output.length < 7) {
+    for (const fallback of byBest(available)) {
+      pushItem(fallback, 'Live', getToneForKind(fallback.kind));
+      if (output.length >= 8) {
+        break;
+      }
+    }
+  }
+
+  return output;
+}
+
+export function formatFlashPrice(item: FlashItem) {
+  if (item.kind === 'forex') {
+    const value = item.quote.lastPrice;
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: value >= 100 ? 2 : 4,
+      maximumFractionDigits: value >= 100 ? 2 : 4,
+    }).format(value);
+  }
+
+  const currency = item.quote.currency || '$';
+  const locale = currency === '₹' ? 'en-IN' : 'en-US';
+  return `${currency}${new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(item.quote.lastPrice)}`;
+}

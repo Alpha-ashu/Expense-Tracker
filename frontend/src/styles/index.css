@@ -317,3 +317,25 @@ html {
     min-width: fit-content;
   }
 }
+
+@keyframes live-market-flash {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.live-market-flash-track {
+  display: flex;
+  min-width: max-content;
+  white-space: nowrap;
+  will-change: transform;
+  animation: live-market-flash 26s linear infinite;
+}
+
+.live-market-flash-track:hover {
+  animation-play-state: paused;
+}

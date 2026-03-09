@@ -98,6 +98,21 @@ export function getCacheAge(): number | null {
   return Date.now() - Number(ts);
 }
 
+export function getCachedQuotes(symbols?: string[]): Record<string, StockQuote | null> {
+  const cached = readCache();
+
+  if (!symbols?.length) {
+    return cached;
+  }
+
+  const map: Record<string, StockQuote | null> = {};
+  for (const symbol of symbols) {
+    map[symbol] = cached[symbol] ?? null;
+  }
+
+  return map;
+}
+
 export function hasDirectStockProvider(): boolean {
   return Boolean(TWELVE_DATA_API_KEY);
 }
@@ -113,6 +128,10 @@ export function getStockDataSetupHint(): string | null {
 
   const backendCandidates = getBackendBaseCandidates();
   if (backendCandidates.length > 0 && backendCandidates.every(base => !canUseProxy(base))) {
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+      return 'Live market data is temporarily unavailable. Please retry in a moment.';
+    }
+
     return 'Start the backend with `npm run dev` in /backend or add VITE_TWELVEDATA_API_KEY to frontend/.env.local.';
   }
 
@@ -161,21 +180,33 @@ function getBackendBaseCandidates() {
 
   if (!isAbsoluteUrl(API_BASE) && typeof window !== 'undefined') {
     const { hostname, origin, protocol } = window.location;
+    const isSecureOrigin = protocol === 'https:';
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
 
     if (protocol === 'http:' || protocol === 'https:') {
       candidates.push(`${origin}${API_BASE}`);
-      candidates.push(`http://${hostname}:3000/api/v1`);
+      if (!isSecureOrigin) {
+        candidates.push(`http://${hostname}:3000/api/v1`);
+      }
     }
 
-    candidates.push('http://localhost:3000/api/v1');
-    candidates.push('http://127.0.0.1:3000/api/v1');
+    if (!isSecureOrigin || isLocalHost) {
+      candidates.push('http://localhost:3000/api/v1');
+      candidates.push('http://127.0.0.1:3000/api/v1');
+    }
 
     if (protocol === 'capacitor:' || protocol === 'ionic:' || protocol === 'file:') {
       candidates.push('http://10.0.2.2:3000/api/v1');
     }
   }
 
-  return uniq(candidates.map(candidate => candidate.replace(/\/+$/, '')));
+  const normalized = uniq(candidates.map(candidate => candidate.replace(/\/+$/, '')));
+
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return normalized.filter(candidate => !candidate.startsWith('http://'));
+  }
+
+  return normalized;
 }
 
 function getStockProxyBases() {

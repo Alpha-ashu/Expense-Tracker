@@ -1,18 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  TrendingUp, TrendingDown, RefreshCw, Search, X,
+  TrendingUp, TrendingDown, RefreshCw, Search, X, Plus,
   Activity, BarChart2, ChevronRight, Wifi, WifiOff, Clock,
 } from 'lucide-react';
 import {
   fetchStockQuote, fetchMultipleQuotes, searchStocks,
-  formatMarketCap, formatPrice, getCacheAge, getDefaultWatchlist, displaySymbol, getStockDataSetupHint,
+  formatMarketCap, formatPrice, getCacheAge, getCachedQuotes, getDefaultWatchlist, displaySymbol, getStockDataSetupHint,
   StockQuote, StockSearchResult, MarketCategory, MARKET_LABELS,
 } from '@/lib/stockApi';
 import { useApp } from '@/contexts/AppContext';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const AUTO_REFRESH_MS = 10_000; // 10 s for faster updates
+const AUTO_REFRESH_MS = 8_000;
 const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
 const MARKET_TABS: MarketCategory[] = ['all', 'nse', 'bse', 'us', 'forex', 'crypto'];
@@ -94,9 +94,18 @@ const StockRow: React.FC<{
 };
 
 /* ── Detail panel ─────────────────────────────────────── */
-const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quote, onClose }) => {
+const StockDetail: React.FC<{
+  quote: StockQuote;
+  onClose: () => void;
+  onAddToPortfolio: (quote: StockQuote) => void;
+}> = ({ quote, onClose, onAddToPortfolio }) => {
   const positive = quote.change >= 0;
   const cur = quote.currency || '₹';
+  const subtitle = quote.sector && quote.sector !== 'Unknown'
+    ? `${quote.exchange} · ${quote.sector}`
+    : quote.marketState
+      ? `${quote.exchange} · ${quote.marketState === 'open' ? 'Market Open' : 'Market Closed'}`
+      : quote.exchange;
   const pct52 = quote.yearHigh > 0
     ? ((quote.lastPrice - quote.yearLow) / (quote.yearHigh - quote.yearLow)) * 100
     : 0;
@@ -144,7 +153,7 @@ const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quo
             <X size={16} className="text-white" />
           </button>
           <div className="flex-1 min-w-0">
-            <p className="text-white/70 text-xs font-bold">{quote.exchange} · {quote.sector}</p>
+            <p className="text-white/70 text-xs font-bold">{subtitle}</p>
             <h3 className="text-white font-display font-bold text-lg leading-tight truncate">{quote.companyName}</h3>
           </div>
           <span className="text-xs font-bold bg-white/20 text-white px-2 py-1 rounded-lg">{displaySymbol(quote.symbol)}</span>
@@ -156,6 +165,19 @@ const StockDetail: React.FC<{ quote: StockQuote; onClose: () => void }> = ({ quo
             {positive ? <TrendingUp size={14} className="text-white/80" /> : <TrendingDown size={14} className="text-white/80" />}
             <span className="text-white/80 text-sm font-semibold">
               {positive ? '+' : ''}{cur}{fmtCurrency(Math.abs(quote.change), cur)} ({positive ? '+' : ''}{fmt(quote.percentChange)}%)
+            </span>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onAddToPortfolio(quote)}
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2 text-sm font-bold text-gray-900 shadow-sm transition-colors hover:bg-gray-100"
+            >
+              <Plus size={14} />
+              Add to Portfolio
+            </button>
+            <span className="text-xs font-medium text-white/75">
+              Opens the investment form with this live quote.
             </span>
           </div>
         </div>
@@ -225,6 +247,40 @@ export const LiveMarket: React.FC = () => {
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const openAddInvestmentDraft = useCallback((quote: StockQuote) => {
+    const inferredType = quote.symbol.endsWith('-USD') || quote.exchange.toUpperCase() === 'CRYPTO'
+      ? 'crypto'
+      : 'stocks';
+
+    const draft = {
+      symbol: quote.symbol,
+      displayName: displaySymbol(quote.symbol),
+      companyName: quote.companyName,
+      exchange: quote.exchange,
+      type: inferredType,
+      currentPrice: quote.lastPrice,
+      currency: quote.currency,
+      marketState: quote.marketState ?? '',
+      lastUpdate: quote.lastUpdate ?? '',
+    };
+
+    localStorage.setItem(PENDING_INVESTMENT_DRAFT_KEY, JSON.stringify(draft));
+    setCurrentPage('add-investment');
+  }, [setCurrentPage]);
+
+  const resolveMarketHint = useCallback((symbol: string): MarketCategory | undefined => {
+    if (activeMarket !== 'all') {
+      return activeMarket;
+    }
+
+    if (symbol.endsWith('.NS')) return 'nse';
+    if (symbol.endsWith('.BO')) return 'bse';
+    if (symbol.endsWith('.US')) return 'us';
+    if (symbol.endsWith('=X')) return 'forex';
+    if (symbol.endsWith('-USD')) return 'crypto';
+    return undefined;
+  }, [activeMarket]);
+
   /* ── Online/offline ── */
   useEffect(() => {
     const on = () => setIsOnline(true);
@@ -246,12 +302,32 @@ export const LiveMarket: React.FC = () => {
 
   /* ── Fetch quotes ── */
   const loadQuotes = useCallback(async (symbols: string[], isRefresh = false) => {
+    const cached = getCachedQuotes(symbols);
+    const cachedEntries = Object.entries(cached).filter(([, quote]) => quote);
+    const hasCachedData = cachedEntries.length > 0;
+
+    if (hasCachedData) {
+      setQuotes(prev => ({
+        ...prev,
+        ...Object.fromEntries(cachedEntries),
+      }));
+      setUsingCache(true);
+      if (!isRefresh) {
+        setLoading(false);
+      }
+    }
+
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasCachedData) setLoading(true);
+
     try {
       const market = activeMarket === 'all' ? undefined : activeMarket;
       const data = await fetchMultipleQuotes(symbols, market);
       setQuotes(prev => ({ ...prev, ...data }));
+      setSelected(prev => {
+        if (!prev) return prev;
+        return data[prev.symbol] ?? prev;
+      });
       setLastRefreshed(new Date());
       const cacheAge = getCacheAge();
       const hasAnyQuote = Object.values(data).some(q => q !== null);
@@ -278,7 +354,7 @@ export const LiveMarket: React.FC = () => {
       const results = await searchStocks(searchQuery.trim(), market);
       setSearchResults(results);
       setSearching(false);
-    }, 400);
+    }, 220);
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [searchQuery, activeMarket]);
 
@@ -289,12 +365,18 @@ export const LiveMarket: React.FC = () => {
     setSearchResults([]);
 
     const inferredType = sym.endsWith('-USD') || activeMarket === 'crypto' ? 'crypto' : 'stocks';
+    const marketHint = resolveMarketHint(sym);
+    const currentQuote = quotes[sym] ?? await fetchStockQuote(sym, marketHint);
     const draft = {
       symbol: sym,
       displayName: displaySymbol(sym),
-      companyName: result.companyName,
-      exchange: result.exchange,
+      companyName: currentQuote?.companyName || result.companyName,
+      exchange: currentQuote?.exchange || result.exchange,
       type: inferredType,
+      currentPrice: currentQuote?.lastPrice ?? 0,
+      currency: currentQuote?.currency ?? '',
+      marketState: currentQuote?.marketState ?? '',
+      lastUpdate: currentQuote?.lastUpdate ?? '',
     };
 
     localStorage.setItem(PENDING_INVESTMENT_DRAFT_KEY, JSON.stringify(draft));
@@ -345,7 +427,7 @@ export const LiveMarket: React.FC = () => {
                   return mins < 1 ? 'Cached — just now' : `Cached — ${mins}m ago`;
                 })()
               ) : (
-                timeSince !== null ? `Updated ${timeSince}s ago · Auto-refresh 10s` : 'Connecting…'
+                timeSince !== null ? `Updated ${timeSince}s ago · Auto-refresh 8s` : 'Connecting…'
               )}
             </p>
             {usingCache && isOnline && (
@@ -460,6 +542,7 @@ export const LiveMarket: React.FC = () => {
               key="detail"
               quote={selected}
               onClose={() => setSelected(null)}
+              onAddToPortfolio={openAddInvestmentDraft}
             />
           ) : (
             <motion.div key="list" className="h-full overflow-y-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -535,7 +618,7 @@ export const LiveMarket: React.FC = () => {
               <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2">
                 <BarChart2 size={12} className="text-gray-300" />
                 <p className="text-[10px] text-gray-400">
-                  Global market data via backend proxy or Twelve Data · Auto-refreshing every 10s
+                  Global market data via backend proxy or Twelve Data · Auto-refreshing every 8s
                 </p>
               </div>
             </motion.div>

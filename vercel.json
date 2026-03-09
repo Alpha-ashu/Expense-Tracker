@@ -10,6 +10,13 @@
       }
     },
     {
+      "src": "api/*.ts",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
+    },
+    {
       "src": "backend/src/server.ts",
       "use": "@vercel/node",
       "config": {
@@ -27,6 +34,14 @@
     },
     {
       "handle": "filesystem"
+    },
+    {
+      "src": "/api/v1/stocks$",
+      "dest": "api/stocks.ts"
+    },
+    {
+      "src": "/api/v1/stocks/(.*)",
+      "dest": "api/stocks.ts?endpoint=$1"
     },
     {
       "src": "/api/(.*)",
