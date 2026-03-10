@@ -251,6 +251,7 @@ export const UserProfile: React.FC = () => {
           : data.annual_income
             ? Math.round(Number(data.annual_income) / 12)
             : 0;
+        const updatedAt = data.updated_at || new Date().toISOString();
 
         setProfileData({
           firstName,
@@ -273,7 +274,10 @@ export const UserProfile: React.FC = () => {
           salary: ((data.annual_income || (monthlyIncomeVal * 12)) || 0).toString(),
           monthlyIncome: monthlyIncomeVal,
           profilePhoto: data.avatar_url || '',
+          avatarUrl: data.avatar_url || '',
+          updatedAt,
         }));
+        localStorage.setItem('profile_updated_at', updatedAt);
       }
     } catch (error) {
       console.warn('Supabase profile fetch failed (non-blocking):', error);
@@ -335,6 +339,7 @@ export const UserProfile: React.FC = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     setIsLoading(true);
+    localStorage.setItem('profile_sync_pending', 'true');
     try {
       const baseData = {
         id: user.id,
@@ -359,16 +364,41 @@ export const UserProfile: React.FC = () => {
         if (baseError) throw baseError;
       }
 
+      localStorage.removeItem('profile_sync_pending');
+
+      // Best-effort: keep auth metadata aligned for cross-device fallback
+      try {
+        await supabase.auth.updateUser({
+          data: {
+            first_name: tempData.firstName,
+            last_name: tempData.lastName,
+            full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
+            phone: tempData.mobile,
+          },
+        });
+      } catch (metaError) {
+        console.warn('Auth metadata update failed (non-blocking):', metaError);
+      }
+
       setProfileData(tempData);
       setIsEditingForm(false);
       // Save latest profile to localStorage for persistence
+      const updatedAt = new Date().toISOString();
       localStorage.setItem('user_profile', JSON.stringify({
         displayName: `${tempData.firstName} ${tempData.lastName}`.trim(),
+        firstName: tempData.firstName,
+        lastName: tempData.lastName,
+        mobile: tempData.mobile,
         dateOfBirth: tempData.dateOfBirth,
         jobType: tempData.jobType,
-        salary: tempData.monthlyIncome * 12,
+        salary: (tempData.monthlyIncome || 0) * 12,
+        monthlyIncome: tempData.monthlyIncome || 0,
         profilePhoto: tempData.profilePhoto,
+        avatarUrl: tempData.profilePhoto,
+        updatedAt,
       }));
+      localStorage.setItem('profile_updated_at', updatedAt);
+      localStorage.removeItem('profile_sync_pending');
       // Fetch latest profile from Supabase to guarantee sync
       try {
         await fetchProfileData();

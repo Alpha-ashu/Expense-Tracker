@@ -32,6 +32,82 @@ const parseEmailList = (value?: string) => {
 
 const advisorEmails = parseEmailList(import.meta.env.VITE_ADVISOR_EMAILS);
 
+type LocalProfile = {
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  mobile?: string;
+  dateOfBirth?: string;
+  jobType?: string;
+  salary?: string | number;
+  monthlyIncome?: number;
+  profilePhoto?: string;
+  avatarUrl?: string;
+  country?: string;
+  language?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+const parseNumber = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const readLocalProfile = (): LocalProfile | null => {
+  try {
+    const raw = localStorage.getItem('user_profile');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as LocalProfile) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getLocalProfileUpdatedAt = (profile: LocalProfile | null): string | null => {
+  return (
+    profile?.updatedAt ||
+    localStorage.getItem('profile_updated_at') ||
+    profile?.createdAt ||
+    localStorage.getItem('user_setup_date') ||
+    localStorage.getItem('onboarding_date')
+  );
+};
+
+const hasPendingLocalProfileSync = (): boolean =>
+  localStorage.getItem('profile_sync_pending') === 'true';
+
+const toEpoch = (value?: string | null): number | null => {
+  if (!value) return null;
+  const ts = Date.parse(value);
+  return Number.isNaN(ts) ? null : ts;
+};
+
+const isAfter = (left?: string | null, right?: string | null): boolean => {
+  const l = toEpoch(left);
+  const r = toEpoch(right);
+  if (l === null || r === null) return false;
+  return l > r;
+};
+
+const hasLocalProfileData = (profile: LocalProfile | null): boolean => {
+  if (!profile) return false;
+  return Boolean(
+    profile.displayName ||
+    profile.firstName ||
+    profile.lastName ||
+    profile.mobile ||
+    profile.dateOfBirth ||
+    profile.jobType ||
+    profile.salary ||
+    profile.monthlyIncome ||
+    profile.profilePhoto ||
+    profile.avatarUrl
+  );
+};
+
 /**
  * Resolve user role with strict admin email validation.
  * Admin role is ONLY granted to the specific admin email.
@@ -120,37 +196,134 @@ const isTimeoutError = (error: any) =>
   error?.name === 'TimeoutError' ||
   (error?.message && String(error.message).toLowerCase().includes('timeout'));
 
-const syncProfileFromSupabase = async (userId: string) => {
+const syncProfileFromSupabase = async (user: User) => {
   const { data: profile = null } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', userId)
+    .eq('id', user.id)
     .maybeSingle();
 
-  if (!profile || (!profile.full_name && !profile.first_name)) {
+  const localProfile = readLocalProfile();
+  const localUpdatedAt = getLocalProfileUpdatedAt(localProfile);
+
+  const pendingLocalSync = hasPendingLocalProfileSync();
+
+  const hasRealProfile = profile && (
+    profile.full_name ||
+    profile.first_name ||
+    profile.last_name ||
+    profile.phone ||
+    profile.date_of_birth ||
+    profile.job_type ||
+    profile.monthly_income ||
+    profile.annual_income ||
+    profile.avatar_url
+  );
+
+  const remoteUpdatedAt = profile?.updated_at || null;
+  const remoteIsNewer = !!(remoteUpdatedAt && localUpdatedAt && isAfter(remoteUpdatedAt, localUpdatedAt));
+
+  const writeLocalFromRemote = () => {
+    const remoteFirstName = profile.first_name || '';
+    const remoteLastName = profile.last_name || '';
+    const remoteFullName = profile.full_name || `${remoteFirstName} ${remoteLastName}`.trim();
+    const fallbackDisplayName = localProfile?.displayName ||
+      `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim();
+    const displayName = remoteFullName || fallbackDisplayName;
+    const nameParts = displayName.split(/\s+/).filter(Boolean);
+    const firstName = remoteFirstName || localProfile?.firstName || nameParts[0] || '';
+    const lastName = remoteLastName || localProfile?.lastName || nameParts.slice(1).join(' ') || '';
+    const monthlyIncome = profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0);
+    const updatedAt = remoteUpdatedAt || new Date().toISOString();
+
+    localStorage.setItem('onboarding_completed', 'true');
+    localStorage.setItem('profile_updated_at', updatedAt);
+    localStorage.setItem('user_profile', JSON.stringify({
+      ...localProfile,
+      displayName,
+      firstName,
+      lastName,
+      mobile: profile.phone || '',
+      dateOfBirth: profile.date_of_birth || '',
+      jobType: profile.job_type || '',
+      salary: ((profile.annual_income || (monthlyIncome * 12)) || 0).toString(),
+      monthlyIncome,
+      profilePhoto: profile.avatar_url || '',
+      avatarUrl: profile.avatar_url || '',
+      updatedAt,
+    }));
+  };
+
+  if (hasRealProfile) {
+    const shouldUseRemote =
+      (!pendingLocalSync &&
+        (!localUpdatedAt || (remoteUpdatedAt && !isAfter(localUpdatedAt, remoteUpdatedAt)))) ||
+      (pendingLocalSync && remoteIsNewer);
+
+    if (shouldUseRemote) {
+      // Cloud profile is the source of truth across devices.
+      // Hydrate local cache from cloud unless we have a newer pending local write.
+      writeLocalFromRemote();
+      localStorage.removeItem('profile_sync_pending');
+      return;
+    }
+  }
+
+  if (!hasLocalProfileData(localProfile)) {
     return;
   }
 
-  localStorage.setItem('onboarding_completed', 'true');
+  const displayName = (localProfile?.displayName || `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim()).trim();
+  const nameParts = displayName.split(/\s+/).filter(Boolean);
+  const firstName = localProfile?.firstName || nameParts[0] || '';
+  const lastName = localProfile?.lastName || nameParts.slice(1).join(' ') || '';
+  const salaryNumber = parseNumber(localProfile?.salary);
+  let monthlyIncome = parseNumber(localProfile?.monthlyIncome);
+  if (monthlyIncome === undefined && salaryNumber !== undefined) {
+    monthlyIncome = Math.round(salaryNumber / 12);
+  }
+  const annualIncome = salaryNumber ?? (monthlyIncome !== undefined ? Math.round(monthlyIncome * 12) : undefined);
 
-  const firstName = profile.first_name || profile.full_name?.split(' ')[0] || '';
-  const lastName = profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '';
+  const baseProfile = {
+    id: user.id,
+    email: user.email,
+    full_name: displayName || null,
+    first_name: firstName || null,
+    last_name: lastName || null,
+    phone: localProfile?.mobile || null,
+    updated_at: new Date().toISOString(),
+  };
 
-  localStorage.setItem('user_profile', JSON.stringify({
-    displayName: profile.full_name || `${firstName} ${lastName}`.trim(),
-    firstName,
-    lastName,
-    mobile: profile.phone || '',
-    dateOfBirth: profile.date_of_birth || '',
-    jobType: profile.job_type || '',
-    salary: (profile.annual_income || (profile.monthly_income ? profile.monthly_income * 12 : 0)).toString(),
-    monthlyIncome: profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0),
-    profilePhoto: profile.avatar_url || '',
-  }));
+  try {
+    const { error } = await supabase.from('profiles').upsert({
+      ...baseProfile,
+      date_of_birth: localProfile?.dateOfBirth || null,
+      job_type: localProfile?.jobType || null,
+      monthly_income: monthlyIncome ?? null,
+      annual_income: annualIncome ?? null,
+      avatar_url: localProfile?.profilePhoto || localProfile?.avatarUrl || null,
+    }, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('Extended profile upsert failed, trying base:', error.message);
+      const { error: baseError } = await supabase.from('profiles').upsert(baseProfile, { onConflict: 'id' });
+      if (baseError) {
+        console.warn('Base profile upsert failed (local cache retained):', baseError.message);
+        return;
+      }
+    }
+
+    localStorage.setItem('onboarding_completed', 'true');
+    localStorage.setItem('profile_updated_at', baseProfile.updated_at);
+    localStorage.removeItem('profile_sync_pending');
+  } catch (error) {
+    console.warn('Local profile sync to Supabase failed (non-blocking):', error);
+    localStorage.setItem('profile_sync_pending', 'true');
+  }
 };
 
 /** Sync user data from Supabase into local Dexie DB on login */
-const syncFromSupabase = async (userId: string) => {
+const syncFromSupabase = async (user: User) => {
   try {
     const timeouts = [12000, 30000];
     let lastError: any = null;
@@ -158,8 +331,8 @@ const syncFromSupabase = async (userId: string) => {
     for (let attempt = 0; attempt < timeouts.length; attempt += 1) {
       try {
         await fetchWithTimeout(Promise.all([
-          syncUserDataFromCloud(userId),
-          syncProfileFromSupabase(userId),
+          syncUserDataFromCloud(user.id),
+          syncProfileFromSupabase(user),
         ]), timeouts[attempt]);
         return;
       } catch (err) {
@@ -227,7 +400,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(session?.user ?? null);
         setRole(resolveUserRole(session?.user ?? null));
         if (session?.user?.id) {
-          await syncFromSupabase(session.user.id);
+          await syncFromSupabase(session.user);
         }
         supabase.auth.startAutoRefresh();
         console.info('✅ Supabase reachable — auto-refresh resumed.');
@@ -278,7 +451,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               localStorage.setItem('auth_last_user_id', nextUser.id);
 
               // Sync accounts/transactions from Supabase into local Dexie
-              await syncFromSupabase(nextUser.id);
+              await syncFromSupabase(nextUser);
               // Fetch permissions from server
               await permissionService.fetchUserPermissions(nextUser.id, userRole);
               

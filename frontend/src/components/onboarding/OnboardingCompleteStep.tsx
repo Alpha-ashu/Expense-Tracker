@@ -14,6 +14,7 @@ interface OnboardingCompleteStepProps {
     currentBalance: string;
     country: string;
     language: string;
+    avatarUrl?: string;
   };
   onComplete: () => void;
   onBack: () => void;
@@ -37,17 +38,29 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     // This guarantees profile data is saved even if Supabase calls fail with
     // AbortError, CORS issues, or network timeouts. Supabase is purely a cloud
     // backup — the source of truth for this session is localStorage.
+    const nowIso = new Date().toISOString();
+    const nameParts = data.displayName.trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     const userProfile = {
       displayName: data.displayName,
+      firstName,
+      lastName,
       dateOfBirth: data.dateOfBirth,
       jobType: data.jobType,
       salary: data.salary,
       monthlyIncome: Math.round(parseFloat(data.salary) / 12),
       country: data.country,
       language: data.language,
-      createdAt: new Date().toISOString(),
+      profilePhoto: data.avatarUrl || '',
+      avatarUrl: data.avatarUrl || '',
+      createdAt: nowIso,
+      updatedAt: nowIso,
     };
     localStorage.setItem('user_profile', JSON.stringify(userProfile));
+    localStorage.setItem('profile_updated_at', nowIso);
+    localStorage.setItem('profile_sync_pending', 'true');
 
     const userSettings = {
       defaultCurrency: 'INR',
@@ -96,7 +109,11 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
               .upsert(baseProfile, { onConflict: 'id' });
             if (baseError) {
               console.warn('Base profile save also failed (localStorage is the backup):', baseError.message);
+            } else {
+              localStorage.removeItem('profile_sync_pending');
             }
+          } else {
+            localStorage.removeItem('profile_sync_pending');
           }
         }
       } catch (supabaseError) {
