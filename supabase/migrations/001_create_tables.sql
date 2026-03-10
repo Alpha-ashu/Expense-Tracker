@@ -59,7 +59,9 @@ CREATE TABLE IF NOT EXISTS public.friends (
   phone TEXT,
   avatar TEXT,
   notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
 
 -- =====================================================
@@ -163,7 +165,19 @@ CREATE TABLE IF NOT EXISTS public.group_expenses (
   date TIMESTAMPTZ DEFAULT NOW(),
   members JSONB NOT NULL, -- Array of {name, share, paid}
   items JSONB, -- Array of {name, amount, sharedBy[]}
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  description TEXT,
+  category TEXT,
+  subcategory TEXT,
+  split_type TEXT CHECK (split_type IN ('equal', 'custom')),
+  your_share DECIMAL(15, 2),
+  expense_transaction_id BIGINT REFERENCES public.transactions(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_by_name TEXT,
+  status TEXT CHECK (status IN ('pending', 'settled')),
+  notification_status TEXT CHECK (notification_status IN ('pending', 'partial', 'sent', 'failed')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
 
 -- =====================================================
@@ -287,6 +301,8 @@ CREATE TABLE IF NOT EXISTS public.expense_bills (
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON public.accounts(user_id);
 CREATE INDEX IF NOT EXISTS idx_accounts_is_active ON public.accounts(is_active);
 
+CREATE INDEX IF NOT EXISTS idx_friends_user_id ON public.friends(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON public.transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON public.transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON public.transactions(date DESC);
@@ -299,6 +315,8 @@ CREATE INDEX IF NOT EXISTS idx_loans_due_date ON public.loans(due_date);
 
 CREATE INDEX IF NOT EXISTS idx_goals_user_id ON public.goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_goals_target_date ON public.goals(target_date);
+
+CREATE INDEX IF NOT EXISTS idx_group_expenses_user_id ON public.group_expenses(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_investments_user_id ON public.investments(user_id);
 CREATE INDEX IF NOT EXISTS idx_investments_asset_type ON public.investments(asset_type);
@@ -324,9 +342,11 @@ $$ LANGUAGE plpgsql;
 -- Apply trigger to all tables with updated_at
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON public.accounts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_friends_updated_at BEFORE UPDATE ON public.friends FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_loans_updated_at BEFORE UPDATE ON public.loans FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON public.goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_group_expenses_updated_at BEFORE UPDATE ON public.group_expenses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_investments_updated_at BEFORE UPDATE ON public.investments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_tax_calculations_updated_at BEFORE UPDATE ON public.tax_calculations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_todo_lists_updated_at BEFORE UPDATE ON public.todo_lists FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

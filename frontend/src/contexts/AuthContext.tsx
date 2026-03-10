@@ -90,9 +90,32 @@ const clearLocalUserData = async () => {
 const fetchWithTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))
+    new Promise<T>((_, reject) => {
+      const timeoutError = new Error(`Supabase sync timeout after ${ms}ms`);
+      (timeoutError as any).name = 'TimeoutError';
+      (timeoutError as any).timeoutMs = ms;
+      setTimeout(() => reject(timeoutError), ms);
+    })
   ]);
 };
+
+const formatSupabaseError = (error: any) => {
+  if (!error) return 'unknown error';
+  const parts: string[] = [];
+
+  if (error.name) parts.push(`name=${error.name}`);
+  if (error.message) parts.push(`message=${error.message}`);
+  if (error.code) parts.push(`code=${error.code}`);
+  if (error.status) parts.push(`status=${error.status}`);
+  if (error.details) parts.push(`details=${error.details}`);
+  if (error.hint) parts.push(`hint=${error.hint}`);
+
+  return parts.length > 0 ? parts.join(', ') : 'unknown error';
+};
+
+const isTimeoutError = (error: any) =>
+  error?.name === 'TimeoutError' ||
+  (error?.message && String(error.message).toLowerCase().includes('timeout'));
 
 const syncProfileFromSupabase = async (userId: string) => {
   const { data: profile = null } = await supabase
@@ -126,17 +149,37 @@ const syncProfileFromSupabase = async (userId: string) => {
 /** Sync user data from Supabase into local Dexie DB on login */
 const syncFromSupabase = async (userId: string) => {
   try {
-    await fetchWithTimeout(Promise.all([
-      syncUserDataFromCloud(userId),
-      syncProfileFromSupabase(userId),
-    ]), 6000);
+    const timeouts = [12000, 30000];
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt < timeouts.length; attempt += 1) {
+      try {
+        await fetchWithTimeout(Promise.all([
+          syncUserDataFromCloud(userId),
+          syncProfileFromSupabase(userId),
+        ]), timeouts[attempt]);
+        return;
+      } catch (err) {
+        lastError = err;
+        if (isTimeoutError(err) && attempt < timeouts.length - 1) {
+          console.info(`Supabase sync timed out after ${timeouts[attempt]}ms. Retrying...`);
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    if (lastError) {
+      throw lastError;
+    }
   } catch (err) {
     // Non-blocking — app works offline with local DB data
+    const errorDetails = formatSupabaseError(err);
     if (isNetworkError(err)) {
       // Supabase project is paused or unreachable — expected in offline/dev mode
-      console.info('ℹ️ Supabase unreachable — running on local data.');
+      console.info(`ℹ️ Supabase unreachable — running on local data. (${errorDetails})`);
     } else {
-      console.error('Supabase sync on login failed (non-blocking):', err);
+      console.error('Supabase sync on login failed (non-blocking):', errorDetails, err);
     }
   }
 };
@@ -144,7 +187,6 @@ const syncFromSupabase = async (userId: string) => {
 /** Returns true if an error is a network/timeout fault (Supabase unreachable) */
 const isNetworkError = (error: any): boolean =>
   error?.name === 'AbortError' ||
-  error?.name === 'TypeError' ||
   (error?.message && (
     error.message === 'Timeout' ||
     error.message.includes('signal is aborted') ||

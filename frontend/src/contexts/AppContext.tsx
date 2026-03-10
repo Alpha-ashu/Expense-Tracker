@@ -301,10 +301,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useApp must be used within an AppProvider');
+  if (context !== undefined) return context;
+
+  if (import.meta.env.DEV) {
+    console.warn('useApp called without AppProvider; returning fallback context.');
+    return {
+      currentPage: 'dashboard',
+      setCurrentPage: () => {},
+      accounts: [],
+      friends: [],
+      transactions: [],
+      loans: [],
+      goals: [],
+      investments: [],
+      groupExpenses: [],
+      totalBalance: 0,
+      currency: 'INR',
+      setCurrency: () => {},
+      language: 'en',
+      setLanguage: () => {},
+      refreshData: () => {},
+      isOnline: true,
+      addTransaction: async () => {},
+      updateAccount: async () => {},
+      addAccount: async () => {},
+      visibleFeatures: getVisibleFeaturesForRole('user', import.meta.env.MODE),
+      setVisibleFeatures: () => {},
+    } as AppContextType;
   }
-  return context;
+
+  throw new Error('useApp must be used within an AppProvider');
 };
 
 export const useOptionalApp = () => useContext(AppContext);

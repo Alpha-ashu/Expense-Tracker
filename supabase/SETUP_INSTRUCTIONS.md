@@ -49,7 +49,23 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 ---
 
-### **Step 4: Verify Tables Were Created**
+### **Step 4: Add Missing Sync Columns (Recommended)**
+
+1. Create a **new query** in SQL Editor
+2. Open the file: [`supabase/migrations/004_add_missing_columns.sql`](supabase/migrations/004_add_missing_columns.sql)
+3. **Copy the entire content**
+4. **Paste it** into the SQL Editor
+5. Click **"Run"**
+6. You should see: ✅ **"Success. No rows returned"**
+
+**What this does:**
+- Adds `updated_at` + `deleted_at` fields to **friends**
+- Adds missing sync columns to **group_expenses**
+- Adds missing indexes and update triggers
+
+---
+
+### **Step 5: Verify Tables Were Created**
 
 1. In Supabase Dashboard, go to **Table Editor**
 2. You should see all these tables:
@@ -72,7 +88,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 ---
 
-### **Step 5: Enable Email Authentication**
+### **Step 6: Enable Email Authentication**
 
 1. Go to **Authentication** → **Providers** in Supabase Dashboard
 2. Enable **Email** provider (should be enabled by default)
@@ -81,7 +97,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 ---
 
-### **Step 6: Test the Setup**
+### **Step 7: Test the Setup**
 
 Run this test query in SQL Editor to verify everything works:
 

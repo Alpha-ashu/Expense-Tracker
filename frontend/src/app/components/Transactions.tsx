@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useApp } from '../../contexts/AppContext';
-import { db } from '../../lib/database';
+import { useApp } from '@/contexts/AppContext';
+import { db } from '@/lib/database';
 import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet } from 'lucide-react';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { toast } from 'sonner';

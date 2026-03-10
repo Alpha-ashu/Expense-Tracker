@@ -3,11 +3,16 @@ let hasReloadedForServiceWorkerUpdate = false;
 
 export const registerServiceWorker = async () => {
   // Don't register service worker in development or for email confirmation flows
-  if (import.meta.env.DEV || 
-      window.location.search.includes('confirm-email') ||
-      window.location.hash.includes('confirm-email') ||
-      window.location.pathname.includes('confirm-email')) {
-    console.log('Skipping service worker registration in development or email confirmation flow');
+  const shouldSkip =
+    import.meta.env.DEV ||
+    window.location.search.includes('confirm-email') ||
+    window.location.hash.includes('confirm-email') ||
+    window.location.pathname.includes('confirm-email');
+
+  if (shouldSkip) {
+    if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_PWA === 'true') {
+      console.info('Skipping service worker registration in development or email confirmation flow');
+    }
     return null;
   }
 

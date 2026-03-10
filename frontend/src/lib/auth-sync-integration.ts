@@ -43,6 +43,21 @@ const TABLE_PRIORITY: Record<SyncedTableName, number> = {
   investments: 7,
 };
 
+const DEFAULT_DELETED_AT_SUPPORT: Partial<Record<SyncedTableName, boolean>> = {
+  // Legacy schema does not include deleted_at for these tables.
+  friends: false,
+  group_expenses: false,
+};
+
+const DEFAULT_UPDATED_AT_SUPPORT: Partial<Record<SyncedTableName, boolean>> = {
+  // Legacy schema does not include updated_at for these tables.
+  friends: false,
+  group_expenses: false,
+};
+
+const deletedAtSupport = new Map<SyncedTableName, boolean>();
+const updatedAtSupport = new Map<SyncedTableName, boolean>();
+
 const expandTablesForSync = (tables: SyncedTableName[]) => {
   const expanded = new Set<SyncedTableName>(tables);
 
@@ -108,6 +123,26 @@ const toIsoString = (value?: Date | string | null) => {
   return date.toISOString();
 };
 
+const supportsDeletedAt = (table: SyncedTableName) =>
+  deletedAtSupport.get(table) ?? DEFAULT_DELETED_AT_SUPPORT[table] ?? true;
+
+const supportsUpdatedAt = (table: SyncedTableName) =>
+  updatedAtSupport.get(table) ?? DEFAULT_UPDATED_AT_SUPPORT[table] ?? true;
+
+const attachRemoteTimestamps = (table: SyncedTableName, payload: Record<string, any>, record: any) => {
+  const next = { ...payload };
+
+  if (supportsUpdatedAt(table)) {
+    next.updated_at = toIsoString(record.updatedAt) ?? new Date().toISOString();
+  }
+
+  if (supportsDeletedAt(table)) {
+    next.deleted_at = toIsoString(record.deletedAt);
+  }
+
+  return next;
+};
+
 const toDate = (value?: string | Date | null) => {
   if (!value) return undefined;
   const date = value instanceof Date ? value : new Date(value);
@@ -146,6 +181,52 @@ const isMissingRemoteRow = (error: any) =>
   error?.code === 'PGRST116' ||
   error?.details === 'The result contains 0 rows' ||
   String(error?.message || '').toLowerCase().includes('0 rows');
+
+const normalizeArray = <T,>(value: T[] | null | undefined): T[] =>
+  Array.isArray(value) ? value : [];
+
+const isMissingColumnError = (error: any, column: string) => {
+  const target = column.toLowerCase();
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  const hint = String(error?.hint || '').toLowerCase();
+
+  const mentionsColumn = message.includes('column') || details.includes('column');
+  const mentionsSchema = message.includes('schema') || details.includes('schema');
+  const mentionsTarget = message.includes(target) || details.includes(target) || hint.includes(target);
+
+  return mentionsTarget && (mentionsColumn || mentionsSchema);
+};
+
+const fetchUserRows = async (table: SyncedTableName, userId: string) => {
+  const runQuery = async (withDeletedAt: boolean) => {
+    let query = supabase.from(table).select('*').eq('user_id', userId);
+    if (withDeletedAt) {
+      query = query.is('deleted_at', null);
+    }
+    return query;
+  };
+
+  const supportsDeletedAtFlag = supportsDeletedAt(table);
+  let { data, error } = await runQuery(supportsDeletedAtFlag);
+
+  if (supportsDeletedAtFlag && error && isMissingColumnError(error, 'deleted_at')) {
+    deletedAtSupport.set(table, false);
+    updatedAtSupport.set(table, false);
+    const fallback = await runQuery(false);
+    data = fallback.data;
+    error = fallback.error;
+  } else if (supportsDeletedAtFlag && !error) {
+    deletedAtSupport.set(table, true);
+    updatedAtSupport.set(table, true);
+  }
+
+  if (error) {
+    throw error;
+  }
+
+  return normalizeArray(data as any[]);
+};
 
 const readSyncQueue = (): SyncQueueItem[] => {
   if (typeof window === 'undefined') return [];
@@ -362,8 +443,8 @@ async function mapGroupMembersToRemote(members: any[] | undefined) {
 
 async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userId: string) {
   switch (table) {
-    case 'accounts':
-      return {
+    case 'accounts': {
+      const base = {
         user_id: userId,
         name: record.name,
         type: record.type,
@@ -371,12 +452,13 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         currency: record.currency || 'INR',
         is_active: record.isActive ?? true,
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
 
-    case 'friends':
-      return {
+      return attachRemoteTimestamps('accounts', base, record);
+    }
+
+    case 'friends': {
+      const base = {
         user_id: userId,
         name: record.name,
         email: record.email ?? null,
@@ -384,9 +466,10 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         avatar: record.avatar ?? null,
         notes: record.notes ?? null,
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
+
+      return attachRemoteTimestamps('friends', base, record);
+    }
 
     case 'transactions': {
       const remoteAccountId = await resolveRemoteAccountId(record.accountId);
@@ -408,7 +491,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         return null;
       }
 
-      return {
+      const base = {
         user_id: userId,
         type: record.type,
         amount: Number(record.amount ?? 0),
@@ -431,9 +514,9 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         original_category: record.originalCategory ?? null,
         imported_at: toIsoString(record.importedAt),
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
+
+      return attachRemoteTimestamps('transactions', base, record);
     }
 
     case 'loans': {
@@ -443,7 +526,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
       const remoteAccountId = record.accountId ? await resolveRemoteAccountId(record.accountId) : null;
       if (record.accountId && remoteAccountId === undefined) return null;
 
-      return {
+      const base = {
         user_id: userId,
         type: record.type,
         name: record.name,
@@ -463,13 +546,13 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         account_id: remoteAccountId ?? null,
         notes: record.notes ?? null,
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
+
+      return attachRemoteTimestamps('loans', base, record);
     }
 
-    case 'goals':
-      return {
+    case 'goals': {
+      const base = {
         user_id: userId,
         name: record.name,
         target_amount: Number(record.targetAmount ?? 0),
@@ -478,9 +561,10 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         category: record.category ?? 'other',
         is_group_goal: record.isGroupGoal ?? false,
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
+
+      return attachRemoteTimestamps('goals', base, record);
+    }
 
     case 'group_expenses': {
       const remotePaidBy = await resolveRemoteAccountId(record.paidBy);
@@ -497,7 +581,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         return null;
       }
 
-      return {
+      const base = {
         user_id: userId,
         name: record.name,
         total_amount: Number(record.totalAmount ?? 0),
@@ -516,9 +600,9 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         status: record.status ?? null,
         notification_status: record.notificationStatus ?? null,
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
+
+      return attachRemoteTimestamps('group_expenses', base, record);
     }
 
     case 'investments': {
@@ -552,7 +636,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         : null;
       if (record.saleFeeTransactionId && remoteSaleFeeTransactionId === undefined) return null;
 
-      return {
+      const base = {
         user_id: userId,
         asset_type: record.assetType,
         asset_name: record.assetName,
@@ -590,9 +674,9 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         settlement_account_id: remoteSettlementAccountId ?? null,
         close_notes: record.closeNotes ?? null,
         created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
-        updated_at: toIsoString(record.updatedAt) ?? new Date().toISOString(),
-        deleted_at: toIsoString(record.deletedAt),
       };
+
+      return attachRemoteTimestamps('investments', base, record);
     }
   }
 }
@@ -856,13 +940,13 @@ export async function syncUserDataFromCloud(
   const shouldFetch = (table: SyncedTableName) => expandedTables.includes(table);
 
   const [
-    { data: remoteAccounts = [] },
-    { data: remoteFriends = [] },
-    { data: remoteTransactions = [] },
-    { data: remoteLoans = [] },
-    { data: remoteGoals = [] },
-    { data: remoteInvestments = [] },
-    { data: remoteGroupExpenses = [] },
+    remoteAccounts,
+    remoteFriends,
+    remoteTransactions,
+    remoteLoans,
+    remoteGoals,
+    remoteInvestments,
+    remoteGroupExpenses,
     localAccounts,
     localFriends,
     localTransactions,
@@ -871,27 +955,13 @@ export async function syncUserDataFromCloud(
     localInvestments,
     localGroupExpenses,
   ] = await Promise.all([
-    shouldFetch('accounts')
-      ? supabase.from('accounts').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
-    shouldFetch('friends')
-      ? supabase.from('friends').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
-    shouldFetch('transactions')
-      ? supabase.from('transactions').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
-    shouldFetch('loans')
-      ? supabase.from('loans').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
-    shouldFetch('goals')
-      ? supabase.from('goals').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
-    shouldFetch('investments')
-      ? supabase.from('investments').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
-    shouldFetch('group_expenses')
-      ? supabase.from('group_expenses').select('*').eq('user_id', userId).is('deleted_at', null)
-      : Promise.resolve({ data: [] }),
+    shouldFetch('accounts') ? fetchUserRows('accounts', userId) : Promise.resolve([]),
+    shouldFetch('friends') ? fetchUserRows('friends', userId) : Promise.resolve([]),
+    shouldFetch('transactions') ? fetchUserRows('transactions', userId) : Promise.resolve([]),
+    shouldFetch('loans') ? fetchUserRows('loans', userId) : Promise.resolve([]),
+    shouldFetch('goals') ? fetchUserRows('goals', userId) : Promise.resolve([]),
+    shouldFetch('investments') ? fetchUserRows('investments', userId) : Promise.resolve([]),
+    shouldFetch('group_expenses') ? fetchUserRows('group_expenses', userId) : Promise.resolve([]),
     shouldFetch('accounts') ? db.accounts.toArray() : Promise.resolve([]),
     shouldFetch('friends') ? db.friends.toArray() : Promise.resolve([]),
     shouldFetch('transactions') ? db.transactions.toArray() : Promise.resolve([]),

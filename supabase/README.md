@@ -11,6 +11,7 @@ Open each file in **Supabase SQL Editor** and run them in this order:
 1. **[001_create_tables.sql](migrations/001_create_tables.sql)** - Creates all database tables
 2. **[002_enable_rls.sql](migrations/002_enable_rls.sql)** - Enables Row Level Security
 3. **[003_seed_data.sql](migrations/003_seed_data.sql)** - *(Optional)* Adds sample data for testing
+4. **[004_add_missing_columns.sql](migrations/004_add_missing_columns.sql)** - *(Recommended)* Aligns friends/group_expenses with app sync fields
 
 ### **2. Follow Detailed Instructions:**
 
@@ -54,7 +55,7 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 - ✅ File uploads are user-specific
 
 ### **Automatic Features:**
-- ✅ `updated_at` timestamps are auto-updated
+- ✅ `updated_at` timestamps are auto-updated (for tables that include the column)
 - ✅ User profiles are auto-created on signup
 - ✅ User IDs are automatically enforced by RLS
 
@@ -80,6 +81,11 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 - Creates 4 accounts, 15 transactions, 3 loans, 4 goals
 - Adds investments, notifications, todo lists
 - **Note:** Must replace `YOUR_USER_ID_HERE` with your actual user ID
+
+### **004_add_missing_columns.sql** *(Recommended)*
+- Adds missing sync columns for **friends** and **group_expenses**
+- Adds `updated_at` triggers and missing indexes
+- Safe to run multiple times (uses `IF NOT EXISTS`)
 
 ---
 

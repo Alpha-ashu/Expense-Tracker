@@ -1,5 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { AppProvider, useApp } from '@/contexts/AppContext';
+import { AppProvider, useOptionalApp } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
 import { Toaster } from 'sonner';
@@ -75,7 +75,19 @@ const PageLoader = () => (
 );
 
 const AppContent: React.FC = () => {
-  const { currentPage, setCurrentPage } = useApp();
+  const appContext = useOptionalApp();
+  if (!appContext) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
+          <p className="text-white text-base font-medium">Loading Finora…</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { currentPage, setCurrentPage } = appContext;
   const { user, loading: authLoading } = useAuth();
   const { isAuthenticated, setAuthenticated } = useSecurity();
   const [isInitialized, setIsInitialized] = useState(false);
