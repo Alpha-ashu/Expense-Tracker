@@ -92,6 +92,7 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, setAuthenticated } = useSecurity();
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
+  const [criticalPagesPrefetched, setCriticalPagesPrefetched] = useState(false);
 
   // Static initialization (runs once)
   useEffect(() => {
@@ -116,13 +117,20 @@ const AppContent: React.FC = () => {
     }
 
     if (user) {
-      (async () => {
-        await Promise.resolve(initializeNotifications());
-        await Promise.resolve(initializeSmsTransactionDetection());
-        HealthChecker.checkHealth().catch(console.error);
-        HealthChecker.startPeriodicCheck(60000).catch(console.error);
-        setIsInitialized(true);
-      })();
+      // Render ASAP; run heavy init work in the background
+      setIsInitialized(true);
+
+      void Promise.resolve().then(() => initializeNotifications());
+      void Promise.resolve().then(() => initializeSmsTransactionDetection());
+      HealthChecker.checkHealth().catch(console.error);
+      HealthChecker.startPeriodicCheck(60000).catch(console.error);
+
+      if (!criticalPagesPrefetched) {
+        // Preload critical pages right after login to avoid first-click lag
+        void import('@/app/components/Dashboard');
+        void import('@/app/components/Transactions');
+        setCriticalPagesPrefetched(true);
+      }
     } else if (!authLoading) {
       setIsInitialized(true);
     }
@@ -132,7 +140,16 @@ const AppContent: React.FC = () => {
       () => toast.warning('You are offline. Data will sync when reconnected.')
     );
     return () => { cleanupNetwork(); };
-  }, [user, authLoading]);
+  }, [user, authLoading, criticalPagesPrefetched]);
+
+  // Ensure we land on dashboard after login when the URL is a stale auth path
+  useEffect(() => {
+    if (!user || authLoading) return;
+    const staleAuthPaths = new Set(['login', 'signin', 'auth-callback', '']);
+    if (staleAuthPaths.has(currentPage)) {
+      setCurrentPage('dashboard');
+    }
+  }, [user, authLoading, currentPage, setCurrentPage]);
 
   const setupNativeFeatures = async () => {
     try {

@@ -35,15 +35,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const location = useLocation();
   const navigate = useNavigate();
 
-  const currentPage = location.pathname.length > 1 ? location.pathname.substring(1).split('?')[0].split('#')[0] : 'accounts';
+  const currentPage = location.pathname.length > 1
+    ? location.pathname.substring(1).split('?')[0].split('#')[0]
+    : 'dashboard';
 
   const setCurrentPage = useCallback((page: string) => {
-    // Standardize URL to keep it clean
-    if (page === 'dashboard' && location.pathname === '/') return;
-    if (page !== currentPage) {
-      navigate(`/${page}`);
+    const targetPath = page === 'dashboard' ? '/' : `/${page}`;
+    if (location.pathname !== targetPath) {
+      navigate(targetPath);
     }
-  }, [navigate, currentPage, location.pathname]);
+  }, [navigate, location.pathname]);
 
   const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'INR');
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');

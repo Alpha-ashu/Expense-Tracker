@@ -400,7 +400,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(session?.user ?? null);
         setRole(resolveUserRole(session?.user ?? null));
         if (session?.user?.id) {
-          await syncFromSupabase(session.user);
+          void syncFromSupabase(session.user);
         }
         supabase.auth.startAutoRefresh();
         console.info('✅ Supabase reachable — auto-refresh resumed.');
@@ -450,16 +450,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               // Always record the current user so we can detect future switches
               localStorage.setItem('auth_last_user_id', nextUser.id);
 
-              // Sync accounts/transactions from Supabase into local Dexie
-              await syncFromSupabase(nextUser);
-              // Fetch permissions from server
-              await permissionService.fetchUserPermissions(nextUser.id, userRole);
-              
-              // Seed demo data only for fresh login admin; regular users start with clean DB
-              if (isFreshLogin) {
-                await runWithCloudSyncSuppressed(() => initializeDemoData(nextUser.email ?? undefined, nextUser.id));
-              }
-              initialSyncDone = true;
+              // Run cloud sync + permissions in background to avoid blocking initial render
+              void (async () => {
+                try {
+                  await syncFromSupabase(nextUser);
+                  await permissionService.fetchUserPermissions(nextUser.id, userRole);
+                  if (isFreshLogin) {
+                    await runWithCloudSyncSuppressed(() => initializeDemoData(nextUser.email ?? undefined, nextUser.id));
+                  }
+                } catch (syncError) {
+                  console.warn('Background sync failed (non-blocking):', syncError);
+                } finally {
+                  initialSyncDone = true;
+                }
+              })();
             }
           } else if (event === 'SIGNED_OUT') {
             if (unsubscribeUserCloudSync) {
