@@ -19,6 +19,7 @@ import Dexie, { Table } from 'dexie';
 // Database Interfaces
 export interface Account {
   id?: number;
+  remoteId?: number;
   name: string;
   type: 'bank' | 'card' | 'cash' | 'wallet';
   balance: number;
@@ -31,6 +32,7 @@ export interface Account {
 
 export interface Friend {
   id?: number;
+  remoteId?: number;
   name: string;
   email?: string;
   phone?: string;
@@ -38,10 +40,12 @@ export interface Friend {
   notes?: string;
   createdAt: Date;
   updatedAt?: Date;
+  deletedAt?: Date;
 }
 
 export interface Transaction {
   id?: number;
+  remoteId?: number;
   type: 'expense' | 'income' | 'transfer';
   amount: number;
   accountId: number;
@@ -70,6 +74,7 @@ export interface Transaction {
 
 export interface Loan {
   id?: number;
+  remoteId?: number;
   type: 'borrowed' | 'lent' | 'emi';
   name: string;
   principalAmount: number;
@@ -103,6 +108,7 @@ export interface LoanPayment {
 
 export interface Goal {
   id?: number;
+  remoteId?: number;
   name: string;
   targetAmount: number;
   currentAmount: number;
@@ -125,6 +131,7 @@ export interface GoalContribution {
 
 export interface GroupExpense {
   id?: number;
+  remoteId?: number;
   name: string;
   totalAmount: number;
   paidBy: number; // accountId
@@ -167,6 +174,7 @@ export interface GroupItem {
 
 export interface Investment {
   id?: number;
+  remoteId?: number;
   assetType: 'stock' | 'crypto' | 'forex' | 'gold' | 'silver' | 'other';
   assetName: string;
   quantity: number;
@@ -217,6 +225,11 @@ export interface Notification {
   createdAt: Date;
   userId?: string;
   deepLink?: string; // e.g., "/calendar?session=123"
+  remoteId?: string;
+  category?: string;
+  readAt?: Date;
+  source?: 'local' | 'supabase';
+  metadata?: Record<string, string>;
 }
 
 export interface TaxCalculation {
@@ -330,6 +343,81 @@ export interface ExpenseBill {
   notes?: string;
 }
 
+export interface MerchantProfile {
+  id?: number;
+  merchantName: string;
+  normalizedName: string;
+  suggestedCategory: string;
+  country?: string;
+  confidenceScore: number;
+  usageCount: number;
+  userId?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  lastSeenAt?: Date;
+}
+
+export interface UserCategoryPreference {
+  id?: number;
+  userId?: string;
+  merchantKey?: string;
+  keywordKey?: string;
+  category: string;
+  confidenceScore: number;
+  usageCount: number;
+  createdAt: Date;
+  updatedAt?: Date;
+  lastUsedAt?: Date;
+}
+
+export interface DocumentRecord {
+  id?: number;
+  userId?: string;
+  documentType: 'receipt' | 'statement';
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  fileHash?: string;
+  filePath?: string;
+  uploadDate: Date;
+  processingStatus: 'queued' | 'processing' | 'preview' | 'completed' | 'failed';
+  linkedTransactionId?: number;
+  accountId?: number;
+  extractedCurrency?: string;
+  sourceAccountName?: string;
+  notes?: string;
+  metadata?: Record<string, string>;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+export interface SmsDetectedTransaction {
+  id?: number;
+  userId?: string;
+  amount: number;
+  merchant: string;
+  bankName?: string;
+  accountLast4?: string;
+  transactionType: 'expense' | 'income';
+  currencyCode?: string;
+  date: Date;
+  balance?: number;
+  sourceSmsId: string;
+  sourceAddress?: string;
+  sourceChannel?: string;
+  messagePreview?: string;
+  matchedAccountId?: number;
+  suggestedCategory?: string;
+  suggestedSubcategory?: string;
+  duplicateTransactionId?: number;
+  linkedTransactionId?: number;
+  status: 'detected' | 'imported' | 'ignored';
+  confidenceScore: number;
+  detectedAt: Date;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
 export interface ToDoList {
   id?: number;
   name: string;
@@ -424,6 +512,11 @@ export interface Notification {
   createdAt: Date;
   userId?: string;
   deepLink?: string; // e.g., "/calendar?session=123"
+  remoteId?: string;
+  category?: string;
+  readAt?: Date;
+  source?: 'local' | 'supabase';
+  metadata?: Record<string, string>;
 }
 
 // Database Class
@@ -491,6 +584,10 @@ export class ProductionDB extends FinoraDB {
   chatMessages!: Table<ChatMessage>;
   chatConversations!: Table<ChatConversation>;
   bookingRequests!: Table<BookingRequest>;
+  merchantProfiles!: Table<MerchantProfile>;
+  userCategoryPreferences!: Table<UserCategoryPreference>;
+  documents!: Table<DocumentRecord>;
+  smsTransactions!: Table<SmsDetectedTransaction>;
 
   constructor() {
     super();
@@ -664,6 +761,118 @@ export class ProductionDB extends FinoraDB {
       chatMessages: '++id, conversationId, timestamp, isRead',
       chatConversations: '++id, conversationId, advisorId, userId',
       bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+    });
+
+    this.version(7).stores({
+      accounts: '++id, type, isActive',
+      friends: '++id, name, createdAt',
+      transactions: '++id, type, accountId, category, date',
+      loans: '++id, type, status, dueDate, friendId',
+      loanPayments: '++id, loanId, date',
+      goals: '++id, isGroupGoal, targetDate',
+      goalContributions: '++id, goalId, date',
+      groupExpenses: '++id, date',
+      investments: '++id, assetType, positionStatus, assetCurrency, baseCurrency',
+      notifications: '++id, type, userId, isRead, createdAt, remoteId',
+      gold: '++id, type, unit, purchaseDate',
+      logs: 'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups: 'id, timestamp',
+      settings: 'key',
+      categories: 'id, type',
+      importHistories: '++id, createdAt, fileType, sourceKind, userId',
+      budgets: 'id, category, period',
+      groups: 'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills: '++id, transactionId, uploadedAt',
+      toDoLists: '++id, ownerId, createdAt, archived',
+      toDoItems: '++id, listId, completed, dueDate, priority',
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+      merchantProfiles: '++id, normalizedName, suggestedCategory, userId, updatedAt',
+      userCategoryPreferences: '++id, merchantKey, keywordKey, userId, updatedAt',
+      documents: '++id, documentType, userId, processingStatus, uploadDate, accountId',
+    });
+
+    this.version(8).stores({
+      accounts: '++id, remoteId, type, isActive',
+      friends: '++id, remoteId, name, createdAt',
+      transactions: '++id, remoteId, type, accountId, category, date',
+      loans: '++id, remoteId, type, status, dueDate, friendId',
+      loanPayments: '++id, loanId, date',
+      goals: '++id, remoteId, isGroupGoal, targetDate',
+      goalContributions: '++id, goalId, date',
+      groupExpenses: '++id, remoteId, date',
+      investments: '++id, remoteId, assetType, positionStatus, assetCurrency, baseCurrency',
+      notifications: '++id, type, userId, isRead, createdAt, remoteId',
+      gold: '++id, type, unit, purchaseDate',
+      logs: 'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups: 'id, timestamp',
+      settings: 'key',
+      categories: 'id, type',
+      importHistories: '++id, createdAt, fileType, sourceKind, userId',
+      budgets: 'id, category, period',
+      groups: 'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills: '++id, transactionId, uploadedAt',
+      toDoLists: '++id, ownerId, createdAt, archived',
+      toDoItems: '++id, listId, completed, dueDate, priority',
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+      merchantProfiles: '++id, normalizedName, suggestedCategory, userId, updatedAt',
+      userCategoryPreferences: '++id, merchantKey, keywordKey, userId, updatedAt',
+      documents: '++id, documentType, userId, processingStatus, uploadDate, accountId',
+    });
+
+    this.version(9).stores({
+      accounts: '++id, remoteId, type, isActive',
+      friends: '++id, remoteId, name, createdAt',
+      transactions: '++id, remoteId, type, accountId, category, date',
+      loans: '++id, remoteId, type, status, dueDate, friendId',
+      loanPayments: '++id, loanId, date',
+      goals: '++id, remoteId, isGroupGoal, targetDate',
+      goalContributions: '++id, goalId, date',
+      groupExpenses: '++id, remoteId, date',
+      investments: '++id, remoteId, assetType, positionStatus, assetCurrency, baseCurrency',
+      notifications: '++id, type, userId, isRead, createdAt, remoteId',
+      gold: '++id, type, unit, purchaseDate',
+      logs: 'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups: 'id, timestamp',
+      settings: 'key',
+      categories: 'id, type',
+      importHistories: '++id, createdAt, fileType, sourceKind, userId',
+      budgets: 'id, category, period',
+      groups: 'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills: '++id, transactionId, uploadedAt',
+      toDoLists: '++id, ownerId, createdAt, archived',
+      toDoItems: '++id, listId, completed, dueDate, priority',
+      toDoListShares: '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages: '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+      merchantProfiles: '++id, normalizedName, suggestedCategory, userId, updatedAt',
+      userCategoryPreferences: '++id, merchantKey, keywordKey, userId, updatedAt',
+      documents: '++id, documentType, userId, processingStatus, uploadDate, accountId',
+      smsTransactions: '++id, &sourceSmsId, userId, status, transactionType, date, matchedAccountId, linkedTransactionId, detectedAt',
     });
   }
 }

@@ -85,6 +85,7 @@ export const UserProfile: React.FC = () => {
             db.notifications.clear(),
             db.groupExpenses.clear(),
             db.friends.clear(),
+            db.smsTransactions.clear(),
           ]),
           new Promise((_, reject) => setTimeout(() => reject(new Error('DB clear timeout')), 3000))
         ]);

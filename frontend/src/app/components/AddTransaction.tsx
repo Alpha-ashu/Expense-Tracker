@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/database';
 import { queueTransactionInsertSync, saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { backendService } from '@/lib/backend-api';
+import { createNotificationRecord } from '@/lib/notifications';
 import {
   ChevronLeft, ArrowDownLeft, ArrowUpRight, Camera,
   CalendarDays, Wallet, Tag, AlignLeft, Store, Sparkles,
@@ -30,6 +31,10 @@ import { getCategoryCartoonIcon } from '@/app/components/ui/CartoonCategoryIcons
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  markSmsTransactionImported,
+  resolvePendingSmsTransactionDraft,
+} from '@/services/smsTransactionDetectionService';
 
 const CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
@@ -171,6 +176,7 @@ export const AddTransaction: React.FC = () => {
   const [groupParticipants, setGroupParticipants] = useState<GroupParticipantDraft[]>([]);
   const [showGroupFriendPicker, setShowGroupFriendPicker] = useState(false);
   const [manualExpenseCategory, setManualExpenseCategory] = useState(false);
+  const [pendingSmsTransactionId, setPendingSmsTransactionId] = useState<number | null>(null);
   const [customExpenseSubcategories, setCustomExpenseSubcategories] = useState<CustomExpenseSubcategory[]>(() =>
     loadCustomExpenseSubcategories(),
   );
@@ -250,6 +256,47 @@ export const AddTransaction: React.FC = () => {
     } finally {
       localStorage.removeItem('voiceTransactionDraft');
     }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const applySmsDraft = async () => {
+      const draft = await resolvePendingSmsTransactionDraft();
+      if (!draft || !isMounted) return;
+
+      setPendingSmsTransactionId(draft.smsTransactionId);
+      setFormData((prev) => ({
+        ...prev,
+        type: draft.type,
+        amount: draft.amount,
+        accountId: draft.accountId || prev.accountId,
+        category: normalizeCategorySelection(draft.category, draft.type),
+        subcategory: draft.subcategory || '',
+        description: draft.description || prev.description,
+        merchant: draft.merchant || prev.merchant,
+        date: draft.date || prev.date,
+      }));
+      setExpenseMode('individual');
+      setAmountStr(String(draft.amount));
+      setSubcategoryQuery(draft.subcategory || '');
+      setShowCategoryPicker(false);
+      setShowIncomeSubcategoryPicker(false);
+      setShowGroupFriendPicker(false);
+      setShowLoanFriendPicker(false);
+      setShowOptionalFields(Boolean(draft.merchant || draft.description || draft.subcategory));
+      setManualExpenseCategory(false);
+
+      if (draft.duplicateTransactionId) {
+        toast.warning('Possible duplicate transaction detected. Review the details before saving.');
+      }
+    };
+
+    void applySmsDraft();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const subcategories = useMemo(() =>
@@ -560,11 +607,10 @@ export const AddTransaction: React.FC = () => {
     let sentCount = 0;
     let failedCount = 0;
 
-    await db.notifications.add({
+    await createNotificationRecord({
       type: 'group',
       title: 'Group expense created',
       message: `${expenseName} has been split with ${participants.length} friend${participants.length === 1 ? '' : 's'}.`,
-      isRead: false,
       relatedId: groupExpenseId,
       createdAt: new Date(),
       deepLink: '/groups',
@@ -773,6 +819,9 @@ export const AddTransaction: React.FC = () => {
             ? `Borrowed ${currency} ${formData.amount.toFixed(2)} recorded`
             : `Lent ${currency} ${formData.amount.toFixed(2)} recorded`,
         );
+        if (pendingSmsTransactionId) {
+          await markSmsTransactionImported(pendingSmsTransactionId);
+        }
         refreshData();
         setCurrentPage('loans');
         return;
@@ -857,6 +906,11 @@ export const AddTransaction: React.FC = () => {
           expenseMode: 'group' as const,
           groupName: expenseName,
           splitType: groupSplitType,
+          importSource: pendingSmsTransactionId ? 'sms' : undefined,
+          importMetadata: pendingSmsTransactionId
+            ? { smsTransactionId: String(pendingSmsTransactionId) }
+            : undefined,
+          importedAt: pendingSmsTransactionId ? now : undefined,
           createdAt: now,
           updatedAt: now,
         };
@@ -928,21 +982,32 @@ export const AddTransaction: React.FC = () => {
         if (payload.subcategory) {
           noteExpenseSubcategoryUsage(payload.subcategory, payload.category);
         }
+        if (pendingSmsTransactionId) {
+          await markSmsTransactionImported(pendingSmsTransactionId, transactionId);
+        }
         toast.success(`Group expense created. ${friendParticipants.length} share request${friendParticipants.length === 1 ? '' : 's'} ready.`);
         refreshData();
         setCurrentPage('groups');
         return;
       }
 
-      await saveTransactionWithBackendSync({
+      const savedTransaction = await saveTransactionWithBackendSync({
         ...payload,
         date: new Date(formData.date),
         tags: [],
         expenseMode: 'individual',
+        importSource: pendingSmsTransactionId ? 'sms' : undefined,
+        importMetadata: pendingSmsTransactionId
+          ? { smsTransactionId: String(pendingSmsTransactionId) }
+          : undefined,
+        importedAt: pendingSmsTransactionId ? now : undefined,
       });
       await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
       if (payload.type === 'expense' && payload.subcategory) {
         noteExpenseSubcategoryUsage(payload.subcategory, payload.category);
+      }
+      if (pendingSmsTransactionId) {
+        await markSmsTransactionImported(pendingSmsTransactionId, savedTransaction.id);
       }
       toast.success(`${isExpense ? '📉' : '📈'} ${isExpense ? 'Expense' : 'Income'} of ${currency} ${formData.amount.toFixed(2)} recorded`);
       refreshData();

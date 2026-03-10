@@ -5,7 +5,7 @@ import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { Edit } from 'lucide-react';
 import { toast } from 'sonner';
-import supabase from '@/utils/supabase/client';
+import { updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
 
 export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propAccountId }) => {
   const { setCurrentPage, currency, refreshData } = useApp();
@@ -43,37 +43,12 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
 
     setSaving(true);
     try {
-      // 1. Update local IndexedDB (instant UI update)
-      await db.accounts.update(account.id, {
+      await updateAccountWithBackendSync(account.id, {
         name: account.name,
         type: account.type,
         balance: account.balance,
       });
-
-      // 2. Sync to Supabase
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { error } = await supabase
-          .from('accounts')
-          .update({
-            name: account.name,
-            type: account.type,
-            balance: account.balance,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id)
-          .eq('id', account.id);
-
-        if (error) {
-          // Local update already done — warn but don't block
-          console.error('Supabase sync failed:', error);
-          toast.warning('Saved locally — cloud sync will retry automatically.');
-        } else {
-          toast.success('Account updated successfully!');
-        }
-      } else {
-        toast.success('Account updated locally!');
-      }
+      toast.success('Account updated successfully!');
 
       refreshData();
       setCurrentPage('accounts');

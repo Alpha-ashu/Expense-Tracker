@@ -5,9 +5,9 @@ import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
 import { Toaster } from 'sonner';
 import { initializeNotifications } from '@/lib/notifications';
 import { registerServiceWorker, setupPWAInstallPrompt, setupNetworkListener } from '@/lib/pwa';
-import { initializeRealtimeSync } from '@/lib/realTime';
 import { HealthChecker } from '@/lib/health';
 import { toast } from 'sonner';
+import { initializeSmsTransactionDetection } from '@/services/smsTransactionDetectionService';
 
 // ── Shell components (always visible — eager load) ──────────────────────────
 import { Sidebar } from '@/app/components/Sidebar';
@@ -106,7 +106,7 @@ const AppContent: React.FC = () => {
     if (user) {
       (async () => {
         await Promise.resolve(initializeNotifications());
-        initializeRealtimeSync();
+        await Promise.resolve(initializeSmsTransactionDetection());
         HealthChecker.checkHealth().catch(console.error);
         HealthChecker.startPeriodicCheck(60000).catch(console.error);
         setIsInitialized(true);

@@ -80,8 +80,12 @@ export const StatementImport: React.FC<StatementImportProps> = ({
       setImportResult(result);
       
       if (result.success && result.transactions.length > 0) {
-        // Auto-select all transactions initially
-        setSelectedTransactions(new Set(result.transactions.map((_, index) => index) || []));
+        // Skip duplicates by default, but allow users to re-select them.
+        setSelectedTransactions(new Set(
+          result.transactions
+            .map((transaction, index) => transaction.isDuplicate ? null : index)
+            .filter((value): value is number => value != null),
+        ));
         setImportState('preview');
         toast.success(`Found ${result.transactions.length} transactions in statement`);
       } else {
@@ -105,7 +109,8 @@ export const StatementImport: React.FC<StatementImportProps> = ({
       const options: StatementImportOptions = {
         accountId,
         userId: user.id,
-        accountType
+        accountType,
+        documentId: importResult.documentId,
       };
 
       // Get selected transactions
@@ -269,7 +274,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
               <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 mb-3">Import Summary</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div>
                       <p className="text-sm text-gray-500">Total Transactions</p>
                       <p className="text-xl font-bold text-gray-900">{importResult.summary.count}</p>
@@ -279,6 +284,10 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                       <p className="text-xl font-bold text-gray-900">
                         {formatCurrency(importResult.summary.total)}
                       </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Duplicates</p>
+                      <p className="text-xl font-bold text-amber-600">{importResult.summary.duplicates}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Credits</p>
@@ -302,6 +311,19 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                           {importResult.errors.length} warnings during processing
                         </span>
                       </div>
+                    </div>
+                  )}
+
+                  {(importResult.statementAccountName || importResult.suggestedAccountName) && (
+                    <div className="mt-3 p-3 bg-white/80 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-medium text-blue-900">
+                        Statement source: {importResult.statementAccountName || 'Detected from document text'}
+                      </p>
+                      {importResult.suggestedAccountName && importResult.suggestedAccountName !== accountName && (
+                        <p className="text-xs text-blue-700 mt-1">
+                          Possible account mismatch: the uploaded statement looks like {importResult.suggestedAccountName}, but you are importing into {accountName}.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -330,6 +352,8 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                       key={index}
                       className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
                         selectedTransactions.has(index) ? 'bg-blue-50' : ''
+                      } ${
+                        transaction.isDuplicate ? 'border-l-4 border-amber-400 bg-amber-50/70' : ''
                       }`}
                       onClick={() => toggleTransactionSelection(index)}
                     >
@@ -347,20 +371,25 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                               {formatDate(transaction.transaction_date)}
                             </p>
                             <p className="text-gray-500">
-                              {transaction.payment_channel}
+                            {transaction.payment_channel}
+                          </p>
+                          {transaction.isDuplicate && (
+                            <p className="text-xs text-amber-700 mt-1 font-medium">
+                              {transaction.duplicateReason || 'Possible duplicate'}
                             </p>
-                          </div>
+                          )}
+                        </div>
                           
                           <div className="md:col-span-2">
                             <p className="font-medium text-gray-900">
-                              {transaction.cleaned_description}
+                            {transaction.cleaned_description}
+                          </p>
+                          {transaction.merchant_name && (
+                            <p className="text-xs text-gray-500">
+                              Merchant: {transaction.merchant_name}
                             </p>
-                            {transaction.merchant_name && (
-                              <p className="text-xs text-gray-500">
-                                Merchant: {transaction.merchant_name}
-                              </p>
-                            )}
-                          </div>
+                          )}
+                        </div>
                           
                           <div className="text-right">
                             <p className={`font-bold ${getTransactionTypeColor(transaction.transaction_type)}`}>
@@ -371,6 +400,9 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                               <span className="inline-block mt-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                                 {transaction.category}
                               </span>
+                            )}
+                            {transaction.currency && (
+                              <p className="text-[11px] text-gray-500 mt-1">{transaction.currency}</p>
                             )}
                           </div>
                         </div>

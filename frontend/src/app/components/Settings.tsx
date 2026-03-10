@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { db } from '@/lib/database';
-import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { cn } from '@/lib/utils';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   downloadDataToFile,
   createBackup,
@@ -15,9 +16,20 @@ import {
 import supabase from '@/utils/supabase/client';
 import { permissionService } from '@/services/permissionService';
 import { ImportDataModal } from '@/app/components/ImportDataModal';
+import {
+  clearSmsDetectedTransactions,
+  describeSmsTransaction,
+  disableSmsTransactionDetection,
+  enableSmsTransactionDetection,
+  getSmsDetectionStatus,
+  markSmsTransactionIgnored,
+  primeSmsTransactionDraft,
+  scanHistoricalSmsTransactions,
+  type SmsDetectionStatus,
+} from '@/services/smsTransactionDetectionService';
 
 export const Settings: React.FC = () => {
-  const { currency, setCurrency, language, setLanguage, visibleFeatures, setVisibleFeatures, accounts, refreshData } = useApp();
+  const { currency, setCurrency, language, setLanguage, visibleFeatures, setVisibleFeatures, accounts, refreshData, setCurrentPage } = useApp();
   const { user, signOut } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
   const [backups, setBackups] = useState<Array<any>>([]);
@@ -25,11 +37,31 @@ export const Settings: React.FC = () => {
   const [importHistory, setImportHistory] = useState<Array<any>>([]);
   const [showImportHistory, setShowImportHistory] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [smsStatus, setSmsStatus] = useState<SmsDetectionStatus>({
+    supported: false,
+    enabled: false,
+    permissionState: 'unavailable',
+    historicalScanCompleted: false,
+  });
+  const [isSmsBusy, setIsSmsBusy] = useState(false);
+
+  const smsTransactions = useLiveQuery(
+    () => db.smsTransactions.orderBy('detectedAt').reverse().limit(12).toArray(),
+    [],
+  ) ?? [];
+  const pendingSmsTransactions = smsTransactions.filter((item) => item.status === 'detected');
+  const importedSmsTransactions = smsTransactions.filter((item) => item.status === 'imported');
 
   React.useEffect(() => {
     loadBackups();
     loadImportHistory();
+    void loadSmsStatus();
   }, []);
+
+  const loadSmsStatus = async () => {
+    const status = await getSmsDetectionStatus();
+    setSmsStatus(status);
+  };
 
   const loadBackups = async () => {
     const backupList = await listBackups();
@@ -94,6 +126,7 @@ export const Settings: React.FC = () => {
             db.notifications.clear(),
             db.groupExpenses.clear(),
             db.friends.clear(),
+            db.smsTransactions.clear(),
           ]),
           new Promise((_, reject) => setTimeout(() => reject(new Error('DB clear timeout')), 3000))
         ]);
@@ -173,11 +206,86 @@ export const Settings: React.FC = () => {
         await db.notifications.clear();
         await db.categories.clear();
         await db.importHistories.clear();
+        await db.smsTransactions.clear();
 
         toast.success('All data cleared');
         window.location.reload();
       }
     }
+  };
+
+  const handleToggleSmsDetection = async () => {
+    setIsSmsBusy(true);
+
+    try {
+      if (!smsStatus.enabled) {
+        toast.info('Finora reads bank transaction messages only to help track expenses automatically. SMS content stays on this device.');
+        const result = await enableSmsTransactionDetection(30);
+        setSmsStatus(result.status);
+
+        if (!result.status.supported) {
+          toast.error('SMS detection is available only on Android devices.');
+          return;
+        }
+
+        if (!result.status.enabled) {
+          toast.error('SMS permission is required to enable transaction detection.');
+          return;
+        }
+
+        if (result.historicalScan.scanned > 0) {
+          toast.success(`${result.historicalScan.created} SMS transactions ready for review from the last 30 days.`);
+        } else {
+          toast.success('SMS transaction detection enabled.');
+        }
+        return;
+      }
+
+      const status = await disableSmsTransactionDetection();
+      setSmsStatus(status);
+      toast.success('SMS transaction detection disabled.');
+    } catch (error) {
+      console.error('Failed to toggle SMS detection:', error);
+      toast.error('Unable to update SMS transaction detection right now.');
+    } finally {
+      setIsSmsBusy(false);
+    }
+  };
+
+  const handleRescanSms = async () => {
+    setIsSmsBusy(true);
+
+    try {
+      const result = await scanHistoricalSmsTransactions(30, 300);
+      await loadSmsStatus();
+      toast.success(`${result.created} transactions detected from the last 30 days.`);
+    } catch (error) {
+      console.error('Historical SMS scan failed:', error);
+      toast.error('Historical SMS scan failed.');
+    } finally {
+      setIsSmsBusy(false);
+    }
+  };
+
+  const handleOpenSmsTransaction = async (smsTransactionId: number) => {
+    const draft = await primeSmsTransactionDraft(smsTransactionId);
+    if (!draft) {
+      toast.error('SMS transaction could not be loaded.');
+      return;
+    }
+
+    localStorage.setItem('quickBackPage', 'settings');
+    setCurrentPage('add-transaction');
+  };
+
+  const handleIgnoreSms = async (smsTransactionId: number) => {
+    await markSmsTransactionIgnored(smsTransactionId);
+    toast.success('SMS transaction ignored.');
+  };
+
+  const handleClearSmsData = async () => {
+    await clearSmsDetectedTransactions();
+    toast.success('Stored SMS detections cleared from this device.');
   };
 
   return (
@@ -382,6 +490,222 @@ export const Settings: React.FC = () => {
           }}
         />
       )}
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
+      >
+        <div className="p-6 border-b border-white/10">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">SMS Transaction Detection</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Detect bank, UPI, card, and wallet transactions from SMS on Android. SMS content stays on this device.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleSmsDetection}
+              disabled={isSmsBusy}
+              className={cn(
+                'min-w-[112px] rounded-full px-4 py-2 text-sm font-semibold transition-all shadow-sm',
+                smsStatus.enabled
+                  ? 'bg-black text-white hover:bg-gray-900'
+                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50',
+                isSmsBusy && 'cursor-not-allowed opacity-60',
+              )}
+            >
+              {isSmsBusy ? 'Working...' : smsStatus.enabled ? 'Turn Off' : 'Turn On'}
+            </button>
+          </div>
+        </div>
+
+        <div className="divide-y divide-gray-200">
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="rounded-2xl border border-gray-200 bg-white/80 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center">
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Platform</p>
+                    <p className="text-sm text-gray-500">
+                      {smsStatus.supported ? 'Android supported' : 'Available on Android only'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white/80 p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    'w-10 h-10 rounded-xl flex items-center justify-center',
+                    smsStatus.permissionState === 'granted'
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : 'bg-amber-100 text-amber-600',
+                  )}>
+                    {smsStatus.permissionState === 'granted' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Permission</p>
+                    <p className="text-sm text-gray-500 capitalize">{smsStatus.permissionState}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white/80 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+                    <Database size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Detections</p>
+                    <p className="text-sm text-gray-500">
+                      {pendingSmsTransactions.length} pending · {importedSmsTransactions.length} imported
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-4">
+              <div className="flex items-start gap-3">
+                <Shield className="text-sky-600 mt-0.5" size={18} />
+                <div>
+                  <p className="font-medium text-gray-900">Privacy</p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    SMS messages are processed locally only to detect bank transactions. Raw SMS content is not uploaded to the server, and you can clear stored detections anytime.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {!smsStatus.supported && (
+              <p className="text-sm text-gray-500 mt-4">
+                Desktop and iPhone builds will not scan SMS. Transactions you import from Android will still sync across your devices through the normal account and transaction sync flow.
+              </p>
+            )}
+
+            {smsStatus.supported && (
+              <div className="flex flex-wrap gap-3 mt-5">
+                <button
+                  type="button"
+                  onClick={handleRescanSms}
+                  disabled={isSmsBusy || !smsStatus.enabled}
+                  className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <RefreshCw size={16} />
+                    Rescan Last 30 Days
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearSmsData}
+                  disabled={isSmsBusy || smsTransactions.length === 0}
+                  className="px-4 py-2 rounded-xl bg-white border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clear Stored Detections
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h4 className="font-medium text-gray-900">Detected Transactions</h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  Review SMS detections before adding them to your tracker.
+                </p>
+              </div>
+              {smsStatus.lastScanAt && (
+                <p className="text-xs text-gray-400">
+                  Last scan: {new Date(smsStatus.lastScanAt).toLocaleString()}
+                </p>
+              )}
+            </div>
+
+            {smsTransactions.length > 0 ? (
+              <div className="space-y-3 mt-5">
+                {smsTransactions.map((smsTransaction) => (
+                  <div key={smsTransaction.id} className="rounded-2xl border border-gray-200 bg-white/80 p-4">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-gray-900">{describeSmsTransaction(smsTransaction)}</p>
+                          <span className={cn(
+                            'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold',
+                            smsTransaction.status === 'imported'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : smsTransaction.status === 'ignored'
+                                ? 'bg-gray-100 text-gray-600'
+                                : 'bg-sky-100 text-sky-700',
+                          )}>
+                            {smsTransaction.status}
+                          </span>
+                          {smsTransaction.duplicateTransactionId && (
+                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                              Possible duplicate
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-600 mt-2">
+                          {smsTransaction.bankName || 'Unknown bank'}
+                          {smsTransaction.accountLast4 ? ` • ${smsTransaction.accountLast4}` : ''}
+                          {smsTransaction.suggestedCategory ? ` • ${smsTransaction.suggestedCategory}` : ''}
+                        </p>
+
+                        <p className="text-xs text-gray-400 mt-2">
+                          {new Date(smsTransaction.date).toLocaleString()}
+                          {smsTransaction.messagePreview ? ` • ${smsTransaction.messagePreview}` : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {smsTransaction.status === 'detected' && smsTransaction.id && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSmsTransaction(smsTransaction.id!)}
+                              className="px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-900 transition-colors"
+                            >
+                              {smsTransaction.duplicateTransactionId ? 'Import Anyway' : 'Add'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleIgnoreSms(smsTransaction.id!)}
+                              className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                              Ignore
+                            </button>
+                          </>
+                        )}
+                        {smsTransaction.status === 'imported' && smsTransaction.linkedTransactionId && (
+                          <span className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium">
+                            Imported
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/80 p-6 mt-5 text-center">
+                <p className="text-gray-600 font-medium">No SMS transactions detected yet</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Turn on SMS detection to scan the last 30 days of bank messages and process new incoming transaction SMS automatically.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

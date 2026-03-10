@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
-import { realtimeSyncManager, trackChange } from '@/lib/realTime';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
 
@@ -49,7 +48,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'INR');
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [forceUpdate, setForceUpdate] = useState(0);
+  const [manualRefreshToken, setManualRefreshToken] = useState(0);
   const [visibleFeatures, setVisibleFeaturesState] = useState<FeatureVisibility>(() => {
     const stored = localStorage.getItem('visibleFeatures');
     const parsed = stored ? JSON.parse(stored) : {};
@@ -57,39 +56,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const { role } = useAuth();
 
-  const accounts = useLiveQuery(() => db.accounts.toArray(), [forceUpdate]) || [];
-  const friends = useLiveQuery(() => db.friends.toArray(), [forceUpdate]) || [];
-  const transactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), [forceUpdate]) || [];
-  const loans = useLiveQuery(() => db.loans.toArray(), [forceUpdate]) || [];
-  const goals = useLiveQuery(() => db.goals.toArray(), [forceUpdate]) || [];
-  const investments = useLiveQuery(() => db.investments.toArray(), [forceUpdate]) || [];
-  const groupExpenses = useLiveQuery(() => db.groupExpenses.toArray(), [forceUpdate]) || [];
+  const accounts = useLiveQuery(() => db.accounts.toArray(), [manualRefreshToken]) || [];
+  const friends = useLiveQuery(() => db.friends.toArray(), [manualRefreshToken]) || [];
+  const transactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), [manualRefreshToken]) || [];
+  const loans = useLiveQuery(() => db.loans.toArray(), [manualRefreshToken]) || [];
+  const goals = useLiveQuery(() => db.goals.toArray(), [manualRefreshToken]) || [];
+  const investments = useLiveQuery(() => db.investments.toArray(), [manualRefreshToken]) || [];
+  const groupExpenses = useLiveQuery(() => db.groupExpenses.toArray(), [manualRefreshToken]) || [];
 
   const totalBalance = accounts
     .filter(acc => acc.isActive)
     .reduce((sum, acc) => sum + acc.balance, 0);
 
-  // Setup real-time sync listeners
   useEffect(() => {
-    const unsubscribe = realtimeSyncManager.subscribe(() => {
-      setForceUpdate(prev => prev + 1);
-    });
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
-    // Listen for onboarding completion to refresh all data
     const handleOnboardingComplete = () => {
-      console.log('ONBOARDING_COMPLETED event received, refreshing data...');
-      setForceUpdate(prev => prev + 1);
+      setManualRefreshToken(prev => prev + 1);
     };
 
-    // Listen for onboarding refresh timestamp to force data refresh
     const handleStorageChange = (e: StorageEvent) => {
-      // Only refresh if onboarding_refresh_timestamp changes
       if (e.key === 'onboarding_refresh_timestamp' && e.newValue) {
-        console.log('Onboarding refresh timestamp detected, forcing data refresh...');
-        setForceUpdate(prev => prev + 1);
+        setManualRefreshToken(prev => prev + 1);
       }
     };
 
@@ -99,7 +88,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
-      unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete);
@@ -108,42 +96,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   const refreshData = useCallback(() => {
-    setForceUpdate(prev => prev + 1);
+    setManualRefreshToken(prev => prev + 1);
   }, []);
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
     try {
       await db.transactions.add(transaction);
-      trackChange('transaction-add', transaction);
-      refreshData();
     } catch (error) {
       console.error('Failed to add transaction:', error);
       throw error;
     }
-  }, [refreshData]);
+  }, []);
 
   const updateAccount = useCallback(async (accountId: number, updates: Partial<Account>) => {
     try {
       await db.accounts.update(accountId, updates);
-      trackChange('account-update', { accountId, updates });
-      refreshData();
     } catch (error) {
       console.error('Failed to update account:', error);
       throw error;
     }
-  }, [refreshData]);
+  }, []);
 
   const addAccount = useCallback(async (account: Omit<Account, 'id'>) => {
     try {
       const id = await db.accounts.add(account);
-      trackChange('account-add', { ...account, id });
-      refreshData();
       return id;
     } catch (error) {
       console.error('Failed to add account:', error);
       throw error;
     }
-  }, [refreshData]);
+  }, []);
 
   // Save currency and language to localStorage
   useEffect(() => {

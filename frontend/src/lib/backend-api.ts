@@ -2,6 +2,7 @@
 import axios, { AxiosInstance } from 'axios';
 import RealtimeDataManager from './realtimeData';
 import { db } from './database';
+import { createNotificationRecord } from './notifications';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
 const SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS = import.meta.env.DEV && !import.meta.env.VITE_API_URL;
@@ -625,7 +626,7 @@ class BackendService {
           deepLink: notification.deepLink,
         };
 
-        const id = await db.notifications.add(localNotification);
+        const id = await createNotificationRecord(localNotification);
         console.info('ℹ️ Notifications API unavailable — saved notification locally.');
 
         return {

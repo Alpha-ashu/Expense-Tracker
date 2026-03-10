@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { db } from '@/lib/database';
+import React, { useState } from 'react';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
+import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 
 interface OnboardingCompleteStepProps {
   data: {
@@ -114,31 +114,9 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         isActive: true,
         createdAt: new Date(),
       };
-      const accountId = await db.accounts.add(accountData);
+      const savedAccount = await saveAccountWithBackendSync(accountData);
+      const accountId = savedAccount.id!;
       console.log('Created account with ID:', accountId);
-      // Sync account to Supabase (non-blocking — same pattern as profile above)
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (currentUser) {
-          const { error: accountError } = await supabase
-            .from('accounts')
-            .insert({
-              user_id: currentUser.id,
-              local_id: accountId,   // store Dexie ID so syncFromSupabase restores the same row
-              name: accountData.name,
-              type: accountData.type,
-              balance: accountData.balance,
-              currency: accountData.currency,
-              is_active: accountData.isActive,
-              created_at: new Date().toISOString(),
-            });
-          if (accountError) {
-            console.warn('Account sync to Supabase failed (non-blocking):', accountError.message);
-          }
-        }
-      } catch (accountSyncError) {
-        console.warn('Account Supabase sync skipped (non-blocking):', accountSyncError);
-      }
       // Step 3 (Removed Salary Template)
       setProgress(55);
 

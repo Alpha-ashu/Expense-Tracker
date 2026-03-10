@@ -4,6 +4,7 @@ import { Bell, Search, Menu, X, GripVertical } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/database';
+import { clearNotificationRecords, markNotificationAsRead } from '@/lib/notifications';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
 import { NavigationItem } from '@/app/constants/navigation';
 import { useSharedMenu } from '@/hooks/useSharedMenu';
@@ -71,7 +72,7 @@ export const Header: React.FC = () => {
 
   const handleMarkAsRead = async (notification: any) => {
     // Mark as read
-    await db.notifications.update(notification.id, { isRead: true });
+    await markNotificationAsRead(notification.id);
 
     // Navigate if deepLink exists
     if (notification.deepLink) {
@@ -92,7 +93,7 @@ export const Header: React.FC = () => {
   };
 
   const handleClearAll = async () => {
-    await db.notifications.clear();
+    await clearNotificationRecords();
     setNotificationsOpen(false);
   };
 

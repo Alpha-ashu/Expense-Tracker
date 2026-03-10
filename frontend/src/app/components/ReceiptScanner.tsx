@@ -5,12 +5,19 @@ import { toast } from 'sonner';
 import { db } from '@/lib/database';
 import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   detectExpenseCategoryFromText,
   getExpenseCategoryNames,
   normalizeCategorySelection,
 } from '@/lib/expenseCategories';
 import { cn } from '@/lib/utils';
+import { documentIntelligenceService } from '@/services/documentIntelligenceService';
+import {
+  parseReceiptText,
+  preprocessReceiptFile,
+  SUPPORTED_RECEIPT_MIME_TYPES,
+} from '@/services/receiptScannerService';
 
 /* ─────────────────────────────────────────────────────────────
    Receipt scan result
@@ -19,8 +26,15 @@ export interface ReceiptScanResult {
   merchantName?: string;
   amount?: number;
   date?: Date;
+  time?: string;
+  currency?: string;
+  taxAmount?: number;
+  subtotal?: number;
+  paymentMethod?: string;
+  invoiceNumber?: string;
   category?: string;
   subcategory?: string;
+  notes?: string;
   items?: Array<{ name: string; amount: number }>;
   confidence?: number;
   rawText?: string;
@@ -40,133 +54,6 @@ interface ReceiptScannerProps {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Smart receipt text parser
-   Priority order for "total":
-     Grand Total > Net Total > Food Total > Bill Total > Total
-   Skips taxes (CGST, SGST, VAT, Service Charge) and subtotals.
-───────────────────────────────────────────────────────────── */
-const SKIP_KEYWORDS = /cgst|sgst|vat|service charge|service tax|discount|sub.?total|subtotal|tip|gratuity|rounding/i;
-
-function parseReceiptText(rawText: string): ReceiptScanResult {
-  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
-
-  /* ── 1. Merchant name: first 1-3 non-trivial lines ── */
-  const skipLinePatterns = /date|time|invoice|bill no|tax|t\.no|table|gstin|fssai|vat|www\.|phone|tel:|address/i;
-  const merchantLines = lines.slice(0, 8).filter(l => {
-    return l.length > 2 && !/^\d/.test(l) && !skipLinePatterns.test(l);
-  });
-  const merchantName = merchantLines[0] || '';
-
-  /* ── 2. Date extraction ── */
-  let date: Date | undefined;
-  const datePatterns = [
-    /(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/,   // DD/MM/YY or DD-MM-YYYY
-    /(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{2,4})/i,
-  ];
-  for (const line of lines) {
-    for (const pat of datePatterns) {
-      const m = line.match(pat);
-      if (m) {
-        try {
-          if (pat.source.includes('jan')) {
-            date = new Date(`${m[1]} ${m[2]} ${m[3]}`);
-          } else {
-            // DD/MM/YY or DD/MM/YYYY
-            let year = parseInt(m[3]);
-            if (year < 100) year += 2000;
-            date = new Date(year, parseInt(m[2]) - 1, parseInt(m[1]));
-          }
-          if (!isNaN(date.getTime())) break;
-        } catch { /* ignore */ }
-      }
-    }
-    if (date) break;
-  }
-
-  /* ── 3. Amount extraction — priority-ordered total keywords ── */
-  const totalTierKeywords: RegExp[][] = [
-    // Tier 1: explicit grand/net/food/bill totals
-    [/grand\s*total/i, /net\s*total/i, /net\s*amount/i, /food\s*total/i, /bill\s*total/i, /amount\s*due/i, /balance\s*due/i],
-    // Tier 2: plain "Total" keyword (but not subtotal)
-    [/^total\s*[:\|]/i, /\btotal\s*[:\|]/i],
-    // Tier 3: fallback — any line containing "total" that isn't a skip keyword
-    [/total/i],
-  ];
-
-  let totalAmount = 0;
-
-  tierLoop:
-  for (const tier of totalTierKeywords) {
-    for (const pattern of tier) {
-      for (const line of lines) {
-        if (!pattern.test(line)) continue;
-        if (SKIP_KEYWORDS.test(line)) continue;
-
-        // Extract all numeric values from the line
-        const nums = extractAmounts(line);
-        if (nums.length === 0) continue;
-
-        // Take the LARGEST number on this line (avoids item counts / qty)
-        const candidate = Math.max(...nums);
-        if (candidate > totalAmount) totalAmount = candidate;
-      }
-    }
-    if (totalAmount > 0) break tierLoop;
-  }
-
-  // Last resort: scan all lines for largest numeric value
-  if (totalAmount === 0) {
-    for (const line of lines) {
-      if (SKIP_KEYWORDS.test(line)) continue;
-      const nums = extractAmounts(line);
-      for (const n of nums) {
-        if (n > totalAmount) totalAmount = n;
-      }
-    }
-  }
-
-  /* ── 4. Line items (Particulars section) ── */
-  const items: Array<{ name: string; amount: number }> = [];
-  let inParticulars = false;
-  for (const line of lines) {
-    if (/particulars|description|item/i.test(line)) { inParticulars = true; continue; }
-    if (/total|sub.*total|amount due/i.test(line) && inParticulars) break;
-    if (inParticulars) {
-      const nums = extractAmounts(line);
-      if (nums.length > 0) {
-        const amount = Math.max(...nums);
-        // strip numbers from end to get name
-        const name = line.replace(/[\d,\.\s]+$/, '').trim();
-        if (name.length > 1) items.push({ name, amount });
-      }
-    }
-  }
-
-  /* ── 5. Category + subcategory detection ── */
-  const detectionText = [merchantName, ...items.map((item) => item.name), rawText]
-    .filter(Boolean)
-    .join(' ')
-    .trim();
-  const detectedExpense = detectExpenseCategoryFromText(detectionText);
-  const category = detectedExpense?.category ?? 'Shopping';
-  const subcategory = detectedExpense?.subcategory ?? '';
-
-  /* ── 6. Confidence: higher when we reliably matched total keywords ── */
-  const confidence = totalAmount > 0 ? (items.length > 0 ? 0.92 : 0.75) : 0.4;
-
-  return { merchantName, amount: totalAmount, date, category, subcategory, items, confidence, rawText };
-}
-
-/** Extract all numeric amounts from a string, handling commas and decimals */
-function extractAmounts(text: string): number[] {
-  // Match patterns like: 10,949.40  10949  ₹1049  Rs.45.99
-  const matches = text.match(/(?:rs\.?|₹|inr)?\s*([\d,]+(?:\.\d{1,2})?)/gi) || [];
-  return matches
-    .map(m => parseFloat(m.replace(/[^0-9.]/g, '')))
-    .filter(n => !isNaN(n) && n > 0 && n < 10_000_000); // sanity upper bound
-}
-
-/* ─────────────────────────────────────────────────────────────
    Component
 ───────────────────────────────────────────────────────────── */
 export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
@@ -178,6 +65,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   initialAccountId,
 }) => {
   const { accounts, currency, refreshData, setCurrentPage } = useApp();
+  const { user } = useAuth();
   const expenseCategoryOptions = getExpenseCategoryNames();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -185,6 +73,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatus, setScanStatus] = useState('');
   const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
+  const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
     initialAccountId ?? accounts[0]?.id ?? null
   );
@@ -200,22 +89,41 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    if (!SUPPORTED_RECEIPT_MIME_TYPES.includes(file.type)) {
+      toast.error('Supported files: JPG, PNG, PDF, HEIC, WEBP');
+      return;
+    }
     if (file.size > 15 * 1024 * 1024) { toast.error('File size must be under 15 MB'); return; }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setPreviewUrl(file.type.startsWith('image/') ? URL.createObjectURL(file) : '');
     setScanResult(null);
     setScanProgress(0);
     setScanStatus('');
+    setScanDocumentId(null);
   };
 
   const handleScanReceipt = async () => {
     if (!selectedFile) { toast.error('Please select an image first'); return; }
     setIsScanning(true);
     setScanProgress(0);
-    setScanStatus('Initialising OCR engine…');
+    setScanStatus('Preparing receipt…');
+    let documentId = scanDocumentId;
 
     try {
+      documentId = scanDocumentId ?? await documentIntelligenceService.createDocumentRecord({
+        documentType: 'receipt',
+        file: selectedFile,
+        processingStatus: 'processing',
+        accountId: selectedAccountId ?? undefined,
+      });
+      setScanDocumentId(documentId);
+
+      setScanStatus('Improving image quality…');
+      const processedBlob = await preprocessReceiptFile(selectedFile);
+
       const worker = await createWorker('eng', 1, {
         logger: m => {
           if (m.status === 'recognizing text') {
@@ -227,21 +135,54 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         },
       });
 
-      setScanStatus('Analysing receipt…');
-      const { data } = await worker.recognize(selectedFile);
-      await worker.terminate();
+      setScanStatus('Running OCR…');
+      let { data } = await worker.recognize(processedBlob);
+
+      if ((data.confidence ?? 0) < 55 || (data.text || '').replace(/\s+/g, '').length < 24) {
+        setScanStatus('Retrying with multilingual OCR…');
+        await worker.terminate();
+
+        const fallbackWorker = await createWorker('eng+spa+fra+deu+hin+chi_sim+jpn+ara', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setScanProgress(Math.round((m.progress ?? 0) * 100));
+            }
+          },
+        });
+
+        const fallbackResult = await fallbackWorker.recognize(processedBlob);
+        data = fallbackResult.data;
+        await fallbackWorker.terminate();
+      } else {
+        await worker.terminate();
+      }
 
       const rawText = data.text;
-      const result = parseReceiptText(rawText);
+      const result = await parseReceiptText(rawText, user?.id);
       setScanResult(result);
 
+      await documentIntelligenceService.updateDocumentRecord(documentId, {
+        processingStatus: 'preview',
+        extractedCurrency: result.currency,
+        metadata: {
+          merchantName: result.merchantName || '',
+          invoiceNumber: result.invoiceNumber || '',
+          paymentMethod: result.paymentMethod || '',
+        },
+      });
+
       if (result.amount && result.amount > 0) {
-        toast.success(`✅ Found total: ${currency} ${result.amount.toFixed(2)}`);
+        toast.success(`Found total: ${(result.currency || currency)} ${result.amount.toFixed(2)}`);
       } else {
-        toast.warning('⚠️ Could not detect total amount — please enter manually');
+        toast.warning('Could not detect total amount. Review the extracted fields before saving.');
       }
     } catch (err) {
       console.error('OCR error:', err);
+      if (documentId) {
+        await documentIntelligenceService.updateDocumentRecord(documentId, {
+          processingStatus: 'failed',
+        });
+      }
       toast.error('Scan failed. Try a clearer image or enter details manually.');
     } finally {
       setIsScanning(false);
@@ -275,7 +216,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         accountId: selectedAccountId,
         category,
         subcategory,
-        description: scanResult.merchantName || 'Receipt',
+        description: scanResult.notes || scanResult.merchantName || 'Receipt',
         merchant: scanResult.merchantName || '',
         date: scanResult.date || new Date(),
         tags: [],
@@ -286,6 +227,26 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       await db.accounts.update(selectedAccountId, { balance: newBalance, updatedAt: new Date() });
 
       toast.success(`📦 Expense of ${currency} ${amount.toFixed(2)} added to ${account.name}`);
+      await documentIntelligenceService.upsertMerchantProfile({
+        merchantName: scanResult.merchantName || 'Unknown Merchant',
+        normalizedName: documentIntelligenceService.normalizeMerchantName(scanResult.merchantName || 'Unknown Merchant'),
+        suggestedCategory: category,
+        confidenceScore: scanResult.confidence ?? 0.8,
+        userId: user?.id,
+      });
+      await documentIntelligenceService.upsertCategoryPreference({
+        userId: user?.id,
+        merchantKey: scanResult.merchantName,
+        keywordKey: [scanResult.merchantName, scanResult.notes, scanResult.rawText].filter(Boolean).join(' '),
+        category,
+        confidenceScore: scanResult.confidence ?? 0.8,
+      });
+      if (scanDocumentId) {
+        await documentIntelligenceService.updateDocumentRecord(scanDocumentId, {
+          processingStatus: 'completed',
+          linkedTransactionId: savedTransaction?.id,
+        });
+      }
       refreshData();
       if (savedTransaction?.id) {
         onTransactionCreated?.(savedTransaction.id);
@@ -314,12 +275,16 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   };
 
   const handleClose = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setSelectedFile(null);
     setPreviewUrl('');
     setScanResult(null);
     setSelectedAccountId(accounts[0]?.id ?? null);
     setScanProgress(0);
     setScanStatus('');
+    setScanDocumentId(null);
     onClose();
   };
 
@@ -357,7 +322,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
         <div className="overflow-y-auto flex-1 p-5 space-y-5">
           {/* ── Step 1: Choose image ── */}
-          {!previewUrl && (
+          {!selectedFile && (
             <div className="space-y-3">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Choose a receipt image</p>
               <div className="grid grid-cols-2 gap-3">
@@ -370,7 +335,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-bold text-gray-800">Upload Image</p>
-                    <p className="text-xs text-gray-400">JPG, PNG, WebP</p>
+                    <p className="text-xs text-gray-400">JPG, PNG, PDF, HEIC, WebP</p>
                   </div>
                 </button>
                 <button
@@ -386,7 +351,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                   </div>
                 </button>
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" aria-label="Upload receipt" />
+              <input ref={fileInputRef} type="file" accept="image/*,.pdf,.heic,.heif,.webp" onChange={handleFileSelect} className="hidden" aria-label="Upload receipt" />
               <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Take photo" />
 
               <div className="bg-blue-50 rounded-2xl p-4">
@@ -401,10 +366,18 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
           )}
 
           {/* ── Step 2: Preview + Scan ── */}
-          {previewUrl && !scanResult && (
+          {selectedFile && !scanResult && (
             <div className="space-y-4">
               <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                <img src={previewUrl} alt="Receipt preview" className="w-full max-h-72 object-contain bg-gray-50" />
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Receipt preview" className="w-full max-h-72 object-contain bg-gray-50" />
+                ) : (
+                  <div className="flex min-h-56 flex-col items-center justify-center bg-gray-50 px-6 text-center">
+                    <ScanLine size={28} className="text-gray-400 mb-3" />
+                    <p className="text-sm font-semibold text-gray-700">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-500 mt-1">PDF statement rendering will be optimized before OCR.</p>
+                  </div>
+                )}
                 {isScanning && (
                   <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3">
                     <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -422,7 +395,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setPreviewUrl(''); setSelectedFile(null); }}
+                  onClick={() => { if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(''); setSelectedFile(null); setScanDocumentId(null); }}
                   disabled={isScanning}
                   className="flex-[0.4] flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40"
                 >
@@ -497,6 +470,28 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
                 <div className="grid grid-cols-2 divide-x divide-gray-100">
                   <div className="p-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Currency</label>
+                    <input
+                      type="text"
+                      value={scanResult.currency || currency}
+                      onChange={e => setScanResult({ ...scanResult, currency: e.target.value.toUpperCase() })}
+                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Payment</label>
+                    <input
+                      type="text"
+                      value={scanResult.paymentMethod || ''}
+                      onChange={e => setScanResult({ ...scanResult, paymentMethod: e.target.value })}
+                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                      placeholder="Card, UPI, Cash..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 divide-x divide-gray-100">
+                  <div className="p-4">
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Date</label>
                     <input
                       type="date"
@@ -517,6 +512,50 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                       )}
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-3 divide-x divide-gray-100">
+                  <div className="p-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Time</label>
+                    <input
+                      type="text"
+                      value={scanResult.time || ''}
+                      onChange={e => setScanResult({ ...scanResult, time: e.target.value })}
+                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                      placeholder="18:45"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Subtotal</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={scanResult.subtotal || ''}
+                      onChange={e => setScanResult({ ...scanResult, subtotal: parseFloat(e.target.value) || undefined })}
+                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tax</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={scanResult.taxAmount || ''}
+                      onChange={e => setScanResult({ ...scanResult, taxAmount: parseFloat(e.target.value) || undefined })}
+                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Invoice Number</label>
+                  <input
+                    type="text"
+                    value={scanResult.invoiceNumber || ''}
+                    onChange={e => setScanResult({ ...scanResult, invoiceNumber: e.target.value })}
+                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                    placeholder="Invoice or receipt reference"
+                  />
                 </div>
 
                 <div className="p-4">
@@ -544,6 +583,17 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                   <p className="mt-1 text-xs text-gray-400">
                     Edit this if the scan found the wrong expense type. The main category updates automatically.
                   </p>
+                </div>
+
+                <div className="p-4">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Notes</label>
+                  <input
+                    type="text"
+                    value={scanResult.notes || ''}
+                    onChange={e => setScanResult({ ...scanResult, notes: e.target.value })}
+                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+                    placeholder="Fuel receipt, hotel bill, office expense..."
+                  />
                 </div>
 
                 {/* Detected items */}

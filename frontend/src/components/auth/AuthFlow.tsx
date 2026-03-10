@@ -7,10 +7,9 @@ import { OTPVerification } from './OTPVerification';
 import { PINSetup } from './PINSetup';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { db } from '@/lib/database';
-import { useApp } from '@/contexts/AppContext';
 import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
 import { TermsOfService } from '@/app/components/TermsOfService';
+import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 
 type AuthStep =
   | 'welcome'
@@ -51,8 +50,6 @@ export const AuthFlow: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [salaryAccount, setSalaryAccount] = useState<SalaryAccount | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { setCurrentPage } = useApp();
-
   // Check if user is already partially through the flow
   useEffect(() => {
     const checkFlowState = async () => {
@@ -305,8 +302,7 @@ export const AuthFlow: React.FC = () => {
       const accountName = `${salaryAccount.bankName} - ${salaryAccount.accountName}`;
       const balance = parseFloat(salaryAccount.openingBalance) || 0;
 
-      // 1. Save to local Dexie DB immediately (guaranteed to work)
-      await db.accounts.add({
+      await saveAccountWithBackendSync({
         name: accountName,
         type: 'bank',
         balance,
@@ -314,23 +310,7 @@ export const AuthFlow: React.FC = () => {
         isActive: true,
         createdAt: new Date(),
       });
-
-      // 2. Sync to Supabase — only use guaranteed base columns
-      const { error } = await supabase.from('accounts').insert({
-        user_id: user.id,
-        name: accountName,
-        type: 'bank',
-        balance,
-        currency: 'INR',
-        created_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        console.error('Failed to sync account to Supabase:', error.message);
-        // Local save succeeded — not a blocking error
-      } else {
-        toast.success('Salary account created and synced!');
-      }
+      toast.success('Salary account created!');
     } catch (error) {
       console.error('Auto-provisioning failed:', error);
       toast.error('Failed to create account. Please try again.');

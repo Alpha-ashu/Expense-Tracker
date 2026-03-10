@@ -1,20 +1,14 @@
 /**
- * Smart Statement Import Service
- * Handles parsing of bank statements from PDF, CSV, and Excel files
+ * Statement import service
+ * Parses PDF, CSV, and text-based spreadsheet exports into previewable transactions.
  */
 
-import { db, Transaction } from '@/lib/database';
+import { db, type Transaction } from '@/lib/database';
+import { documentIntelligenceService } from './documentIntelligenceService';
 // @ts-ignore
 import * as pdfjsLib from 'pdfjs-dist/build/pdf';
 
-// Configure PDF.js worker from local public folder
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
-
-// We're disabling standard font loading here because it causes issues in some environments.
-// PDF.js will fall back to system fonts or embedded fonts which usually works for text extraction.
-// If needed, delete the line below or make sure the detailed path is perfectly correct.
-// pdfjsLib.GlobalWorkerOptions.standardFontDataUrl = '/standard_fonts/'; 
-
 
 export interface ParsedTransaction {
   transaction_date: Date;
@@ -26,6 +20,12 @@ export interface ParsedTransaction {
   payment_channel: string;
   merchant_name?: string;
   category?: string;
+  currency?: string;
+  duplicateKey?: string;
+  isDuplicate?: boolean;
+  duplicateReason?: string;
+  sourceAccountName?: string;
+  confidenceScore?: number;
 }
 
 export interface ImportResult {
@@ -37,942 +37,585 @@ export interface ImportResult {
     credits: number;
     debits: number;
     count: number;
+    duplicates: number;
   };
+  statementAccountName?: string;
+  suggestedAccountId?: number;
+  suggestedAccountName?: string;
+  documentId?: number;
 }
 
 export interface StatementImportOptions {
   accountId: number;
   userId: string;
   accountType: string;
+  documentId?: number;
+}
+
+type TransactionColumns = {
+  date?: number;
+  description?: number;
+  debit?: number;
+  credit?: number;
+  amount?: number;
+  balance?: number;
+  currency?: number;
+};
+
+const PAYMENT_CHANNELS: Record<string, string> = {
+  gpay: 'GPay',
+  phonepe: 'PhonePe',
+  paytm: 'Paytm',
+  cred: 'CRED',
+  upi: 'UPI',
+  imps: 'Bank Transfer',
+  neft: 'Bank Transfer',
+  rtgs: 'Bank Transfer',
+  card: 'Card',
+  visa: 'Card',
+  mastercard: 'Card',
+  atm: 'ATM',
+  netbanking: 'Net Banking',
+};
+
+const normalizeText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeHeader = (value: string) => normalizeText(value).replace(/\s+/g, '');
+
+const parseAmount = (value: string | number | undefined) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const negative = trimmed.startsWith('(') && trimmed.endsWith(')');
+  const cleaned = trimmed
+    .replace(/[()]/g, '')
+    .replace(/[^\d.,-]/g, '')
+    .replace(/,(?=\d{3}\b)/g, '');
+
+  if (!cleaned) return null;
+  const normalized = cleaned.includes('.') ? cleaned : cleaned.replace(',', '.');
+  const parsed = Number.parseFloat(normalized);
+  if (!Number.isFinite(parsed)) return null;
+  return negative ? -parsed : parsed;
+};
+
+const parseDate = (value: string | undefined) => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const exactPatterns: Array<RegExp> = [
+    /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/,
+    /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/,
+    /^(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{2,4})$/i,
+  ];
+
+  const monthMap: Record<string, number> = {
+    jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+    jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+  };
+
+  for (const pattern of exactPatterns) {
+    const match = trimmed.match(pattern);
+    if (!match) continue;
+
+    if (pattern.source.startsWith('^(\\d{4})')) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+
+    if (/jan|feb|mar/i.test(pattern.source)) {
+      const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
+      return new Date(year, monthMap[match[2].slice(0, 3).toLowerCase()], Number(match[1]));
+    }
+
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
+    return new Date(year, Number(match[2]) - 1, Number(match[1]));
+  }
+
+  const relaxed = new Date(trimmed);
+  return Number.isNaN(relaxed.getTime()) ? null : relaxed;
+};
+
+const createDelimitedRows = (text: string, delimiter: string) => {
+  const rows: string[][] = [];
+  let currentCell = '';
+  let currentRow: string[] = [];
+  let insideQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+
+    if (char === '"') {
+      if (insideQuotes && next === '"') {
+        currentCell += '"';
+        index += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+      continue;
+    }
+
+    if (!insideQuotes && char === delimiter) {
+      currentRow.push(currentCell.trim());
+      currentCell = '';
+      continue;
+    }
+
+    if (!insideQuotes && (char === '\n' || char === '\r')) {
+      if (char === '\r' && next === '\n') index += 1;
+      currentRow.push(currentCell.trim());
+      if (currentRow.some((cell) => cell !== '')) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentCell = '';
+      continue;
+    }
+
+    currentCell += char;
+  }
+
+  if (currentCell.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    if (currentRow.some((cell) => cell !== '')) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+};
+
+const guessDelimiter = (text: string) => {
+  const firstLine = text.split(/\r?\n/).find((line) => line.trim()) ?? '';
+  const candidates = [',', ';', '\t', '|'];
+  return candidates.sort((left, right) => firstLine.split(right).length - firstLine.split(left).length)[0] ?? ',';
+};
+
+function detectColumns(headerRow: string[]): TransactionColumns {
+  const columns: TransactionColumns = {};
+
+  headerRow.forEach((header, index) => {
+    const normalized = normalizeHeader(header);
+
+    if (!columns.date && ['date', 'transactiondate', 'valuedate', 'posteddate'].includes(normalized)) columns.date = index;
+    if (!columns.description && ['description', 'narration', 'details', 'particulars', 'merchant', 'remarks'].includes(normalized)) columns.description = index;
+    if (!columns.debit && ['debit', 'withdrawal', 'withdrawals', 'spent'].includes(normalized)) columns.debit = index;
+    if (!columns.credit && ['credit', 'deposit', 'received', 'income'].includes(normalized)) columns.credit = index;
+    if (!columns.amount && ['amount', 'transactionamount', 'value', 'total'].includes(normalized)) columns.amount = index;
+    if (!columns.balance && ['balance', 'closingbalance', 'runningbalance'].includes(normalized)) columns.balance = index;
+    if (!columns.currency && ['currency', 'currencycode'].includes(normalized)) columns.currency = index;
+  });
+
+  return columns;
+}
+
+function looksLikeTableRows(rows: string[][]) {
+  return rows.length > 1 && rows[0].length >= 3;
+}
+
+function cleanDescription(value: string) {
+  return value
+    .replace(/\b(?:ref|txn|trn|utr|chq|cheque|no)\b[:\s-]*[a-z0-9/-]+/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractPaymentChannel(description: string) {
+  const normalized = normalizeText(description);
+  return Object.entries(PAYMENT_CHANNELS).find(([keyword]) => normalized.includes(keyword))?.[1] ?? 'Bank';
+}
+
+function pickMerchantName(description: string) {
+  const normalizedMerchant = documentIntelligenceService.normalizeMerchantName(description);
+  if (!normalizedMerchant) return undefined;
+  return documentIntelligenceService.toTitleCase(normalizedMerchant);
+}
+
+function generateDuplicateKey(accountId: number, transaction: ParsedTransaction) {
+  const dateKey = transaction.transaction_date.toISOString().split('T')[0];
+  const descriptionKey = normalizeText(transaction.merchant_name || transaction.cleaned_description).replace(/\s+/g, '');
+  return `${accountId}|${dateKey}|${Math.abs(transaction.amount).toFixed(2)}|${descriptionKey.slice(0, 60)}`;
 }
 
 class StatementImportService {
-  private paymentChannels = {
-    'GPay': 'GPay',
-    'PhonePe': 'PhonePe', 
-    'Paytm': 'Paytm',
-    'CRED': 'CRED',
-    'IMPS': 'Bank Transfer',
-    'NEFT': 'Bank Transfer',
-    'RTGS': 'Bank Transfer',
-    'UPI': 'UPI',
-    'CARD': 'Card',
-    'ATM': 'ATM',
-    'NET': 'Net Banking'
-  };
-
-  private merchantCategories = {
-    // Fuel
-    'PETROL': 'Fuel',
-    'DIESEL': 'Fuel',
-    'HPCL': 'Fuel',
-    'BPCL': 'Fuel',
-    'IOCL': 'Fuel',
-    'SHELL': 'Fuel',
-    'RELIANCE': 'Fuel',
-    
-    // Shopping
-    'AMAZON': 'Shopping',
-    'FLIPKART': 'Shopping',
-    'MEESHO': 'Shopping',
-    'MYNTRA': 'Shopping',
-    'AJIO': 'Shopping',
-    'NYKAA': 'Shopping',
-    
-    // Food & Dining
-    'SWIGGY': 'Food',
-    'ZOMATO': 'Food',
-    'DOMINOS': 'Food',
-    'PIZZA': 'Food',
-    'KFC': 'Food',
-    'MCD': 'Food',
-    
-    // Entertainment
-    'NETFLIX': 'Entertainment',
-    'PRIME': 'Entertainment',
-    'DISNEY': 'Entertainment',
-    'SPOTIFY': 'Entertainment',
-    'YOUTUBE': 'Entertainment',
-    
-    // Transport
-    'UBER': 'Transport',
-    'OLA': 'Transport',
-    'RAPIDO': 'Transport',
-    'METRO': 'Transport',
-    'AUTO': 'Transport',
-    
-    // Utilities
-    'ELECTRICITY': 'Utilities',
-    'WATER': 'Utilities',
-    'GAS': 'Utilities',
-    'INTERNET': 'Utilities',
-    'PHONE': 'Utilities',
-    
-    // Income
-    'SALARY': 'Income',
-    'SAL': 'Income',
-    'CREDIT': 'Income',
-    'REFUND': 'Income',
-    'BONUS': 'Income',
-    'DIVIDEND': 'Income'
-  };
-
-  /**
-   * Parse statement file based on type
-   */
   async parseStatement(file: File, options: StatementImportOptions): Promise<ImportResult> {
-    try {
-      let transactions: ParsedTransaction[] = [];
-      let errors: string[] = [];
+    const errors: string[] = [];
+    const documentId = options.documentId ?? await documentIntelligenceService.createDocumentRecord({
+      documentType: 'statement',
+      file,
+      processingStatus: 'processing',
+      accountId: options.accountId,
+    });
 
-      switch (file.type) {
-        case 'application/pdf':
-          transactions = await this.parsePDF(file, errors);
-          break;
-        case 'text/csv':
-          transactions = await this.parseCSV(file, errors);
-          break;
-        case 'application/vnd.ms-excel':
-        case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-          transactions = await this.parseExcel(file, errors);
-          break;
-        default:
-          throw new Error('Unsupported file format');
+    try {
+      let rawText = '';
+      let transactions: ParsedTransaction[] = [];
+
+      if (file.type === 'application/pdf') {
+        rawText = await this.extractPdfText(file);
+        transactions = await this.extractTransactionsFromText(rawText, options.userId);
+      } else if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
+        rawText = await file.text();
+        transactions = await this.extractTransactionsFromDelimitedText(rawText, options.userId);
+      } else {
+        const spreadsheet = await this.extractTransactionsFromSpreadsheet(file, options.userId, errors);
+        rawText = spreadsheet.rawText;
+        transactions = spreadsheet.transactions;
       }
 
-      // Process transactions
-      const processedTransactions = this.processTransactions(transactions, options);
-      
-      // Generate summary
-      const summary = this.generateSummary(processedTransactions);
+      const statementAccountName = documentIntelligenceService.detectBankName(rawText);
+      const suggestedAccount = await this.findSuggestedAccount(statementAccountName);
+      const annotatedTransactions = await this.annotateTransactions(transactions, options);
+      const summary = this.generateSummary(annotatedTransactions);
+
+      await documentIntelligenceService.updateDocumentRecord(documentId, {
+        processingStatus: 'preview',
+        sourceAccountName: statementAccountName,
+        metadata: {
+          detectedBank: statementAccountName || '',
+          transactionCount: String(annotatedTransactions.length),
+        },
+      });
 
       return {
-        success: true,
-        transactions: processedTransactions,
+        success: annotatedTransactions.length > 0,
+        transactions: annotatedTransactions,
         errors,
-        summary
+        summary,
+        statementAccountName,
+        suggestedAccountId: suggestedAccount?.id,
+        suggestedAccountName: suggestedAccount?.name,
+        documentId,
       };
-
     } catch (error) {
+      await documentIntelligenceService.updateDocumentRecord(documentId, {
+        processingStatus: 'failed',
+      });
+
       return {
         success: false,
         transactions: [],
         errors: [error instanceof Error ? error.message : 'Unknown error occurred'],
-        summary: { total: 0, credits: 0, debits: 0, count: 0 }
+        summary: { total: 0, credits: 0, debits: 0, count: 0, duplicates: 0 },
+        documentId,
       };
     }
   }
 
-  /**
-   * Parse PDF statement
-   */
-  private async parsePDF(file: File, errors: string[]): Promise<ParsedTransaction[]> {
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      // Use disableFontFace to prevent font loading errors during text extraction
-      const pdf = await pdfjsLib.getDocument({ 
-        data: arrayBuffer,
-        disableFontFace: true
-      }).promise;
-      
-      let fullText = '';
-      
-      // Extract text from all pages
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        // Use simpler getTextContent call to avoid font issues
-        const textContent = await page.getTextContent({
-           disableCombineTextItems: false,
-           includeMarkedContent: false
-        });
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        fullText += pageText + '\n';
-      }
-      
-      // console.log('Extracted PDF text:', fullText);
-      
-      const transactions = this.extractTransactionsFromText(fullText, errors);
-      return transactions;
-    } catch (error) {
-      console.error('PDF parsing error:', error);
-      errors.push(`Failed to parse PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return [];
-    }
-  }
-
-  /**
-   * Parse CSV statement
-   */
-  private async parseCSV(file: File, errors: string[]): Promise<ParsedTransaction[]> {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = reader.result as string;
-        const transactions = this.extractTransactionsFromCSV(text, errors);
-        resolve(transactions);
-      };
-      reader.readAsText(file);
-    });
-  }
-
-  /**
-   * Parse Excel statement
-   */
-  private async parseExcel(file: File, errors: string[]): Promise<ParsedTransaction[]> {
-    // For now, simulate Excel parsing
-    // In production, use xlsx library
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const mockText = this.getMockPDFText();
-        const transactions = this.extractTransactionsFromText(mockText, errors);
-        resolve(transactions);
-      };
-      reader.readAsText(file);
-    });
-  }
-
-  /**
-   * Extract transactions from text
-   */
-  private extractTransactionsFromText(text: string, errors: string[]): ParsedTransaction[] {
-    const transactions: ParsedTransaction[] = [];
-    
-    // For PDF text that comes as continuous string, split by date patterns
-    // Common date patterns: DD-MM-YYYY, DD/MM/YYYY, DD MM YYYY
-    const datePattern = /(\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})/gi;
-    
-    // Find all date occurrences to split the text into transaction segments
-    const dateMatches = [...text.matchAll(datePattern)];
-    
-    if (dateMatches.length > 0) {
-      // Process each segment starting with a date
-      for (let i = 0; i < dateMatches.length; i++) {
-        const startIdx = dateMatches[i].index!;
-        // The end index is the start of the next date match, OR the end of text
-        const endIdx = i < dateMatches.length - 1 ? dateMatches[i + 1].index! : text.length;
-        
-        let segment = text.substring(startIdx, endIdx).trim();
-        
-        // Clean up: remove "Page x of y" artifacts if they got stuck inside
-        segment = segment.replace(/Page\s+\d+\s+of\s+\d+/gi, ' ');
-        
-        // Skip header rows and non-transaction segments
-        if (this.isSkippableSegment(segment)) {
-          continue;
-        }
-
-        // Special handling for rows that might be table headers but start with date (unlikely but possible)
-        // If segment is very short (< 15 chars), skip
-        if (segment.length < 15) continue;
-        
-        try {
-          const transaction = this.parseTransactionSegment(segment);
-          if (transaction) {
-            transactions.push(transaction);
-          }
-        } catch (error) {
-          errors.push(`Failed to parse segment: ${segment.substring(0, 50)}...`);
-        }
-      }
-    } else {
-      // Fallback: try line-by-line parsing
-      const lines = text.split('\n').filter(line => line.trim());
-      for (const line of lines) {
-        try {
-          const transaction = this.parseTransactionLine(line);
-          if (transaction) {
-            transactions.push(transaction);
-          }
-        } catch (error) {
-          errors.push(`Failed to parse line: ${line}`);
-        }
-      }
-    }
-
-    return transactions;
-  }
-
-  /**
-   * Check if a segment should be skipped (headers, footers, etc.)
-   */
-  private isSkippableSegment(segment: string): boolean {
-    const skipPatterns = [
-      /closing\s*balance/i,
-      /brought\s*forward/i,
-      /carried\s*forward/i,
-      /statement\s*period/i,
-      /txn\s*date/i,
-      /transaction\s*date/i,
-      /date\s*of\s*statement/i,
-      /account\s*statement/i,
-      /page\s*\d+/i,
-      /^date\s+description/i,
-      /total\s*debits/i,
-      /total\s*credits/i,
-    ];
-    
-    return skipPatterns.some(pattern => pattern.test(segment));
-  }
-
-  /**
-   * Parse a transaction segment (text between two dates)
-   */
-  private parseTransactionSegment(segment: string): ParsedTransaction | null {
-    // Extract the date from the beginning
-    const dateResult = this.extractDate(segment);
-    if (!dateResult) return null;
-    
-    // Extract amounts - look for number patterns
-    const amounts = this.extractAmountsFromSegment(segment);
-    if (!amounts || amounts.length === 0) return null;
-    
-    // Get description (text between date and first amount)
-    const description = this.extractDescriptionFromSegment(segment);
-    
-    // Determine transaction type and amount
-    // In bank statements: Debit column = expense, Credit column = income
-    let amount = amounts[0];
-    let isCredit = false;
-    
-    // Check if this looks like a credit transaction
-    if (/salary|credit|deposit|received|refund|cashback|cr(?:\.|\s|$)|opening\s*balance/i.test(segment)) {
-      isCredit = true;
-    }
-    
-    // Explicitly check for "dr" or "debit"
-    if (/dr(?:\.|\s|$)|debit/i.test(segment)) {
-      isCredit = false;
-    }
-    
-    // Heuristic: If description contains "payment" or "purchase" or "sent" -> Expense
-    if (/payment|purchase|sent|paid|withdrawn|to\s/i.test(segment) && !/reversal|refund/i.test(segment)) {
-      isCredit = false;
-    }
-
-    // Default to expense if ambiguous, unless amount implies credit (not reliable without balance math)
-    
-    // If there are multiple amounts (debit, credit, balance columns)
-    // Common pattern: [amount] [balance]
-    // If balance > amount, or balance < amount, usually amount is first number found in the segment after the date.
-    if (amounts.length >= 2) {
-      // Default to first amount found as transaction amount
-      amount = amounts[0];
-      
-      // If we are very confident the second number is balance (e.g. it's explicitly labeled or much larger and at end)
-      // But simple heuristic: Bank statements are chronologically listed. 
-      // Amount is usually the first monetary value after description.
-    }
-    
-    const cleanedDescription = this.cleanDescription(segment);
-    // Prefer extracted description if available, else clean the whole segment
-    const finalDescription = description || cleanedDescription;
-    
-    // Ensure amount is signed correctly based on type
-    const finalAmount = Math.abs(amount);
-
-    return {
-      transaction_date: dateResult,
-      raw_description: segment.trim(),
-      cleaned_description: finalDescription,
-      amount: finalAmount,
-      transaction_type: isCredit ? 'income' : 'expense',
-      payment_channel: this.extractPaymentChannel(segment),
-      merchant_name: this.extractMerchantName(segment)
-    };
-  }
-
-
-
-  /**
-   * Extract amounts from a segment
-   */
-  private extractAmountsFromSegment(segment: string): number[] {
-    const amounts: number[] = [];
-    
-    // Remove date from segment to avoid picking it as amount
-    const withoutDate = segment.replace(/\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}/g, '');
-    
-    // Find all number patterns (with optional thousands separator and decimal)
-    const amountPattern = /(?:₹|Rs\.?|INR)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/g;
-    let match;
-    
-    while ((match = amountPattern.exec(withoutDate)) !== null) {
-      const fullMatch = match[0];
-      const numStr = match[1].replace(/,/g, '');
-      const num = parseFloat(numStr);
-      
-      // Get the index where the actual number starts (skipping matched whitespace/currency)
-      // This is crucial because match.index points to start of *pattern* (including leading space)
-      const numStartOffset = fullMatch.indexOf(match[1]);
-      const actualNumberIdx = match.index + numStartOffset;
-
-      // Check if char before is alphanumeric (like A-Z or 0-9) - indicates part of ID
-      const charBefore = actualNumberIdx > 0 ? withoutDate[actualNumberIdx - 1] : '';
-      const isAttachedToWord = /[a-zA-Z0-9]/.test(charBefore);
-
-      // Filter out unreasonable amounts and likely reference numbers
-      if (!isAttachedToWord && num > 0 && num < 10000000 && !this.isLikelyRefNumber(withoutDate, actualNumberIdx, num)) {
-        amounts.push(num);
-      }
-    }
-    
-    return amounts;
-  }
-
-  /**
-   * Check if a number is likely a reference number rather than amount
-   */
-  private isLikelyRefNumber(fullText: string, index: number, num: number): boolean {
-    // extract text before the number
-    const contextBefore = fullText.substring(0, index);
-    
-    // Check if preceded by Ref/Txn identifiers
-    if (/(?:ref|txn|id|no\.|number|upi|imps|neft)[\s:\-]*$/i.test(contextBefore)) {
-      return true;
-    }
-    
-    // Check if the number looks like a date component (e.g. year 2024, 2025) 
-    // and is close to other date components, although we stripped dates earlier
-    // But sometimes partial dates remain.
-    
-    // Numbers longer than 8 digits with no decimal are likely ref numbers
-    if (String(num).length > 8 && !String(num).includes('.')) {
-      return true;
-    }
-
-    // Check if it looks like a year (2020-2030) and is not clearly a currency amount
-    // And also check we don't accidentally filter out legitimate amounts like 2026
-    if (num >= 2000 && num <= 2035 && Number.isInteger(num)) {
-       // It could be a year.
-       // If it has decimal like 2026.50, it's money. Checked by isInteger.
-       
-       // Check context: if preceded by "year" or "date" or just looks like a year in a date string
-       // But wait, we stripped dates earlier. However, sometimes dates are in description too.
-       // Let's be careful. If it looks like a year, treated as ref unless valid amount context (currency symbol).
-       const hasCurrencySymbol = contextBefore.trim().match(/[₹$€£Rs\.?]/);
-       if (!hasCurrencySymbol) {
-         return true; // Treat standalone 2026 as year/ref
-       }
-    }
-    
-    return false;
-  }
-
-  /**
-   * Extract description from segment
-   */
-  private extractDescriptionFromSegment(segment: string): string {
-    // Remove date from beginning
-    let desc = segment.replace(/^\d{1,2}[-\/\.]\d{1,2}[-\/\.]\d{4}\s*/i, '');
-    
-    // Remove amounts from end
-    desc = desc.replace(/\s*[\d,]+(?:\.\d{1,2})?\s*$/g, '');
-    desc = desc.replace(/\s*[\d,]+(?:\.\d{1,2})?\s*$/g, '');
-    desc = desc.replace(/\s*[\d,]+(?:\.\d{1,2})?\s*$/g, '');
-    
-    // Remove reference numbers
-    desc = desc.replace(/\s*TXN\d+\s*/gi, ' ');
-    desc = desc.replace(/\s*Ref\.?\s*:?\s*\w+/gi, ' ');
-    
-    // Clean up
-    desc = desc.replace(/\s+/g, ' ').trim();
-    
-    return desc || 'Transaction';
-  }
-
-  /**
-   * Extract transactions from CSV
-   */
-  private extractTransactionsFromCSV(text: string, errors: string[]): ParsedTransaction[] {
-    const lines = text.split('\n');
-    const transactions: ParsedTransaction[] = [];
-
-    // Skip header if exists
-    const startIndex = lines[0]?.toLowerCase().includes('date') ? 1 : 0;
-
-    for (let i = startIndex; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-
-      try {
-        const columns = line.split(',').map(col => col.trim().replace(/"/g, ''));
-        const transaction = this.parseTransactionFromCSV(columns);
-        if (transaction) {
-          transactions.push(transaction);
-        }
-      } catch (error) {
-        errors.push(`Failed to parse CSV line ${i + 1}: ${line}`);
-      }
-    }
-
-    return transactions;
-  }
-
-  /**
-   * Parse single transaction line
-   */
-  private parseTransactionLine(line: string): ParsedTransaction | null {
-    // Skip empty or header lines
-    if (!line.trim() || line.toLowerCase().includes('opening balance') || 
-        line.toLowerCase().includes('closing balance') || line.toLowerCase().includes('statement')) {
-      return null;
-    }
-
-    // Try to extract date and amount from the line
-    const dateResult = this.extractDate(line);
-    const amountResult = this.extractAmount(line);
-    
-    if (!dateResult || !amountResult) {
-      return null;
-    }
-
-    return {
-      transaction_date: dateResult,
-      raw_description: line.trim(),
-      cleaned_description: this.cleanDescription(line),
-      amount: amountResult.amount,
-      transaction_type: amountResult.isCredit ? 'income' : 'expense',
-      payment_channel: this.extractPaymentChannel(line),
-      merchant_name: this.extractMerchantName(line)
-    };
-  }
-
-  /**
-   * Extract date from transaction line - handles multiple formats
-   */
-  private extractDate(line: string): Date | null {
-    const datePatterns = [
-      // DD/MM/YYYY or DD-MM-YYYY
-      /(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/,
-      // YYYY/MM/DD or YYYY-MM-DD
-      /(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/,
-      // DD MMM YYYY (01 Jan 2024)
-      /(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{4})/i,
-      // MMM DD, YYYY (Jan 01, 2024)
-      /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i,
-      // DD.MM.YYYY
-      /(\d{1,2})\.(\d{1,2})\.(\d{4})/,
-      // MM DD YYYY format (02 15 2024)
-      /(\d{2})\s+(\d{2})\s+(\d{4})/,
-    ];
-
-    const monthMap: Record<string, number> = {
-      'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
-      'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
-    };
-
-    for (const pattern of datePatterns) {
-      const match = line.match(pattern);
-      if (match) {
-        let year: number, month: number, day: number;
-
-        if (pattern.source.includes('Jan|Feb|Mar')) {
-          // MMM format
-          if (pattern.source.startsWith('(Jan')) {
-            // MMM DD, YYYY
-            month = monthMap[match[1].toLowerCase().substring(0, 3)];
-            day = parseInt(match[2]);
-            year = parseInt(match[3]);
-          } else {
-            // DD MMM YYYY
-            day = parseInt(match[1]);
-            month = monthMap[match[2].toLowerCase().substring(0, 3)];
-            year = parseInt(match[3]);
-          }
-        } else if (pattern.source.startsWith('(\\d{4})')) {
-          // YYYY/MM/DD
-          year = parseInt(match[1]);
-          month = parseInt(match[2]) - 1;
-          day = parseInt(match[3]);
-        } else {
-          // DD/MM/YYYY or similar
-          day = parseInt(match[1]);
-          month = parseInt(match[2]) - 1;
-          year = parseInt(match[3]);
-        }
-
-        // Validate date
-        if (year >= 2000 && year <= 2100 && month >= 0 && month <= 11 && day >= 1 && day <= 31) {
-          return new Date(year, month, day);
-        }
-      }
-    }
-
-    // Try to find just month/year and use 1st of month
-    const monthYearMatch = line.match(/(\d{1,2})[\s\/\-](\d{4})/);
-    if (monthYearMatch) {
-      const month = parseInt(monthYearMatch[1]) - 1;
-      const year = parseInt(monthYearMatch[2]);
-      if (year >= 2000 && year <= 2100 && month >= 0 && month <= 11) {
-        return new Date(year, month, 1);
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Extract amount from transaction line - handles multiple formats
-   */
-  private extractAmount(line: string): { amount: number; isCredit: boolean } | null {
-    // Clean the line for amount extraction
-    const cleanLine = line.replace(/,/g, ''); // Remove thousands separators
-    
-    // Look for currency symbols and amounts
-    const amountPatterns = [
-      // Amount with currency symbol: ₹15,000.00 or Rs.15000 or $1500.00
-      /(?:₹|Rs\.?|INR|\$|USD)\s*(-?\d+(?:\.\d{1,2})?)/i,
-      // Amount with Dr/Cr suffix: 15000.00 Dr or 15000.00 Cr
-      /(\d+(?:\.\d{1,2})?)\s*(Dr|Cr|DR|CR)?\b/,
-      // Negative amount: -15000.00
-      /(-\d+(?:\.\d{1,2})?)/,
-      // Plain amount at end of line (common in bank statements)
-      /\b(\d+(?:\.\d{1,2})?)$/,
-      // Amount with spaces (like 15 000.00)
-      /\b(\d{1,3}(?:\s\d{3})*(?:\.\d{1,2})?)\b/,
-    ];
-
-    // Check for credit indicators
-    const isCreditLine = /credit|salary|received|refund|cashback|deposit/i.test(line) ||
-                         /\bCr\b/i.test(line) ||
-                         /\+\s*\d/.test(line);
-    
-    // Check for debit indicators
-    const isDebitLine = /debit|withdrawal|transfer|payment|purchase|spent/i.test(line) ||
-                        /\bDr\b/i.test(line) ||
-                        /-\s*\d/.test(line);
-
-    for (const pattern of amountPatterns) {
-      const matches = cleanLine.match(new RegExp(pattern.source, 'gi'));
-      if (matches) {
-        for (const matchStr of matches) {
-          const numMatch = matchStr.match(/(-?\d[\d\s]*(?:\.\d{1,2})?)/);
-          if (numMatch) {
-            let amountStr = numMatch[1].replace(/\s/g, '');
-            let amount = parseFloat(amountStr);
-            
-            // Only accept reasonable transaction amounts (0.01 to 10,000,000)
-            if (amount > 0 && amount < 10000000) {
-              // Determine if credit or debit
-              const drCrMatch = matchStr.match(/\b(Dr|Cr|DR|CR)\b/);
-              let isCredit = isCreditLine;
-              
-              if (drCrMatch) {
-                isCredit = drCrMatch[1].toLowerCase() === 'cr';
-              }
-
-              return { amount, isCredit };
-            }
-          }
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Parse transaction from CSV columns
-   */
-  private parseTransactionFromCSV(columns: string[]): ParsedTransaction | null {
-    if (columns.length < 3) return null;
-
-    // Assuming CSV format: Date, Description, Amount, Balance
-    const [dateStr, description, amount, balance] = columns;
-    
-    return {
-      transaction_date: new Date(dateStr),
-      raw_description: description,
-      cleaned_description: this.cleanDescription(description),
-      amount: parseFloat(amount),
-      transaction_type: parseFloat(amount) >= 0 ? 'income' : 'expense',
-      balance_after_transaction: balance ? parseFloat(balance) : undefined,
-      payment_channel: this.extractPaymentChannel(description),
-      merchant_name: this.extractMerchantName(description)
-    };
-  }
-
-  /**
-   * Clean and normalize description
-   */
-  private cleanDescription(rawDescription: string): string {
-    let cleaned = rawDescription;
-
-    // Remove transaction IDs and numbers
-    cleaned = cleaned.replace(/\/\d+\//g, ' ');
-    cleaned = cleaned.replace(/\b\d{6,}\b/g, ' ');
-
-    // Convert UPI patterns to readable text
-    cleaned = cleaned.replace(/UPI\/\d+\/([^\/]+)\/([^\/]+)/gi, 'Paid via $1 to $2');
-    cleaned = cleaned.replace(/IMPS\/\d+\/([^\/]+)/gi, 'IMPS transfer to $1');
-    cleaned = cleaned.replace(/NEFT\/\d+\/([^\/]+)/gi, 'NEFT transfer to $1');
-
-    // Clean up extra spaces
-    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-    return cleaned;
-  }
-
-  /**
-   * Extract payment channel
-   */
-  private extractPaymentChannel(description: string): string {
-    const upperDesc = description.toUpperCase();
-    
-    for (const [key, channel] of Object.entries(this.paymentChannels)) {
-      if (upperDesc.includes(key)) {
-        return channel;
-      }
-    }
-
-    return 'Bank';
-  }
-
-  /**
-   * Extract merchant name
-   */
-  private extractMerchantName(description: string): string | undefined {
-    const upperDesc = description.toUpperCase();
-    
-    for (const [key, category] of Object.entries(this.merchantCategories)) {
-      if (upperDesc.includes(key)) {
-        return key;
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
-   * Determine transaction type
-   */
-  private determineTransactionType(description: string): 'expense' | 'income' | 'transfer' {
-    const upperDesc = description.toUpperCase();
-    
-    // Credit indicators
-    const creditKeywords = ['CREDIT', 'SALARY', 'REFUND', 'DEPOSIT', 'RECEIVED'];
-    
-    for (const keyword of creditKeywords) {
-      if (upperDesc.includes(keyword)) {
-        return 'income';
-      }
-    }
-
-    return 'expense';
-  }
-
-  /**
-   * Auto-categorize transaction
-   */
-  private categorizeTransaction(description: string, amount: number): string {
-    const upperDesc = description.toUpperCase();
-    
-    // Income
-    if (amount > 0) {
-      for (const [key, category] of Object.entries(this.merchantCategories)) {
-        if (upperDesc.includes(key) && category === 'Income') {
-          return category;
-        }
-      }
-      return 'Income';
-    }
-
-    // Expenses
-    for (const [key, category] of Object.entries(this.merchantCategories)) {
-      if (upperDesc.includes(key) && category !== 'Income') {
-        return category;
-      }
-    }
-
-    return 'Others';
-  }
-
-  /**
-   * Process transactions with business logic
-   */
-  private processTransactions(transactions: ParsedTransaction[], options: StatementImportOptions): ParsedTransaction[] {
-    return transactions.map(transaction => ({
-      ...transaction,
-      category: this.categorizeTransaction(transaction.cleaned_description, transaction.amount),
-      // Add account and user info for database storage
-      account_id: options.accountId,
-      user_id: options.userId
-    } as ParsedTransaction));
-  }
-
-  /**
-   * Generate import summary
-   */
-  private generateSummary(transactions: ParsedTransaction[]) {
-    const summary = {
-      total: 0,
-      credits: 0,
-      debits: 0,
-      count: transactions.length
-    };
-
-    transactions.forEach(t => {
-      summary.total += t.amount;
-      if (t.transaction_type === 'income') {
-        summary.credits += t.amount;
-      } else {
-        summary.debits += Math.abs(t.amount);
-      }
-    });
-
-    return summary;
-  }
-
-  /**
-   * Import transactions to database
-   */
   async importTransactions(transactions: ParsedTransaction[], options: StatementImportOptions): Promise<void> {
-    try {
-      // Filter out transactions with invalid dates
-      const validTransactions = transactions.filter(t => 
-        t.transaction_date && !isNaN(t.transaction_date.getTime())
-      );
-
-      if (validTransactions.length !== transactions.length) {
-        console.warn(`Filtered out ${transactions.length - validTransactions.length} transactions with invalid dates`);
-      }
-
-      // Check for duplicates
-      const existingTransactions = await db.transactions
-        .where('accountId')
-        .equals(options.accountId)
-        .toArray();
-
-      const duplicates = this.findDuplicates(validTransactions, existingTransactions);
-      
-      // Filter out duplicates
-      const newTransactions = validTransactions.filter(t => !duplicates.has(this.generateTransactionHash(t)));
-
-      // Add to database
-      if (newTransactions.length > 0) {
-        await db.transactions.bulkAdd(newTransactions.map(t => ({
-          accountId: options.accountId,
-          userId: options.userId,
-          date: t.transaction_date,
-          description: t.cleaned_description,
-          amount: Math.abs(t.amount),
-          type: t.transaction_type,
-          category: t.category || 'Others',
-          merchant: t.merchant_name,
-          createdAt: new Date(),
-          // Add custom fields for statement import
-          paymentChannel: t.payment_channel,
-          balanceAfter: t.balance_after_transaction,
-          rawDescription: t.raw_description
-        })));
-
-        // Update account balance if needed
-        await this.updateAccountBalance(options.accountId, newTransactions);
-      }
-
-    } catch (error) {
-      console.error('Error importing transactions:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Find duplicate transactions
-   */
-  private findDuplicates(newTransactions: ParsedTransaction[], existingTransactions: any[]): Set<string> {
-    const existingHashes = new Set(
-      existingTransactions.map(t => this.generateTransactionHash(t)).filter(hash => hash !== '')
+    const validTransactions = transactions.filter((transaction) =>
+      transaction.transaction_date && !Number.isNaN(transaction.transaction_date.getTime()),
     );
 
-    const duplicates = new Set<string>();
-    newTransactions.forEach(t => {
-      const hash = this.generateTransactionHash(t);
-      if (hash && existingHashes.has(hash)) {
-        duplicates.add(hash);
+    if (validTransactions.length === 0) {
+      throw new Error('No valid transactions selected for import');
+    }
+
+    await db.transaction('rw', [db.transactions, db.accounts, db.documents, db.merchantProfiles, db.userCategoryPreferences], async () => {
+      const newTransactions: Transaction[] = validTransactions.map((transaction) => ({
+        accountId: options.accountId,
+        userId: options.userId,
+        date: transaction.transaction_date,
+        description: transaction.cleaned_description,
+        amount: Math.abs(transaction.amount),
+        type: transaction.transaction_type,
+        category: transaction.category || 'Others',
+        merchant: transaction.merchant_name,
+        createdAt: new Date(),
+        paymentChannel: transaction.payment_channel,
+        balanceAfter: transaction.balance_after_transaction,
+        rawDescription: transaction.raw_description,
+      } as unknown as Transaction));
+
+      await db.transactions.bulkAdd(newTransactions);
+
+      const account = await db.accounts.get(options.accountId);
+      if (account) {
+        const netChange = validTransactions.reduce((sum, transaction) => (
+          sum + (transaction.transaction_type === 'income' ? transaction.amount : -Math.abs(transaction.amount))
+        ), 0);
+
+        await db.accounts.update(options.accountId, {
+          balance: account.balance + netChange,
+          updatedAt: new Date(),
+        });
+      }
+
+      for (const transaction of validTransactions) {
+        if (transaction.merchant_name) {
+          await documentIntelligenceService.upsertMerchantProfile({
+            merchantName: transaction.merchant_name,
+            normalizedName: documentIntelligenceService.normalizeMerchantName(transaction.merchant_name),
+            suggestedCategory: transaction.category || 'Others',
+            confidenceScore: transaction.confidenceScore ?? 0.82,
+            userId: options.userId,
+          });
+        }
+
+        await documentIntelligenceService.upsertCategoryPreference({
+          userId: options.userId,
+          merchantKey: transaction.merchant_name,
+          keywordKey: `${transaction.cleaned_description} ${transaction.raw_description}`,
+          category: transaction.category || 'Others',
+          confidenceScore: transaction.confidenceScore ?? 0.82,
+        });
+      }
+
+      if (options.documentId) {
+        await documentIntelligenceService.updateDocumentRecord(options.documentId, {
+          processingStatus: 'completed',
+          notes: `Imported ${validTransactions.length} transactions`,
+        });
       }
     });
-
-    return duplicates;
   }
 
-  /**
-   * Generate transaction hash for deduplication
-   */
-  private generateTransactionHash(transaction: ParsedTransaction | any): string {
-    // Handle property differences between ParsedTransaction and DB Transaction schema
-    // ParsedTransaction: transaction_date, raw_description
-    // DB Transaction: date, rawDescription (or description)
-    const tDate = transaction.transaction_date || transaction.date;
-    const tRawDesc = transaction.raw_description || transaction.rawDescription;
-    // Fallback to cleaned description if raw is missing (legacy records)
-    const tDesc = tRawDesc || transaction.description || '';
-    
-    if (!tDate) {
-      return '';
-    }
-    
-    // Ensure we have a valid date object
-    const dateObj = tDate instanceof Date ? tDate : new Date(tDate);
-    if (isNaN(dateObj.getTime())) {
-      return '';
-    }
+  private async extractPdfText(file: File) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableFontFace: true }).promise;
+    let fullText = '';
 
-    const date = dateObj.toISOString().split('T')[0];
-    const amount = Math.abs(transaction.amount).toFixed(2);
-    
-    // Create normalized description string for fuzzy matching
-    // 1. Convert to lowercase
-    // 2. Replace multiple spaces with single space
-    // 3. Remove all non-alphanumeric characters (ignore punctuation differences)
-    // 4. Take first 50 chars which usually contain the merchant info
-    const description = String(tDesc)
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim()
-      .replace(/[^a-z0-9]/g, '')
-      .substring(0, 50);
-    
-    // Using base64 to keep the hash clean, but the content is what matters
-    return btoa(`${date}|${amount}|${description}`).replace(/[^a-zA-Z0-9]/g, '');
-  }
-
-  /**
-   * Update account balance
-   */
-  private async updateAccountBalance(accountId: number, transactions: ParsedTransaction[]): Promise<void> {
-    try {
-      const account = await db.accounts.get(accountId);
-      if (!account) return;
-
-      // Calculate new balance from transactions
-      const netChange = transactions.reduce((sum, t) => {
-        return sum + (t.transaction_type === 'income' ? t.amount : -Math.abs(t.amount));
-      }, 0);
-
-      await db.accounts.update(accountId, {
-        balance: account.balance + netChange,
-        updatedAt: new Date()
+    for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex += 1) {
+      const page = await pdf.getPage(pageIndex);
+      const textContent = await page.getTextContent({
+        disableCombineTextItems: false,
+        includeMarkedContent: false,
       });
 
-    } catch (error) {
-      console.error('Error updating account balance:', error);
+      const rows = new Map<number, Array<{ x: number; text: string }>>();
+
+      for (const item of textContent.items as Array<{ str: string; transform: number[] }>) {
+        const y = Math.round(item.transform[5]);
+        const x = item.transform[4];
+        const current = rows.get(y) ?? [];
+        current.push({ x, text: item.str });
+        rows.set(y, current);
+      }
+
+      const pageLines = Array.from(rows.entries())
+        .sort((left, right) => right[0] - left[0])
+        .map(([, entries]) => entries.sort((left, right) => left.x - right.x).map((entry) => entry.text).join(' '))
+        .map((line) => line.replace(/\s+/g, ' ').trim())
+        .filter(Boolean);
+
+      fullText += `${pageLines.join('\n')}\n`;
     }
+
+    return fullText;
   }
 
-  /**
-   * Get mock PDF text for testing
-   */
-  private getMockPDFText(): string {
-    return `02/01/2024 UPI/983746/GPay/HPCL PETROL BUNK 2500.00
-02/02/2024 UPI/983747/PhonePe/SWIGGY ORDERS 450.00
-02/03/2024 UPI/983748/Paytm/AMAZON IN 1299.00
-02/04/2024 SALARY CREDIT 45000.00
-02/05/2024 UPI/983749/GPay/NETFLIX SUBSCRIPTION 199.00
-02/06/2024 IMPS/983750/RENT TRANSFER 15000.00
-02/07/2024 UPI/983751/CRED/BILL PAYMENT 2500.00`;
+  private async extractTransactionsFromSpreadsheet(file: File, userId: string, errors: string[]) {
+    const text = await file.text();
+    const rawText = text.replace(/\u0000/g, ' ');
+
+    if (/^\s*PK/.test(rawText)) {
+      errors.push('Binary Excel files cannot be parsed safely in the current browser build. Export the statement as CSV and upload that file.');
+      return { rawText: '', transactions: [] };
+    }
+
+    if (/<(?:table|worksheet|Workbook|Row|Cell)/i.test(rawText)) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(rawText, 'text/xml');
+      const rows = Array.from(xml.querySelectorAll('Row, tr')).map((row) =>
+        Array.from(row.querySelectorAll('Cell, Data, td, th')).map((cell) => (cell.textContent || '').trim()),
+      );
+
+      return {
+        rawText,
+        transactions: await this.extractTransactionsFromRows(rows, userId),
+      };
+    }
+
+    if (looksLikeTableRows(createDelimitedRows(rawText, guessDelimiter(rawText)))) {
+      return {
+        rawText,
+        transactions: await this.extractTransactionsFromDelimitedText(rawText, userId),
+      };
+    }
+
+    errors.push('Spreadsheet format was detected but no transaction rows could be extracted.');
+    return { rawText: '', transactions: [] };
+  }
+
+  private async extractTransactionsFromDelimitedText(text: string, userId: string) {
+    const rows = createDelimitedRows(text, guessDelimiter(text));
+    return this.extractTransactionsFromRows(rows, userId);
+  }
+
+  private async extractTransactionsFromRows(rows: string[][], userId: string) {
+    if (!looksLikeTableRows(rows)) return [];
+
+    const headerRow = rows[0];
+    const columns = detectColumns(headerRow);
+    const transactions: ParsedTransaction[] = [];
+
+    for (const row of rows.slice(1)) {
+      const date = parseDate(row[columns.date ?? -1]);
+      const description = (row[columns.description ?? -1] || '').trim();
+      if (!date || !description) continue;
+
+      const debit = parseAmount(row[columns.debit ?? -1]);
+      const credit = parseAmount(row[columns.credit ?? -1]);
+      const fallbackAmount = parseAmount(row[columns.amount ?? -1]);
+      const balance = parseAmount(row[columns.balance ?? -1]) ?? undefined;
+      const amount = credit ?? debit ?? fallbackAmount;
+      if (amount == null || !Number.isFinite(amount)) continue;
+
+      const transactionType = credit != null && Math.abs(credit) > 0
+        ? 'income'
+        : (normalizeText(description).includes('transfer') ? 'transfer' : 'expense');
+
+      const merchantName = pickMerchantName(description);
+      const categoryPrediction = await documentIntelligenceService.predictCategory({
+        merchantName,
+        text: description,
+        amount: Math.abs(amount),
+        userId,
+      });
+
+      transactions.push({
+        transaction_date: date,
+        raw_description: description,
+        cleaned_description: cleanDescription(description),
+        amount: Math.abs(amount),
+        transaction_type: transactionType,
+        balance_after_transaction: balance,
+        payment_channel: extractPaymentChannel(description),
+        merchant_name: merchantName,
+        category: categoryPrediction.category,
+        confidenceScore: categoryPrediction.confidence,
+        currency: row[columns.currency ?? -1] || undefined,
+      });
+    }
+
+    return transactions;
+  }
+
+  private async extractTransactionsFromText(text: string, userId: string) {
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    const transactions: ParsedTransaction[] = [];
+
+    for (const line of lines) {
+      if (/statement|opening balance|closing balance|page\s+\d+/i.test(line)) continue;
+
+      const dateMatch = line.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})/i);
+      if (!dateMatch) continue;
+
+      const date = parseDate(dateMatch[1]);
+      if (!date) continue;
+
+      const rawDescription = line.replace(dateMatch[1], '').trim();
+      const amounts = rawDescription.match(/(?:rs\.?|₹|\$|€|£)?\s*[\d,]+(?:\.\d{1,2})?/gi) || [];
+      if (amounts.length === 0) continue;
+
+      const numericAmounts = amounts
+        .map((item) => parseAmount(item))
+        .filter((item): item is number => item != null && Number.isFinite(item))
+        .map((item) => Math.abs(item));
+
+      if (numericAmounts.length === 0) continue;
+
+      const transactionAmount = numericAmounts[0];
+      const isIncome = /\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcr\b/i.test(line);
+      const isTransfer = /\btransfer\b/i.test(line);
+      const cleanedDescription = cleanDescription(rawDescription.replace(/(?:rs\.?|₹|\$|€|£)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ').trim());
+      const merchantName = pickMerchantName(cleanedDescription);
+      const categoryPrediction = await documentIntelligenceService.predictCategory({
+        merchantName,
+        text: cleanedDescription,
+        amount: transactionAmount,
+        userId,
+      });
+
+      transactions.push({
+        transaction_date: date,
+        raw_description: rawDescription,
+        cleaned_description: cleanedDescription,
+        amount: transactionAmount,
+        transaction_type: isTransfer ? 'transfer' : (isIncome ? 'income' : 'expense'),
+        payment_channel: extractPaymentChannel(rawDescription),
+        merchant_name: merchantName,
+        category: categoryPrediction.category,
+        currency: documentIntelligenceService.detectCurrency(line),
+        confidenceScore: categoryPrediction.confidence,
+      });
+    }
+
+    return transactions;
+  }
+
+  private async annotateTransactions(transactions: ParsedTransaction[], options: StatementImportOptions) {
+    const existingTransactions = await db.transactions.where('accountId').equals(options.accountId).toArray();
+    const existingKeys = new Set(existingTransactions.map((transaction) => this.generateExistingDuplicateKey(options.accountId, transaction)));
+
+    return transactions.map((transaction) => {
+      const duplicateKey = generateDuplicateKey(options.accountId, transaction);
+      const isDuplicate = existingKeys.has(duplicateKey);
+
+      return {
+        ...transaction,
+        duplicateKey,
+        isDuplicate,
+        duplicateReason: isDuplicate ? 'Possible duplicate transaction detected' : undefined,
+      };
+    });
+  }
+
+  private generateExistingDuplicateKey(accountId: number, transaction: Transaction) {
+    const date = transaction.date instanceof Date ? transaction.date : new Date(transaction.date);
+    const existingTransaction: ParsedTransaction = {
+      transaction_date: date,
+      raw_description: String((transaction as unknown as Record<string, unknown>).rawDescription || transaction.description || ''),
+      cleaned_description: String(transaction.description || ''),
+      amount: Math.abs(transaction.amount),
+      transaction_type: transaction.type,
+      payment_channel: String((transaction as unknown as Record<string, unknown>).paymentChannel || 'Bank'),
+      merchant_name: transaction.merchant,
+    };
+
+    return generateDuplicateKey(accountId, existingTransaction);
+  }
+
+  private async findSuggestedAccount(statementAccountName?: string) {
+    if (!statementAccountName) return null;
+    const accounts = await db.accounts.toArray();
+    const normalizedTarget = normalizeText(statementAccountName);
+    return accounts.find((account) => normalizeText(account.name).includes(normalizedTarget)) ?? null;
+  }
+
+  private generateSummary(transactions: ParsedTransaction[]) {
+    return transactions.reduce(
+      (summary, transaction) => {
+        summary.count += 1;
+        summary.total += transaction.amount;
+
+        if (transaction.transaction_type === 'income') {
+          summary.credits += transaction.amount;
+        } else {
+          summary.debits += Math.abs(transaction.amount);
+        }
+
+        if (transaction.isDuplicate) {
+          summary.duplicates += 1;
+        }
+
+        return summary;
+      },
+      { total: 0, credits: 0, debits: 0, count: 0, duplicates: 0 },
+    );
   }
 }
 
