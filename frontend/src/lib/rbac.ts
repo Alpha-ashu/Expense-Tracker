@@ -5,8 +5,8 @@
 
 import { UserRole } from './featureFlags';
 
-// Admin email - hardcoded as per requirements
-const ADMIN_EMAIL = 'shaik.job.details@gmail.com';
+// Admin email loaded from environment variable
+const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',')[0]?.trim() || '';
 
 /**
  * Feature Permissions by Role

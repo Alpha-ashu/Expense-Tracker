@@ -152,7 +152,21 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
-    const updates = req.body;
+    const body = req.body;
+
+    // Whitelist only updatable fields to prevent field injection
+    const updates: Record<string, any> = {};
+    const allowedFields = [
+      'type', 'amount', 'category', 'subcategory',
+      'description', 'merchant', 'date', 'tags',
+      'transferToAccountId', 'transferType',
+    ];
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updates[field] = body[field];
+      }
+    }
+    if (updates.date) updates.date = new Date(updates.date);
 
     // Verify ownership
     const transaction = await prisma.transaction.findUnique({

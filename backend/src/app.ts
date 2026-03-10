@@ -4,6 +4,10 @@ import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
 
 const app = express();
+
+// Disable X-Powered-By header to prevent server fingerprinting
+app.disable('x-powered-by');
+
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .split(',')
   .map(origin => origin.trim())
@@ -11,11 +15,6 @@ const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
 
 app.use(cors({
   origin(origin, callback) {
-    if (process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-      return;
-    }
-
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
       return;
@@ -26,7 +25,7 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // Health check
 app.get('/health', (req, res) => {

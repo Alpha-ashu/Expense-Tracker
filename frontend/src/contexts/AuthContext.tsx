@@ -43,7 +43,10 @@ const resolveUserRole = (user: User | null): UserRole => {
   }
 
   const email = (user.email || '').toLowerCase().trim();
-  const adminEmails = ['shaik.job.details@gmail.com'];
+  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e: string) => e.trim().toLowerCase())
+    .filter(Boolean);
 
   if (adminEmails.includes(email)) {
     return 'admin';

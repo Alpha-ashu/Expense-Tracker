@@ -2,13 +2,16 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterInput, LoginInput } from './auth.types';
 import { AuthRequest } from '../../middleware/auth';
+import { sanitize } from '../../utils/sanitize';
 
 const authService = new AuthService();
+
+// Strict email regex: local@domain.tld, no SQL/XSS chars
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export const register = async (req: Request, res: Response) => {
   try {
     const input: RegisterInput = req.body;
-
 
     // Validate input
     if (!input.email || !input.name || !input.password) {
@@ -18,8 +21,8 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate email format
-    if (!/\S+@\S+\.\S+/.test(input.email)) {
+    // Validate email format (strict)
+    if (!EMAIL_REGEX.test(input.email)) {
       return res.status(400).json({ 
         error: 'Invalid email format',
         code: 'INVALID_EMAIL'
@@ -34,25 +37,19 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    // For now, return a mock response to test the flow
-    // TODO: Fix database issues and implement actual registration
-    
-    const mockTokens = {
-      accessToken: 'mock-access-token-' + Date.now(),
-      refreshToken: 'mock-refresh-token-' + Date.now(),
-      user: {
-        id: 'mock-user-' + Date.now(),
-        email: input.email,
-        name: input.name,
-        role: 'user',
-        isApproved: true
-      }
+    // Sanitize user-facing text fields
+    const sanitizedInput = {
+      ...input,
+      name: sanitize(input.name),
+      email: input.email.toLowerCase().trim(),
     };
+
+    const tokens = await authService.register(sanitizedInput);
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful (mock mode)',
-      data: mockTokens
+      message: 'Registration successful',
+      data: tokens
     });
   } catch (error: any) {
     console.error('Registration error:', error);
@@ -96,33 +93,23 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Validate email format
-    if (!/\S+@\S+\.\S+/.test(input.email)) {
+    // Validate email format (strict)
+    if (!EMAIL_REGEX.test(input.email)) {
       return res.status(400).json({ 
         error: 'Invalid email format',
         code: 'INVALID_EMAIL'
       });
     }
 
-    // For now, return a mock response to test the flow
-    // TODO: Fix database issues and implement actual login
-    
-    const mockTokens = {
-      accessToken: 'mock-access-token-' + Date.now(),
-      refreshToken: 'mock-refresh-token-' + Date.now(),
-      user: {
-        id: 'mock-user-' + Date.now(),
-        email: input.email,
-        name: 'Mock User',
-        role: 'user',
-        isApproved: true
-      }
-    };
+    const tokens = await authService.login({
+      email: input.email.toLowerCase().trim(),
+      password: input.password,
+    });
 
     res.json({
       success: true,
-      message: 'Login successful (mock mode)',
-      data: mockTokens
+      message: 'Login successful',
+      data: tokens
     });
   } catch (error: any) {
     console.error('Login error:', error);
