@@ -36,6 +36,10 @@
       "handle": "filesystem"
     },
     {
+      "src": "/assets/(.*)",
+      "status": 404
+    },
+    {
       "src": "/api/v1/stocks$",
       "dest": "api/stocks.ts"
     },

@@ -3,13 +3,25 @@ apply plugin: 'com.android.application'
 // Load signing properties from key.properties if present (used by the e2e build script)
 def keystorePropertiesFile = rootProject.file("key.properties")
 def keystoreProperties = new Properties()
-if (keystorePropertiesFile.exists()) {
+def hasSigningProperties = keystorePropertiesFile.exists()
+if (hasSigningProperties) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
 android {
     namespace = "com.financelife.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    flavorDimensions "smsSupport"
+    productFlavors {
+        full {
+            dimension "smsSupport"
+        }
+        nosms {
+            dimension "smsSupport"
+            applicationIdSuffix ".nosms"
+            versionNameSuffix "-nosms"
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -30,7 +42,7 @@ android {
     // Add signing configuration that reads from key.properties when present
     signingConfigs {
         release {
-            if (keystorePropertiesFile.exists()) {
+            if (hasSigningProperties) {
                 storeFile file(keystoreProperties['storeFile'])
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
@@ -43,9 +55,23 @@ android {
             minifyEnabled false
             // Use the optimized default proguard file (avoids legacy warning)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Use the signing config when key.properties is present
-            signingConfig signingConfigs.release
+            // Keep debug builds independent from signing; release only signs when key.properties exists.
+            if (hasSigningProperties) {
+                signingConfig signingConfigs.release
+            }
         }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    def releaseRequested = taskGraph.allTasks.any { task ->
+        task.name.toLowerCase().contains('release') &&
+            (task.name.toLowerCase().startsWith('bundle') || task.name.toLowerCase().startsWith('assemble'))
+    }
+    if (releaseRequested && !hasSigningProperties) {
+        throw new GradleException(
+            "Missing android/key.properties for release signing. Copy android/key.properties.example to android/key.properties and set secure values."
+        )
     }
 }
 

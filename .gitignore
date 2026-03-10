@@ -42,3 +42,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Android signing secrets
+*.keystore
+*.jks
+android/key.properties
+secure/

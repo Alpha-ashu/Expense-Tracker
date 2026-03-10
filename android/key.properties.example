@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties and fill with real values.
+# Do not commit android/key.properties.
+storeFile=/absolute/path/to/your-release.keystore
+storePassword=CHANGE_ME
+keyAlias=finance-life
+keyPassword=CHANGE_ME

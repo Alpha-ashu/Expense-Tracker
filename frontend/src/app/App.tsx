@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense, lazy, useRef } from 'react';
 import { AppProvider, useOptionalApp } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
@@ -88,11 +88,12 @@ const AppContent: React.FC = () => {
   }
 
   const { currentPage, setCurrentPage } = appContext;
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, dataReady, dataSyncing, dataSyncError, triggerDataSync } = useAuth();
   const { isAuthenticated, setAuthenticated } = useSecurity();
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
   const [criticalPagesPrefetched, setCriticalPagesPrefetched] = useState(false);
+  const hasModuleReloaded = useRef(false);
 
   // Static initialization (runs once)
   useEffect(() => {
@@ -107,6 +108,53 @@ const AppContent: React.FC = () => {
 
     registerServiceWorker();
     setupPWAInstallPrompt();
+  }, []);
+
+  // Recover from stale cached chunks (service worker or CDN mismatch)
+  useEffect(() => {
+    const handleModuleFailure = async () => {
+      if (hasModuleReloaded.current) return;
+      hasModuleReloaded.current = true;
+
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((reg) => reg.unregister()));
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      } catch (error) {
+        console.warn('Failed to clear SW cache after module error:', error);
+      } finally {
+        window.location.reload();
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const message = String(event.reason?.message || event.reason || '');
+      if (message.includes('Failed to fetch dynamically imported module') ||
+          message.includes('Expected a JavaScript-or-Wasm module script')) {
+        handleModuleFailure();
+      }
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      const message = String(event.message || '');
+      if (message.includes('Failed to fetch dynamically imported module') ||
+          message.includes('Expected a JavaScript-or-Wasm module script')) {
+        handleModuleFailure();
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
   }, []);
 
   // User-dependent initialization
@@ -237,6 +285,28 @@ const AppContent: React.FC = () => {
   }
 
   const renderPage = () => {
+    const bypassDataGatePages = new Set([
+      'auth-callback',
+    ]);
+
+    if (user && !dataReady && !bypassDataGatePages.has(currentPage)) {
+      return (
+        <div className="flex items-center justify-center h-[60vh] w-full">
+          <div className="text-center">
+            <div className="w-10 h-10 border-2 border-pink-200 border-t-pink-500 rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-gray-700 font-medium">
+              {dataSyncing ? 'Syncing your data…' : 'Loading your data…'}
+            </p>
+            {dataSyncError && (
+              <p className="text-xs text-gray-500 mt-1">
+                Having trouble reaching the cloud. Using last saved data.
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     switch (currentPage) {
       case 'dashboard': return <Dashboard setCurrentPage={setCurrentPage} />;
       case 'auto-sizing-test': return <SimpleAutoTest />;
@@ -295,6 +365,27 @@ const AppContent: React.FC = () => {
         <main className="flex-1 overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main" style={{ maxWidth: '100%' }}>
           {/* Global alignment envelope — centers content on wide screens */}
           <div className="w-full max-w-[1440px] mx-auto overflow-x-hidden" style={{ isolation: 'isolate' }}>
+            {dataSyncError && (
+              <div className="px-4 sm:px-6 pt-4">
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
+                  <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-500" />
+                  <div>
+                    <p className="font-semibold">Offline or Cloud Unreachable</p>
+                    <p className="text-amber-700">
+                      Showing last saved data. Changes will sync when the connection is restored.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void triggerDataSync()}
+                      disabled={dataSyncing}
+                      className="mt-2 inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {dataSyncing ? 'Syncing…' : 'Re-sync now'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <Suspense fallback={<PageLoader />}>
               {renderPage()}
             </Suspense>

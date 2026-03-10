@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { canInstallPWA, showInstallPrompt, isAppInstalled } from '@/lib/pwa';
@@ -6,6 +6,7 @@ import { canInstallPWA, showInstallPrompt, isAppInstalled } from '@/lib/pwa';
 export const PWAInstallPrompt: React.FC = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
+  const autoPromptAttempted = useRef(false);
 
   useEffect(() => {
     // Check if app is already installed
@@ -25,17 +26,36 @@ export const PWAInstallPrompt: React.FC = () => {
       }
     }
 
+    const attemptAutoPrompt = async () => {
+      if (autoPromptAttempted.current) return;
+      if (!canInstallPWA()) return;
+
+      const hasUserActivation = !!navigator.userActivation?.hasBeenActive;
+      if (!hasUserActivation) {
+        setShowPrompt(true);
+        return;
+      }
+
+      autoPromptAttempted.current = true;
+      const installed = await showInstallPrompt();
+      if (installed) {
+        setShowPrompt(false);
+        localStorage.removeItem('pwa_install_dismissed');
+      } else {
+        setShowPrompt(false);
+        localStorage.setItem('pwa_install_dismissed', Date.now().toString());
+      }
+    };
+
     // Wait a bit before showing the prompt (better UX)
     const timer = setTimeout(() => {
-      if (canInstallPWA()) {
-        setShowPrompt(true);
-      }
+      void attemptAutoPrompt();
     }, 3000);
 
     // Also listen for the deferred prompt becoming available later
     const onReady = () => {
       if (!isAppInstalled()) {
-        setShowPrompt(true);
+        void attemptAutoPrompt();
       }
     };
     window.addEventListener('pwainstallready', onReady);

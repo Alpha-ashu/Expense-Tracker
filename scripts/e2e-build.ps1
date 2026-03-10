@@ -3,6 +3,8 @@ param(
   [string]$KeystorePassword,
   [string]$KeyAlias = "finance-life",
   [string]$KeyPassword,
+  [ValidateSet("nosms", "full")]
+  [string]$Flavor = "nosms",
   [switch]$Debug,
   [switch]$Release,
   [switch]$KeepKeyProperties
@@ -56,17 +58,22 @@ Push-Location .\android
 # choose gradle wrapper
 $gradle = if (Test-Path -Path ".\gradlew.bat") { ".\gradlew.bat" } elseif (Test-Path -Path "./gradlew") { "./gradlew" } else { Write-ErrorAndExit "Gradle wrapper not found in `android`." }
 
+$taskFlavor = (Get-Culture).TextInfo.ToTitleCase($Flavor)
+$debugTask = "assemble${taskFlavor}Debug"
+$releaseTask = "bundle${taskFlavor}Release"
+$releaseOutputDir = "${Flavor}Release"
+
 if ($Debug) {
-  Write-Host "Building debug APK..."
-  & $gradle assembleDebug --no-daemon
-  $debugPath = Resolve-Path ".\app\build\outputs\apk\debug\app-debug.apk" -ErrorAction SilentlyContinue
+  Write-Host "Building debug APK for flavor '$Flavor' ($debugTask)..."
+  & $gradle $debugTask --no-daemon
+  $debugPath = Resolve-Path ".\app\build\outputs\apk\$Flavor\debug\app-$Flavor-debug.apk" -ErrorAction SilentlyContinue
   if ($debugPath) { Write-Host "Debug APK: $($debugPath.Path)" } else { Write-Host "Debug APK not found in expected path." }
 }
 
 if ($Release) {
-  Write-Host "Building release AAB (bundleRelease)..."
-  & $gradle bundleRelease --no-daemon
-  $aabPath = Resolve-Path ".\app\build\outputs\bundle\release\app-release.aab" -ErrorAction SilentlyContinue
+  Write-Host "Building release AAB for flavor '$Flavor' ($releaseTask)..."
+  & $gradle $releaseTask --no-daemon
+  $aabPath = Resolve-Path ".\app\build\outputs\bundle\$releaseOutputDir\app-$Flavor-release.aab" -ErrorAction SilentlyContinue
   if ($aabPath) { Write-Host "Release AAB: $($aabPath.Path)" } else { Write-Host "Release AAB not found in expected path." }
 }
 

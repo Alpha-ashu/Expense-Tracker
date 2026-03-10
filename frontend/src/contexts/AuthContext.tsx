@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { UserRole } from '@/lib/featureFlags';
@@ -18,6 +18,10 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   role: UserRole;
+  dataReady: boolean;
+  dataSyncing: boolean;
+  dataSyncError: string | null;
+  triggerDataSync: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -377,6 +381,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole>('user');
+  const [dataReady, setDataReady] = useState(false);
+  const [dataSyncing, setDataSyncing] = useState(false);
+  const [dataSyncError, setDataSyncError] = useState<string | null>(null);
+  const activeSyncUserId = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -400,7 +408,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(session?.user ?? null);
         setRole(resolveUserRole(session?.user ?? null));
         if (session?.user?.id) {
-          void syncFromSupabase(session.user);
+          activeSyncUserId.current = session.user.id;
+          setDataSyncing(true);
+          setDataSyncError(null);
+          void (async () => {
+            try {
+              await syncFromSupabase(session.user);
+              if (activeSyncUserId.current === session.user.id) {
+                setDataReady(true);
+              }
+            } catch (err) {
+              if (activeSyncUserId.current === session.user.id) {
+                setDataSyncError(formatSupabaseError(err));
+                setDataReady(true);
+              }
+            } finally {
+              if (activeSyncUserId.current === session.user.id) {
+                setDataSyncing(false);
+              }
+            }
+          })();
         }
         supabase.auth.startAutoRefresh();
         console.info('✅ Supabase reachable — auto-refresh resumed.');
@@ -439,6 +466,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const isAppLoad = event === 'INITIAL_SESSION' && !initialSyncDone;
 
             if (isFreshLogin || isAppLoad) {
+              activeSyncUserId.current = nextUser.id;
+              setDataReady(false);
+              setDataSyncing(true);
+              setDataSyncError(null);
+
               const lastUserId = localStorage.getItem('auth_last_user_id');
               const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
 
@@ -458,9 +490,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   if (isFreshLogin) {
                     await runWithCloudSyncSuppressed(() => initializeDemoData(nextUser.email ?? undefined, nextUser.id));
                   }
+                  if (activeSyncUserId.current === nextUser.id) {
+                    setDataReady(true);
+                  }
                 } catch (syncError) {
                   console.warn('Background sync failed (non-blocking):', syncError);
+                  if (activeSyncUserId.current === nextUser.id) {
+                    setDataSyncError(formatSupabaseError(syncError));
+                    setDataReady(true);
+                  }
                 } finally {
+                  if (activeSyncUserId.current === nextUser.id) {
+                    setDataSyncing(false);
+                  }
                   initialSyncDone = true;
                 }
               })();
@@ -479,6 +521,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Clear local DB on logout too
             await clearLocalUserData();
             initialSyncDone = false; // Reset for next login
+            activeSyncUserId.current = null;
+            setDataReady(false);
+            setDataSyncing(false);
+            setDataSyncError(null);
           }
         } catch (error) {
           console.error('Error in onAuthStateChange handler:', error);
@@ -515,8 +561,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const triggerDataSync = async () => {
+    if (!user?.id || dataSyncing) {
+      return;
+    }
+
+    const targetUserId = user.id;
+    activeSyncUserId.current = targetUserId;
+    setDataSyncing(true);
+    setDataSyncError(null);
+
+    try {
+      await syncFromSupabase(user);
+      await permissionService.fetchUserPermissions(targetUserId, resolveUserRole(user));
+      if (activeSyncUserId.current === targetUserId) {
+        setDataReady(true);
+      }
+    } catch (err) {
+      if (activeSyncUserId.current === targetUserId) {
+        setDataSyncError(formatSupabaseError(err));
+        setDataReady(true);
+      }
+    } finally {
+      if (activeSyncUserId.current === targetUserId) {
+        setDataSyncing(false);
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, role, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, role, dataReady, dataSyncing, dataSyncError, triggerDataSync, signOut }}>
       {children}
     </AuthContext.Provider>
   );
