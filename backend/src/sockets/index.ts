@@ -88,7 +88,7 @@ export class SocketManager {
     }
     this.userDevices.get(userId)!.add(deviceId);
 
-    console.log(`User ${userId} connected from device ${deviceId} via socket ${socketId}`);
+    // User connected
   }
 
   private setupEventHandlers() {
@@ -96,7 +96,7 @@ export class SocketManager {
       const userId = socket.userId;
       const deviceId = socket.deviceId;
 
-      console.log(`Socket connected: User ${userId}, Device ${deviceId}, Socket ${socket.id}`);
+      // Socket connected
 
       // Join user-specific room
       socket.join(`user:${userId}`);
@@ -506,7 +506,7 @@ export class SocketManager {
       }
     }
 
-    console.log(`Socket disconnected: User ${userId}, Device ${deviceId}, Socket ${socketId}`);
+    // Socket disconnected
   }
 
   // Public methods for external use

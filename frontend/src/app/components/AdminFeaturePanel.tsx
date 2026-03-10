@@ -203,7 +203,7 @@ export const AdminFeaturePanel: React.FC = () => {
     
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'FEATURE_UPDATE') {
-        console.log('📡 Received feature update broadcast:', event.data);
+        // Feature update received via broadcast
         setFeatures(event.data.features);
         // Also update the app context visible features
         applyFeatureVisibility(event.data.features);
@@ -219,7 +219,7 @@ export const AdminFeaturePanel: React.FC = () => {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === ADMIN_FEATURE_SETTINGS_KEY && e.newValue) {
-        console.log('💾 Storage change detected:', e.newValue);
+        // Storage change detected
         try {
           const parsed = JSON.parse(e.newValue);
           const updatedFeatures = FEATURES.map(f => ({
@@ -269,7 +269,7 @@ export const AdminFeaturePanel: React.FC = () => {
       newVisibility[feature.key] = isVisible;
     });
     
-    console.log('🎛️ Applying feature visibility:', { role, newVisibility });
+    // Apply feature visibility
     setVisibleFeatures({ ...visibleFeatures, ...newVisibility } as any);
   }, [role, setVisibleFeatures, visibleFeatures]);
 
@@ -314,7 +314,7 @@ export const AdminFeaturePanel: React.FC = () => {
     }, {} as Record<string, { readiness: string; lastUpdated: string }>);
     
     localStorage.setItem(ADMIN_FEATURE_SETTINGS_KEY, JSON.stringify(settingsToSave));
-    console.log('💾 Saved feature settings to localStorage:', settingsToSave);
+    // Feature settings saved
     
     // Broadcast to other tabs/sessions immediately
     if (broadcastChannel) {
@@ -323,7 +323,7 @@ export const AdminFeaturePanel: React.FC = () => {
         features: updatedFeatures,
         timestamp: new Date().toISOString()
       });
-      console.log('📡 Broadcasted feature update');
+      // Feature update broadcasted
     }
     
     // Dispatch custom event for same-tab listeners (like sidebar/menu)

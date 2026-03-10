@@ -639,7 +639,7 @@ export const AddTransaction: React.FC = () => {
         }
         sentCount += 1;
       } catch (error) {
-        console.info('ℹ️ Group expense email notification skipped:', participant.email, error);
+        // Group expense notification skipped
         failedCount += 1;
       }
     }));
@@ -1147,6 +1147,8 @@ export const AddTransaction: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentPage(returnPage)}
+              aria-label="Go back"
+              title="Go back"
               className={cn('flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm transition-colors', accent.actionShell)}
             >
               <ChevronLeft size={19} />
@@ -2100,7 +2102,7 @@ export const AddTransaction: React.FC = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-inner"
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-inner`}
                           style={{ backgroundColor: `${incomeAccentColor}18`, color: incomeAccentColor }}
                         >
                           <span className="text-lg leading-none">{selectedIncomeCategory?.icon ?? '💵'}</span>
@@ -2161,7 +2163,7 @@ export const AddTransaction: React.FC = () => {
                                   )}
                                 >
                                   <div
-                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold"
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold`}
                                     style={{ backgroundColor: `${incomeAccentColor}18`, color: incomeAccentColor }}
                                   >
                                     {initials}
@@ -2231,7 +2233,7 @@ export const AddTransaction: React.FC = () => {
             <div className="flex items-center gap-3">
               {!isExpense && (
                 <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-inner"
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-inner`}
                   style={{ backgroundColor: `${incomeAccentColor}18`, color: incomeAccentColor }}
                 >
                   <AlignLeft size={16} />

@@ -98,15 +98,7 @@ export const ROLE_PERMISSIONS = {
  */
 export const isAdminEmail = (email: string | undefined): boolean => {
   if (!email) return false;
-  const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  console.log('🔐 Admin check:', {
-    inputEmail: email,
-    adminEmail: ADMIN_EMAIL,
-    inputLowercase: email.toLowerCase(),
-    adminLowercase: ADMIN_EMAIL.toLowerCase(),
-    isAdmin: isAdmin,
-  });
-  return isAdmin;
+  return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 };
 
 /**

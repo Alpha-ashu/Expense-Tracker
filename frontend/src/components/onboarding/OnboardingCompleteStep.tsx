@@ -58,7 +58,6 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('user_settings', JSON.stringify(userSettings));
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('user_setup_date', new Date().toISOString());
-    console.log('✅ Profile data saved to localStorage:', userProfile);
 
     try {
       // Step 1: Try to save profile to Supabase (non-blocking — localStorage is the backup)
@@ -211,7 +210,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
           />
         </div>
       </div>

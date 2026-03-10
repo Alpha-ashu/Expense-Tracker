@@ -1,18 +1,18 @@
 import { db } from './database';
 
 export const initializeDemoData = async (userEmail?: string, userId?: string) => {
-  const targetAdminEmail = 'shaik.job.details@gmail.com';
-  const isAdmin = userEmail?.toLowerCase() === targetAdminEmail;
+  const targetAdminEmail = (import.meta.env.VITE_ADMIN_EMAILS || '').split(',')[0]?.trim() || '';
+  const isAdmin = targetAdminEmail && userEmail?.toLowerCase() === targetAdminEmail.toLowerCase();
   const hasSeededAdmin = localStorage.getItem('admin_data_seeded_v2') === 'true';
 
   // Only admin gets demo data — regular users start with a clean slate
   if (!isAdmin) {
-    console.log('Non-admin user - skipping demo data seeding');
+    // Non-admin user — skip demo data seeding
     return;
   }
 
   if (isAdmin && !hasSeededAdmin) {
-    console.log('Forcing demo data reset for Admin:', userEmail);
+    // Demo data reset for admin
     // Clear existing data for a fresh start
     await Promise.all([
       db.accounts.clear(),

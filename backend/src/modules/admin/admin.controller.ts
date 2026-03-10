@@ -233,7 +233,7 @@ export const toggleFeatureFlag = async (req: AuthRequest, res: Response) => {
 
     // TODO: Implement persistent storage for feature flags
     // For now, just acknowledge the request
-    console.log(`Admin toggled feature flag: ${flag} = ${enabled}`);
+    // Feature flag toggled
 
     res.json({
       message: `Feature flag '${flag}' toggled to ${enabled}`,

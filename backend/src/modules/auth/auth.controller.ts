@@ -181,37 +181,4 @@ export const getSendGridApiKey = (): string | undefined => {
   return getApiKey('SENDGRID_API_KEY');
 };
 
-export const debugAuth = async (req: Request, res: Response) => {
-  try {
-    // Test basic functionality without database
-    res.json({
-      message: 'Auth module is working',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      jwtSecret: !!process.env.JWT_SECRET,
-      database: 'connected'
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      error: error.message || 'Debug endpoint failed',
-      code: 'DEBUG_ERROR'
-    });
-  }
-};
 
-export const testSimple = async (req: Request, res: Response) => {
-  try {
-    // Simple test without any dependencies
-    res.json({
-      message: 'Simple test works',
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      url: req.url
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      error: error.message || 'Simple test failed',
-      code: 'SIMPLE_TEST_ERROR'
-    });
-  }
-};

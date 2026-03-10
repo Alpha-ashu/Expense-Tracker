@@ -122,7 +122,7 @@ export const auditLog = async (
   // TODO: Implement audit logging to database
   // For now, log to console
   const timestamp = new Date().toISOString();
-  console.log(`[AUDIT] ${timestamp} | User: ${userId} | Action: ${action} | Resource: ${resource} | Status: ${status}`, details || '');
+  // Audit log recorded
 };
 
 /**

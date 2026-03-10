@@ -1,12 +1,6 @@
-// Quick Supabase Connection Test
-// Run this in your browser console to test Supabase connection
-// Or import and run from your React component
+// Supabase connection test utility
 
 import supabase from '@/utils/supabase/client';
-
-console.log('🔍 Testing Supabase Connection...');
-console.log('URL:', import.meta.env.VITE_SUPABASE_URL);
-console.log('Key Present:', !!import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY);
 
 // Test 1: Simple Query
 async function testQuery() {

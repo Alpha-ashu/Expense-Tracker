@@ -195,20 +195,18 @@ describe('AUTH MODULE', () => {
     });
   });
 
-  // ───────── Health & Debug ─────────
+  // ───────── Debug endpoints removed for security ─────────
   describe('GET /auth/debug', () => {
-    it('should return health status', async () => {
+    it('should not expose debug endpoint', async () => {
       const res = await request(app).get(`${API}/auth/debug`);
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Auth module is working');
+      expect(res.status).toBe(404);
     });
   });
 
   describe('GET /auth/test-simple', () => {
-    it('should return simple test response', async () => {
+    it('should not expose test endpoint', async () => {
       const res = await request(app).get(`${API}/auth/test-simple`);
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Simple test works');
+      expect(res.status).toBe(404);
     });
   });
 });

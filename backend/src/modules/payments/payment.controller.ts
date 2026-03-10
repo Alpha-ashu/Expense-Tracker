@@ -281,7 +281,7 @@ export const handleWebhook = async (req: any, res: Response) => {
   try {
     const { type, paymentId, transactionId, status } = req.body;
 
-    console.log(`Webhook received: ${type} for payment ${paymentId} - status: ${status}`);
+    // Webhook received
 
     if (status === 'success') {
       await completePayment({ body: { paymentId, transactionId } } as any, res);
