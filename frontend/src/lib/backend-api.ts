@@ -52,6 +52,23 @@ function normalizeInvestmentDates<T extends Record<string, any>>(investment: T):
   return normalized as T;
 }
 
+function assertCloudGoalId(id: string) {
+  // Local Dexie IDs are numeric; backend goal routes require cloud string IDs.
+  if (/^\d+$/.test(id)) {
+    throw new Error(
+      `Invalid cloud goal id: ${id}. This looks like a local Dexie id. Use local goal sync helpers instead of backend goal CRUD methods.`
+    );
+  }
+}
+
+function assertCloudEntityId(id: string, entityName: string) {
+  if (/^\d+$/.test(id)) {
+    throw new Error(
+      `Invalid cloud ${entityName} id: ${id}. This looks like a local Dexie id. Use local sync helpers for ${entityName} operations.`
+    );
+  }
+}
+
 class BackendService {
   // ===== GOLD =====
   async createGold(gold: {
@@ -229,9 +246,6 @@ class BackendService {
   constructor() {
     this.api = axios.create({
       baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
     // Add token to every request
@@ -320,16 +334,19 @@ class BackendService {
   }
 
   async getAccount(id: string) {
+    assertCloudEntityId(id, 'account');
     const response = await this.api.get(`/accounts/${id}`);
     return response.data;
   }
 
   async updateAccount(id: string, updates: any) {
+    assertCloudEntityId(id, 'account');
     const response = await this.api.put(`/accounts/${id}`, updates);
     return response.data;
   }
 
   async deleteAccount(id: string) {
+    assertCloudEntityId(id, 'account');
     await this.api.delete(`/accounts/${id}`);
   }
 
@@ -355,16 +372,19 @@ class BackendService {
   }
 
   async getGoal(id: string) {
+    assertCloudGoalId(id);
     const response = await this.api.get(`/goals/${id}`);
     return response.data;
   }
 
   async updateGoal(id: string, updates: any) {
+    assertCloudGoalId(id);
     const response = await this.api.put(`/goals/${id}`, updates);
     return response.data;
   }
 
   async deleteGoal(id: string) {
+    assertCloudGoalId(id);
     await this.api.delete(`/goals/${id}`);
   }
 
@@ -398,16 +418,19 @@ class BackendService {
   }
 
   async getLoan(id: string) {
+    assertCloudEntityId(id, 'loan');
     const response = await this.api.get(`/loans/${id}`);
     return response.data;
   }
 
   async updateLoan(id: string, updates: any) {
+    assertCloudEntityId(id, 'loan');
     const response = await this.api.put(`/loans/${id}`, updates);
     return response.data;
   }
 
   async deleteLoan(id: string) {
+    assertCloudEntityId(id, 'loan');
     await this.api.delete(`/loans/${id}`);
   }
 
@@ -533,12 +556,23 @@ class BackendService {
   // ===== BILLS =====
   async getExpenseBills(transactionId?: string) {
     const url = transactionId ? `/bills?transactionId=${transactionId}` : '/bills';
-    const response = await this.api.get(url);
-    return response.data;
+    try {
+      const response = await this.api.get(url);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to fetch bills:', error);
+      return [];
+    }
   }
 
-  async uploadExpenseBill(bill: any) {
-    const response = await this.api.post('/bills', bill);
+  async uploadExpenseBill(payload: { transactionId?: string | number; file: File }) {
+    const formData = new FormData();
+    if (payload.transactionId !== undefined) {
+      formData.append('transactionId', String(payload.transactionId));
+    }
+    formData.append('file', payload.file);
+
+    const response = await this.api.post('/bills', formData);
     return response.data;
   }
 

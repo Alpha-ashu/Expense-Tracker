@@ -1,16 +1,35 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Upload, Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X, KeyRound } from 'lucide-react';
+import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X, KeyRound, Shuffle, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { permissionService } from '@/services/permissionService';
 import { backupPINKeys, restorePINKeys, storeMasterKey, verifyPIN, isPINSet } from '@/lib/encryption';
+import {
+  AvatarConfig,
+  BACKGROUND_COLORS,
+  BEARDS,
+  CLOTHING_COLORS,
+  GLASSES,
+  HAIR_COLORS,
+  SKIN_TONES,
+  buildAvatarUrl,
+  calculateAge,
+  createAvatarConfig,
+  getAgeGroup,
+  getAgeGroupLabel,
+  getClothingOptions,
+  getHairOptions,
+  mergeAvatarConfig,
+  parseAvatarUrl,
+  randomizeAvatarConfig,
+} from '@/lib/avatar';
 
 interface ProfileData {
   firstName: string;
@@ -33,7 +52,6 @@ interface VerificationState {
 export const UserProfile: React.FC = () => {
   const { user, signOut } = useAuth();
   const { setCurrentPage } = useApp();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -165,6 +183,11 @@ export const UserProfile: React.FC = () => {
     return 'Not specified';
   };
 
+  const ensureAvatarUrl = (url: string | undefined, seed: string) => {
+    if (url && url.includes('api.dicebear.com/7.x/avataaars')) return url;
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'User')}`;
+  };
+
   const fetchProfileData = async () => {
     if (!user) { setIsLoading(false); return; }
 
@@ -182,8 +205,7 @@ export const UserProfile: React.FC = () => {
         firstName: metaFirstName || prev.firstName,
         lastName: metaLastName || prev.lastName,
         email: user.email || prev.email,
-        profilePhoto: prev.profilePhoto ||
-          `https://api.dicebear.com/7.x/avataaars/svg?seed=${metaFirstName || 'User'}`,
+        profilePhoto: ensureAvatarUrl(prev.profilePhoto, metaFirstName || 'User'),
       }));
     }
 
@@ -211,9 +233,7 @@ export const UserProfile: React.FC = () => {
           dateOfBirth: p.dateOfBirth || prev.dateOfBirth || '',
           monthlyIncome: monthlyIncomeVal || prev.monthlyIncome,
           jobType: (normalizeJobType(p.jobType) || prev.jobType) as ProfileData['jobType'],
-          profilePhoto: p.profilePhoto ||
-            prev.profilePhoto ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+          profilePhoto: ensureAvatarUrl(p.profilePhoto || prev.profilePhoto, firstName || 'User'),
         }));
       } catch {
         // Corrupt localStorage — fall through to Supabase
@@ -261,8 +281,7 @@ export const UserProfile: React.FC = () => {
           dateOfBirth: data.date_of_birth || '',
           monthlyIncome: monthlyIncomeVal,
           jobType: (normalizeJobType(data.job_type) || '') as ProfileData['jobType'],
-          profilePhoto: data.avatar_url ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${firstName || 'User'}`,
+          profilePhoto: ensureAvatarUrl(data.avatar_url || undefined, firstName || 'User'),
         });
         // Keep localStorage in sync
         localStorage.setItem('user_profile', JSON.stringify({
@@ -273,8 +292,8 @@ export const UserProfile: React.FC = () => {
           jobType: data.job_type || '',
           salary: ((data.annual_income || (monthlyIncomeVal * 12)) || 0).toString(),
           monthlyIncome: monthlyIncomeVal,
-          profilePhoto: data.avatar_url || '',
-          avatarUrl: data.avatar_url || '',
+          profilePhoto: ensureAvatarUrl(data.avatar_url || undefined, firstName || 'User'),
+          avatarUrl: ensureAvatarUrl(data.avatar_url || undefined, firstName || 'User'),
           updatedAt,
         }));
         localStorage.setItem('profile_updated_at', updatedAt);
@@ -307,6 +326,7 @@ export const UserProfile: React.FC = () => {
 
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [tempData, setTempData] = useState<ProfileData>(profileData);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
 
   // Bug 3 fix: keep tempData in sync with profileData after async fetch,
   // but only when the edit form is not currently open to avoid overwriting
@@ -317,23 +337,48 @@ export const UserProfile: React.FC = () => {
     }
   }, [profileData]);
 
+  useEffect(() => {
+    if (!isEditingForm) {
+      setShowAvatarEditor(false);
+    }
+  }, [isEditingForm]);
+
   const [verification, setVerification] = useState<VerificationState>({
     type: null,
     otp: '',
     newValue: '',
     step: 'request',
   });
+  const ageValue = calculateAge(tempData.dateOfBirth || profileData.dateOfBirth);
+  const ageGroup = getAgeGroup(ageValue);
+  const ageGroupLabel = getAgeGroupLabel(ageGroup);
+  const ageSource = isEditingForm ? tempData.dateOfBirth : profileData.dateOfBirth;
+  const hairOptions = getHairOptions(ageGroup);
+  const clothingOptions = getClothingOptions(ageGroup);
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileData({ ...profileData, profilePhoto: e.target?.result as string });
-        toast.success('Profile photo updated');
-      };
-      reader.readAsDataURL(file);
-    }
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(() => {
+    const base = createAvatarConfig({
+      name: `${profileData.firstName || profileData.email || 'User'}`,
+      ageGroup,
+    });
+    return mergeAvatarConfig(base, parseAvatarUrl(profileData.profilePhoto));
+  });
+
+  const activeAvatarUrl = (isEditingForm ? tempData.profilePhoto : profileData.profilePhoto)
+    || buildAvatarUrl(avatarConfig);
+
+  useEffect(() => {
+    if (showAvatarEditor) return;
+    setAvatarConfig((prev) => mergeAvatarConfig(prev, parseAvatarUrl(activeAvatarUrl)));
+  }, [activeAvatarUrl, showAvatarEditor]);
+
+  const labelize = (value: string) =>
+    value.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
+
+  const applyAvatarConfig = (nextConfig: AvatarConfig) => {
+    const nextUrl = buildAvatarUrl(nextConfig);
+    setAvatarConfig(nextConfig);
+    setTempData((prev) => ({ ...prev, profilePhoto: nextUrl }));
   };
 
   const handleSaveProfile = async () => {
@@ -346,7 +391,7 @@ export const UserProfile: React.FC = () => {
         email: tempData.email,
         full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
         phone: tempData.mobile,
-        avatar_url: tempData.profilePhoto,
+        avatar_url: ensureAvatarUrl(tempData.profilePhoto, tempData.firstName || 'User'),
         updated_at: new Date().toISOString(),
       };
 
@@ -393,8 +438,8 @@ export const UserProfile: React.FC = () => {
         jobType: tempData.jobType,
         salary: (tempData.monthlyIncome || 0) * 12,
         monthlyIncome: tempData.monthlyIncome || 0,
-        profilePhoto: tempData.profilePhoto,
-        avatarUrl: tempData.profilePhoto,
+        profilePhoto: ensureAvatarUrl(tempData.profilePhoto, tempData.firstName || 'User'),
+        avatarUrl: ensureAvatarUrl(tempData.profilePhoto, tempData.firstName || 'User'),
         updatedAt,
       }));
       localStorage.setItem('profile_updated_at', updatedAt);
@@ -606,36 +651,185 @@ export const UserProfile: React.FC = () => {
             </motion.div>
           )}
 
-          {/* Profile Photo Section */}
+          {/* Avatar Section */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex justify-center"
+            className="flex flex-col items-center gap-3"
           >
-            <div className="relative">
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              className="relative"
+            >
               <img
-                src={profileData.profilePhoto}
-                alt="Profile"
+                src={activeAvatarUrl}
+                alt="Avatar"
                 className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover shadow-lg"
               />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors shadow-lg"
-                aria-label="Upload profile picture"
-              >
-                <Upload size={16} />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                className="hidden"
-                aria-label="Upload profile picture"
-                id="profile-picture-upload"
-                name="profile-picture-upload"
-              />
+            </motion.div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <p className="text-gray-900 font-semibold text-lg">
+                {[
+                  isEditingForm ? tempData.firstName : profileData.firstName,
+                  isEditingForm ? tempData.lastName : profileData.lastName,
+                ].filter(Boolean).join(' ') || 'User'}
+              </p>
+              {ageSource && (
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                  {ageGroupLabel}
+                </span>
+              )}
             </div>
+            <p className="text-xs text-gray-500 text-center max-w-sm">
+              Animated avatar generated from your age group. Real photos are disabled for safety.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  setIsEditingForm(true);
+                  const nextConfig = randomizeAvatarConfig(avatarConfig, ageGroup);
+                  applyAvatarConfig(nextConfig);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <Shuffle size={14} />
+                Randomize
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingForm(true);
+                  setShowAvatarEditor((prev) => !prev);
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-blue-200 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                <SlidersHorizontal size={14} />
+                Edit Avatar
+              </button>
+            </div>
+            {showAvatarEditor && (
+              <div className="mt-4 w-full max-w-xl rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className="text-xs font-semibold text-gray-600">
+                    Gender
+                    <select
+                      value={avatarConfig.gender}
+                      onChange={(e) => {
+                        const gender = e.target.value as AvatarConfig['gender'];
+                        const next = {
+                          ...avatarConfig,
+                          gender,
+                          beard: gender === 'female' ? 'Blank' : avatarConfig.beard,
+                        };
+                        applyAvatarConfig(next);
+                      }}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      <option value="neutral">Neutral</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Skin Tone
+                    <select
+                      value={avatarConfig.skinTone}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, skinTone: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {SKIN_TONES.map((tone) => (
+                        <option key={tone} value={tone}>{tone}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Hair Style
+                    <select
+                      value={avatarConfig.hairStyle}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, hairStyle: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {hairOptions.map((style) => (
+                        <option key={style} value={style}>{labelize(style)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Hair Color
+                    <select
+                      value={avatarConfig.hairColor}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, hairColor: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {HAIR_COLORS.map((color) => (
+                        <option key={color} value={color}>{labelize(color)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Glasses
+                    <select
+                      value={avatarConfig.glasses}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, glasses: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {GLASSES.map((glasses) => (
+                        <option key={glasses} value={glasses}>{labelize(glasses)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Beard
+                    <select
+                      value={avatarConfig.beard}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, beard: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                      disabled={avatarConfig.gender === 'female'}
+                    >
+                      {BEARDS.map((beard) => (
+                        <option key={beard} value={beard}>{labelize(beard)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Clothing
+                    <select
+                      value={avatarConfig.clothing}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, clothing: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {clothingOptions.map((style) => (
+                        <option key={style} value={style}>{labelize(style)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Clothing Color
+                    <select
+                      value={avatarConfig.clothingColor}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, clothingColor: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {CLOTHING_COLORS.map((color) => (
+                        <option key={color} value={color}>{labelize(color)}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold text-gray-600">
+                    Background
+                    <select
+                      value={avatarConfig.backgroundColor}
+                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, backgroundColor: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      {BACKGROUND_COLORS.map((color) => (
+                        <option key={color} value={color}>#{color}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* Profile Info Grid */}

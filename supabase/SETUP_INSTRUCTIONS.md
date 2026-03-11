@@ -65,11 +65,28 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 ---
 
-### **Step 5: Verify Tables Were Created**
+### **Step 5: Add PIN Sync Table (Required for PIN backup/restore)**
+
+1. Create a **new query** in SQL Editor
+2. Open the file: [`supabase/migrations/007_add_user_pins_table.sql`](supabase/migrations/007_add_user_pins_table.sql)
+3. **Copy the entire content**
+4. **Paste it** into the SQL Editor
+5. Click **"Run"**
+6. You should see: ✅ **"Success. No rows returned"**
+
+**What this does:**
+- Creates `user_pins` table required by app PIN auth sync
+- Enables RLS + policies so users can only access their own PIN metadata
+- Adds trigger to maintain `updated_at`
+
+---
+
+### **Step 6: Verify Tables Were Created**
 
 1. In Supabase Dashboard, go to **Table Editor**
 2. You should see all these tables:
    - ✅ profiles
+   - ✅ user_pins
    - ✅ accounts
    - ✅ friends
    - ✅ transactions
@@ -88,7 +105,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 ---
 
-### **Step 6: Enable Email Authentication**
+### **Step 7: Enable Email Authentication**
 
 1. Go to **Authentication** → **Providers** in Supabase Dashboard
 2. Enable **Email** provider (should be enabled by default)
@@ -97,7 +114,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 ---
 
-### **Step 7: Test the Setup**
+### **Step 8: Test the Setup**
 
 Run this test query in SQL Editor to verify everything works:
 

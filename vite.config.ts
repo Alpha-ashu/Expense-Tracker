@@ -1,20 +1,24 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  publicDir: 'frontend/public',
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './frontend/src'),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, __dirname, '')
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:3000'
+
+  return {
+    publicDir: 'frontend/public',
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './frontend/src'),
+      },
     },
-  },
 
-  assetsInclude: ['**/*.svg', '**/*.csv'],
+    assetsInclude: ['**/*.svg', '**/*.csv'],
 
-  build: {
+    build: {
     // Target modern browsers for smaller output
     target: 'es2020',
     chunkSizeWarningLimit: 600,
@@ -59,26 +63,39 @@ export default defineConfig({
         assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
-  },
-
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'framer-motion',
-      '@supabase/supabase-js',
-      'dexie',
-      'dexie-react-hooks',
-      'lucide-react',
-    ],
-  },
-
-  server: {
-    port: 5173,
-    host: true,
-    hmr: {
-      protocol: 'ws',
-      host: 'localhost',
     },
-  },
+
+    optimizeDeps: {
+      include: [
+        'react',
+        'react-dom',
+        'framer-motion',
+        '@supabase/supabase-js',
+        'dexie',
+        'dexie-react-hooks',
+        'lucide-react',
+      ],
+    },
+
+    server: {
+      port: 5173,
+      host: true,
+      hmr: {
+        protocol: 'ws',
+        host: 'localhost',
+      },
+      proxy: {
+        '/api/v1': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/health': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+  }
 })

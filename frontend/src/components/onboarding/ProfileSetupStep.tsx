@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Upload, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import { Shuffle } from 'lucide-react';
+import { calculateAge, generateAvatarGallery, getAgeGroup } from '@/lib/avatar';
 
 interface ProfileSetupStepProps {
   data: {
@@ -32,14 +32,19 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
   onNext,
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showAvatarSelect, setShowAvatarSelect] = useState(false);
+  const age = calculateAge(data.dateOfBirth);
+  const ageGroup = getAgeGroup(age);
+  const [avatarGallerySalt, setAvatarGallerySalt] = useState(0);
+  const avatarSeedBase = `${data.displayName || 'User'}-${ageGroup}`;
+  const avatarOptions = useMemo(
+    () => generateAvatarGallery({ seed: avatarSeedBase, count: 12, salt: avatarGallerySalt }),
+    [avatarSeedBase, avatarGallerySalt],
+  );
 
-  const DEFAULT_AVATARS = [
-    { id: 'man-1', url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4", label: "Man 1" },
-    { id: 'man-2', url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jack&backgroundColor=c0aede", label: "Man 2" },
-    { id: 'woman-1', url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf", label: "Woman 1" },
-    { id: 'woman-2', url: "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka&backgroundColor=d1d4f9", label: "Woman 2" },
-  ];
+  React.useEffect(() => {
+    if (!data.dateOfBirth || data.avatarUrl || avatarOptions.length === 0) return;
+    onUpdate({ avatarUrl: avatarOptions[0].url });
+  }, [data.dateOfBirth, data.avatarUrl, avatarOptions, onUpdate]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -49,9 +54,9 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
     } else {
       const dob = new Date(data.dateOfBirth);
       const today = new Date();
-      const age = today.getFullYear() - dob.getFullYear();
-      if (age < 18 || age > 120) {
-        newErrors.dateOfBirth = 'You must be between 18 and 120 years old';
+      const ageValue = today.getFullYear() - dob.getFullYear();
+      if (ageValue < 13 || ageValue > 120) {
+        newErrors.dateOfBirth = 'You must be between 13 and 120 years old';
       }
     }
 
@@ -99,59 +104,35 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAvatarSelect(!showAvatarSelect)}
-            className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white border-2 border-white shadow-sm hover:bg-blue-700 transition-colors z-10"
-          >
-            <Upload size={14} />
-          </button>
         </div>
-        {!data.avatarUrl && (
-          <p className="text-xs text-gray-400 mt-2">Select an avatar or use initials</p>
-        )}
-
-        <AnimatePresence>
-          {showAvatarSelect && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="w-full overflow-hidden"
+        <p className="text-xs text-gray-400 mt-2 text-center max-w-xs">
+          Pick an avatar that matches your style. You can shuffle for more options.
+        </p>
+        <button
+          type="button"
+          onClick={() => setAvatarGallerySalt((prev) => prev + 1)}
+          className="mt-3 inline-flex items-center gap-2 rounded-full border border-blue-200 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+        >
+          <Shuffle size={14} />
+          Shuffle Avatars
+        </button>
+        <div className="mt-4 grid grid-cols-4 gap-3">
+          {avatarOptions.map((avatar) => (
+            <button
+              key={avatar.id}
+              type="button"
+              onClick={() => onUpdate({ avatarUrl: avatar.url })}
+              className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${
+                data.avatarUrl === avatar.url
+                  ? 'border-blue-500 ring-2 ring-blue-200'
+                  : 'border-transparent hover:border-gray-300'
+              }`}
+              aria-label="Select avatar"
             >
-              <div className="pt-4 pb-2">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-gray-700">Choose an Avatar</span>
-                  {data.avatarUrl && (
-                    <button
-                      type="button"
-                      onClick={() => onUpdate({ avatarUrl: '' })}
-                      className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
-                    >
-                      <X size={12} /> Remove
-                    </button>
-                  )}
-                </div>
-                <div className="flex gap-3 justify-center">
-                  {DEFAULT_AVATARS.map((avatar) => (
-                    <button
-                      key={avatar.id}
-                      type="button"
-                      onClick={() => {
-                        onUpdate({ avatarUrl: avatar.url });
-                        setShowAvatarSelect(false);
-                      }}
-                      className={`w-14 h-14 rounded-full overflow-hidden border-2 transition-all ${data.avatarUrl === avatar.url ? 'border-blue-500 scale-110 shadow-md' : 'border-transparent hover:border-gray-300'
-                        }`}
-                    >
-                      <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover bg-gray-50" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <img src={avatar.url} alt="Avatar option" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center mb-4">

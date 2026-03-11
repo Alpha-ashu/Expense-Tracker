@@ -59,6 +59,11 @@ const parseNumber = (value: unknown): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const ensureAvatarUrl = (url: string | null | undefined, seed: string) => {
+  if (url && url.includes('api.dicebear.com/7.x/avataaars')) return url;
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'User')}`;
+};
+
 const readLocalProfile = (): LocalProfile | null => {
   try {
     const raw = localStorage.getItem('user_profile');
@@ -207,8 +212,21 @@ const syncProfileFromSupabase = async (user: User) => {
     .eq('id', user.id)
     .maybeSingle();
 
-  const localProfile = readLocalProfile();
+  let localProfile = readLocalProfile();
   const localUpdatedAt = getLocalProfileUpdatedAt(localProfile);
+
+  if (localProfile) {
+    const seedName = localProfile.displayName ||
+      `${localProfile.firstName || ''} ${localProfile.lastName || ''}`.trim() ||
+      user.email ||
+      'User';
+    const safeAvatar = ensureAvatarUrl(localProfile.profilePhoto || localProfile.avatarUrl || null, seedName);
+    if (safeAvatar !== localProfile.profilePhoto || safeAvatar !== localProfile.avatarUrl) {
+      const patched = { ...localProfile, profilePhoto: safeAvatar, avatarUrl: safeAvatar };
+      localStorage.setItem('user_profile', JSON.stringify(patched));
+      localProfile = patched;
+    }
+  }
 
   const pendingLocalSync = hasPendingLocalProfileSync();
 
@@ -239,6 +257,7 @@ const syncProfileFromSupabase = async (user: User) => {
     const lastName = remoteLastName || localProfile?.lastName || nameParts.slice(1).join(' ') || '';
     const monthlyIncome = profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0);
     const updatedAt = remoteUpdatedAt || new Date().toISOString();
+    const safeAvatar = ensureAvatarUrl(profile.avatar_url || null, displayName || firstName || 'User');
 
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('profile_updated_at', updatedAt);
@@ -252,8 +271,8 @@ const syncProfileFromSupabase = async (user: User) => {
       jobType: profile.job_type || '',
       salary: ((profile.annual_income || (monthlyIncome * 12)) || 0).toString(),
       monthlyIncome,
-      profilePhoto: profile.avatar_url || '',
-      avatarUrl: profile.avatar_url || '',
+      profilePhoto: safeAvatar,
+      avatarUrl: safeAvatar,
       updatedAt,
     }));
   };
@@ -287,6 +306,7 @@ const syncProfileFromSupabase = async (user: User) => {
     monthlyIncome = Math.round(salaryNumber / 12);
   }
   const annualIncome = salaryNumber ?? (monthlyIncome !== undefined ? Math.round(monthlyIncome * 12) : undefined);
+  const safeAvatar = ensureAvatarUrl(localProfile?.profilePhoto || localProfile?.avatarUrl || null, displayName || firstName || 'User');
 
   const baseProfile = {
     id: user.id,
@@ -305,7 +325,7 @@ const syncProfileFromSupabase = async (user: User) => {
       job_type: localProfile?.jobType || null,
       monthly_income: monthlyIncome ?? null,
       annual_income: annualIncome ?? null,
-      avatar_url: localProfile?.profilePhoto || localProfile?.avatarUrl || null,
+      avatar_url: safeAvatar,
     }, { onConflict: 'id' });
 
     if (error) {

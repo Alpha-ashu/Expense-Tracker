@@ -4,10 +4,11 @@ import { getCurrencySymbol, normalizeCurrencyCode } from '@/lib/currencyUtils';
 const API_BASE = (import.meta.env.VITE_API_URL || API_CONFIG.BASE_URL || '/api/v1').replace(/\/+$/, '');
 const TWELVE_DATA_BASE = (import.meta.env.VITE_TWELVEDATA_BASE_URL || 'https://api.twelvedata.com').replace(/\/+$/, '');
 const TWELVE_DATA_API_KEY = (import.meta.env.VITE_TWELVEDATA_API_KEY || '').trim();
+const ALLOW_DIRECT_BACKEND_FALLBACK = (import.meta.env.VITE_ALLOW_DIRECT_BACKEND_FALLBACK || 'false').toLowerCase() === 'true';
 
 const CACHE_KEY = 'stock_quotes_cache';
 const CACHE_TS_KEY = 'stock_quotes_cache_ts';
-const PROXY_BACKOFF_MS = 20_000;
+const PROXY_BACKOFF_MS = 60_000;
 
 const proxyUnavailableUntil = new Map<string, number>();
 
@@ -187,17 +188,17 @@ function getBackendBaseCandidates() {
 
     if (protocol === 'http:' || protocol === 'https:') {
       candidates.push(`${origin}${API_BASE}`);
-      if (!isSecureOrigin) {
+      if (!isSecureOrigin && ALLOW_DIRECT_BACKEND_FALLBACK) {
         candidates.push(`http://${hostname}:3000/api/v1`);
       }
     }
 
-    if (!isSecureOrigin || isLocalHost) {
+    if ((!isSecureOrigin || isLocalHost) && ALLOW_DIRECT_BACKEND_FALLBACK) {
       candidates.push('http://localhost:3000/api/v1');
       candidates.push('http://127.0.0.1:3000/api/v1');
     }
 
-    if (protocol === 'capacitor:' || protocol === 'ionic:' || protocol === 'file:') {
+    if ((protocol === 'capacitor:' || protocol === 'ionic:' || protocol === 'file:') && ALLOW_DIRECT_BACKEND_FALLBACK) {
       candidates.push('http://10.0.2.2:3000/api/v1');
     }
   }
@@ -506,7 +507,7 @@ async function fetchProxyQuote(symbol: string, market?: string) {
     }
 
     try {
-      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(10_000) }, 1, 500);
+      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(10_000) }, 0, 500);
       if (!res.ok) {
         markProxyUnavailable(proxyBase);
         continue;
@@ -553,7 +554,7 @@ async function fetchProxyBatch(symbols: string[], market?: string) {
     }
 
     try {
-      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(15_000) }, 1, 500);
+      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(15_000) }, 0, 500);
       if (!res.ok) {
         markProxyUnavailable(proxyBase);
         continue;
@@ -735,7 +736,7 @@ async function searchProxy(query: string, market?: string) {
     }
 
     try {
-      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(8_000) }, 1, 500);
+      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(8_000) }, 0, 500);
       if (!res.ok) {
         markProxyUnavailable(proxyBase);
         continue;

@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
 import { Upload, Trash2, Download, FileText, Image } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ExpenseBill } from '@/lib/database';
+import { downloadFile } from '@/lib/download';
 
 interface BillUploadProps {
   transactionId: number;
-  onBillsChange?: (bills: ExpenseBill[]) => void;
+  onBillsChange?: (bills: ExpenseBillItem[]) => void;
+}
+
+interface ExpenseBillItem {
+  id: string;
+  transactionId?: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+  downloadUrl?: string | null;
 }
 
 export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsChange }) => {
@@ -16,7 +24,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
   const [uploading, setUploading] = useState(false);
 
   // Replace with backendService call for bills
-  const [bills, setBills] = useState<ExpenseBill[]>([]);
+  const [bills, setBills] = useState<ExpenseBillItem[]>([]);
   useEffect(() => {
     const fetchBills = async () => {
       const backendBills = await backendService.getExpenseBills(String(transactionId));
@@ -40,9 +48,19 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
         const file = files[i];
 
         // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        const allowedTypes = [
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'text/csv',
+        ];
         if (!allowedTypes.includes(file.type)) {
-          toast.error(`${file.name} - Unsupported file type. Use JPG, PNG, WebP, or PDF`);
+          toast.error(`${file.name} - Unsupported file type. Use JPG, PNG, WebP, PDF, DOC/DOCX, XLS/XLSX, or CSV.`);
           continue;
         }
 
@@ -52,14 +70,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
           continue;
         }
 
-        await backendService.uploadExpenseBill({
-          transactionId,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          fileData: file,
-          uploadedAt: new Date(),
-        });
+        await backendService.uploadExpenseBill({ transactionId, file });
 
         toast.success(`${file.name} uploaded`);
       }
@@ -87,17 +98,22 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
     }
   };
 
-  const handleDownloadBill = async (bill: ExpenseBill) => {
+  const handleDownloadBill = async (bill: ExpenseBillItem) => {
     try {
-      // Create a blob URL and download
-      const url = URL.createObjectURL(bill.fileData);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = bill.fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (!bill.downloadUrl) {
+        toast.error('Download link expired. Please refresh and try again.');
+        return;
+      }
+      const response = await fetch(bill.downloadUrl);
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
+      }
+      const blob = await response.blob();
+      await downloadFile({
+        filename: bill.fileName,
+        mimeType: bill.fileType,
+        data: blob,
+      });
     } catch (error) {
       console.error('Failed to download bill:', error);
       toast.error('Failed to download bill');
@@ -145,13 +161,13 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
           Drag and drop your bills/receipts here
         </p>
         <p className="text-sm text-gray-500 mb-4">
-          or click to browse (JPG, PNG, WebP, PDF - Max 10MB)
+          or click to browse (JPG, PNG, WebP, PDF, DOC/DOCX, XLS/XLSX, CSV - Max 10MB)
         </p>
         <label className="inline-block">
           <input
             type="file"
             multiple
-            accept="image/jpeg,image/png,image/webp,application/pdf"
+            accept="image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
             onChange={(e) => handleFileSelect(e.target.files)}
             disabled={uploading}
             className="hidden"

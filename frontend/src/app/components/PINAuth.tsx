@@ -11,6 +11,7 @@ interface PINAuthProps {
 }
 
 const USER_PINS_UNAVAILABLE_KEY = 'supabase_user_pins_unavailable';
+const USER_PINS_ENABLED = (import.meta.env.VITE_SUPABASE_USER_PINS_ENABLED ?? 'false').toLowerCase() === 'true';
 
 let userPinsUnavailableInMemory = false;
 let userPinsUnavailableLogged = false;
@@ -35,6 +36,8 @@ const isUserPinsTableMissingError = (error: any) => {
 };
 
 const isUserPinsTableUnavailable = () => {
+  if (!USER_PINS_ENABLED) return true;
+
   if (userPinsUnavailableInMemory) return true;
 
   try {
@@ -56,7 +59,11 @@ const markUserPinsTableUnavailable = () => {
   }
 
   if (!userPinsUnavailableLogged) {
-    console.info('ℹ️ user_pins table unavailable — using local PIN only.');
+    if (USER_PINS_ENABLED) {
+      console.info('ℹ️ user_pins table unavailable — using local PIN only.');
+    } else {
+      console.info('ℹ️ user_pins sync disabled — using local PIN only. Set VITE_SUPABASE_USER_PINS_ENABLED=true to enable remote PIN sync.');
+    }
     userPinsUnavailableLogged = true;
   }
 };

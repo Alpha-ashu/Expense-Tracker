@@ -91,6 +91,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
             job_type: data.jobType?.toLowerCase() || null,
             annual_income: parseFloat(data.salary) || null,
             monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
+            avatar_url: data.avatarUrl || null,
             updated_at: new Date().toISOString(),
           };
           const { error: profileError } = await supabase

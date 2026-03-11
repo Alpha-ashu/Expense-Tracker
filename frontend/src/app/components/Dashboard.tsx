@@ -13,7 +13,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
-import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
+import { fetchMultipleQuotes, getStockDataSetupHint, StockQuote } from '@/lib/stockApi';
 import { formatCurrencyAmount } from '@/lib/currencyUtils';
 import { formatLocalDate } from '@/lib/dateUtils';
 import {
@@ -185,6 +185,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   }, [getDashboardInvestmentMetrics, openInvestments]);
 
   const totalNetWorth = stats.totalBalance + investmentStats.currentValue;
+  const stockSetupHint = getStockDataSetupHint();
 
   const formatCurrency = (amount: number) => formatCurrencyAmount(amount, currency, {
     minimumFractionDigits: 0,
@@ -234,6 +235,15 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
           </div>
         </div>
+
+        {stockSetupHint && (
+          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-4">
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+              <p className="text-sm font-medium">{stockSetupHint}</p>
+            </div>
+          </div>
+        )}
 
         {/* ── 1. Financial Health Hero ── */}
         <div className="flex justify-center px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">

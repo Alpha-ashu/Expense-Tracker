@@ -110,14 +110,26 @@ export interface Goal {
   id?: number;
   remoteId?: number;
   name: string;
+  description?: string;
   targetAmount: number;
   currentAmount: number;
+  monthlySavingPlan?: number;
   targetDate: Date;
   category: string;
   isGroupGoal: boolean;
+  members?: GoalMember[];
+  milestoneBadges?: string[];
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+}
+
+export interface GoalMember {
+  name: string;
+  contactType: 'phone' | 'email' | 'link';
+  contactValue: string;
+  contribution?: number;
+  status?: 'paid' | 'pending';
 }
 
 export interface GoalContribution {
@@ -126,6 +138,8 @@ export interface GoalContribution {
   amount: number;
   accountId: number;
   date: Date;
+  memberName?: string;
+  status?: 'paid' | 'pending';
   notes?: string;
 }
 

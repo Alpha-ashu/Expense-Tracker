@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
-import { saveGoalWithBackendSync } from '@/lib/auth-sync-integration';
-import { backendService } from '@/lib/backend-api';
-import { Plus, Target, Calendar, TrendingUp, Edit2, Trash2, Sparkles } from 'lucide-react';
+import { getGoalCategoryMeta, getGoalProgress, getMilestoneLabel, getMonthlySuggestion } from '@/lib/goal-utils';
+import { Bell, Calendar, Edit2, Plus, Sparkles, Target, Trash2, TrendingUp, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
 import { Card } from '@/app/components/ui/card';
@@ -21,6 +20,8 @@ export const Goals: React.FC = () => {
   const [goalToDelete, setGoalToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const selectedGoalKey = 'selected_goal_id';
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -33,6 +34,30 @@ export const Goals: React.FC = () => {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
+  const getProgressWidthClass = (value: number) => {
+    const progress = Math.max(0, Math.min(100, value));
+    const bucket = Math.round(progress / 10) * 10;
+
+    switch (bucket) {
+      case 0: return 'w-0';
+      case 10: return 'w-[10%]';
+      case 20: return 'w-[20%]';
+      case 30: return 'w-[30%]';
+      case 40: return 'w-[40%]';
+      case 50: return 'w-1/2';
+      case 60: return 'w-[60%]';
+      case 70: return 'w-[70%]';
+      case 80: return 'w-[80%]';
+      case 90: return 'w-[90%]';
+      default: return 'w-full';
+    }
+  };
+
+  const openGoalDetail = (goalId: number) => {
+    localStorage.setItem(selectedGoalKey, String(goalId));
+    setCurrentPage('goal-detail');
+  };
+
   const handleEditClick = (goal: any) => {
     setEditingGoalId(goal.id);
     setEditFormData({ ...goal });
@@ -41,13 +66,19 @@ export const Goals: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editingGoalId) return;
     try {
-      await backendService.updateGoal(String(editingGoalId), {
+      const updated = await db.goals.update(editingGoalId, {
         name: editFormData.name,
         targetAmount: editFormData.targetAmount,
         currentAmount: editFormData.currentAmount,
         targetDate: editFormData.targetDate ? new Date(editFormData.targetDate) : undefined,
         category: editFormData.category,
+        updatedAt: new Date(),
       });
+
+      if (!updated) {
+        throw new Error('Goal not found locally');
+      }
+
       setEditingGoalId(null);
       toast.success('Goal updated successfully');
     } catch (error) {
@@ -65,7 +96,7 @@ export const Goals: React.FC = () => {
     if (!goalToDelete) return;
     setIsDeleting(true);
     try {
-      await backendService.deleteGoal(String(goalToDelete.id));
+      await db.goals.delete(goalToDelete.id);
       toast.success('Goal deleted successfully');
       setDeleteModalOpen(false);
       setGoalToDelete(null);
@@ -77,8 +108,9 @@ export const Goals: React.FC = () => {
     }
   };
 
-  const totalGoalsAmount = goals.reduce((sum, g) => sum + g.targetAmount, 0);
-  const totalSavedAmount = goals.reduce((sum, g) => sum + g.currentAmount, 0);
+  const totalGoalsAmount = goals.reduce((sum, goal) => sum + goal.targetAmount, 0);
+  const totalSavedAmount = goals.reduce((sum, goal) => sum + goal.currentAmount, 0);
+  const totalRemainingAmount = Math.max(0, totalGoalsAmount - totalSavedAmount);
   const overallProgress = totalGoalsAmount > 0 ? (totalSavedAmount / totalGoalsAmount) * 100 : 0;
 
   return (
@@ -98,14 +130,14 @@ export const Goals: React.FC = () => {
       </PageHeader>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
                 <Target className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
-              <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Goals</p>
+              <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Goals Created</p>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 tracking-tight">
                 {goals.length}
               </h3>
@@ -122,6 +154,20 @@ export const Goals: React.FC = () => {
               <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Saved</p>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 tracking-tight">
                 {formatCurrency(totalSavedAmount)}
+              </h3>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+            <div className="relative z-10">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
+                <Bell className="text-white sm:w-5 sm:h-5" size={18} />
+              </div>
+              <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Remaining Amount</p>
+              <h3 className="text-2xl sm:text-3xl font-display font-bold text-gray-900 tracking-tight">
+                {formatCurrency(totalRemainingAmount)}
               </h3>
             </div>
           </Card>
@@ -147,9 +193,14 @@ export const Goals: React.FC = () => {
       <AnimatePresence>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {goals.map((goal, index) => {
-            const progress = (goal.currentAmount / goal.targetAmount) * 100;
+            const progress = getGoalProgress(goal.currentAmount, goal.targetAmount);
             const daysRemaining = getDaysRemaining(goal.targetDate);
             const monthlyRequired = (goal.targetAmount - goal.currentAmount) / Math.max(1, daysRemaining / 30);
+            const categoryMeta = getGoalCategoryMeta(goal.category);
+            const membersCount = goal.members?.length || 0;
+            const milestone = getMilestoneLabel(progress);
+            const monthlySuggestion = getMonthlySuggestion(goal.targetAmount, goal.currentAmount, new Date(goal.targetDate));
+            const remainingAmount = Math.max(0, goal.targetAmount - goal.currentAmount);
 
             return (
               <motion.div
@@ -252,13 +303,13 @@ export const Goals: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <h3 className="text-xl font-display font-bold text-gray-900 mb-2">{goal.name}</h3>
-                      <p className="text-sm text-gray-500 mb-4 capitalize">{goal.category}</p>
+                      <h3 className="text-xl font-display font-bold text-gray-900 mb-1">{goal.name} {categoryMeta.icon}</h3>
+                      <p className="text-sm text-gray-500 mb-4 capitalize">{categoryMeta.label}</p>
 
                       <div className="space-y-4 mb-4">
                         <div>
                           <div className="flex justify-between text-sm mb-2">
-                            <span className="text-gray-500 font-medium">Progress</span>
+                            <span className="text-gray-500 font-medium">Saved Amount</span>
                             <span className="font-bold text-gray-900">
                               {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
                             </span>
@@ -267,15 +318,20 @@ export const Goals: React.FC = () => {
                             <div
                               className={cn(
                                 "h-3 rounded-full transition-all",
+                                getProgressWidthClass(progress),
                                 progress >= 100
                                   ? 'bg-green-500'
                                   : progress >= 50
                                   ? 'bg-black'
                                   : 'bg-orange-500'
                               )}
-                              style={{ width: `${Math.min(100, progress)}%` }}
                             />
                           </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Remaining</span>
+                          <span className="font-bold text-gray-900">{formatCurrency(remainingAmount)}</span>
                         </div>
 
                         <div className="flex items-center justify-between text-sm">
@@ -295,22 +351,57 @@ export const Goals: React.FC = () => {
                           </span>
                         </div>
 
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-500">Goal Type</span>
+                          <span className="font-bold text-gray-900">{goal.isGroupGoal ? 'Group' : 'Individual'}</span>
+                        </div>
+
+                        {goal.isGroupGoal && (
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-gray-500">
+                              <Users size={14} />
+                              <span>Members</span>
+                            </div>
+                            <span className="font-bold text-gray-900">{membersCount}</span>
+                          </div>
+                        )}
+
                         {progress < 100 && (
                           <div className="bg-black/5 border border-black/10 rounded-xl p-3 backdrop-blur-sm">
                             <p className="text-xs text-gray-600 mb-1 font-medium uppercase tracking-wide">Required Monthly</p>
-                            <p className="text-lg font-display font-bold text-gray-900">{formatCurrency(monthlyRequired)}</p>
+                            <p className="text-lg font-display font-bold text-gray-900">{formatCurrency(monthlySuggestion.monthlyAmount || monthlyRequired)}</p>
                           </div>
+                        )}
+
+                        {milestone && (
+                          <div className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
+                            {milestone} 🎉
+                          </div>
+                        )}
+
+                        {progress >= 100 && (
+                          <div className="text-center text-sm font-semibold text-pink-600 animate-bounce">Confetti moment! Goal completed 🎊</div>
                         )}
                       </div>
 
-                      <button
-                        onClick={() => setShowContributeModal(goal.id!)}
-                        className="w-full px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
-                        aria-label={`Add contribution to ${goal.name}`}
-                        title={`Add contribution to ${goal.name}`}
-                      >
-                        Add Contribution
-                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setShowContributeModal(goal.id!)}
+                          className="w-full px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
+                          aria-label={`Add contribution to ${goal.name}`}
+                          title={`Add contribution to ${goal.name}`}
+                        >
+                          Add Contribution
+                        </button>
+                        <button
+                          onClick={() => openGoalDetail(goal.id!)}
+                          className="w-full px-4 py-2.5 bg-white border border-gray-300 text-gray-800 rounded-xl hover:bg-gray-50 transition-all font-medium"
+                          aria-label={`View details for ${goal.name}`}
+                          title={`View details for ${goal.name}`}
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </>
                   )}
                 </Card>
@@ -392,10 +483,11 @@ const ContributeModal: React.FC<{
       date: new Date(),
     });
 
-    await backendService.updateGoal(String(goalId), {
+    await db.goals.update(goalId, {
       currentAmount: goal.currentAmount + amount,
+      updatedAt: new Date(),
     });
-    // TODO: Sync goalContributions to backend if not already implemented
+    // Goal and contribution updates are synced through local DB hooks.
 
     const account = accounts.find(a => a.id === accountId);
     if (account) {

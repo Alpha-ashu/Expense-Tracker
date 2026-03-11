@@ -10,6 +10,7 @@ export interface AuthRequest extends Request {
     isApproved: boolean;
     name?: string;
   };
+  file?: Express.Multer.File;
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {

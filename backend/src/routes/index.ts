@@ -14,6 +14,7 @@ import { paymentRoutes } from '../modules/payments/payment.routes';
 import { adminRoutes } from '../modules/admin/admin.routes';
 import { notificationRoutes } from '../modules/notifications/notification.routes';
 import { stockRoutes } from '../modules/stocks/stock.routes';
+import { billsRoutes } from '../modules/bills/bills.routes';
 
 const router = Router();
 
@@ -41,6 +42,9 @@ router.use('/payments', paymentRoutes);
 
 // Notification routes
 router.use('/notifications', notificationRoutes);
+
+// Secure bill uploads
+router.use('/bills', billsRoutes);
 
 // Admin routes (requires admin role)
 router.use('/admin', adminRoutes);

@@ -12,6 +12,7 @@ Open each file in **Supabase SQL Editor** and run them in this order:
 2. **[002_enable_rls.sql](migrations/002_enable_rls.sql)** - Enables Row Level Security
 3. **[003_seed_data.sql](migrations/003_seed_data.sql)** - *(Optional)* Adds sample data for testing
 4. **[004_add_missing_columns.sql](migrations/004_add_missing_columns.sql)** - *(Recommended)* Aligns friends/group_expenses with app sync fields
+5. **[007_add_user_pins_table.sql](migrations/007_add_user_pins_table.sql)** - *(Required for PIN cloud sync)* Adds `user_pins` table + RLS
 
 ### **2. Follow Detailed Instructions:**
 
@@ -26,6 +27,7 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 | Table | Description | Records |
 |-------|-------------|---------|
 | **profiles** | User profiles and settings | User info |
+| **user_pins** | Encrypted PIN backup metadata | PIN auth sync |
 | **accounts** | Bank accounts, cards, cash | Financial accounts |
 | **friends** | Contact list for lending/borrowing | Contacts |
 | **transactions** | Income, expenses, transfers | All transactions |
@@ -42,7 +44,7 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 | **todo_list_shares** | Shared todo lists | Sharing |
 | **expense_bills** | File attachments | Receipts |
 
-**Total: 16 Tables**
+**Total: 17 Tables**
 
 ---
 
@@ -86,6 +88,13 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 - Adds missing sync columns for **friends** and **group_expenses**
 - Adds `updated_at` triggers and missing indexes
 - Safe to run multiple times (uses `IF NOT EXISTS`)
+
+### **007_add_user_pins_table.sql** *(Required for PIN cloud sync)*
+- Creates **user_pins** table used by `PINAuth`
+- Enables RLS and adds per-user CRUD policies
+- Adds `updated_at` trigger and expiration index
+- Validate setup with: `migrations/007_user_pins_verify.sql`
+- One-shot option (apply + verify): `migrations/007_apply_and_verify_user_pins.sql`
 
 ---
 

@@ -27,6 +27,7 @@ const Accounts = lazy(() => import('@/app/components/Accounts').then(m => ({ def
 const Transactions = lazy(() => import('@/app/components/Transactions').then(m => ({ default: m.Transactions })));
 const Loans = lazy(() => import('@/app/components/Loans').then(m => ({ default: m.Loans })));
 const Goals = lazy(() => import('@/app/components/Goals').then(m => ({ default: m.Goals })));
+const GoalDetail = lazy(() => import('@/app/components/GoalDetail').then(m => ({ default: m.GoalDetail })));
 const Groups = lazy(() => import('@/app/components/Groups').then(m => ({ default: m.Groups })));
 const Investments = lazy(() => import('@/app/components/Investments').then(m => ({ default: m.Investments })));
 const Reports = lazy(() => import('@/app/components/Reports').then(m => ({ default: m.Reports })));
@@ -319,6 +320,7 @@ const AppContent: React.FC = () => {
       case 'loans': return <Loans />;
       case 'add-loan': return <AddLoan />;
       case 'goals': return <Goals />;
+      case 'goal-detail': return <GoalDetail />;
       case 'add-goal': return <AddGoal />;
       case 'groups': return <Groups />;
       case 'add-group': return <AddGroup />;
