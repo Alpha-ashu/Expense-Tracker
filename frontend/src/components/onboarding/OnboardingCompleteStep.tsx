@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
+import { resolveAvatarSelection } from '@/lib/avatar-gallery';
 
 interface OnboardingCompleteStepProps {
   data: {
@@ -15,6 +16,7 @@ interface OnboardingCompleteStepProps {
     country: string;
     language: string;
     avatarUrl?: string;
+    avatarId?: string;
   };
   onComplete: () => void;
   onBack: () => void;
@@ -43,6 +45,11 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
+    const resolvedAvatar = resolveAvatarSelection({
+      avatarId: data.avatarId,
+      avatarUrl: data.avatarUrl,
+    });
+
     const userProfile = {
       displayName: data.displayName,
       firstName,
@@ -53,8 +60,9 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       monthlyIncome: Math.round(parseFloat(data.salary) / 12),
       country: data.country,
       language: data.language,
-      profilePhoto: data.avatarUrl || '',
-      avatarUrl: data.avatarUrl || '',
+      profilePhoto: resolvedAvatar.url,
+      avatarUrl: resolvedAvatar.url,
+      avatarId: resolvedAvatar.id,
       createdAt: nowIso,
       updatedAt: nowIso,
     };
@@ -81,19 +89,19 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
           const nameParts = data.displayName.trim().split(/\s+/);
           const firstName = nameParts[0] || '';
           const lastName = nameParts.slice(1).join(' ') || '';
-          const profileData = {
-            id: user.id,
-            email: user.email,
-            full_name: data.displayName,
-            first_name: firstName,
-            last_name: lastName,
-            date_of_birth: data.dateOfBirth || null,
-            job_type: data.jobType?.toLowerCase() || null,
-            annual_income: parseFloat(data.salary) || null,
-            monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
-            avatar_url: data.avatarUrl || null,
-            updated_at: new Date().toISOString(),
-          };
+            const profileData = {
+              id: user.id,
+              email: user.email,
+              full_name: data.displayName,
+              first_name: firstName,
+              last_name: lastName,
+              date_of_birth: data.dateOfBirth || null,
+              job_type: data.jobType?.toLowerCase() || null,
+              annual_income: parseFloat(data.salary) || null,
+              monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
+              avatar_url: resolvedAvatar.url,
+              updated_at: new Date().toISOString(),
+            };
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert(profileData, { onConflict: 'id' });

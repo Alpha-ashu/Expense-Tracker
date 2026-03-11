@@ -8,19 +8,44 @@ const app = express();
 // Disable X-Powered-By header to prevent server fingerprinting
 app.disable('x-powered-by');
 
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
+const buildAllowedOrigins = () => {
+  const origins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+  if (process.env.VERCEL_URL) {
+    origins.push(`https://${process.env.VERCEL_URL}`);
+  }
+
+  return Array.from(new Set(origins));
+};
+
+const allowedOrigins = buildAllowedOrigins();
+const allowAllOrigins = allowedOrigins.length === 0 || allowedOrigins.includes('*');
+
+const isAllowedOrigin = (origin: string) => {
+  if (allowAllOrigins) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  const wildcard = allowedOrigins.find(value => value.startsWith('*.'));
+  if (wildcard) {
+    const suffix = wildcard.slice(1);
+    return origin.endsWith(suffix);
+  }
+
+  return false;
+};
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || isAllowedOrigin(origin)) {
       callback(null, true);
       return;
     }
 
-    callback(new Error('Not allowed by CORS'));
+    // Do not throw an error to avoid 500s; simply omit CORS headers.
+    callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

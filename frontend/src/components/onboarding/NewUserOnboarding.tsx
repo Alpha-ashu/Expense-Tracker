@@ -16,6 +16,7 @@ interface OnboardingData {
   country: string;
   language: string;
   avatarUrl: string;
+  avatarId?: string;
 }
 
 export const NewUserOnboarding: React.FC = () => {
@@ -32,6 +33,7 @@ export const NewUserOnboarding: React.FC = () => {
     country: '',
     language: '',
     avatarUrl: '',
+    avatarId: '',
   });
 
   React.useEffect(() => {

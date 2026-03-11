@@ -9,8 +9,11 @@ const ALLOW_DIRECT_BACKEND_FALLBACK = (import.meta.env.VITE_ALLOW_DIRECT_BACKEND
 const CACHE_KEY = 'stock_quotes_cache';
 const CACHE_TS_KEY = 'stock_quotes_cache_ts';
 const PROXY_BACKOFF_MS = 60_000;
+const PROXY_GLOBAL_BACKOFF_MS = 45_000;
+const BATCH_CHUNK_SIZE = 8;
 
 const proxyUnavailableUntil = new Map<string, number>();
+let proxyGlobalUnavailableUntil = 0;
 
 export type MarketCategory = 'all' | 'nse' | 'bse' | 'us' | 'forex' | 'crypto';
 
@@ -55,11 +58,51 @@ export const MARKET_LABELS: Record<MarketCategory, string> = {
 };
 
 export const DEFAULT_WATCHLISTS: Record<ProviderMarket, string[]> = {
-  nse: ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'WIPRO.NS', 'SBIN.NS', 'BAJFINANCE.NS', 'AXISBANK.NS', 'MARUTI.NS'],
-  bse: ['RELIANCE.BO', 'TCS.BO', 'INFY.BO', 'HDFCBANK.BO', 'ICICIBANK.BO'],
-  us: ['AAPL.US', 'TSLA.US', 'MSFT.US', 'NVDA.US', 'GOOGL.US', 'AMZN.US', 'META.US', 'NFLX.US'],
-  forex: ['USDINR=X', 'EURUSD=X', 'GBPUSD=X', 'USDJPY=X'],
-  crypto: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD'],
+  nse: [
+    'RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'SBIN.NS', 'WIPRO.NS', 'AXISBANK.NS',
+    'KOTAKBANK.NS', 'LT.NS', 'ITC.NS', 'BHARTIARTL.NS', 'HINDUNILVR.NS', 'ASIANPAINT.NS', 'MARUTI.NS', 'TITAN.NS',
+    'BAJFINANCE.NS', 'BAJAJFINSV.NS', 'SUNPHARMA.NS', 'HCLTECH.NS', 'TECHM.NS', 'POWERGRID.NS', 'NTPC.NS', 'ONGC.NS',
+    'ULTRACEMCO.NS', 'NESTLEIND.NS', 'TATAMOTORS.NS', 'TATASTEEL.NS', 'M&M.NS', 'ADANIPORTS.NS', 'INDUSINDBK.NS', 'JSWSTEEL.NS',
+    'CIPLA.NS', 'DRREDDY.NS', 'EICHERMOT.NS', 'GRASIM.NS', 'HDFCLIFE.NS', 'HEROMOTOCO.NS', 'BRITANNIA.NS', 'DIVISLAB.NS',
+    'APOLLOHOSP.NS', 'BAJAJ-AUTO.NS', 'BPCL.NS', 'COALINDIA.NS', 'HINDALCO.NS', 'SHRIRAMFIN.NS', 'ADANIENT.NS', 'LTIM.NS',
+    'TATACONSUM.NS', 'SBILIFE.NS', 'BEL.NS', 'PIDILITIND.NS', 'DMART.NS', 'DLF.NS', 'SIEMENS.NS', 'INDIGO.NS',
+  ],
+  bse: [
+    'RELIANCE.BO', 'TCS.BO', 'INFY.BO', 'HDFCBANK.BO', 'ICICIBANK.BO', 'SBIN.BO', 'WIPRO.BO', 'AXISBANK.BO',
+    'KOTAKBANK.BO', 'LT.BO', 'ITC.BO', 'BHARTIARTL.BO', 'HINDUNILVR.BO', 'ASIANPAINT.BO', 'MARUTI.BO', 'TITAN.BO',
+    'BAJFINANCE.BO', 'BAJAJFINSV.BO', 'SUNPHARMA.BO', 'HCLTECH.BO', 'TECHM.BO', 'POWERGRID.BO', 'NTPC.BO', 'ONGC.BO',
+    'ULTRACEMCO.BO', 'NESTLEIND.BO', 'TATAMOTORS.BO', 'TATASTEEL.BO', 'M&M.BO', 'ADANIPORTS.BO', 'INDUSINDBK.BO', 'JSWSTEEL.BO',
+    'CIPLA.BO', 'DRREDDY.BO', 'EICHERMOT.BO', 'GRASIM.BO', 'HDFCLIFE.BO', 'HEROMOTOCO.BO', 'BRITANNIA.BO', 'DIVISLAB.BO',
+    'APOLLOHOSP.BO', 'BAJAJ-AUTO.BO', 'BPCL.BO', 'COALINDIA.BO', 'HINDALCO.BO', 'SHRIRAMFIN.BO', 'ADANIENT.BO', 'LTIM.BO',
+    'TATACONSUM.BO', 'SBILIFE.BO', 'BEL.BO', 'PIDILITIND.BO', 'DMART.BO', 'DLF.BO', 'SIEMENS.BO', 'INDIGO.BO',
+  ],
+  us: [
+    'AAPL.US', 'MSFT.US', 'NVDA.US', 'AMZN.US', 'GOOGL.US', 'META.US', 'TSLA.US', 'NFLX.US',
+    'AMD.US', 'INTC.US', 'AVGO.US', 'ORCL.US', 'CRM.US', 'ADBE.US', 'CSCO.US', 'QCOM.US',
+    'TXN.US', 'MU.US', 'PYPL.US', 'SHOP.US', 'UBER.US', 'ABNB.US', 'SNOW.US', 'PLTR.US',
+    'COIN.US', 'SQ.US', 'JPM.US', 'BAC.US', 'WFC.US', 'GS.US', 'MS.US', 'C.US',
+    'V.US', 'MA.US', 'AXP.US', 'JNJ.US', 'PFE.US', 'MRK.US', 'UNH.US', 'LLY.US',
+    'XOM.US', 'CVX.US', 'COP.US', 'SLB.US', 'CAT.US', 'DE.US', 'GE.US', 'BA.US',
+    'WMT.US', 'COST.US', 'HD.US', 'MCD.US', 'KO.US', 'PEP.US', 'DIS.US', 'NKE.US',
+  ],
+  forex: [
+    'EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCHF=X', 'USDCAD=X', 'AUDUSD=X', 'NZDUSD=X', 'EURJPY=X',
+    'EURGBP=X', 'EURCHF=X', 'EURAUD=X', 'EURCAD=X', 'EURNZD=X', 'GBPJPY=X', 'GBPCHF=X', 'GBPAUD=X',
+    'GBPCAD=X', 'GBPNZD=X', 'AUDJPY=X', 'AUDNZD=X', 'AUDCAD=X', 'AUDCHF=X', 'CADJPY=X', 'CADCHF=X',
+    'CHFJPY=X', 'NZDJPY=X', 'NZDCAD=X', 'NZDCHF=X', 'EURSEK=X', 'EURNOK=X', 'EURDKK=X', 'EURPLN=X',
+    'EURHUF=X', 'EURCZK=X', 'USDSEK=X', 'USDNOK=X', 'USDDKK=X', 'USDPLN=X', 'USDCZK=X', 'USDHUF=X',
+    'USDZAR=X', 'USDMXN=X', 'USDBRL=X', 'USDTRY=X', 'USDILS=X', 'USDSGD=X', 'USDHKD=X', 'USDCNH=X',
+    'USDINR=X', 'USDKRW=X', 'USDIDR=X', 'USDTHB=X', 'USDPHP=X', 'USDTWD=X', 'USDVND=X', 'USDRUB=X',
+  ],
+  crypto: [
+    'BTC-USD', 'ETH-USD', 'BNB-USD', 'XRP-USD', 'SOL-USD', 'ADA-USD', 'DOGE-USD', 'TRX-USD',
+    'DOT-USD', 'MATIC-USD', 'LTC-USD', 'BCH-USD', 'AVAX-USD', 'LINK-USD', 'ATOM-USD', 'XLM-USD',
+    'ETC-USD', 'FIL-USD', 'ICP-USD', 'NEAR-USD', 'APT-USD', 'ARB-USD', 'OP-USD', 'INJ-USD',
+    'SUI-USD', 'SEI-USD', 'TON-USD', 'SHIB-USD', 'PEPE-USD', 'UNI-USD', 'AAVE-USD', 'MKR-USD',
+    'RNDR-USD', 'GRT-USD', 'ALGO-USD', 'HBAR-USD', 'VET-USD', 'XTZ-USD', 'EOS-USD', 'NEO-USD',
+    'KAS-USD', 'TIA-USD', 'JUP-USD', 'WIF-USD', 'BONK-USD', 'FET-USD', 'RUNE-USD', 'IMX-USD',
+    'FLOW-USD', 'SAND-USD', 'MANA-USD', 'THETA-USD', 'EGLD-USD', 'QNT-USD', 'KAVA-USD', 'ZEC-USD',
+  ],
 };
 
 export interface StockQuote {
@@ -129,13 +172,13 @@ export function getStockDataSetupHint(): string | null {
     return null;
   }
 
-  const backendCandidates = getBackendBaseCandidates();
-  if (backendCandidates.length > 0 && backendCandidates.every(base => !canUseProxy(base))) {
+  const proxyCandidates = getStockProxyBases();
+  if (proxyCandidates.length > 0 && proxyCandidates.every(base => !canUseProxy(base))) {
     if (typeof window !== 'undefined' && window.location.protocol === 'https:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
       return 'Live market data is temporarily unavailable. Please retry in a moment.';
     }
 
-    return 'Start the backend with `npm run dev` in /backend or add VITE_TWELVEDATA_API_KEY to frontend/.env.local.';
+    return 'Start the backend with `npm run dev:backend` (or `npm run dev:full`) or add VITE_TWELVEDATA_API_KEY to frontend/.env.local.';
   }
 
   return null;
@@ -172,6 +215,22 @@ function writeCache(quotes: Record<string, StockQuote | null>) {
 
 function isAbsoluteUrl(value: string) {
   return /^https?:\/\//i.test(value);
+}
+
+function getOrigin() {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  return 'http://localhost';
+}
+
+function normalizeProxyBase(base: string, origin = getOrigin()) {
+  try {
+    return new URL(base, origin).toString().replace(/\/+$/, '');
+  } catch {
+    return base.replace(/\/+$/, '');
+  }
 }
 
 function uniq(values: string[]) {
@@ -213,7 +272,9 @@ function getBackendBaseCandidates() {
 }
 
 function getStockProxyBases() {
-  return getBackendBaseCandidates().map(base => `${base}/stocks`);
+  const origin = getOrigin();
+  const bases = getBackendBaseCandidates().map(base => normalizeProxyBase(`${base}/stocks`, origin));
+  return uniq(bases);
 }
 
 function isUsExchange(exchange?: string) {
@@ -490,16 +551,53 @@ function markProxyUnavailable(proxyBase: string) {
   proxyUnavailableUntil.set(proxyBase, Date.now() + PROXY_BACKOFF_MS);
 }
 
+function canUseAnyProxy(proxyBases: string[]) {
+  if (Date.now() < proxyGlobalUnavailableUntil) {
+    return false;
+  }
+
+  return proxyBases.some(base => canUseProxy(base));
+}
+
+function markAllProxiesUnavailable(durationMs = PROXY_GLOBAL_BACKOFF_MS) {
+  proxyGlobalUnavailableUntil = Date.now() + durationMs;
+}
+
+function chunkArray<T>(arr: T[], chunkSize: number) {
+  const chunks: T[][] = [];
+
+  for (let i = 0; i < arr.length; i += chunkSize) {
+    chunks.push(arr.slice(i, i + chunkSize));
+  }
+
+  return chunks;
+}
+
+function mergeQuotesPreferNonNull(
+  base: Record<string, StockQuote | null>,
+  incoming: Record<string, StockQuote | null>,
+) {
+  for (const [symbol, quote] of Object.entries(incoming)) {
+    if (quote) {
+      base[symbol] = quote;
+      continue;
+    }
+
+    if (!base[symbol]) {
+      base[symbol] = null;
+    }
+  }
+}
+
 async function fetchProxyQuote(symbol: string, market?: string) {
   const target = resolveBackendTarget(symbol, market);
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
 
   for (const proxyBase of getStockProxyBases()) {
     if (!canUseProxy(proxyBase)) {
       continue;
     }
 
-    const url = new URL(`${proxyBase}/stock`, origin);
+    const url = new URL(`${proxyBase}/stock`);
     url.searchParams.set('symbol', target.symbol);
     url.searchParams.set('res', 'num');
     if (target.market) {
@@ -532,46 +630,76 @@ async function fetchProxyBatch(symbols: string[], market?: string) {
     return null;
   }
 
-  const targets = symbols.map(symbol => ({
+  const uniqueSymbols = uniq(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean));
+  if (uniqueSymbols.length === 0) {
+    return null;
+  }
+
+  const targets = uniqueSymbols.map(symbol => ({
     requestSymbol: symbol,
     ...resolveBackendTarget(symbol, market),
   }));
   const sharedMarket = targets.every(target => target.market === targets[0]?.market)
     ? targets[0]?.market
     : undefined;
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
 
-  for (const proxyBase of getStockProxyBases()) {
+  const proxyBases = getStockProxyBases();
+  if (!canUseAnyProxy(proxyBases)) {
+    return null;
+  }
+
+  const targetChunks = chunkArray(targets, BATCH_CHUNK_SIZE);
+
+  for (const proxyBase of proxyBases) {
     if (!canUseProxy(proxyBase)) {
       continue;
     }
 
-    const url = new URL(`${proxyBase}/batch`, origin);
-    url.searchParams.set('symbols', targets.map(target => target.symbol).join(','));
-
-    if (sharedMarket) {
-      url.searchParams.set('market', sharedMarket);
-    }
-
     try {
-      const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(15_000) }, 0, 500);
-      if (!res.ok) {
-        markProxyUnavailable(proxyBase);
-        continue;
-      }
-
-      const json = await res.json();
       const map: Record<string, StockQuote | null> = {};
+      let hadSuccessfulChunk = false;
 
-      for (const target of targets) {
-        const item = json.results?.[target.symbol];
-        map[target.requestSymbol] = item?.status === 'success'
-          ? mapApiResponse(item, target.requestSymbol)
-          : null;
+      for (const chunk of targetChunks) {
+        const url = new URL(`${proxyBase}/batch`);
+        url.searchParams.set('symbols', chunk.map(target => target.symbol).join(','));
+
+        if (sharedMarket) {
+          url.searchParams.set('market', sharedMarket);
+        }
+
+        const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(15_000) }, 0, 500);
+        if (!res.ok) {
+          if (res.status >= 500) {
+            markAllProxiesUnavailable();
+          }
+
+          markProxyUnavailable(proxyBase);
+          hadSuccessfulChunk = false;
+          break;
+        }
+
+        const json = await res.json().catch(() => null);
+        if (!json || typeof json !== 'object') {
+          markProxyUnavailable(proxyBase);
+          hadSuccessfulChunk = false;
+          break;
+        }
+
+        hadSuccessfulChunk = true;
+
+        for (const target of chunk) {
+          const item = json.results?.[target.symbol];
+          map[target.requestSymbol] = item?.status === 'success'
+            ? mapApiResponse(item, target.requestSymbol)
+            : null;
+        }
       }
 
-      return map;
+      if (hadSuccessfulChunk) {
+        return map;
+      }
     } catch {
+      markAllProxiesUnavailable();
       markProxyUnavailable(proxyBase);
     }
   }
@@ -722,14 +850,12 @@ function dedupeSearchResults(results: StockSearchResult[]) {
 }
 
 async function searchProxy(query: string, market?: string) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
-
   for (const proxyBase of getStockProxyBases()) {
     if (!canUseProxy(proxyBase)) {
       continue;
     }
 
-    const url = new URL(`${proxyBase}/search`, origin);
+    const url = new URL(`${proxyBase}/search`);
     url.searchParams.set('q', query);
     if (market) {
       url.searchParams.set('market', market);
@@ -826,45 +952,51 @@ export async function fetchStockQuote(symbol: string, market?: string): Promise<
 }
 
 export async function fetchMultipleQuotes(symbols: string[], market?: string): Promise<Record<string, StockQuote | null>> {
+  const normalizedSymbols = uniq(symbols.map(symbol => symbol.trim().toUpperCase()).filter(Boolean));
   const cachedData = readCache();
   const map: Record<string, StockQuote | null> = {};
 
-  for (const symbol of symbols) {
+  for (const symbol of normalizedSymbols) {
     map[symbol] = cachedData[symbol] ?? null;
   }
 
-  if (!navigator.onLine) {
+  if (!navigator.onLine || normalizedSymbols.length === 0) {
     return map;
   }
 
-  const proxyMap = await fetchProxyBatch(symbols, market);
-  if (proxyMap) {
-    Object.assign(map, proxyMap);
-  }
-
-  const missingSymbols = symbols.filter(symbol => !map[symbol]);
-  if (missingSymbols.length > 0) {
-    const directBatch = await fetchTwelveDataBatch(missingSymbols, market);
-    if (directBatch) {
-      Object.assign(map, directBatch);
+  try {
+    const proxyMap = await fetchProxyBatch(normalizedSymbols, market);
+    if (proxyMap) {
+      mergeQuotesPreferNonNull(map, proxyMap);
     }
-  }
 
-  const unresolvedSymbols = symbols.filter(symbol => !map[symbol]);
-  if (unresolvedSymbols.length > 0 && hasDirectStockProvider()) {
-    const results = await Promise.allSettled(
-      unresolvedSymbols.map(async symbol => ({ symbol, quote: await fetchTwelveDataQuote(symbol, market) })),
-    );
-
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        map[result.value.symbol] = result.value.quote;
+    const missingSymbols = normalizedSymbols.filter(symbol => !map[symbol]);
+    if (missingSymbols.length > 0) {
+      const directBatch = await fetchTwelveDataBatch(missingSymbols, market);
+      if (directBatch) {
+        mergeQuotesPreferNonNull(map, directBatch);
       }
     }
-  }
 
-  writeCache(map);
-  return map;
+    const unresolvedSymbols = normalizedSymbols.filter(symbol => !map[symbol]);
+    if (unresolvedSymbols.length > 0 && hasDirectStockProvider()) {
+      const results = await Promise.allSettled(
+        unresolvedSymbols.map(async symbol => ({ symbol, quote: await fetchTwelveDataQuote(symbol, market) })),
+      );
+
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value.quote) {
+          map[result.value.symbol] = result.value.quote;
+        }
+      }
+    }
+
+    writeCache(map);
+    return map;
+  } catch {
+    // Do not fail UI updates if upstream market APIs are unstable.
+    return map;
+  }
 }
 
 export async function searchStocks(query: string, market?: string): Promise<StockSearchResult[]> {
@@ -908,15 +1040,11 @@ export function formatMarketCap(n: number, currency: string = '₹'): string {
 export function getDefaultWatchlist(market: MarketCategory): string[] {
   if (market === 'all') {
     return [
-      'RELIANCE.NS',
-      'TCS.NS',
-      'RELIANCE.BO',
-      'AAPL.US',
-      'MSFT.US',
-      'EURUSD=X',
-      'USDJPY=X',
-      'BTC-USD',
-      'ETH-USD',
+      ...DEFAULT_WATCHLISTS.nse.slice(0, 12),
+      ...DEFAULT_WATCHLISTS.bse.slice(0, 8),
+      ...DEFAULT_WATCHLISTS.us.slice(0, 14),
+      ...DEFAULT_WATCHLISTS.forex.slice(0, 14),
+      ...DEFAULT_WATCHLISTS.crypto.slice(0, 14),
     ];
   }
 

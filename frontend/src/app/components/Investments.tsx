@@ -38,6 +38,7 @@ export const Investments: React.FC = () => {
   const [updatingPrices, setUpdatingPrices] = useState(false);
   const [closingInvestment, setClosingInvestment] = useState<(typeof investments)[number] | null>(null);
   const priceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const priceFetchInFlight = useRef(false);
 
   const openInvestments = useMemo(
     () => investments.filter((investment) => !isClosedInvestment(investment)),
@@ -56,11 +57,18 @@ export const Investments: React.FC = () => {
 
   const fetchLivePrices = useCallback(async (isManual = false) => {
     if (!portfolioSymbols.length || !navigator.onLine) return;
+    if (priceFetchInFlight.current) return;
+
+    priceFetchInFlight.current = true;
     if (isManual) setUpdatingPrices(true);
+
     try {
       const quotes = await fetchMultipleQuotes(portfolioSymbols);
       setLiveQuotes(quotes);
+    } catch (error) {
+      console.error('Failed to update live investment prices:', error);
     } finally {
+      priceFetchInFlight.current = false;
       setUpdatingPrices(false);
     }
   }, [portfolioSymbols]);

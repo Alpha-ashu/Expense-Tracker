@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Activity, Loader2, TrendingDown, TrendingUp } from 'lucide-react';
 import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
 import { buildFlashItems, formatFlashPrice, getFlashAssets, inferCountryFromCurrency, type FlashItem, type FlashTone } from '@/lib/marketFlash';
@@ -72,6 +72,7 @@ export const LiveMarketTicker: React.FC = () => {
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
   const [userCountry, setUserCountry] = useState(() => readSelectedCountry(currency));
   const [loading, setLoading] = useState(true);
+  const loadInFlight = useRef(false);
 
   useEffect(() => {
     const syncCountry = () => {
@@ -92,14 +93,27 @@ export const LiveMarketTicker: React.FC = () => {
     let active = true;
 
     const loadQuotes = async () => {
-      const { assets } = getFlashAssets(userCountry, currency);
-      const data = await fetchMultipleQuotes(assets.map(asset => asset.symbol));
-      if (!active) {
+      if (loadInFlight.current) {
         return;
       }
 
-      setQuotes(data);
-      setLoading(false);
+      loadInFlight.current = true;
+      const { assets } = getFlashAssets(userCountry, currency);
+      try {
+        const data = await fetchMultipleQuotes(assets.map(asset => asset.symbol));
+        if (!active) {
+          return;
+        }
+
+        setQuotes(data);
+      } catch (error) {
+        console.error('Failed to load live market ticker quotes:', error);
+      } finally {
+        loadInFlight.current = false;
+        if (active) {
+          setLoading(false);
+        }
+      }
     };
 
     setLoading(true);

@@ -4,32 +4,15 @@ import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X, KeyRound, Shuffle, SlidersHorizontal } from 'lucide-react';
+import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X, KeyRound, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { permissionService } from '@/services/permissionService';
 import { backupPINKeys, restorePINKeys, storeMasterKey, verifyPIN, isPINSet } from '@/lib/encryption';
-import {
-  AvatarConfig,
-  BACKGROUND_COLORS,
-  BEARDS,
-  CLOTHING_COLORS,
-  GLASSES,
-  HAIR_COLORS,
-  SKIN_TONES,
-  buildAvatarUrl,
-  calculateAge,
-  createAvatarConfig,
-  getAgeGroup,
-  getAgeGroupLabel,
-  getClothingOptions,
-  getHairOptions,
-  mergeAvatarConfig,
-  parseAvatarUrl,
-  randomizeAvatarConfig,
-} from '@/lib/avatar';
+import { calculateAge, getAgeGroup, getAgeGroupLabel } from '@/lib/avatar';
+import { AVATAR_OPTIONS, DEFAULT_AVATAR, resolveAvatarSelection } from '@/lib/avatar-gallery';
 
 interface ProfileData {
   firstName: string;
@@ -40,6 +23,7 @@ interface ProfileData {
   monthlyIncome: number;
   jobType: 'businessman' | 'salaried' | 'freelancer' | '';
   profilePhoto?: string;
+  avatarId?: string;
 }
 
 interface VerificationState {
@@ -150,7 +134,8 @@ export const UserProfile: React.FC = () => {
     dateOfBirth: '',
     monthlyIncome: 0,
     jobType: '',
-    profilePhoto: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Default',
+    profilePhoto: DEFAULT_AVATAR.url,
+    avatarId: DEFAULT_AVATAR.id,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -183,10 +168,8 @@ export const UserProfile: React.FC = () => {
     return 'Not specified';
   };
 
-  const ensureAvatarUrl = (url: string | undefined, seed: string) => {
-    if (url && url.includes('api.dicebear.com/7.x/avataaars')) return url;
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed || 'User')}`;
-  };
+  const resolveAvatar = (avatarUrl?: string | null, avatarId?: string | null) =>
+    resolveAvatarSelection({ avatarUrl, avatarId });
 
   const fetchProfileData = async () => {
     if (!user) { setIsLoading(false); return; }
@@ -205,7 +188,8 @@ export const UserProfile: React.FC = () => {
         firstName: metaFirstName || prev.firstName,
         lastName: metaLastName || prev.lastName,
         email: user.email || prev.email,
-        profilePhoto: ensureAvatarUrl(prev.profilePhoto, metaFirstName || 'User'),
+        profilePhoto: resolveAvatar(prev.profilePhoto, prev.avatarId).url,
+        avatarId: resolveAvatar(prev.profilePhoto, prev.avatarId).id,
       }));
     }
 
@@ -233,7 +217,8 @@ export const UserProfile: React.FC = () => {
           dateOfBirth: p.dateOfBirth || prev.dateOfBirth || '',
           monthlyIncome: monthlyIncomeVal || prev.monthlyIncome,
           jobType: (normalizeJobType(p.jobType) || prev.jobType) as ProfileData['jobType'],
-          profilePhoto: ensureAvatarUrl(p.profilePhoto || prev.profilePhoto, firstName || 'User'),
+          profilePhoto: resolveAvatar(p.profilePhoto || prev.profilePhoto, p.avatarId || prev.avatarId).url,
+          avatarId: resolveAvatar(p.profilePhoto || prev.profilePhoto, p.avatarId || prev.avatarId).id,
         }));
       } catch {
         // Corrupt localStorage — fall through to Supabase
@@ -272,6 +257,7 @@ export const UserProfile: React.FC = () => {
             ? Math.round(Number(data.annual_income) / 12)
             : 0;
         const updatedAt = data.updated_at || new Date().toISOString();
+        const resolved = resolveAvatar(data.avatar_url || null, (data as any)?.avatar_id || null);
 
         setProfileData({
           firstName,
@@ -281,7 +267,8 @@ export const UserProfile: React.FC = () => {
           dateOfBirth: data.date_of_birth || '',
           monthlyIncome: monthlyIncomeVal,
           jobType: (normalizeJobType(data.job_type) || '') as ProfileData['jobType'],
-          profilePhoto: ensureAvatarUrl(data.avatar_url || undefined, firstName || 'User'),
+          profilePhoto: resolved.url,
+          avatarId: resolved.id,
         });
         // Keep localStorage in sync
         localStorage.setItem('user_profile', JSON.stringify({
@@ -292,8 +279,9 @@ export const UserProfile: React.FC = () => {
           jobType: data.job_type || '',
           salary: ((data.annual_income || (monthlyIncomeVal * 12)) || 0).toString(),
           monthlyIncome: monthlyIncomeVal,
-          profilePhoto: ensureAvatarUrl(data.avatar_url || undefined, firstName || 'User'),
-          avatarUrl: ensureAvatarUrl(data.avatar_url || undefined, firstName || 'User'),
+          profilePhoto: resolved.url,
+          avatarUrl: resolved.url,
+          avatarId: resolved.id,
           updatedAt,
         }));
         localStorage.setItem('profile_updated_at', updatedAt);
@@ -326,7 +314,7 @@ export const UserProfile: React.FC = () => {
 
   const [isEditingForm, setIsEditingForm] = useState(false);
   const [tempData, setTempData] = useState<ProfileData>(profileData);
-  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+  const [showAvatarGallery, setShowAvatarGallery] = useState(false);
 
   // Bug 3 fix: keep tempData in sync with profileData after async fetch,
   // but only when the edit form is not currently open to avoid overwriting
@@ -339,7 +327,7 @@ export const UserProfile: React.FC = () => {
 
   useEffect(() => {
     if (!isEditingForm) {
-      setShowAvatarEditor(false);
+      setShowAvatarGallery(false);
     }
   }, [isEditingForm]);
 
@@ -353,45 +341,24 @@ export const UserProfile: React.FC = () => {
   const ageGroup = getAgeGroup(ageValue);
   const ageGroupLabel = getAgeGroupLabel(ageGroup);
   const ageSource = isEditingForm ? tempData.dateOfBirth : profileData.dateOfBirth;
-  const hairOptions = getHairOptions(ageGroup);
-  const clothingOptions = getClothingOptions(ageGroup);
-
-  const [avatarConfig, setAvatarConfig] = useState<AvatarConfig>(() => {
-    const base = createAvatarConfig({
-      name: `${profileData.firstName || profileData.email || 'User'}`,
-      ageGroup,
-    });
-    return mergeAvatarConfig(base, parseAvatarUrl(profileData.profilePhoto));
+  const activeAvatar = resolveAvatarSelection({
+    avatarId: (isEditingForm ? tempData.avatarId : profileData.avatarId) || null,
+    avatarUrl: (isEditingForm ? tempData.profilePhoto : profileData.profilePhoto) || null,
   });
-
-  const activeAvatarUrl = (isEditingForm ? tempData.profilePhoto : profileData.profilePhoto)
-    || buildAvatarUrl(avatarConfig);
-
-  useEffect(() => {
-    if (showAvatarEditor) return;
-    setAvatarConfig((prev) => mergeAvatarConfig(prev, parseAvatarUrl(activeAvatarUrl)));
-  }, [activeAvatarUrl, showAvatarEditor]);
-
-  const labelize = (value: string) =>
-    value.replace(/([A-Z])/g, ' $1').replace(/^./, (char) => char.toUpperCase());
-
-  const applyAvatarConfig = (nextConfig: AvatarConfig) => {
-    const nextUrl = buildAvatarUrl(nextConfig);
-    setAvatarConfig(nextConfig);
-    setTempData((prev) => ({ ...prev, profilePhoto: nextUrl }));
-  };
+  const activeAvatarUrl = activeAvatar.url;
 
   const handleSaveProfile = async () => {
     if (!user) return;
     setIsLoading(true);
     localStorage.setItem('profile_sync_pending', 'true');
     try {
+      const resolvedAvatar = resolveAvatar(tempData.profilePhoto, tempData.avatarId);
       const baseData = {
         id: user.id,
         email: tempData.email,
         full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
         phone: tempData.mobile,
-        avatar_url: ensureAvatarUrl(tempData.profilePhoto, tempData.firstName || 'User'),
+        avatar_url: resolvedAvatar.url,
         updated_at: new Date().toISOString(),
       };
 
@@ -419,6 +386,7 @@ export const UserProfile: React.FC = () => {
             last_name: tempData.lastName,
             full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
             phone: tempData.mobile,
+            avatar_id: resolvedAvatar.id,
           },
         });
       } catch (metaError) {
@@ -438,8 +406,9 @@ export const UserProfile: React.FC = () => {
         jobType: tempData.jobType,
         salary: (tempData.monthlyIncome || 0) * 12,
         monthlyIncome: tempData.monthlyIncome || 0,
-        profilePhoto: ensureAvatarUrl(tempData.profilePhoto, tempData.firstName || 'User'),
-        avatarUrl: ensureAvatarUrl(tempData.profilePhoto, tempData.firstName || 'User'),
+        profilePhoto: resolvedAvatar.url,
+        avatarUrl: resolvedAvatar.url,
+        avatarId: resolvedAvatar.id,
         updatedAt,
       }));
       localStorage.setItem('profile_updated_at', updatedAt);
@@ -682,152 +651,55 @@ export const UserProfile: React.FC = () => {
               )}
             </div>
             <p className="text-xs text-gray-500 text-center max-w-sm">
-              Animated avatar generated from your age group. Real photos are disabled for safety.
+              Choose a ready-made avatar from the gallery. Real photos are disabled for safety.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 onClick={() => {
                   setIsEditingForm(true);
-                  const nextConfig = randomizeAvatarConfig(avatarConfig, ageGroup);
-                  applyAvatarConfig(nextConfig);
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <Shuffle size={14} />
-                Randomize
-              </button>
-              <button
-                onClick={() => {
-                  setIsEditingForm(true);
-                  setShowAvatarEditor((prev) => !prev);
+                  setShowAvatarGallery((prev) => !prev);
                 }}
                 className="inline-flex items-center gap-2 rounded-full border border-blue-200 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
               >
-                <SlidersHorizontal size={14} />
-                Edit Avatar
+                Choose Avatar
               </button>
+              {showAvatarGallery && (
+                <button
+                  onClick={handleSaveProfile}
+                  className="inline-flex items-center gap-2 rounded-full border border-green-200 px-4 py-2 text-xs font-semibold text-green-700 hover:bg-green-50"
+                >
+                  <Check size={14} />
+                  Save Avatar
+                </button>
+              )}
             </div>
-            {showAvatarEditor && (
-              <div className="mt-4 w-full max-w-xl rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label className="text-xs font-semibold text-gray-600">
-                    Gender
-                    <select
-                      value={avatarConfig.gender}
-                      onChange={(e) => {
-                        const gender = e.target.value as AvatarConfig['gender'];
-                        const next = {
-                          ...avatarConfig,
-                          gender,
-                          beard: gender === 'female' ? 'Blank' : avatarConfig.beard,
-                        };
-                        applyAvatarConfig(next);
-                      }}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            {showAvatarGallery && (
+              <div className="mt-4 w-full max-w-3xl rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+                  {AVATAR_OPTIONS.map((avatar) => (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      onClick={() => setTempData((prev) => ({
+                        ...prev,
+                        profilePhoto: avatar.url,
+                        avatarId: avatar.id,
+                      }))}
+                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${
+                        activeAvatar.id === avatar.id
+                          ? 'border-blue-500 ring-2 ring-blue-200'
+                          : 'border-transparent hover:border-gray-300'
+                      }`}
+                      aria-label={`Select avatar ${avatar.label}`}
+                      title={avatar.label}
                     >
-                      <option value="neutral">Neutral</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Skin Tone
-                    <select
-                      value={avatarConfig.skinTone}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, skinTone: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {SKIN_TONES.map((tone) => (
-                        <option key={tone} value={tone}>{tone}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Hair Style
-                    <select
-                      value={avatarConfig.hairStyle}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, hairStyle: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {hairOptions.map((style) => (
-                        <option key={style} value={style}>{labelize(style)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Hair Color
-                    <select
-                      value={avatarConfig.hairColor}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, hairColor: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {HAIR_COLORS.map((color) => (
-                        <option key={color} value={color}>{labelize(color)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Glasses
-                    <select
-                      value={avatarConfig.glasses}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, glasses: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {GLASSES.map((glasses) => (
-                        <option key={glasses} value={glasses}>{labelize(glasses)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Beard
-                    <select
-                      value={avatarConfig.beard}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, beard: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                      disabled={avatarConfig.gender === 'female'}
-                    >
-                      {BEARDS.map((beard) => (
-                        <option key={beard} value={beard}>{labelize(beard)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Clothing
-                    <select
-                      value={avatarConfig.clothing}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, clothing: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {clothingOptions.map((style) => (
-                        <option key={style} value={style}>{labelize(style)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Clothing Color
-                    <select
-                      value={avatarConfig.clothingColor}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, clothingColor: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {CLOTHING_COLORS.map((color) => (
-                        <option key={color} value={color}>{labelize(color)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="text-xs font-semibold text-gray-600">
-                    Background
-                    <select
-                      value={avatarConfig.backgroundColor}
-                      onChange={(e) => applyAvatarConfig({ ...avatarConfig, backgroundColor: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    >
-                      {BACKGROUND_COLORS.map((color) => (
-                        <option key={color} value={color}>#{color}</option>
-                      ))}
-                    </select>
-                  </label>
+                      <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover" />
+                    </button>
+                  ))}
                 </div>
+                <p className="mt-3 text-xs text-gray-500 text-center">
+                  Pick a style that fits your vibe. You can update it anytime.
+                </p>
               </div>
             )}
           </motion.div>

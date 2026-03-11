@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Shuffle } from 'lucide-react';
-import { calculateAge, generateAvatarGallery, getAgeGroup } from '@/lib/avatar';
+import { Check } from 'lucide-react';
+import { AVATAR_OPTIONS, getAvatarById, resolveAvatarSelection } from '@/lib/avatar-gallery';
 
 interface ProfileSetupStepProps {
   data: {
@@ -9,6 +9,7 @@ interface ProfileSetupStepProps {
     jobType: string;
     salary: string;
     avatarUrl?: string;
+    avatarId?: string;
   };
   onUpdate: (data: any) => void;
   onNext: () => void;
@@ -32,19 +33,23 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
   onNext,
 }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const age = calculateAge(data.dateOfBirth);
-  const ageGroup = getAgeGroup(age);
-  const [avatarGallerySalt, setAvatarGallerySalt] = useState(0);
-  const avatarSeedBase = `${data.displayName || 'User'}-${ageGroup}`;
-  const avatarOptions = useMemo(
-    () => generateAvatarGallery({ seed: avatarSeedBase, count: 12, salt: avatarGallerySalt }),
-    [avatarSeedBase, avatarGallerySalt],
+  const resolvedAvatar = useMemo(
+    () => resolveAvatarSelection({ avatarId: data.avatarId, avatarUrl: data.avatarUrl }),
+    [data.avatarId, data.avatarUrl],
   );
+  const [pendingAvatarId, setPendingAvatarId] = useState(resolvedAvatar.id);
 
   React.useEffect(() => {
-    if (!data.dateOfBirth || data.avatarUrl || avatarOptions.length === 0) return;
-    onUpdate({ avatarUrl: avatarOptions[0].url });
-  }, [data.dateOfBirth, data.avatarUrl, avatarOptions, onUpdate]);
+    if (!data.avatarUrl && !data.avatarId) {
+      onUpdate({ avatarId: resolvedAvatar.id, avatarUrl: resolvedAvatar.url });
+    }
+  }, [data.avatarId, data.avatarUrl, onUpdate, resolvedAvatar.id, resolvedAvatar.url]);
+
+  React.useEffect(() => {
+    setPendingAvatarId(resolvedAvatar.id);
+  }, [resolvedAvatar.id]);
+
+  const pendingAvatar = getAvatarById(pendingAvatarId) || resolvedAvatar;
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -77,6 +82,12 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      if (pendingAvatarId && pendingAvatarId !== data.avatarId) {
+        const selected = getAvatarById(pendingAvatarId);
+        if (selected) {
+          onUpdate({ avatarId: selected.id, avatarUrl: selected.url });
+        }
+      }
       onNext();
     }
   };
@@ -95,43 +106,45 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
       {/* Avatar Selection Area */}
       <div className="flex flex-col items-center justify-center mb-6">
         <div className="relative">
-          <div className="w-24 h-24 rounded-full border-4 border-blue-500 overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-            {data.avatarUrl ? (
-              <img src={data.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-white text-3xl font-bold">
-                {data.displayName ? data.displayName.charAt(0).toUpperCase() : '?'}
-              </span>
-            )}
+          <div className="w-24 h-24 rounded-full border-4 border-blue-500 overflow-hidden bg-white flex items-center justify-center shadow-md">
+            <img src={pendingAvatar.url} alt="Selected avatar" className="w-full h-full object-cover" />
           </div>
         </div>
         <p className="text-xs text-gray-400 mt-2 text-center max-w-xs">
-          Pick an avatar that matches your style. You can shuffle for more options.
+          Choose a ready-made avatar. You can change this anytime.
         </p>
-        <button
-          type="button"
-          onClick={() => setAvatarGallerySalt((prev) => prev + 1)}
-          className="mt-3 inline-flex items-center gap-2 rounded-full border border-blue-200 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
-        >
-          <Shuffle size={14} />
-          Shuffle Avatars
-        </button>
-        <div className="mt-4 grid grid-cols-4 gap-3">
-          {avatarOptions.map((avatar) => (
+
+        <div className="mt-4 w-full">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-900">Choose Your Avatar</h4>
             <button
-              key={avatar.id}
               type="button"
-              onClick={() => onUpdate({ avatarUrl: avatar.url })}
-              className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${
-                data.avatarUrl === avatar.url
-                  ? 'border-blue-500 ring-2 ring-blue-200'
-                  : 'border-transparent hover:border-gray-300'
-              }`}
-              aria-label="Select avatar"
+              onClick={() => onUpdate({ avatarId: pendingAvatar.id, avatarUrl: pendingAvatar.url })}
+              className="inline-flex items-center gap-2 rounded-full border border-blue-200 px-4 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
             >
-              <img src={avatar.url} alt="Avatar option" className="h-full w-full object-cover" />
+              <Check size={14} />
+              Save Avatar
             </button>
-          ))}
+          </div>
+
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+            {AVATAR_OPTIONS.map((avatar) => (
+              <button
+                key={avatar.id}
+                type="button"
+                onClick={() => setPendingAvatarId(avatar.id)}
+                className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${
+                  pendingAvatarId === avatar.id
+                    ? 'border-blue-500 ring-2 ring-blue-200'
+                    : 'border-transparent hover:border-gray-300'
+                }`}
+                aria-label={`Select avatar ${avatar.label}`}
+                title={avatar.label}
+              >
+                <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover" />
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -1,74 +1,94 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { Calendar, Download, TrendingUp } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { toLocalDateKey } from '@/lib/dateUtils';
+import { downloadFile } from '@/lib/download';
+import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
+import { jsPDF } from 'jspdf';
+
+const chartColors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#22C55E', '#0EA5E9', '#F97316'];
+
+type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
 
 export const Reports: React.FC = () => {
   const { transactions, accounts, loans, goals, investments, currency, setCurrentPage } = useApp();
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+  const [timeRange, setTimeRange] = useState<TimeRange>('monthly');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
-  const getDaysCount = () => {
-    switch (timeRange) {
-      case '7d': return 7;
-      case '30d': return 30;
-      case '90d': return 90;
-      case '1y': return 365;
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+    }).format(amount || 0);
   };
 
-  const cashFlowData = useMemo(() => {
-    const days = getDaysCount();
-    const data = [];
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateKey = toLocalDateKey(date);
-      
-      const dayTransactions = transactions.filter(t => {
-        return dateKey && toLocalDateKey(t.date) === dateKey;
-      });
-      
-      const income = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-      const expense = dayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-      
-      data.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        income,
-        expense,
-        net: income - expense,
-      });
-    }
-    
-    return data;
-  }, [transactions, timeRange]);
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const end = new Date(now);
+    let start: Date | null = null;
 
-  const categoryBreakdown = useMemo(() => {
-    const categories: Record<string, number> = {};
-    transactions
-      .filter(t => t.type === 'expense')
-      .forEach(t => {
-        categories[t.category] = (categories[t.category] || 0) + t.amount;
-      });
-    
-    return Object.entries(categories)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
-  }, [transactions]);
+    if (timeRange === 'daily') {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (timeRange === 'weekly') {
+      const temp = new Date(now);
+      temp.setDate(now.getDate() - 6);
+      start = new Date(temp.getFullYear(), temp.getMonth(), temp.getDate());
+    } else if (timeRange === 'monthly') {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (timeRange === 'yearly') {
+      start = new Date(now.getFullYear(), 0, 1);
+    } else if (timeRange === 'custom') {
+      const parsedStart = parseDateInputValue(customRange.start);
+      const parsedEnd = parseDateInputValue(customRange.end);
+      if (parsedStart && parsedEnd) {
+        start = parsedStart;
+        end.setTime(parsedEnd.getTime());
+      }
+    }
+
+    return { start, end };
+  }, [timeRange, customRange]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!dateRange.start) return transactions;
+
+    const startKey = toLocalDateKey(dateRange.start);
+    const endKey = toLocalDateKey(dateRange.end);
+    if (!startKey || !endKey) return transactions;
+
+    return transactions.filter((t) => {
+      const key = toLocalDateKey(t.date);
+      return !!key && key >= startKey && key <= endKey;
+    });
+  }, [transactions, dateRange]);
 
   const summaryStats = useMemo(() => {
-    const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const totalIncome = filteredTransactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = filteredTransactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
     const netSavings = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
-    const totalDebt = loans.filter(l => l.status === 'active').reduce((sum, l) => sum + l.outstandingBalance, 0);
+    const totalDebt = loans.filter((l) => l.status === 'active').reduce((sum, l) => sum + l.outstandingBalance, 0);
     const totalGoalsProgress = goals.reduce((sum, g) => sum + g.currentAmount, 0);
     const totalInvested = investments.reduce((sum, i) => sum + i.totalInvested, 0);
 
@@ -81,47 +101,270 @@ export const Reports: React.FC = () => {
       totalGoalsProgress,
       totalInvested,
     };
-  }, [transactions, loans, goals, investments]);
+  }, [filteredTransactions, loans, goals, investments]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
+  const expenseBreakdown = useMemo(() => {
+    const categories: Record<string, number> = {};
+    filteredTransactions
+      .filter((t) => t.type === 'expense')
+      .forEach((t) => {
+        categories[t.category] = (categories[t.category] || 0) + t.amount;
+      });
+
+    return Object.entries(categories)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredTransactions]);
+
+  const cashFlowMonthly = useMemo(() => {
+    const monthlyMap = new Map<string, { income: number; expense: number }>();
+    filteredTransactions.forEach((t) => {
+      const date = new Date(t.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyMap.has(key)) {
+        monthlyMap.set(key, { income: 0, expense: 0 });
+      }
+      const bucket = monthlyMap.get(key)!;
+      if (t.type === 'income') bucket.income += t.amount;
+      if (t.type === 'expense') bucket.expense += t.amount;
+    });
+
+    return Array.from(monthlyMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => {
+        const [year, month] = key.split('-').map(Number);
+        const label = new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        return {
+          month: label,
+          income: value.income,
+          expense: value.expense,
+          net: value.income - value.expense,
+        };
+      });
+  }, [filteredTransactions]);
+
+  const savingsGrowth = useMemo(() => {
+    if (!dateRange.start) return [];
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    const netByDay = new Map<string, number>();
+
+    filteredTransactions.forEach((t) => {
+      const key = toLocalDateKey(t.date);
+      if (!key) return;
+      const delta = t.type === 'income' ? t.amount : -t.amount;
+      netByDay.set(key, (netByDay.get(key) || 0) + delta);
+    });
+
+    const data: Array<{ date: string; savings: number }> = [];
+    let running = 0;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const key = toLocalDateKey(cursor);
+      if (key) {
+        running += netByDay.get(key) || 0;
+        data.push({
+          date: cursor.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          savings: running,
+        });
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return data;
+  }, [filteredTransactions, dateRange]);
+
+  const incomeExpenseData = useMemo(() => ([
+    { name: 'Income', value: summaryStats.totalIncome },
+    { name: 'Expense', value: summaryStats.totalExpenses },
+  ]), [summaryStats.totalIncome, summaryStats.totalExpenses]);
+
+  const categoryOptions = useMemo(() => {
+    const categories = new Set(filteredTransactions.map((t) => t.category));
+    return Array.from(categories).sort();
+  }, [filteredTransactions]);
+
+  const tableTransactions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return filteredTransactions
+      .filter((t) => (categoryFilter === 'all' ? true : t.category === categoryFilter))
+      .filter((t) => {
+        if (!query) return true;
+        return [t.description, t.category, t.type, t.merchant]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredTransactions, searchQuery, categoryFilter]);
+
+  const exportCSV = async () => {
+    const header = ['Date', 'Category', 'Type', 'Amount', 'Payment Method', 'Description'];
+    const rows = tableTransactions.map((t) => {
+      const account = accounts.find((a) => a.id === t.accountId);
+      return [
+        formatLocalDate(t.date, 'en-US'),
+        t.category,
+        t.type,
+        t.amount.toString(),
+        account?.name || '',
+        t.description || '',
+      ];
+    });
+
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    await downloadFile({
+      filename: `report-${Date.now()}.csv`,
+      mimeType: 'text/csv;charset=utf-8',
+      data: csv,
+      shareTitle: 'Reports CSV',
+    });
+  };
+
+  const exportExcel = async () => {
+    const header = ['Date', 'Category', 'Type', 'Amount', 'Payment Method', 'Description'];
+    const rows = tableTransactions.map((t) => {
+      const account = accounts.find((a) => a.id === t.accountId);
+      return [
+        formatLocalDate(t.date, 'en-US'),
+        t.category,
+        t.type,
+        t.amount.toString(),
+        account?.name || '',
+        t.description || '',
+      ];
+    });
+
+    const table = [header, ...rows]
+      .map((row) => `<tr>${row.map((cell) => `<td>${String(cell)}</td>`).join('')}</tr>`)
+      .join('');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body><table>${table}</table></body></html>`;
+
+    await downloadFile({
+      filename: `report-${Date.now()}.xls`,
+      mimeType: 'application/vnd.ms-excel',
+      data: html,
+      shareTitle: 'Reports Excel',
+    });
+  };
+
+  const exportPDF = async () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Finora Reports', 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Range: ${timeRange.toUpperCase()}`, 14, 26);
+    doc.text(`Total Income: ${formatCurrency(summaryStats.totalIncome)}`, 14, 34);
+    doc.text(`Total Expense: ${formatCurrency(summaryStats.totalExpenses)}`, 14, 40);
+    doc.text(`Total Savings: ${formatCurrency(summaryStats.netSavings)}`, 14, 46);
+
+    let y = 58;
+    doc.setFontSize(11);
+    doc.text('Transactions', 14, y);
+    y += 6;
+    doc.setFontSize(9);
+
+    const rows = tableTransactions.slice(0, 40);
+    rows.forEach((t) => {
+      if (y > 280) {
+        doc.addPage();
+        y = 20;
+      }
+      const line = `${formatLocalDate(t.date, 'en-US')} | ${t.category} | ${t.type} | ${formatCurrency(t.amount)}`;
+      doc.text(line, 14, y);
+      y += 6;
+    });
+
+    const pdfBlob = doc.output('blob');
+    await downloadFile({
+      filename: `report-${Date.now()}.pdf`,
+      mimeType: 'application/pdf',
+      data: pdfBlob,
+      shareTitle: 'Reports PDF',
+    });
   };
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
       <PageHeader
         title="Reports & Analytics"
-        subtitle="Insights into your financial health"
+        subtitle="Track performance, spot trends, and export insights"
         icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
       >
-        <Button
-          onClick={() => setCurrentPage('export-reports')}
-          className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
-        >
-          <Download size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={exportPDF}
+            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
+          >
+            <Download size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+            PDF
+          </Button>
+          <Button
+            onClick={exportCSV}
+            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 transition-transform active:scale-95 text-xs sm:text-sm"
+          >
+            Export CSV
+          </Button>
+          <Button
+            onClick={exportExcel}
+            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 transition-transform active:scale-95 text-xs sm:text-sm"
+          >
+            Export Excel
+          </Button>
+          <Button
+            onClick={() => setCurrentPage('export-reports')}
+            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 transition-transform active:scale-95 text-xs sm:text-sm"
+          >
+            More Export Options
+          </Button>
+        </div>
       </PageHeader>
 
-      <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
-        <div className="flex items-center gap-1 sm:gap-2 bg-white border-2 border-gray-200 rounded-full p-1 shadow-sm flex-shrink-0">
-          {(['7d', '30d', '90d', '1y'] as const).map((range) => (
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {(['daily', 'weekly', 'monthly', 'yearly', 'custom'] as TimeRange[]).map((range) => (
             <button
               key={range}
               onClick={() => setTimeRange(range)}
-              className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all ${
                 timeRange === range
                   ? 'bg-black text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {range === '1y' ? '1Y' : range === '7d' ? '7D' : range === '30d' ? '30D' : '90D'}
+              {range === 'daily' && 'Daily'}
+              {range === 'weekly' && 'Weekly'}
+              {range === 'monthly' && 'Monthly'}
+              {range === 'yearly' && 'Yearly'}
+              {range === 'custom' && 'Custom'}
             </button>
           ))}
         </div>
+        {timeRange === 'custom' && (
+          <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-gray-500" />
+              <input
+                type="date"
+                value={customRange.start}
+                onChange={(e) => setCustomRange((prev) => ({ ...prev, start: e.target.value }))}
+                className="px-3 py-2 border border-gray-200 rounded-lg"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-gray-500" />
+              <input
+                type="date"
+                value={customRange.end}
+                onChange={(e) => setCustomRange((prev) => ({ ...prev, end: e.target.value }))}
+                className="px-3 py-2 border border-gray-200 rounded-lg"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -139,7 +382,7 @@ export const Reports: React.FC = () => {
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card variant="glass" className="p-4 sm:p-6">
-            <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Net Savings</p>
+            <p className="text-gray-500 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Total Savings</p>
             <p className={`text-xl sm:text-2xl font-display font-bold ${summaryStats.netSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {formatCurrency(summaryStats.netSavings)}
             </p>
@@ -155,36 +398,166 @@ export const Reports: React.FC = () => {
         </motion.div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card variant="glass" className="p-6">
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Expense Breakdown</h3>
+          {expenseBreakdown.length === 0 ? (
+            <p className="text-sm text-gray-500">No expenses found for this range.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <PieChart>
+                <Pie data={expenseBreakdown} dataKey="value" nameKey="name" outerRadius={100}>
+                  {expenseBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${entry.name}`} fill={chartColors[index % chartColors.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card variant="glass" className="p-6">
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Category-wise Spending</h3>
+          {expenseBreakdown.length === 0 ? (
+            <p className="text-sm text-gray-500">No expenses found for this range.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={expenseBreakdown.slice(0, 8)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="name" angle={-20} textAnchor="end" height={70} stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Bar dataKey="value" fill="#111827" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+      </div>
+
       <Card variant="glass" className="p-6">
-        <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Cash Flow Trend</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={cashFlowData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="date" stroke="#9ca3af" />
-            <YAxis stroke="#9ca3af" />
-            <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-            <Legend />
-            <Line type="monotone" dataKey="income" stroke="#10B981" strokeWidth={2} name="Income" />
-            <Line type="monotone" dataKey="expense" stroke="#EF4444" strokeWidth={2} name="Expenses" />
-            <Line type="monotone" dataKey="net" stroke="#000000" strokeWidth={2} name="Net" />
-          </LineChart>
-        </ResponsiveContainer>
+        <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Monthly Cash Flow</h3>
+        {cashFlowMonthly.length === 0 ? (
+          <p className="text-sm text-gray-500">No cash flow data available.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={cashFlowMonthly}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="month" stroke="#9ca3af" />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+              <Legend />
+              <Bar dataKey="income" fill="#10B981" name="Income" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="expense" fill="#EF4444" name="Expense" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card variant="glass" className="p-6">
-          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Top Expense Categories</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={categoryBreakdown}>
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Savings Growth</h3>
+          {savingsGrowth.length === 0 ? (
+            <p className="text-sm text-gray-500">No savings data available.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={savingsGrowth}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="date" stroke="#9ca3af" />
+                <YAxis stroke="#9ca3af" />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                <Line type="monotone" dataKey="savings" stroke="#2563EB" strokeWidth={2.5} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card variant="glass" className="p-6">
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Income vs Expense</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={incomeExpenseData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} stroke="#9ca3af" />
+              <XAxis dataKey="name" stroke="#9ca3af" />
               <YAxis stroke="#9ca3af" />
               <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Bar dataKey="value" fill="#000000" name="Amount" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" fill="#0F172A" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
+      </div>
 
+      <Card variant="glass" className="p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-lg font-display font-bold text-gray-900">Transactions</h3>
+            <p className="text-sm text-gray-500">Search and filter detailed activity.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={exportPDF} className="rounded-full px-4 py-2 text-xs bg-black text-white hover:bg-gray-900">Download PDF</Button>
+            <Button onClick={exportCSV} className="rounded-full px-4 py-2 text-xs bg-white border border-gray-200 text-gray-900 hover:bg-gray-50">Export CSV</Button>
+            <Button onClick={exportExcel} className="rounded-full px-4 py-2 text-xs bg-white border border-gray-200 text-gray-900 hover:bg-gray-50">Export Excel</Button>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search transactions"
+            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg"
+          />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg"
+          >
+            <option value="all">All Categories</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="text-left p-3">Date</th>
+                <th className="text-left p-3">Category</th>
+                <th className="text-left p-3">Type</th>
+                <th className="text-right p-3">Amount</th>
+                <th className="text-left p-3">Payment Method</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tableTransactions.map((t, index) => {
+                const account = accounts.find((a) => a.id === t.accountId);
+                const rowKey = t.id ?? t.remoteId ?? `${toLocalDateKey(t.date) || 'row'}-${index}`;
+                return (
+                  <tr key={rowKey} className="border-b border-gray-100">
+                    <td className="p-3 whitespace-nowrap">{formatLocalDate(t.date, 'en-US')}</td>
+                    <td className="p-3">{t.category}</td>
+                    <td className="p-3 capitalize">{t.type}</td>
+                    <td className={`p-3 text-right font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatCurrency(t.amount)}
+                    </td>
+                    <td className="p-3">{account?.name || '—'}</td>
+                  </tr>
+                );
+              })}
+              {tableTransactions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-gray-500">No transactions found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card variant="glass" className="p-6">
           <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Financial Summary</h3>
           <div className="space-y-3">
@@ -200,43 +573,25 @@ export const Reports: React.FC = () => {
               <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Invested</p>
               <p className="text-xl font-display font-bold text-gray-900 mt-1">{formatCurrency(summaryStats.totalInvested)}</p>
             </div>
-            <div className="p-4 bg-black/5 rounded-xl border-2 border-black/10">
-              <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Net Worth</p>
-              <p className="text-xl font-display font-bold text-gray-900 mt-1">
-                {formatCurrency(
-                  accounts.reduce((sum, a) => sum + a.balance, 0) +
-                  summaryStats.totalGoalsProgress +
-                  summaryStats.totalInvested -
-                  summaryStats.totalDebt
-                )}
-              </p>
-            </div>
+          </div>
+        </Card>
+
+        <Card variant="glass" className="p-6">
+          <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Net Worth Snapshot</h3>
+          <div className="p-5 bg-black/5 rounded-2xl border border-black/10">
+            <p className="text-xs text-gray-600 font-medium uppercase tracking-wide">Net Worth</p>
+            <p className="text-2xl font-display font-bold text-gray-900 mt-2">
+              {formatCurrency(
+                accounts.reduce((sum, a) => sum + a.balance, 0) +
+                summaryStats.totalGoalsProgress +
+                summaryStats.totalInvested -
+                summaryStats.totalDebt
+              )}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">Includes assets, goals, investments, and liabilities.</p>
           </div>
         </Card>
       </div>
-
-      <Card variant="glass" className="p-6">
-        <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Expense Breakdown</h3>
-        <div className="space-y-3">
-          {categoryBreakdown.map((cat) => {
-            const percentage = (cat.value / summaryStats.totalExpenses) * 100;
-            return (
-              <div key={cat.name}>
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="font-medium text-gray-700">{cat.name}</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(cat.value)} ({percentage.toFixed(1)}%)</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-black h-2.5 rounded-full transition-all"
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
     </div>
   );
 };

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   TrendingUp, TrendingDown, RefreshCw, Search, X, Plus,
-  Activity, BarChart2, ChevronRight, Wifi, WifiOff, Clock,
+  Activity, BarChart2, ChevronRight, Wifi, WifiOff, Clock, ChevronLeft,
 } from 'lucide-react';
 import {
   fetchStockQuote, fetchMultipleQuotes, searchStocks,
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AUTO_REFRESH_MS = 8_000;
+const PAGE_SIZE = 15;
 const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
 const MARKET_TABS: MarketCategory[] = ['all', 'nse', 'bse', 'us', 'forex', 'crypto'];
@@ -231,7 +232,7 @@ const StockDetail: React.FC<{
 
 /* ── Main component ───────────────────────────────────── */
 export const LiveMarket: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { setCurrentPage: setAppPage } = useApp();
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -244,6 +245,8 @@ export const LiveMarket: React.FC = () => {
   const [activeMarket, setActiveMarket] = useState<MarketCategory>('all');
   const [watchlist, setWatchlist] = useState<string[]>(() => getDefaultWatchlist('all'));
   const [usingCache, setUsingCache] = useState(false);
+  const [currentPage, setCurrentPageIndex] = useState(1);
+  const [pageInput, setPageInput] = useState('1');
 
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -267,8 +270,8 @@ export const LiveMarket: React.FC = () => {
     };
 
     localStorage.setItem(PENDING_INVESTMENT_DRAFT_KEY, JSON.stringify(draft));
-    setCurrentPage('add-investment');
-  }, [setCurrentPage]);
+    setAppPage('add-investment');
+  }, [setAppPage]);
 
   const resolveMarketHint = useCallback((symbol: string): MarketCategory | undefined => {
     if (activeMarket !== 'all') {
@@ -297,10 +300,85 @@ export const LiveMarket: React.FC = () => {
     setActiveMarket(market);
     const newWL = getDefaultWatchlist(market);
     setWatchlist(newWL);
+    setCurrentPageIndex(1);
     setSelected(null);
     setSearchQuery('');
     setSearchResults([]);
   }, []);
+
+  const totalPages = Math.max(1, Math.ceil(watchlist.length / PAGE_SIZE));
+  const pageSymbols = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return watchlist.slice(start, start + PAGE_SIZE);
+  }, [watchlist, currentPage]);
+  const visiblePageNumbers = useMemo(() => {
+    const windowSize = 5;
+    const half = Math.floor(windowSize / 2);
+    let start = Math.max(1, currentPage - half);
+    let end = Math.min(totalPages, start + windowSize - 1);
+
+    if (end - start + 1 < windowSize) {
+      start = Math.max(1, end - windowSize + 1);
+    }
+
+    const pages: number[] = [];
+    for (let page = start; page <= end; page += 1) {
+      pages.push(page);
+    }
+
+    return pages;
+  }, [currentPage, totalPages]);
+  const mobilePageItems = useMemo(() => {
+    if (totalPages <= 4) {
+      return Array.from({ length: totalPages }, (_, index) => ({ type: 'page' as const, value: index + 1 }));
+    }
+
+    const candidatePages = Array.from(new Set([
+      1,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      totalPages,
+    ]))
+      .filter(page => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+
+    const items: Array<{ type: 'page'; value: number } | { type: 'ellipsis'; key: string }> = [];
+
+    for (let i = 0; i < candidatePages.length; i += 1) {
+      const page = candidatePages[i];
+      const prev = candidatePages[i - 1];
+
+      if (typeof prev === 'number' && page - prev > 1) {
+        items.push({ type: 'ellipsis', key: `ellipsis-${prev}-${page}` });
+      }
+
+      items.push({ type: 'page', value: page });
+    }
+
+    return items;
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPageIndex(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  const goToPage = useCallback(() => {
+    const parsed = Number.parseInt(pageInput, 10);
+    if (!Number.isFinite(parsed)) {
+      setPageInput(String(currentPage));
+      return;
+    }
+
+    const bounded = Math.min(totalPages, Math.max(1, parsed));
+    setCurrentPageIndex(bounded);
+  }, [pageInput, totalPages, currentPage]);
 
   /* ── Fetch quotes ── */
   const loadQuotes = useCallback(async (symbols: string[], isRefresh = false) => {
@@ -341,10 +419,10 @@ export const LiveMarket: React.FC = () => {
   }, [activeMarket]);
 
   useEffect(() => {
-    loadQuotes(watchlist);
-    refreshTimer.current = setInterval(() => loadQuotes(watchlist, true), AUTO_REFRESH_MS);
+    loadQuotes(pageSymbols);
+    refreshTimer.current = setInterval(() => loadQuotes(pageSymbols, true), AUTO_REFRESH_MS);
     return () => { if (refreshTimer.current) clearInterval(refreshTimer.current); };
-  }, [watchlist, loadQuotes]);
+  }, [pageSymbols, loadQuotes]);
 
   /* ── Search debounce ── */
   useEffect(() => {
@@ -425,7 +503,7 @@ export const LiveMarket: React.FC = () => {
     };
 
     localStorage.setItem(PENDING_INVESTMENT_DRAFT_KEY, JSON.stringify(draft));
-    setCurrentPage('add-investment');
+    setAppPage('add-investment');
   };
 
   /* ── Remove from watchlist ── */
@@ -437,7 +515,7 @@ export const LiveMarket: React.FC = () => {
 
   const defaultWL = getDefaultWatchlist(activeMarket);
 
-  const loadedQuotes = watchlist
+  const loadedQuotes = pageSymbols
     .map(s => quotes[s])
     .filter((q): q is StockQuote => q !== null && q !== undefined);
   const setupHint = getStockDataSetupHint();
@@ -482,7 +560,7 @@ export const LiveMarket: React.FC = () => {
         </div>
         <button
           type="button"
-          onClick={() => loadQuotes(watchlist, true)}
+          onClick={() => loadQuotes(pageSymbols, true)}
           disabled={refreshing || loading}
           aria-label="Refresh market data"
           className="w-8 h-8 rounded-xl border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors disabled:opacity-40"
@@ -608,7 +686,7 @@ export const LiveMarket: React.FC = () => {
                     </p>
                   )}
                   <button
-                    onClick={() => loadQuotes(watchlist)}
+                    onClick={() => loadQuotes(pageSymbols)}
                     className="text-xs bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
                   >
                     Retry
@@ -616,7 +694,7 @@ export const LiveMarket: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50 relative">
-                  {watchlist.map(symbol => {
+                  {pageSymbols.map(symbol => {
                     const q = quotes[symbol];
                     if (!q) return (
                       <div key={symbol}
@@ -662,11 +740,111 @@ export const LiveMarket: React.FC = () => {
               )}
 
               {/* Footer */}
-              <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-2">
-                <BarChart2 size={12} className="text-gray-300" />
-                <p className="text-[10px] text-gray-400">
-                  Global market data via backend proxy or Twelve Data · Auto-refreshing every 8s
-                </p>
+              <div className="px-4 py-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <BarChart2 size={12} className="text-gray-300" />
+                  <p className="text-[10px] text-gray-400">
+                    {`Showing ${pageSymbols.length} of ${watchlist.length} symbols · Auto-refresh every 8s`}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPageIndex(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage <= 1}
+                    className="h-7 w-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+                    aria-label="Previous market page"
+                    title="Previous page"
+                  >
+                    <ChevronLeft size={14} className="mx-auto" />
+                  </button>
+                  <div className="flex items-center gap-1 sm:hidden">
+                    {mobilePageItems.map((item) => {
+                      if (item.type === 'ellipsis') {
+                        return (
+                          <span key={item.key} className="px-1 text-[11px] text-gray-400">
+                            ...
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={`mobile-page-${item.value}`}
+                          type="button"
+                          onClick={() => setCurrentPageIndex(item.value)}
+                          className={cn(
+                            'h-7 min-w-7 rounded-lg border px-1 text-[11px] font-semibold transition-colors',
+                            currentPage === item.value
+                              ? 'border-gray-900 bg-gray-900 text-white'
+                              : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+                          )}
+                          aria-label={`Go to page ${item.value}`}
+                          title={`Page ${item.value}`}
+                        >
+                          {item.value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="hidden items-center gap-1 sm:flex">
+                    {visiblePageNumbers.map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        onClick={() => setCurrentPageIndex(page)}
+                        className={cn(
+                          'h-7 min-w-7 rounded-lg border px-1 text-[11px] font-semibold transition-colors',
+                          currentPage === page
+                            ? 'border-gray-900 bg-gray-900 text-white'
+                            : 'border-gray-200 text-gray-500 hover:bg-gray-50',
+                        )}
+                        aria-label={`Go to page ${page}`}
+                        title={`Page ${page}`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="min-w-[88px] text-center text-[11px] font-semibold text-gray-500">
+                    Page {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPageIndex(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage >= totalPages}
+                    className="h-7 w-7 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+                    aria-label="Next market page"
+                    title="Next page"
+                  >
+                    <ChevronRight size={14} className="mx-auto" />
+                  </button>
+                  <div className="hidden items-center gap-1 md:flex">
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalPages}
+                      value={pageInput}
+                      onChange={(event) => setPageInput(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          goToPage();
+                        }
+                      }}
+                      className="h-7 w-14 rounded-lg border border-gray-200 px-2 text-[11px] font-semibold text-gray-600 outline-none focus:border-gray-400"
+                      aria-label="Jump to market page"
+                      title="Jump to page"
+                    />
+                    <button
+                      type="button"
+                      onClick={goToPage}
+                      className="h-7 rounded-lg border border-gray-200 px-2 text-[11px] font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Go
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}

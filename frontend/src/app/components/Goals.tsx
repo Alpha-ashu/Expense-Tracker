@@ -34,25 +34,6 @@ export const Goals: React.FC = () => {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
-  const getProgressWidthClass = (value: number) => {
-    const progress = Math.max(0, Math.min(100, value));
-    const bucket = Math.round(progress / 10) * 10;
-
-    switch (bucket) {
-      case 0: return 'w-0';
-      case 10: return 'w-[10%]';
-      case 20: return 'w-[20%]';
-      case 30: return 'w-[30%]';
-      case 40: return 'w-[40%]';
-      case 50: return 'w-1/2';
-      case 60: return 'w-[60%]';
-      case 70: return 'w-[70%]';
-      case 80: return 'w-[80%]';
-      case 90: return 'w-[90%]';
-      default: return 'w-full';
-    }
-  };
-
   const openGoalDetail = (goalId: number) => {
     localStorage.setItem(selectedGoalKey, String(goalId));
     setCurrentPage('goal-detail');
@@ -112,6 +93,7 @@ export const Goals: React.FC = () => {
   const totalSavedAmount = goals.reduce((sum, goal) => sum + goal.currentAmount, 0);
   const totalRemainingAmount = Math.max(0, totalGoalsAmount - totalSavedAmount);
   const overallProgress = totalGoalsAmount > 0 ? (totalSavedAmount / totalGoalsAmount) * 100 : 0;
+  const completedGoals = goals.filter((goal) => goal.currentAmount >= goal.targetAmount).length;
 
   return (
     <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
@@ -174,15 +156,16 @@ export const Goals: React.FC = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card variant="mesh-purple" className="p-4 sm:p-6 relative overflow-hidden">
+          <Card variant="mesh-green" className="p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-2 sm:mb-4">
                 <Sparkles className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
-              <p className="text-white/80 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Overall Progress</p>
+              <p className="text-white/80 font-medium mb-0.5 sm:mb-1 text-xs sm:text-sm uppercase tracking-wide">Completed Goals</p>
               <h3 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">
-                {overallProgress.toFixed(0)}%
+                {completedGoals}
               </h3>
+              <p className="text-white/70 text-xs mt-2">Overall progress {overallProgress.toFixed(0)}%</p>
             </div>
             <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           </Card>
@@ -211,13 +194,19 @@ export const Goals: React.FC = () => {
               >
                 <Card variant="glass" className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
-                    <div className={cn(
-                      "w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-sm transition-colors flex-shrink-0",
-                      progress >= 100 ? "bg-green-500 text-white" :
-                      progress >= 50 ? "bg-black text-white" :
-                      "bg-orange-500 text-white"
-                    )}>
-                      <Target size={18} className="sm:w-5 sm:h-5" />
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-sm transition-colors flex-shrink-0",
+                        progress >= 100 ? "bg-emerald-500 text-white" :
+                        progress >= 50 ? "bg-blue-600 text-white" :
+                        "bg-amber-500 text-white"
+                      )}>
+                        <span className="text-lg sm:text-xl">{categoryMeta.icon}</span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide">{categoryMeta.label}</p>
+                        <h3 className="text-lg sm:text-xl font-display font-bold text-gray-900">{goal.name}</h3>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       <button
@@ -239,10 +228,10 @@ export const Goals: React.FC = () => {
                       <span className={cn(
                         "px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-xs font-bold flex-shrink-0",
                         progress >= 100
-                          ? 'bg-green-100 text-green-700'
+                          ? 'bg-emerald-100 text-emerald-700'
                           : progress >= 50
-                          ? 'bg-black/10 text-gray-900'
-                          : 'bg-orange-100 text-orange-700'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-amber-100 text-amber-700'
                       )}>
                         {progress.toFixed(0)}%
                       </span>
@@ -303,9 +292,6 @@ export const Goals: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <h3 className="text-xl font-display font-bold text-gray-900 mb-1">{goal.name} {categoryMeta.icon}</h3>
-                      <p className="text-sm text-gray-500 mb-4 capitalize">{categoryMeta.label}</p>
-
                       <div className="space-y-4 mb-4">
                         <div>
                           <div className="flex justify-between text-sm mb-2">
@@ -314,17 +300,17 @@ export const Goals: React.FC = () => {
                               {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div className="w-full bg-gray-200/80 rounded-full h-2.5 overflow-hidden">
                             <div
                               className={cn(
-                                "h-3 rounded-full transition-all",
-                                getProgressWidthClass(progress),
+                                "h-full rounded-full transition-all duration-700 ease-out",
                                 progress >= 100
-                                  ? 'bg-green-500'
+                                  ? 'bg-emerald-500'
                                   : progress >= 50
-                                  ? 'bg-black'
-                                  : 'bg-orange-500'
+                                  ? 'bg-blue-600'
+                                  : 'bg-amber-500'
                               )}
+                              style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
                             />
                           </div>
                         </div>
