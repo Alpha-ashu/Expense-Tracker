@@ -4,6 +4,8 @@ import { PageHeader } from '@/app/components/ui/PageHeader';
 import { useApp } from '@/contexts/AppContext';
 import { Download, FileJson, FileText, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+import { downloadFile } from '@/lib/download';
+import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 
 interface ExportOptions {
   dataType: 'transactions' | 'accounts' | 'loans' | 'goals' | 'investments' | 'all';
@@ -59,30 +61,33 @@ export const ExportReports: React.FC = () => {
         startDate = new Date(now.getFullYear(), 0, 1);
       }
 
-      filteredTransactions = filteredTransactions.filter(
-        (t) => new Date(t.date) >= startDate
-      );
+      const startKey = toLocalDateKey(startDate);
+      filteredTransactions = filteredTransactions.filter((t) => {
+        const itemKey = toLocalDateKey(t.date);
+        return !!startKey && !!itemKey && itemKey >= startKey;
+      });
     } else if (exportOptions.dateRange === 'custom' && exportOptions.startDate && exportOptions.endDate) {
-      filteredTransactions = filteredTransactions.filter(
-        (t) =>
-          new Date(t.date) >= exportOptions.startDate! &&
-          new Date(t.date) <= exportOptions.endDate!
-      );
+      const startKey = toLocalDateKey(exportOptions.startDate);
+      const endKey = toLocalDateKey(exportOptions.endDate);
+      filteredTransactions = filteredTransactions.filter((t) => {
+        const itemKey = toLocalDateKey(t.date);
+        return !!startKey && !!endKey && !!itemKey && itemKey >= startKey && itemKey <= endKey;
+      });
     }
 
     return filteredTransactions;
   };
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
     const data = getFilteredData();
-    let csvContent = 'data:text/csv;charset=utf-8,';
+    let csvContent = '';
 
     // Add headers
     if (exportOptions.dataType === 'transactions' || exportOptions.dataType === 'all') {
       csvContent += 'Date,Type,Description,Category,Amount,Account\n';
       data.forEach((t) => {
         const account = accounts.find((a) => a.id === t.accountId);
-        csvContent += `"${new Date(t.date).toLocaleDateString()}","${t.type}","${t.description}","${t.category}",${t.amount},"${account?.name}"\n`;
+        csvContent += `"${formatLocalDate(t.date, 'en-US')}","${t.type}","${t.description}","${t.category}",${t.amount},"${account?.name}"\n`;
       });
     }
 
@@ -100,16 +105,20 @@ export const ExportReports: React.FC = () => {
       });
     }
 
-    // Download CSV
-    const element = document.createElement('a');
-    element.setAttribute('href', encodeURI(csvContent));
-    element.setAttribute('download', `export-${exportOptions.dataType}-${Date.now()}.csv`);
-    element.click();
+    const filename = `export-${exportOptions.dataType}-${Date.now()}.csv`;
+    const result = await downloadFile({
+      filename,
+      mimeType: 'text/csv;charset=utf-8',
+      data: csvContent,
+      shareTitle: 'Export data',
+    });
 
-    toast.success('Data exported as CSV');
+    if (result !== 'cancelled') {
+      toast.success('Data exported as CSV');
+    }
   };
 
-  const exportToJSON = () => {
+  const exportToJSON = async () => {
     const exportData: Record<string, any> = {
       exportDate: new Date().toISOString(),
       dataType: exportOptions.dataType,
@@ -136,21 +145,26 @@ export const ExportReports: React.FC = () => {
     }
 
     const jsonString = JSON.stringify(exportData, null, 2);
-    const element = document.createElement('a');
-    element.setAttribute('href', `data:text/plain;charset=utf-8,${encodeURIComponent(jsonString)}`);
-    element.setAttribute('download', `export-${exportOptions.dataType}-${Date.now()}.json`);
-    element.click();
+    const filename = `export-${exportOptions.dataType}-${Date.now()}.json`;
+    const result = await downloadFile({
+      filename,
+      mimeType: 'application/json',
+      data: jsonString,
+      shareTitle: 'Export data',
+    });
 
-    toast.success('Data exported as JSON');
+    if (result !== 'cancelled') {
+      toast.success('Data exported as JSON');
+    }
   };
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
       if (exportOptions.format === 'csv') {
-        exportToCSV();
+        await exportToCSV();
       } else if (exportOptions.format === 'json') {
-        exportToJSON();
+        await exportToJSON();
       } else if (exportOptions.format === 'pdf') {
         toast.info('PDF export coming soon');
       }
@@ -323,11 +337,11 @@ export const ExportReports: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  value={exportOptions.startDate ? new Date(exportOptions.startDate).toISOString().split('T')[0] : ''}
+                  value={exportOptions.startDate ? toLocalDateKey(exportOptions.startDate) ?? '' : ''}
                   onChange={(e) =>
                     setExportOptions({
                       ...exportOptions,
-                      startDate: new Date(e.target.value),
+                      startDate: parseDateInputValue(e.target.value) ?? undefined,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -342,11 +356,11 @@ export const ExportReports: React.FC = () => {
                 </label>
                 <input
                   type="date"
-                  value={exportOptions.endDate ? new Date(exportOptions.endDate).toISOString().split('T')[0] : ''}
+                  value={exportOptions.endDate ? toLocalDateKey(exportOptions.endDate) ?? '' : ''}
                   onChange={(e) =>
                     setExportOptions({
                       ...exportOptions,
-                      endDate: new Date(e.target.value),
+                      endDate: parseDateInputValue(e.target.value) ?? undefined,
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

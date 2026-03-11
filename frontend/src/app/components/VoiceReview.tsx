@@ -6,6 +6,7 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '@/lib/expenseCategories';
 import { toast } from 'sonner';
 import { ArrowRightLeft, Check, ChevronLeft, Trash2 } from 'lucide-react';
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
+import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 
 const STORAGE_KEY = 'voiceBatchDraft';
 
@@ -116,7 +117,8 @@ export const VoiceReview: React.FC = () => {
         return;
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const todayKey = toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0];
+      const today = parseDateInputValue(todayKey) ?? new Date();
       let balanceDelta = 0;
 
       for (const item of nonTransfers) {
@@ -128,7 +130,7 @@ export const VoiceReview: React.FC = () => {
           subcategory: '',
           description: item.description,
           merchant: '',
-          date: new Date(today),
+          date: today,
           tags: [],
         });
 

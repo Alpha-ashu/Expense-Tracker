@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { toLocalDate, toLocalDateKey } from '@/lib/dateUtils';
 
 export type TimeFilterPeriod = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -51,18 +52,15 @@ export const filterByTimePeriod = <T extends { date: Date | string }>(
   period: TimeFilterPeriod,
   referenceDate: Date = new Date()
 ): T[] => {
-  const now = referenceDate;
+  const now = toLocalDate(referenceDate) ?? new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
 
   return items.filter((item) => {
-    const itemDate = new Date(item.date);
+    const itemDate = toLocalDate(item.date);
+    if (!itemDate) return false;
 
     switch (period) {
       case 'daily':
-        return (
-          itemDate.getDate() === now.getDate() &&
-          itemDate.getMonth() === now.getMonth() &&
-          itemDate.getFullYear() === now.getFullYear()
-        );
+        return toLocalDateKey(itemDate) === toLocalDateKey(now);
       case 'weekly': {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
@@ -73,8 +71,8 @@ export const filterByTimePeriod = <T extends { date: Date | string }>(
       }
       case 'monthly':
         return (
-          itemDate.getMonth() === now.getMonth() &&
-          itemDate.getFullYear() === now.getFullYear()
+        itemDate.getMonth() === now.getMonth() &&
+        itemDate.getFullYear() === now.getFullYear()
         );
       case 'yearly':
         return itemDate.getFullYear() === now.getFullYear();

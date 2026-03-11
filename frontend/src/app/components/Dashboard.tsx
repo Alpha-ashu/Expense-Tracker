@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
 import { formatCurrencyAmount } from '@/lib/currencyUtils';
+import { formatLocalDate } from '@/lib/dateUtils';
 import {
   getInvestmentDisplayName,
   getInvestmentMetrics,
@@ -359,7 +360,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                     <p className={cn("font-semibold text-sm", transaction.type === 'income' ? "text-green-600" : "text-red-600")}>
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </p>
-                    <p className="text-xs text-gray-500">{new Date(transaction.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                    <p className="text-xs text-gray-500">{formatLocalDate(transaction.date, 'en-IN', { day: 'numeric', month: 'short' })}</p>
                   </div>
                 </div>
               ))}

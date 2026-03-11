@@ -6,9 +6,10 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { motion } from 'framer-motion';
+import { toLocalDateKey } from '@/lib/dateUtils';
 
 export const Reports: React.FC = () => {
-  const { transactions, accounts, loans, goals, investments, currency } = useApp();
+  const { transactions, accounts, loans, goals, investments, currency, setCurrentPage } = useApp();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
 
   const getDaysCount = () => {
@@ -27,10 +28,10 @@ export const Reports: React.FC = () => {
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      const dateKey = toLocalDateKey(date);
       
       const dayTransactions = transactions.filter(t => {
-        const tDate = new Date(t.date);
-        return tDate.toDateString() === date.toDateString();
+        return dateKey && toLocalDateKey(t.date) === dateKey;
       });
       
       const income = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -96,7 +97,10 @@ export const Reports: React.FC = () => {
         subtitle="Insights into your financial health"
         icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
       >
-        <Button className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm">
+        <Button
+          onClick={() => setCurrentPage('export-reports')}
+          className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
+        >
           <Download size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
           <span className="hidden sm:inline">Export</span>
         </Button>

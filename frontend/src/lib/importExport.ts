@@ -1,5 +1,6 @@
 import { db } from './database';
 import { toast } from 'sonner';
+import { downloadFile } from './download';
 
 // Export all data to JSON
 export const exportDataToJSON = async (): Promise<string> => {
@@ -147,21 +148,20 @@ export const downloadDataToFile = async (filename: string, dataType: 'json' | 'c
       filename = filename.endsWith('.json') ? filename : `${filename}.json`;
     } else {
       content = await exportDataToCSV();
-      mimeType = 'text/csv';
+      mimeType = 'text/csv;charset=utf-8';
       filename = filename.endsWith('.csv') ? filename : `${filename}.csv`;
     }
 
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const result = await downloadFile({
+      filename,
+      mimeType,
+      data: content,
+      shareTitle: 'Export data',
+    });
 
-    toast.success(`Data exported to ${filename}`);
+    if (result !== 'cancelled') {
+      toast.success(`Data exported to ${filename}`);
+    }
   } catch (error) {
     console.error('Download failed:', error);
     toast.error('Failed to export data');

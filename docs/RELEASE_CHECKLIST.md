@@ -9,6 +9,7 @@ Use this checklist before generating production APK/AAB.
 - A secure release keystore stored outside the repository.
 
 ## 2. Secure Signing Setup
+- Generate keystore (first time only): `./scripts/generate-keystore.ps1`
 - Preferred: run `./scripts/create-key-properties.ps1` and follow prompts.
 - Alternative: copy `android/key.properties.example` to `android/key.properties` and fill values manually.
 - Confirm `android/key.properties` is ignored by git.
@@ -37,6 +38,7 @@ npx cap sync android
 
 ## 5. Build by CLI (Optional)
 ```powershell
+./scripts/generate-keystore.ps1
 ./scripts/create-key-properties.ps1
 cd android
 .\gradlew.bat clean assembleFullDebug --no-daemon

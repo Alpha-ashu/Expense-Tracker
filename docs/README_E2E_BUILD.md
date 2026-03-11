@@ -6,6 +6,7 @@ Files added:
   - Creates a `android/key.properties` file from input keystore path and passwords
   - Runs Gradle (via the wrapper) to assemble debug and/or bundle release for a selected flavor (`nosms` or `full`)
   - Prints output file locations and removes `key.properties` by default
+- `scripts/generate-keystore.ps1` - One-command helper that runs `keytool` interactively and creates a new release keystore in `./secure/`
 - `scripts/create-key-properties.ps1` - Interactive helper to create `android/key.properties` without passing passwords on the command line
 
 Usage examples (run from repo root in PowerShell):

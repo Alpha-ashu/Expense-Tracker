@@ -31,6 +31,7 @@ import { getCategoryCartoonIcon } from '@/app/components/ui/CartoonCategoryIcons
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 import {
   markSmsTransactionImported,
   resolvePendingSmsTransactionDraft,
@@ -118,7 +119,7 @@ const toDateInputValue = (date: Date) => {
 };
 
 const getLoanStatusFromDates = (dueDateInput: string, referenceDate = new Date()) => {
-  const dueDate = new Date(dueDateInput);
+  const dueDate = parseDateInputValue(dueDateInput) ?? new Date(dueDateInput);
   const todayKey = toDateInputValue(referenceDate);
   const dueKey = toDateInputValue(dueDate);
   return dueKey < todayKey ? 'overdue' as const : 'active' as const;
@@ -156,7 +157,7 @@ export const AddTransaction: React.FC = () => {
     subcategory: '',
     description: '',
     merchant: '',
-    date: new Date().toISOString().split('T')[0],
+    date: toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0],
   }));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -168,7 +169,9 @@ export const AddTransaction: React.FC = () => {
   const [showIncomeSubcategoryPicker, setShowIncomeSubcategoryPicker] = useState(false);
   const [expenseMode, setExpenseMode] = useState<ExpenseEntryMode>('individual');
   const [loanType, setLoanType] = useState<LoanEntryType>('borrowed');
-  const [loanDraft, setLoanDraft] = useState<LoanDraft>(() => createDefaultLoanDraft(new Date().toISOString().split('T')[0]));
+  const [loanDraft, setLoanDraft] = useState<LoanDraft>(() =>
+    createDefaultLoanDraft(toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0])
+  );
   const [showLoanFriendPicker, setShowLoanFriendPicker] = useState(false);
   const [returnPage, setReturnPage] = useState('transactions');
   const [groupName, setGroupName] = useState('');
@@ -734,6 +737,11 @@ export const AddTransaction: React.FC = () => {
     e.preventDefault();
     if (!selectedAccount) { toast.error('Please select an account'); return; }
     if (!formData.amount || formData.amount <= 0) { toast.error('Enter a valid amount'); return; }
+    const transactionDate = parseDateInputValue(formData.date);
+    if (!transactionDate) {
+      toast.error('Please select a valid date');
+      return;
+    }
     if (isLoanExpense) {
       if (!loanDraft.contactName.trim()) {
         toast.error('Please enter a friend or contact name');
@@ -743,7 +751,8 @@ export const AddTransaction: React.FC = () => {
         toast.error('Please select a due date');
         return;
       }
-      if (Number.isNaN(new Date(loanDraft.dueDate).getTime())) {
+      const parsedDueDate = parseDateInputValue(loanDraft.dueDate);
+      if (!parsedDueDate) {
         toast.error('Please enter a valid due date');
         return;
       }
@@ -780,7 +789,7 @@ export const AddTransaction: React.FC = () => {
     try {
       if (isLoanExpense) {
         const now = new Date();
-        const dueDate = new Date(loanDraft.dueDate);
+        const dueDate = parseDateInputValue(loanDraft.dueDate) ?? new Date(loanDraft.dueDate);
         const contactName = loanDraft.contactName.trim();
         const newBalance = loanType === 'borrowed'
           ? selectedAccount.balance + formData.amount
@@ -801,7 +810,7 @@ export const AddTransaction: React.FC = () => {
             contactEmail: loanDraft.contactEmail.trim() || undefined,
             contactPhone: loanDraft.contactPhone.trim() || undefined,
             accountId: formData.accountId,
-            loanDate: new Date(formData.date),
+            loanDate: transactionDate,
             notes: loanDraft.notes.trim() || undefined,
             totalPayable: loanTotalDue,
             createdAt: now,
@@ -901,7 +910,7 @@ export const AddTransaction: React.FC = () => {
         const transactionRecord = {
           ...payload,
           description: payload.description.trim() || expenseName,
-          date: new Date(formData.date),
+          date: transactionDate,
           tags: [],
           expenseMode: 'group' as const,
           groupName: expenseName,
@@ -925,7 +934,7 @@ export const AddTransaction: React.FC = () => {
             name: expenseName,
             totalAmount: payload.amount,
             paidBy: formData.accountId,
-            date: new Date(formData.date),
+            date: transactionDate,
             members: memberRecords,
             description: payload.description.trim() || undefined,
             category: payload.category,
@@ -973,7 +982,7 @@ export const AddTransaction: React.FC = () => {
             totalAmount: payload.amount,
             amountPerPerson: roundCurrencyAmount(payload.amount / (friendParticipants.length + 1)),
             category: payload.category,
-            date: new Date(formData.date),
+            date: transactionDate,
           });
         } catch (error) {
           console.info('ℹ️ Group expense backend sync skipped:', error);
@@ -993,7 +1002,7 @@ export const AddTransaction: React.FC = () => {
 
       const savedTransaction = await saveTransactionWithBackendSync({
         ...payload,
-        date: new Date(formData.date),
+        date: transactionDate,
         tags: [],
         expenseMode: 'individual',
         importSource: pendingSmsTransactionId ? 'sms' : undefined,

@@ -12,6 +12,7 @@ import {
   normalizeCategorySelection,
 } from '@/lib/expenseCategories';
 import { cn } from '@/lib/utils';
+import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 import { documentIntelligenceService } from '@/services/documentIntelligenceService';
 import {
   parseReceiptText,
@@ -495,8 +496,11 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Date</label>
                     <input
                       type="date"
-                      value={scanResult.date ? new Date(scanResult.date).toISOString().split('T')[0] : ''}
-                      onChange={e => setScanResult({ ...scanResult, date: new Date(e.target.value) })}
+                      value={scanResult.date ? toLocalDateKey(scanResult.date) ?? '' : ''}
+                      onChange={e => {
+                        const parsed = parseDateInputValue(e.target.value);
+                        setScanResult({ ...scanResult, date: parsed ?? scanResult.date });
+                      }}
                       className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
                     />
                   </div>

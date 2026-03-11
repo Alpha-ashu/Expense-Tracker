@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { StatementImport } from "@/app/components/StatementImport";
+import { formatLocalDate } from "@/lib/dateUtils";
 
 type AssetType = "all" | "bank" | "card" | "wallet" | "cash";
 
@@ -1137,10 +1138,10 @@ export const Accounts: React.FC = () => {
                                 className="hover:bg-blue-50/50 transition-colors"
                               >
                                 <td className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-medium text-gray-500">
-                                  {new Date(t.date).toLocaleDateString(
-                                    "en-US",
-                                    { month: "short", day: "numeric" },
-                                  )}
+                                  {formatLocalDate(t.date, "en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
                                 </td>
                                 <td className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-xs sm:text-sm font-bold text-gray-900">
                                   {t.description}
@@ -1219,7 +1220,7 @@ export const Accounts: React.FC = () => {
                             </p>
                             <p className="text-xs text-gray-500 mt-0.5">
                               {t.category} •{" "}
-                              {new Date(t.date).toLocaleDateString("en-US", {
+                              {formatLocalDate(t.date, "en-US", {
                                 day: "numeric",
                                 month: "short",
                               })}

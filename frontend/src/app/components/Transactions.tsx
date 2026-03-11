@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
+import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 
 const CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
@@ -229,7 +230,7 @@ export const Transactions: React.FC = () => {
                           <p className="font-bold text-gray-900 text-sm">
                             {transaction.description || transaction.category}
                           </p>
-                          <p className="text-xs text-gray-400 font-medium">{new Date(transaction.date).toLocaleDateString()}</p>
+                          <p className="text-xs text-gray-400 font-medium">{formatLocalDate(transaction.date, 'en-US')}</p>
                         </div>
                       </div>
                     </td>
@@ -381,7 +382,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
     subcategory: '',
     description: '',
     merchant: '',
-    date: new Date().toISOString().split('T')[0],
+    date: toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0],
   });
 
   const subcategories = useMemo(() => {
@@ -396,11 +397,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onC
       toast.error('Please select an account');
       return;
     }
+    const parsedDate = parseDateInputValue(formData.date);
+    if (!parsedDate) {
+      toast.error('Please select a valid date');
+      return;
+    }
 
     try {
       await db.transactions.add({
         ...formData,
-        date: new Date(formData.date),
+        date: parsedDate,
         tags: [],
       });
 
@@ -584,7 +590,7 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
       setScannedData({
         amount: Math.floor(Math.random() * 500) + 10,
         merchant: ['Walmart', 'Target', 'Starbucks', 'Amazon', 'McDonald\'s'][Math.floor(Math.random() * 5)],
-        date: new Date().toISOString().split('T')[0],
+        date: toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0],
         category: 'Shopping',
         items: [
           { name: 'Item 1', price: 12.99 },
@@ -601,6 +607,7 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
     if (!scannedData) return;
 
     try {
+      const parsedScanDate = parseDateInputValue(scannedData.date) ?? new Date(scannedData.date);
       await db.transactions.add({
         type: 'expense',
         amount: scannedData.amount,
@@ -608,7 +615,7 @@ const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }
         category: scannedData.category,
         description: `Bill from ${scannedData.merchant}`,
         merchant: scannedData.merchant,
-        date: new Date(scannedData.date),
+        date: parsedScanDate,
         tags: ['scanned'],
       });
 
