@@ -45,12 +45,7 @@ html, body, #root {
     line-height: 1.5;
   }
   
-  /* Ensure buttons are touch-friendly (min 44px) */
-  button, [role="button"], input[type="button"], input[type="submit"] {
-    min-height: 44px;
-    min-width: 44px;
-    padding: 0.5rem 1rem;
-  }
+  /* Keep touch targets opt-in via utility classes (e.g., .tap-target) */
   
   /* Fix text selection on mobile */
   input, textarea, select {
@@ -73,11 +68,7 @@ html, body, #root {
     font-size: 15px;
   }
   
-  /* Adjust button sizes for tablet */
-  button, [role="button"], input[type="button"], input[type="submit"] {
-    min-height: 40px;
-    padding: 0.625rem 1.25rem;
-  }
+  /* Keep button sizing component-driven on tablet to avoid layout regressions */
 }
 
 /* Desktop Styles */

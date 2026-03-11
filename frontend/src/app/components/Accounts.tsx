@@ -861,18 +861,18 @@ export const Accounts: React.FC = () => {
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center -mt-2 mb-6"
+              className="flex flex-col items-center justify-center -mt-1 mb-5"
             >
-              <div className="flex gap-1.5 justify-center items-center h-4 mb-2">
+              <div className="flex gap-2 justify-center items-center h-5 mb-1.5">
                 {filteredAccounts.map((account) => (
                   <button
                     key={`dot-mobile-${account.id}`}
                     onClick={() => handleCardClick(account.id!)}
                     className={cn(
-                      "rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 m-0 p-0",
+                      "appearance-none border-0 outline-none shadow-none rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 m-0 p-0 min-w-0 min-h-0 leading-none",
                       selectedAccountId === account.id 
-                        ? "w-4 sm:w-5 h-1.5 sm:h-2 bg-gradient-to-r from-pink-500 to-rose-500" 
-                        : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gray-300 hover:bg-gray-400"
+                        ? "!w-10 !h-2.5 bg-gradient-to-r from-pink-500 to-rose-500"
+                        : "!w-2.5 !h-2.5 bg-gray-300 hover:bg-gray-400"
                     )}
                     type="button"
                     aria-label={`Go to account ${account.name}`}
@@ -880,7 +880,7 @@ export const Accounts: React.FC = () => {
                   />
                 ))}
               </div>
-              <div className="flex items-center text-[10px] text-gray-400 font-medium tracking-widest uppercase">
+              <div className="flex items-center text-[10px] text-gray-400 font-medium tracking-[0.22em] uppercase">
                 <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2">←</span> 
                 Swipe to explore 
                 <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">→</span>
@@ -1061,18 +1061,18 @@ export const Accounts: React.FC = () => {
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center -mt-2 mb-6 md:mb-8"
+            className="flex flex-col items-center justify-center -mt-1 mb-6 md:mb-8"
           >
-            <div className="flex gap-1.5 justify-center items-center h-4 mb-2">
+            <div className="flex gap-2 justify-center items-center h-5 mb-1.5">
               {filteredAccounts.map((account) => (
                 <button
                   key={`dot-${account.id}`}
                   onClick={() => handleCardClick(account.id!)}
                   className={cn(
-                    "rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 m-0 p-0",
+                    "appearance-none border-0 outline-none shadow-none rounded-full transition-all duration-300 cursor-pointer flex-shrink-0 m-0 p-0 min-w-0 min-h-0 leading-none",
                     selectedAccountId === account.id 
-                      ? "w-5 h-2 bg-gradient-to-r from-pink-500 to-rose-500" 
-                      : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
+                      ? "!w-10 !h-2.5 bg-gradient-to-r from-pink-500 to-rose-500" 
+                      : "!w-2.5 !h-2.5 bg-gray-300 hover:bg-gray-400"
                   )}
                   type="button"
                   aria-label={`Go to account ${account.name}`}
@@ -1080,7 +1080,7 @@ export const Accounts: React.FC = () => {
                 />
               ))}
             </div>
-            <div className="flex items-center text-[10px] sm:text-xs text-gray-400 font-medium tracking-widest uppercase">
+            <div className="flex items-center text-[10px] sm:text-xs text-gray-400 font-medium tracking-[0.22em] uppercase">
               <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2">←</span> 
               Swipe to explore 
               <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">→</span>
