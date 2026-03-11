@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { Search, Bell, Menu, GripVertical } from 'lucide-react';
+import { Search, Bell, Menu, GripVertical, Wallet, Target, Users, CalendarClock, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
 import { NavigationItem } from '@/app/constants/navigation';
 import { NotificationPopup } from '@/app/components/ui/NotificationPopup';
 import { useSharedMenu } from '@/hooks/useSharedMenu';
 import { motion, Reorder, useDragControls } from 'framer-motion';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db, type Notification as AppNotification } from '@/lib/database';
 
 interface DraggablePageMenuItemProps {
     item: NavigationItem;
@@ -55,40 +57,92 @@ export const TopBar: React.FC = () => {
     const { orderedItems, handleReorder, handleNavigate, currentPage } = useSharedMenu();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [notificationPopupOpen, setNotificationPopupOpen] = useState(false);
-    const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(3);
 
-    const [recentNotifications] = useState([
-        {
-            id: '1',
-            type: 'transaction' as const,
-            title: 'Transaction Recorded',
-            description: 'Your expense of ₹500 for groceries has been recorded.',
-            timestamp: new Date(Date.now() - 15 * 60000),
-            icon: <span>📉</span>,
-            color: 'text-red-600',
-            bgColor: 'bg-red-50',
-        },
-        {
-            id: '2',
-            type: 'emi' as const,
-            title: 'EMI Due Reminder',
-            description: 'Your monthly EMI of ₹2,500 is due on Feb 10.',
-            timestamp: new Date(Date.now() - 2 * 3600000),
-            icon: <span>⚠️</span>,
-            color: 'text-orange-600',
-            bgColor: 'bg-orange-50',
-        },
-        {
-            id: '3',
-            type: 'investment' as const,
-            title: 'Investment Update',
-            description: 'Your mutual fund SIP of ₹5,000 has been invested.',
-            timestamp: new Date(Date.now() - 8 * 3600000),
-            icon: <span>📈</span>,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50',
-        },
-    ]);
+    const notifications = useLiveQuery(
+        () => db.notifications.orderBy('createdAt').reverse().toArray(),
+        [],
+    ) ?? [];
+
+    const supportedNotifications = useMemo(
+        () => notifications.filter((notification) => (
+            notification.type === 'emi'
+            || notification.type === 'loan'
+            || notification.type === 'goal'
+            || notification.type === 'group'
+            || notification.type === 'booking'
+            || notification.type === 'message'
+            || notification.type === 'session'
+        )),
+        [notifications],
+    );
+
+    const unreadNotificationsCount = useMemo(
+        () => supportedNotifications.filter((notification) => !notification.isRead).length,
+        [supportedNotifications],
+    );
+
+    const presentNotification = (notification: AppNotification) => {
+        switch (notification.type) {
+            case 'loan':
+                return {
+                    icon: <Wallet size={18} className="text-red-600" />,
+                    color: 'text-red-600',
+                    bgColor: 'bg-red-50',
+                };
+            case 'goal':
+                return {
+                    icon: <Target size={18} className="text-blue-600" />,
+                    color: 'text-blue-600',
+                    bgColor: 'bg-blue-50',
+                };
+            case 'group':
+                return {
+                    icon: <Users size={18} className="text-violet-600" />,
+                    color: 'text-violet-600',
+                    bgColor: 'bg-violet-50',
+                };
+            case 'booking':
+                return {
+                    icon: <CalendarClock size={18} className="text-emerald-600" />,
+                    color: 'text-emerald-600',
+                    bgColor: 'bg-emerald-50',
+                };
+            case 'message':
+                return {
+                    icon: <MessageSquare size={18} className="text-sky-600" />,
+                    color: 'text-sky-600',
+                    bgColor: 'bg-sky-50',
+                };
+            case 'session':
+                return {
+                    icon: <CheckCircle2 size={18} className="text-green-600" />,
+                    color: 'text-green-600',
+                    bgColor: 'bg-green-50',
+                };
+            default:
+                return {
+                    icon: <AlertCircle size={18} className="text-orange-600" />,
+                    color: 'text-orange-600',
+                    bgColor: 'bg-orange-50',
+                };
+        }
+    };
+
+    const recentNotifications = useMemo(() => {
+        return supportedNotifications.slice(0, 3).map((notification) => {
+            const presentation = presentNotification(notification);
+            return {
+                id: String(notification.id ?? notification.remoteId ?? `${notification.title}-${notification.createdAt.toString()}`),
+                type: notification.type,
+                title: notification.title,
+                description: notification.message,
+                timestamp: new Date(notification.createdAt),
+                icon: presentation.icon,
+                color: presentation.color,
+                bgColor: presentation.bgColor,
+            };
+        });
+    }, [supportedNotifications]);
 
     const playNotificationSound = () => {
         try {
@@ -116,7 +170,6 @@ export const TopBar: React.FC = () => {
         setNotificationPopupOpen(true);
         if (unreadNotificationsCount > 0) {
             playNotificationSound();
-            setUnreadNotificationsCount(0);
         }
     };
 

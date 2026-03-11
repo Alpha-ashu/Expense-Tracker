@@ -3,7 +3,6 @@ import { User, Session } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { UserRole } from '@/lib/featureFlags';
 import { permissionService } from '@/services/permissionService';
-import { initializeDemoData } from '@/lib/demoData';
 import { db } from '@/lib/database';
 import { resolveAvatarSelection } from '@/lib/avatar-gallery';
 import {
@@ -167,7 +166,6 @@ const clearLocalUserData = async () => {
         db.smsTransactions.clear(),
       ]);
     });
-    localStorage.removeItem('admin_data_seeded_v2');
   } catch (err) {
     console.error('Failed to clear local DB on login:', err);
   }
@@ -520,9 +518,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 try {
                   await syncFromSupabase(nextUser);
                   await permissionService.fetchUserPermissions(nextUser.id, userRole);
-                  if (isFreshLogin) {
-                    await runWithCloudSyncSuppressed(() => initializeDemoData(nextUser.email ?? undefined, nextUser.id));
-                  }
                   if (activeSyncUserId.current === nextUser.id) {
                     setDataReady(true);
                   }

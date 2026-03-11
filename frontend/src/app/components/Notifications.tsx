@@ -90,14 +90,27 @@ export const Notifications: React.FC = () => {
     [],
   ) ?? [];
 
+  const supportedNotifications = useMemo(
+    () => notifications.filter((notification) => (
+      notification.type === 'emi'
+      || notification.type === 'loan'
+      || notification.type === 'goal'
+      || notification.type === 'group'
+      || notification.type === 'booking'
+      || notification.type === 'message'
+      || notification.type === 'session'
+    )),
+    [notifications],
+  );
+
   const filteredNotifications = useMemo(() => {
-    if (filterType === 'all') return notifications;
-    return notifications.filter((notification) => notification.type === filterType);
-  }, [filterType, notifications]);
+    if (filterType === 'all') return supportedNotifications;
+    return supportedNotifications.filter((notification) => notification.type === filterType);
+  }, [filterType, supportedNotifications]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.isRead).length,
-    [notifications],
+    () => supportedNotifications.filter((notification) => !notification.isRead).length,
+    [supportedNotifications],
   );
 
   const filters: Array<{ label: string; value: 'all' | Notification['type'] }> = [
@@ -165,7 +178,7 @@ export const Notifications: React.FC = () => {
               Mark All as Read
             </button>
           )}
-          {notifications.length > 0 && (
+          {supportedNotifications.length > 0 && (
             <button
               onClick={handleClearAll}
               className="bg-white hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-semibold transition-colors text-sm border border-gray-200"

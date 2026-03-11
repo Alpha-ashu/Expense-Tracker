@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, TrendingDown, AlertCircle, Target, Gift, Zap, X } from 'lucide-react';
+import type { Notification as AppNotification } from '@/lib/database';
 
 interface NotificationItem {
   id: string;
-  type: 'transaction' | 'emi' | 'reminder' | 'investment' | 'goal' | 'achievement';
+  type: AppNotification['type'] | 'transaction' | 'reminder' | 'investment' | 'achievement';
   title: string;
   description: string;
   timestamp: Date;

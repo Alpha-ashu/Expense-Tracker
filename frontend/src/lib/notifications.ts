@@ -22,11 +22,42 @@ type SupabaseNotificationRow = {
 };
 
 const SYNCABLE_NOTIFICATION_TYPES = new Set<Notification['type']>(['emi', 'loan', 'goal', 'group']);
+const SUPPORTED_NOTIFICATION_TYPES = new Set<Notification['type']>([
+  'emi',
+  'loan',
+  'goal',
+  'group',
+  'booking',
+  'message',
+  'session',
+]);
+const LEGACY_MOCK_NOTIFICATION_TITLES = new Set([
+  'Transaction Recorded',
+  'EMI Due Reminder',
+  'Investment Update',
+]);
 
 let initialized = false;
 let initializedUserId: string | null = null;
 let supabaseNotificationChannel: ReturnType<typeof supabase.channel> | null = null;
 let periodicNotificationCheck: ReturnType<typeof setInterval> | null = null;
+
+async function removeLegacyMockNotifications() {
+  const allNotifications = await db.notifications.toArray();
+  const idsToDelete = allNotifications
+    .filter((notification) => {
+      const record = notification as Notification & { type?: string; title?: string };
+      const type = record.type ?? '';
+      const title = (record.title ?? '').trim();
+      return !SUPPORTED_NOTIFICATION_TYPES.has(type as Notification['type']) || LEGACY_MOCK_NOTIFICATION_TITLES.has(title);
+    })
+    .map((notification) => notification.id)
+    .filter((id): id is number => typeof id === 'number');
+
+  if (idsToDelete.length > 0) {
+    await db.notifications.bulkDelete(idsToDelete);
+  }
+}
 
 const toLocalNotification = (remote: SupabaseNotificationRow): Notification => ({
   type: remote.type,
@@ -358,6 +389,9 @@ export const checkAndCreateNotifications = async () => {
 
 export const initializeNotifications = async () => {
   const userId = await getActiveUserId();
+
+  // One-time migration: remove old hardcoded/mock notification records and unsupported legacy types.
+  await removeLegacyMockNotifications();
 
   if (initialized && initializedUserId === userId) {
     await syncSupabaseNotifications();
