@@ -8,6 +8,13 @@ interface DownloadOptions {
   shareTitle?: string;
 }
 
+interface ShareOptions {
+  filename: string;
+  mimeType: string;
+  data: Blob | string;
+  shareTitle?: string;
+}
+
 const isIOSDevice = () => {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';
@@ -18,6 +25,40 @@ const isIOSDevice = () => {
 
 const createBlob = (data: Blob | string, mimeType: string) =>
   data instanceof Blob ? data : new Blob([data], { type: mimeType });
+
+export const shareFile = async ({
+  filename,
+  mimeType,
+  data,
+  shareTitle,
+}: ShareOptions): Promise<DownloadResult> => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || !('share' in navigator)) {
+    return 'cancelled';
+  }
+
+  const blob = createBlob(data, mimeType);
+  const file = new File([blob], filename, { type: mimeType });
+  const canShareFiles = typeof navigator.canShare === 'function'
+    ? navigator.canShare({ files: [file] })
+    : true;
+
+  if (!canShareFiles) {
+    return 'cancelled';
+  }
+
+  try {
+    await navigator.share({
+      files: [file],
+      title: shareTitle ?? filename,
+    });
+    return 'shared';
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      return 'cancelled';
+    }
+    return 'cancelled';
+  }
+};
 
 export const downloadFile = async ({
   filename,

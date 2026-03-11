@@ -34,6 +34,25 @@ export const Goals: React.FC = () => {
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
+  const getProgressWidthClass = (value: number) => {
+    const progress = Math.max(0, Math.min(100, value));
+    const bucket = Math.round(progress / 10) * 10;
+
+    switch (bucket) {
+      case 0: return 'w-0';
+      case 10: return 'w-[10%]';
+      case 20: return 'w-[20%]';
+      case 30: return 'w-[30%]';
+      case 40: return 'w-[40%]';
+      case 50: return 'w-1/2';
+      case 60: return 'w-[60%]';
+      case 70: return 'w-[70%]';
+      case 80: return 'w-[80%]';
+      case 90: return 'w-[90%]';
+      default: return 'w-full';
+    }
+  };
+
   const openGoalDetail = (goalId: number) => {
     localStorage.setItem(selectedGoalKey, String(goalId));
     setCurrentPage('goal-detail');
@@ -174,7 +193,7 @@ export const Goals: React.FC = () => {
 
       {/* Goals Grid */}
       <AnimatePresence>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 items-stretch">
           {goals.map((goal, index) => {
             const progress = getGoalProgress(goal.currentAmount, goal.targetAmount);
             const daysRemaining = getDaysRemaining(goal.targetDate);
@@ -191,8 +210,9 @@ export const Goals: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
+                className="h-full"
               >
-                <Card variant="glass" className="p-4 sm:p-6 hover:shadow-xl transition-all duration-300">
+                <Card variant="glass" className="h-full p-4 sm:p-6 flex flex-col hover:shadow-xl transition-all duration-300">
                   <div className="flex items-start justify-between mb-3 sm:mb-4">
                     <div className="flex items-center gap-3">
                       <div className={cn(
@@ -291,8 +311,8 @@ export const Goals: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <div className="space-y-4 mb-4">
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="space-y-4 mb-4 flex-1">
                         <div>
                           <div className="flex justify-between text-sm mb-2">
                             <span className="text-gray-500 font-medium">Saved Amount</span>
@@ -304,13 +324,13 @@ export const Goals: React.FC = () => {
                             <div
                               className={cn(
                                 "h-full rounded-full transition-all duration-700 ease-out",
+                                getProgressWidthClass(progress),
                                 progress >= 100
                                   ? 'bg-emerald-500'
                                   : progress >= 50
                                   ? 'bg-blue-600'
                                   : 'bg-amber-500'
                               )}
-                              style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
                             />
                           </div>
                         </div>
@@ -353,9 +373,9 @@ export const Goals: React.FC = () => {
                         )}
 
                         {progress < 100 && (
-                          <div className="bg-black/5 border border-black/10 rounded-xl p-3 backdrop-blur-sm">
-                            <p className="text-xs text-gray-600 mb-1 font-medium uppercase tracking-wide">Required Monthly</p>
-                            <p className="text-lg font-display font-bold text-gray-900">{formatCurrency(monthlySuggestion.monthlyAmount || monthlyRequired)}</p>
+                          <div className="bg-gray-100 border border-gray-200 rounded-xl p-3">
+                            <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wide">Required Monthly</p>
+                            <p className="text-lg font-bold text-gray-900">{formatCurrency(monthlySuggestion.monthlyAmount || monthlyRequired)}</p>
                           </div>
                         )}
 
@@ -370,7 +390,7 @@ export const Goals: React.FC = () => {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2 mt-auto pt-3">
                         <button
                           onClick={() => setShowContributeModal(goal.id!)}
                           className="w-full px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
@@ -388,7 +408,7 @@ export const Goals: React.FC = () => {
                           View Details
                         </button>
                       </div>
-                    </>
+                    </div>
                   )}
                 </Card>
               </motion.div>

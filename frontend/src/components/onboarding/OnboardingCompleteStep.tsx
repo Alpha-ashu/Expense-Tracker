@@ -31,6 +31,25 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  const getProgressWidthClass = (value: number) => {
+    const progressValue = Math.max(0, Math.min(100, value));
+    const bucket = Math.round(progressValue / 10) * 10;
+
+    switch (bucket) {
+      case 0: return 'w-0';
+      case 10: return 'w-[10%]';
+      case 20: return 'w-[20%]';
+      case 30: return 'w-[30%]';
+      case 40: return 'w-[40%]';
+      case 50: return 'w-1/2';
+      case 60: return 'w-[60%]';
+      case 70: return 'w-[70%]';
+      case 80: return 'w-[80%]';
+      case 90: return 'w-[90%]';
+      default: return 'w-full';
+    }
+  };
+
   // Only start processing when user clicks 'Complete Setup'
   const startProcessing = async () => {
     setIsProcessing(true);
@@ -235,8 +254,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
 
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
-            style={{ width: `${Math.min(Math.max(progress, 0), 100)}%` }}
+            className={`bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out ${getProgressWidthClass(progress)}`}
           />
         </div>
       </div>

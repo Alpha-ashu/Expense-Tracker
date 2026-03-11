@@ -269,6 +269,8 @@ export const AddGoal: React.FC = () => {
                     type="date"
                     value={formData.deadline}
                     onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                    aria-label="Goal target date"
+                    title="Goal target date"
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
                   />
                   {errors.deadline && <p className="text-xs text-red-600 mt-2">{errors.deadline}</p>}
@@ -355,6 +357,8 @@ export const AddGoal: React.FC = () => {
                       <select
                         value={memberInput.contactType}
                         onChange={(e) => setMemberInput({ ...memberInput, contactType: e.target.value as 'phone' | 'email' | 'link' })}
+                        aria-label="Member contact type"
+                        title="Member contact type"
                         className="px-3 py-2 border border-gray-200 rounded-lg bg-white"
                       >
                         <option value="phone">Phone</option>

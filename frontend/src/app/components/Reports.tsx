@@ -15,18 +15,19 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { Calendar, Download, TrendingUp } from 'lucide-react';
+import { Calendar, Download, FileSpreadsheet, FileText, MoreHorizontal, Share2, TrendingUp } from 'lucide-react';
 import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { motion } from 'framer-motion';
-import { downloadFile } from '@/lib/download';
+import { downloadFile, shareFile } from '@/lib/download';
 import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
-import { jsPDF } from 'jspdf';
+import { buildStatementReportInput, buildStatementReportPdf } from '@/lib/statementReportPdf';
 
 const chartColors = ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#22C55E', '#0EA5E9', '#F97316'];
 
 type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+type ExportAction = 'download' | 'share' | 'csv' | 'excel' | 'more';
 
 export const Reports: React.FC = () => {
   const { transactions, accounts, loans, goals, investments, currency, setCurrentPage } = useApp();
@@ -34,6 +35,14 @@ export const Reports: React.FC = () => {
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [activeExportAction, setActiveExportAction] = useState<ExportAction | null>(null);
+
+  const pulseExportAction = (action: ExportAction) => {
+    setActiveExportAction(action);
+    window.setTimeout(() => {
+      setActiveExportAction((current) => (current === action ? null : current));
+    }, 900);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -197,6 +206,30 @@ export const Reports: React.FC = () => {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredTransactions, searchQuery, categoryFilter]);
 
+  const reportPeriodLabel = useMemo(() => {
+    if (timeRange === 'daily') {
+      return new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    if (timeRange === 'weekly') {
+      const end = dateRange.end;
+      const start = new Date(end);
+      start.setDate(end.getDate() - 6);
+      return `${start.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    }
+    if (timeRange === 'monthly') {
+      return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+    if (timeRange === 'yearly') {
+      return new Date().getFullYear().toString();
+    }
+    const start = parseDateInputValue(customRange.start);
+    const end = parseDateInputValue(customRange.end);
+    if (start && end) {
+      return `${start.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${end.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    }
+    return 'Custom Range';
+  }, [timeRange, dateRange.end, customRange]);
+
   const exportCSV = async () => {
     const header = ['Date', 'Category', 'Type', 'Amount', 'Payment Method', 'Description'];
     const rows = tableTransactions.map((t) => {
@@ -251,40 +284,45 @@ export const Reports: React.FC = () => {
     });
   };
 
-  const exportPDF = async () => {
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Finora Reports', 14, 18);
-    doc.setFontSize(10);
-    doc.text(`Range: ${timeRange.toUpperCase()}`, 14, 26);
-    doc.text(`Total Income: ${formatCurrency(summaryStats.totalIncome)}`, 14, 34);
-    doc.text(`Total Expense: ${formatCurrency(summaryStats.totalExpenses)}`, 14, 40);
-    doc.text(`Total Savings: ${formatCurrency(summaryStats.netSavings)}`, 14, 46);
+  const generateReportPdfBlob = async () => buildStatementReportPdf(buildStatementReportInput({
+    reportPeriod: reportPeriodLabel,
+    generatedAt: new Date(),
+    currencyCode: currency,
+    transactions: tableTransactions,
+    accounts,
+    loans,
+    goals,
+    investments,
+  }));
 
-    let y = 58;
-    doc.setFontSize(11);
-    doc.text('Transactions', 14, y);
-    y += 6;
-    doc.setFontSize(9);
-
-    const rows = tableTransactions.slice(0, 40);
-    rows.forEach((t) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      const line = `${formatLocalDate(t.date, 'en-US')} | ${t.category} | ${t.type} | ${formatCurrency(t.amount)}`;
-      doc.text(line, 14, y);
-      y += 6;
-    });
-
-    const pdfBlob = doc.output('blob');
+  const downloadPDF = async () => {
+    const pdfBlob = await generateReportPdfBlob();
     await downloadFile({
-      filename: `report-${Date.now()}.pdf`,
+      filename: `finance-report-${Date.now()}.pdf`,
       mimeType: 'application/pdf',
       data: pdfBlob,
-      shareTitle: 'Reports PDF',
+      preferShare: false,
+      shareTitle: 'Finance Report',
     });
+  };
+
+  const sharePDF = async () => {
+    const pdfBlob = await generateReportPdfBlob();
+    const shared = await shareFile({
+      filename: `finance-report-${Date.now()}.pdf`,
+      mimeType: 'application/pdf',
+      data: pdfBlob,
+      shareTitle: 'Finance Report',
+    });
+    if (shared === 'cancelled') {
+      await downloadFile({
+        filename: `finance-report-${Date.now()}.pdf`,
+        mimeType: 'application/pdf',
+        data: pdfBlob,
+        preferShare: false,
+        shareTitle: 'Finance Report',
+      });
+    }
   };
 
   return (
@@ -294,31 +332,84 @@ export const Reports: React.FC = () => {
         subtitle="Track performance, spot trends, and export insights"
         icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
       >
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap">
           <Button
-            onClick={exportPDF}
-            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
+            onClick={() => {
+              pulseExportAction('download');
+              void downloadPDF();
+            }}
+            aria-label="Download PDF"
+            title="Download PDF"
+            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm ${
+              activeExportAction === 'download' ? 'ring-2 ring-offset-2 ring-amber-300' : ''
+            }`}
           >
-            <Download size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-            PDF
+            <Download size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Download PDF</span>
           </Button>
           <Button
-            onClick={exportCSV}
-            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 transition-transform active:scale-95 text-xs sm:text-sm"
+            onClick={() => {
+              pulseExportAction('share');
+              void sharePDF();
+            }}
+            aria-label="Share report"
+            title="Share report"
+            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+              activeExportAction === 'share'
+                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
+                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+            }`}
           >
-            Export CSV
+            <Share2 size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Share Report</span>
           </Button>
           <Button
-            onClick={exportExcel}
-            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 transition-transform active:scale-95 text-xs sm:text-sm"
+            onClick={() => {
+              pulseExportAction('csv');
+              void exportCSV();
+            }}
+            aria-label="Export report as CSV"
+            title="Export CSV"
+            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+              activeExportAction === 'csv'
+                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
+                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+            }`}
           >
-            Export Excel
+            <FileText size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export CSV</span>
           </Button>
           <Button
-            onClick={() => setCurrentPage('export-reports')}
-            className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 transition-transform active:scale-95 text-xs sm:text-sm"
+            onClick={() => {
+              pulseExportAction('excel');
+              void exportExcel();
+            }}
+            aria-label="Export report as Excel"
+            title="Export Excel"
+            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+              activeExportAction === 'excel'
+                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
+                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+            }`}
           >
-            More Export Options
+            <FileSpreadsheet size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Export Excel</span>
+          </Button>
+          <Button
+            onClick={() => {
+              pulseExportAction('more');
+              setCurrentPage('export-reports');
+            }}
+            aria-label="Open more export options"
+            title="More Export Options"
+            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+              activeExportAction === 'more'
+                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
+                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            <MoreHorizontal size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <span className="hidden sm:inline">More Export Options</span>
           </Button>
         </div>
       </PageHeader>
@@ -351,6 +442,8 @@ export const Reports: React.FC = () => {
                 type="date"
                 value={customRange.start}
                 onChange={(e) => setCustomRange((prev) => ({ ...prev, start: e.target.value }))}
+                aria-label="Custom report start date"
+                title="Custom report start date"
                 className="px-3 py-2 border border-gray-200 rounded-lg"
               />
             </div>
@@ -360,6 +453,8 @@ export const Reports: React.FC = () => {
                 type="date"
                 value={customRange.end}
                 onChange={(e) => setCustomRange((prev) => ({ ...prev, end: e.target.value }))}
+                aria-label="Custom report end date"
+                title="Custom report end date"
                 className="px-3 py-2 border border-gray-200 rounded-lg"
               />
             </div>
@@ -511,6 +606,8 @@ export const Reports: React.FC = () => {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
+            aria-label="Filter transactions by category"
+            title="Filter transactions by category"
             className="px-3 py-2 border border-gray-200 rounded-lg"
           >
             <option value="all">All Categories</option>

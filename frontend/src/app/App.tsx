@@ -75,6 +75,37 @@ const PageLoader = () => (
   </div>
 );
 
+class PageErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
+          <div className="text-4xl">⚠️</div>
+          <h2 className="text-lg font-bold text-gray-900">Something went wrong</h2>
+          <p className="text-sm text-gray-500 max-w-sm">{this.state.error.message}</p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="px-4 py-2 bg-black text-white rounded-xl text-sm font-medium"
+          >
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AppContent: React.FC = () => {
   const appContext = useOptionalApp();
   if (!appContext) {
@@ -388,9 +419,11 @@ const AppContent: React.FC = () => {
                 </div>
               </div>
             )}
-            <Suspense fallback={<PageLoader />}>
-              {renderPage()}
-            </Suspense>
+            <PageErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                {renderPage()}
+              </Suspense>
+            </PageErrorBoundary>
           </div>
         </main>
       </div>

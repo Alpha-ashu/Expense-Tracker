@@ -1,8 +1,8 @@
 /* eslint-disable no-restricted-globals */
 // Service Worker with offline support and API response caching
 
-const CACHE_NAME = 'financelife-v3';
-const API_CACHE_NAME = 'financelife-api-v2';
+const CACHE_NAME = 'financelife-v4';
+const API_CACHE_NAME = 'financelife-api-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Max age for cached API responses (30 minutes)
@@ -87,6 +87,39 @@ self.addEventListener('fetch', (event) => {
               { status: 503, headers: { 'Content-Type': 'application/json' } }
             );
           });
+        })
+    );
+    return;
+  }
+
+  const isAssetRequest = request.url.includes('/assets/');
+  const isStaticDestination = ['script', 'style', 'font', 'image'].includes(request.destination);
+
+  if (isAssetRequest || isStaticDestination) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const contentType = response.headers.get('content-type') || '';
+          const isJavascript = contentType.includes('javascript');
+          const isCss = contentType.includes('text/css');
+          const isFont = contentType.includes('font');
+          const isImage = contentType.startsWith('image/');
+          const shouldCache = response && response.status === 200 && (isJavascript || isCss || isFont || isImage);
+
+          if (shouldCache) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          } else if (isAssetRequest && contentType.includes('text/html')) {
+            // Avoid caching HTML responses for asset requests (prevents MIME errors on dynamic chunks)
+            console.warn('Service worker bypassed caching HTML for asset request:', request.url);
+          }
+
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
         })
     );
     return;

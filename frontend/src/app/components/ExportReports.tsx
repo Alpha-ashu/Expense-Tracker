@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { useApp } from '@/contexts/AppContext';
-import { Download, FileJson, FileText, FileSpreadsheet } from 'lucide-react';
+import { Download, FileJson, FileText, FileSpreadsheet, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { downloadFile } from '@/lib/download';
+import { downloadFile, shareFile } from '@/lib/download';
 import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
+import { buildStatementReportInput, buildStatementReportPdf } from '@/lib/statementReportPdf';
 
 interface ExportOptions {
   dataType: 'transactions' | 'accounts' | 'loans' | 'goals' | 'investments' | 'all';
@@ -23,6 +24,16 @@ export const ExportReports: React.FC = () => {
     dateRange: 'all',
   });
   const [isExporting, setIsExporting] = useState(false);
+
+  const reportPeriodLabel = useMemo(() => {
+    if (exportOptions.dateRange === 'all') return 'All Records';
+    if (exportOptions.dateRange === 'year') return 'This Year';
+    if (exportOptions.dateRange === 'month') return 'This Month';
+    if (exportOptions.startDate && exportOptions.endDate) {
+      return `${exportOptions.startDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })} - ${exportOptions.endDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+    }
+    return 'Custom Range';
+  }, [exportOptions.dateRange, exportOptions.startDate, exportOptions.endDate]);
 
   const stats = useMemo(() => {
     const totalExpenses = transactions
@@ -158,6 +169,61 @@ export const ExportReports: React.FC = () => {
     }
   };
 
+  const buildPdfBlob = async () => {
+    const filteredTransactions = getFilteredData();
+    return buildStatementReportPdf(buildStatementReportInput({
+      reportPeriod: reportPeriodLabel,
+      generatedAt: new Date(),
+      currencyCode: currency,
+      transactions: filteredTransactions,
+      accounts,
+      loans,
+      goals,
+      investments,
+    }));
+  };
+
+  const exportToPDF = async () => {
+    const pdfBlob = await buildPdfBlob();
+    const filename = `finance-report-${Date.now()}.pdf`;
+    const result = await downloadFile({
+      filename,
+      mimeType: 'application/pdf',
+      data: pdfBlob,
+      preferShare: false,
+      shareTitle: 'Finance Report',
+    });
+
+    if (result !== 'cancelled') {
+      toast.success('PDF downloaded');
+    }
+  };
+
+  const sharePdfReport = async () => {
+    const pdfBlob = await buildPdfBlob();
+    const filename = `finance-report-${Date.now()}.pdf`;
+    const shared = await shareFile({
+      filename,
+      mimeType: 'application/pdf',
+      data: pdfBlob,
+      shareTitle: 'Finance Report',
+    });
+
+    if (shared === 'shared') {
+      toast.success('Report shared');
+      return;
+    }
+
+    await downloadFile({
+      filename,
+      mimeType: 'application/pdf',
+      data: pdfBlob,
+      preferShare: false,
+      shareTitle: 'Finance Report',
+    });
+    toast.info('Share unavailable, downloaded instead');
+  };
+
   const handleExport = async () => {
     setIsExporting(true);
     try {
@@ -166,7 +232,7 @@ export const ExportReports: React.FC = () => {
       } else if (exportOptions.format === 'json') {
         await exportToJSON();
       } else if (exportOptions.format === 'pdf') {
-        toast.info('PDF export coming soon');
+        await exportToPDF();
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -283,7 +349,6 @@ export const ExportReports: React.FC = () => {
                       ? 'border-blue-500 bg-blue-50 text-blue-600'
                       : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                   }`}
-                  disabled={option.value === 'pdf'}
                   aria-label={`Select ${option.label} format`}
                   title={`Select ${option.label} format`}
                 >
@@ -381,8 +446,25 @@ export const ExportReports: React.FC = () => {
             title={`Export as ${exportOptions.format.toUpperCase()}`}
           >
             <Download size={20} />
-            {isExporting ? 'Exporting...' : `Export as ${exportOptions.format.toUpperCase()}`}
+            {isExporting
+              ? 'Exporting...'
+              : exportOptions.format === 'pdf'
+                ? 'Download PDF'
+                : `Export as ${exportOptions.format.toUpperCase()}`}
           </button>
+
+          {exportOptions.format === 'pdf' && (
+            <button
+              onClick={sharePdfReport}
+              disabled={isExporting}
+              className="w-full py-3 bg-white text-blue-700 rounded-lg border border-blue-300 hover:bg-blue-50 disabled:bg-gray-100 font-medium transition-colors flex items-center justify-center gap-2"
+              aria-label="Share report"
+              title="Share report"
+            >
+              <Share2 size={20} />
+              Share Report
+            </button>
+          )}
         </div>
 
         {/* Export Information */}
@@ -391,7 +473,7 @@ export const ExportReports: React.FC = () => {
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
             <li>CSV: Best for spreadsheet applications like Excel</li>
             <li>JSON: Best for data portability and integration with other apps</li>
-            <li>PDF: Coming soon - formatted reports for printing</li>
+            <li>PDF: Statement style report with charts, summaries and transactions</li>
             <li>All your data is exported locally and never sent to external servers</li>
           </ul>
         </div>
