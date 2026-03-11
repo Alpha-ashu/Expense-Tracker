@@ -589,21 +589,27 @@ export const Reports: React.FC = () => {
             <p className="text-sm text-gray-500">Search and filter detailed activity.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={exportPDF} className="rounded-full px-4 py-2 text-xs bg-black text-white hover:bg-gray-900">Download PDF</Button>
+            <Button onClick={() => void downloadPDF()} className="rounded-full px-4 py-2 text-xs bg-black text-white hover:bg-gray-900">Download PDF</Button>
             <Button onClick={exportCSV} className="rounded-full px-4 py-2 text-xs bg-white border border-gray-200 text-gray-900 hover:bg-gray-50">Export CSV</Button>
             <Button onClick={exportExcel} className="rounded-full px-4 py-2 text-xs bg-white border border-gray-200 text-gray-900 hover:bg-gray-50">Export Excel</Button>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+          <label htmlFor="reports-search-transactions" className="sr-only">Search transactions</label>
           <input
+            id="reports-search-transactions"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search transactions"
+            aria-label="Search transactions"
+            title="Search transactions"
             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg"
           />
+          <label htmlFor="reports-category-filter" className="sr-only">Filter transactions by category</label>
           <select
+            id="reports-category-filter"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             aria-label="Filter transactions by category"

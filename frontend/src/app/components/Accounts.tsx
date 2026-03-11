@@ -257,7 +257,7 @@ export const Accounts: React.FC = () => {
     // ── Indian Banks ──
     if (n.includes('sbi') || n.includes('state bank')) {
       return (
-        <div style={{ width: w, height: h }} className="flex flex-col items-center justify-center rounded-lg overflow-hidden bg-[#22408C]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex flex-col items-center justify-center rounded-lg overflow-hidden bg-[#22408C]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#22408C" />
             <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">SBI</text>
@@ -268,7 +268,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('hdfc')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#004C8F]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#004C8F]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#004C8F" />
             <text x="30" y="14" textAnchor="middle" fill="#00AEEF" fontWeight="800" fontSize={textLg} fontFamily="Arial">HDFC</text>
@@ -279,7 +279,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('icici')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#B02A2A]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#B02A2A]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#B02A2A" />
             <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textMd} fontFamily="Arial">ICICI</text>
@@ -290,7 +290,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('axis')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#97144D]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#97144D]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#97144D" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">AXIS</text>
@@ -300,7 +300,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('kotak')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#ED1C24]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#ED1C24]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#ED1C24" />
             <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">KOTAK</text>
@@ -311,7 +311,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('pnb') || n.includes('punjab national')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003366]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003366]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#003366" />
             <text x="30" y="22" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textLg} fontFamily="Arial">PNB</text>
@@ -321,7 +321,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('bob') || n.includes('bank of baroda')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#E87722]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#E87722]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#E87722" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">BOB</text>
@@ -331,7 +331,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('canara')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#034694]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#034694]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#034694" />
             <text x="30" y="22" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">CANARA</text>
@@ -341,7 +341,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('union bank')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#003087" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">UNION</text>
@@ -351,7 +351,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('idbi')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#3D9A42]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#3D9A42]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#3D9A42" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">IDBI</text>
@@ -361,7 +361,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('yes bank')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#00539B]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#00539B]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#00539B" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">YES</text>
@@ -371,7 +371,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('indusind')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#7B2D8B]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#7B2D8B]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#7B2D8B" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">IndusInd</text>
@@ -381,7 +381,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('idfc')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#009FE3]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#009FE3]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#009FE3" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">IDFC</text>
@@ -393,7 +393,7 @@ export const Accounts: React.FC = () => {
     // ── International Banks ──
     if (n.includes('chase') || n.includes('jpmorgan')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#117ACA]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#117ACA]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#117ACA" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">Chase</text>
@@ -403,7 +403,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('bank of america') || n.includes('bofa')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#E31937]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#E31937]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#E31937" />
             <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Bank of</text>
@@ -414,7 +414,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('citi') || n.includes('citibank')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003B8E]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003B8E]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#003B8E" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">Citi</text>
@@ -424,7 +424,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('wells fargo')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#CC0000]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#CC0000]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#CC0000" />
             <text x="30" y="15" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Wells</text>
@@ -435,7 +435,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('hsbc')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#DB0011]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#DB0011]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#DB0011" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">HSBC</text>
@@ -445,7 +445,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('barclays')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#00AEEF]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#00AEEF]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#00AEEF" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Barclays</text>
@@ -455,7 +455,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('standard chartered') || n.includes('stanchart')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#0A7F4F]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#0A7F4F]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#0A7F4F" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Stan Chart</text>
@@ -467,7 +467,7 @@ export const Accounts: React.FC = () => {
     // ── Card Networks ──
     if (n.includes('visa')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#1A1F71]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#1A1F71]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#1A1F71" />
             <text x="30" y="24" textAnchor="middle" fill="#fff" fontWeight="800" fontSize={size === 'sm' ? '18' : '22'} fontFamily="Arial" fontStyle="italic">VISA</text>
@@ -477,7 +477,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('mastercard') || n.includes('master card')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#252525]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#252525]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#252525" />
             <circle cx="22" cy="18" r="11" fill="#EB001B" />
@@ -489,7 +489,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('amex') || n.includes('american express')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#007BC1]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#007BC1]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#007BC1" />
             <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">AMERICAN</text>
@@ -500,7 +500,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('rupay')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-r from-orange-600 to-green-600">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-r from-orange-600 to-green-600")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="transparent" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">RuPay</text>
@@ -512,7 +512,7 @@ export const Accounts: React.FC = () => {
     // ── Digital Wallets ──
     if (n.includes('phonepe') || n.includes('phone pe')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#5F259F]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#5F259F]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#5F259F" />
             <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Phone</text>
@@ -523,7 +523,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('gpay') || n.includes('google pay')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-white border border-gray-200">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-white border border-gray-200")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#fff" />
             <text x="7" y="24" fill="#4285F4" fontWeight="bold" fontSize={textLg} fontFamily="Arial">G</text>
@@ -536,7 +536,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('paytm')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#00BAF2]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#00BAF2]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#00BAF2" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textMd} fontFamily="Arial">Paytm</text>
@@ -546,7 +546,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('paypal')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#003087" />
             <text x="30" y="22" textAnchor="middle" fill="#009CDE" fontWeight="bold" fontSize={textMd} fontFamily="Arial">PayPal</text>
@@ -556,7 +556,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('amazon pay')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#232F3E]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#232F3E]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#232F3E" />
             <text x="30" y="15" textAnchor="middle" fill="#FF9900" fontWeight="bold" fontSize={textSm} fontFamily="Arial">amazon</text>
@@ -567,7 +567,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('mobikwik')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-[#E8203A]">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#E8203A]")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="#E8203A" />
             <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">MobiKwik</text>
@@ -577,7 +577,7 @@ export const Accounts: React.FC = () => {
     }
     if (n.includes('cash') || n.includes('petty cash')) {
       return (
-        <div style={{ width: w, height: h }} className="flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-br from-emerald-500 to-green-700">
+        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-br from-emerald-500 to-green-700")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="transparent" />
             <text x="30" y="15" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={textSm} fontFamily="Arial">💵</text>
@@ -589,15 +589,19 @@ export const Accounts: React.FC = () => {
 
     // ── Fallback: beautiful initials logo ──
     const initials = name.trim().split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').slice(0, 2).join('');
-    const fallbackColors = [
-      ['#1e3a5f', '#4a9ede'], ['#3d1f5c', '#a855f7'], ['#1f4d2f', '#4ade80'],
-      ['#5c1f1f', '#f87171'], ['#1f3d5c', '#38bdf8'], ['#5c4a1f', '#fbbf24'],
+    const fallbackThemes = [
+      { bgClass: 'bg-[#1e3a5f]', textClass: 'text-[#4a9ede]' },
+      { bgClass: 'bg-[#3d1f5c]', textClass: 'text-[#a855f7]' },
+      { bgClass: 'bg-[#1f4d2f]', textClass: 'text-[#4ade80]' },
+      { bgClass: 'bg-[#5c1f1f]', textClass: 'text-[#f87171]' },
+      { bgClass: 'bg-[#1f3d5c]', textClass: 'text-[#38bdf8]' },
+      { bgClass: 'bg-[#5c4a1f]', textClass: 'text-[#fbbf24]' },
     ];
-    const colorIdx = name.charCodeAt(0) % fallbackColors.length;
-    const [bg, text] = fallbackColors[colorIdx];
+    const colorIdx = name.charCodeAt(0) % fallbackThemes.length;
+    const theme = fallbackThemes[colorIdx];
     return (
-      <div style={{ width: w, height: h, background: bg }} className="flex items-center justify-center rounded-lg">
-        <span style={{ color: text, fontSize: size === 'sm' ? 15 : 18, fontWeight: 800, fontFamily: 'Arial', letterSpacing: 1 }}>{initials}</span>
+      <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', 'flex items-center justify-center rounded-lg', theme.bgClass)}>
+        <span className={cn(theme.textClass, size === 'sm' ? 'text-[15px]' : 'text-[18px]', 'font-extrabold font-sans tracking-[0.06em]')}>{initials}</span>
       </div>
     );
   };
@@ -700,8 +704,7 @@ export const Accounts: React.FC = () => {
         <div className="lg:hidden">
           <div
             ref={mobileCarouselRef}
-            className="flex overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"
-            style={{ WebkitOverflowScrolling: "touch" }}
+            className="flex overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide touch-scroll"
           >
             {filteredAccounts.map((account) => {
               const isActive = selectedAccountId === account.id;
@@ -710,15 +713,13 @@ export const Accounts: React.FC = () => {
                 <div
                   key={account.id}
                   ref={(el) => { if (el) mobileCardRefs.current[account.id!] = el; }}
-                  className="snap-start shrink-0 w-screen px-4"
-                  style={{ scrollSnapStop: "always" }}
+                  className="snap-start shrink-0 w-screen px-4 [scroll-snap-stop:always]"
                 >
                   <div
-                    style={{
-                      transition: "all 0.3s ease-in-out",
-                      transform: isActive ? "scale(1)" : "scale(0.95)",
-                      opacity: isActive ? 1 : 0.7,
-                    }}
+                    className={cn(
+                      'transition-all duration-300 ease-in-out',
+                      isActive ? 'scale-100 opacity-100' : 'scale-95 opacity-70'
+                    )}
                   >
                     <Card
                       variant="flat"
@@ -778,11 +779,13 @@ export const Accounts: React.FC = () => {
                                 <button
                                   onClick={(e) => handleEditAccount(account, e)}
                                   className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-90 border border-white/10"
+                                  aria-label={`Edit ${account.name} account`}
                                   title="Edit"
                                 ><Edit2 size={11} /></button>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleDeleteAccount(account.id!, account.name); }}
                                   className="w-7 h-7 flex items-center justify-center rounded-full bg-red-500/40 hover:bg-red-500/70 text-white transition-all active:scale-90 border border-red-400/20"
+                                  aria-label={`Delete ${account.name} account`}
                                   title="Delete"
                                 ><Trash2 size={11} /></button>
                               </>
@@ -804,8 +807,8 @@ export const Accounts: React.FC = () => {
                           )}>Balance</p>
                           <p className={cn(
                             "text-2xl sm:text-[28px] font-bold tracking-tight leading-none",
-                            isActive ? "text-white" : "text-gray-900"
-                          )} style={isActive ? { textShadow: "0 2px 8px rgba(0,0,0,0.3)" } : undefined}>
+                            isActive ? "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" : "text-gray-900"
+                          )}>
                             {formatCurrency(account.balance)}
                           </p>
                         </div>
@@ -862,7 +865,7 @@ export const Accounts: React.FC = () => {
             >
               <div className="flex gap-1.5 justify-center items-center h-4 mb-2">
                 {filteredAccounts.map((account) => (
-                  <div
+                  <button
                     key={`dot-mobile-${account.id}`}
                     onClick={() => handleCardClick(account.id!)}
                     className={cn(
@@ -871,12 +874,9 @@ export const Accounts: React.FC = () => {
                         ? "w-4 sm:w-5 h-1.5 sm:h-2 bg-gradient-to-r from-pink-500 to-rose-500" 
                         : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-gray-300 hover:bg-gray-400"
                     )}
-                    role="button"
-                    style={{
-                      minWidth: selectedAccountId === account.id ? "16px" : "6px",
-                      minHeight: "6px"
-                    }}
+                    type="button"
                     aria-label={`Go to account ${account.name}`}
+                    title={`Go to account ${account.name}`}
                   />
                 ))}
               </div>
@@ -896,18 +896,11 @@ export const Accounts: React.FC = () => {
             {/* Carousel Container */}
             <div
               ref={carouselRef}
-              className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"
-              style={{
-                WebkitOverflowScrolling: "touch",
-                // scroll-padding ensures snap target is always the center
-                scrollPaddingLeft: "50%",
-                scrollPaddingRight: "50%",
-              }}
+              className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth touch-scroll [scroll-padding-left:50%] [scroll-padding-right:50%]"
             >
               {/* Left spacer — allows first card to snap to center */}
               <div
-                className="shrink-0"
-                style={{ width: `calc(50% - 210px)`, minWidth: 32 }}
+                className="shrink-0 w-[calc(50%-210px)] min-w-8"
                 aria-hidden
               />
                   {filteredAccounts.map((account) => {
@@ -918,18 +911,13 @@ export const Accounts: React.FC = () => {
                         ref={(el) => {
                           if (el) cardRefs.current[account.id!] = el;
                         }}
-                        className="snap-center shrink-0"
-                        style={{
-                          scrollSnapAlign: "center",
-                          scrollSnapStop: "always",
-                        }}
+                        className="snap-center shrink-0 [scroll-snap-align:center] [scroll-snap-stop:always]"
                       >
                         <div
-                          style={{
-                            transition: "all 0.3s ease-in-out",
-                            transform: isActive ? "scale(1)" : "scale(0.9)",
-                            opacity: isActive ? 1 : 0.5,
-                          }}
+                          className={cn(
+                            'transition-all duration-300 ease-in-out',
+                            isActive ? 'scale-100 opacity-100' : 'scale-90 opacity-50'
+                          )}
                         >
                           <Card
                             variant="flat"
@@ -987,11 +975,13 @@ export const Accounts: React.FC = () => {
                                       <button
                                         onClick={(e) => handleEditAccount(account, e)}
                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-all active:scale-90 border border-white/10"
+                                        aria-label={`Edit ${account.name} account`}
                                         title="Edit"
                                       ><Edit2 size={13} /></button>
                                       <button
                                         onClick={(e) => { e.stopPropagation(); handleDeleteAccount(account.id!, account.name); }}
                                         className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/40 hover:bg-red-500/70 text-white transition-all active:scale-90 border border-red-400/20"
+                                        aria-label={`Delete ${account.name} account`}
                                         title="Delete"
                                       ><Trash2 size={13} /></button>
                                     </>
@@ -1012,8 +1002,8 @@ export const Accounts: React.FC = () => {
                                 )}>Balance</p>
                                 <p className={cn(
                                   "text-[32px] font-bold tracking-tight leading-none",
-                                  isActive ? "text-white" : "text-gray-900"
-                                )} style={isActive ? { textShadow: "0 2px 12px rgba(0,0,0,0.35)" } : undefined}>
+                                  isActive ? "text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]" : "text-gray-900"
+                                )}>
                                   {formatCurrency(account.balance)}
                                 </p>
                               </div>
@@ -1061,8 +1051,7 @@ export const Accounts: React.FC = () => {
                   })}
               {/* Right spacer — allows last card to snap to center */}
               <div
-                className="shrink-0"
-                style={{ width: `calc(50% - 210px)`, minWidth: 32 }}
+                className="shrink-0 w-[calc(50%-210px)] min-w-8"
                 aria-hidden
               />
             </div>
@@ -1076,7 +1065,7 @@ export const Accounts: React.FC = () => {
           >
             <div className="flex gap-1.5 justify-center items-center h-4 mb-2">
               {filteredAccounts.map((account) => (
-                <div
+                <button
                   key={`dot-${account.id}`}
                   onClick={() => handleCardClick(account.id!)}
                   className={cn(
@@ -1085,12 +1074,9 @@ export const Accounts: React.FC = () => {
                       ? "w-5 h-2 bg-gradient-to-r from-pink-500 to-rose-500" 
                       : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
                   )}
-                  role="button"
-                  style={{
-                    minWidth: selectedAccountId === account.id ? "20px" : "8px",
-                    minHeight: "8px"
-                  }}
+                  type="button"
                   aria-label={`Go to account ${account.name}`}
+                  title={`Go to account ${account.name}`}
                 />
               ))}
             </div>
@@ -1301,6 +1287,8 @@ export const Accounts: React.FC = () => {
                 <button
                   onClick={() => { setEditModalOpen(false); setEditingAccount(null); }}
                   className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                  aria-label="Close edit account modal"
+                  title="Close edit account modal"
                 >
                   <X size={16} />
                 </button>
@@ -1310,8 +1298,9 @@ export const Accounts: React.FC = () => {
               <div className="px-6 pb-6 pt-3 space-y-4">
                 {/* Account Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Account Name</label>
+                  <label htmlFor="edit-account-name" className="block text-xs font-semibold text-gray-600 mb-1.5">Account Name</label>
                   <input
+                    id="edit-account-name"
                     type="text"
                     value={editingAccount.name}
                     onChange={(e) => setEditingAccount(prev => prev ? { ...prev, name: e.target.value } : null)}
@@ -1322,11 +1311,14 @@ export const Accounts: React.FC = () => {
 
                 {/* Account Type */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Account Type</label>
+                  <label htmlFor="edit-account-type" className="block text-xs font-semibold text-gray-600 mb-1.5">Account Type</label>
                   <select
+                    id="edit-account-type"
                     value={editingAccount.type}
                     onChange={(e) => setEditingAccount(prev => prev ? { ...prev, type: e.target.value } : null)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 outline-none text-sm font-medium text-gray-900 bg-white transition-all"
+                    aria-label="Account type"
+                    title="Account type"
                   >
                     <option value="bank">🏦 Bank Account</option>
                     <option value="card">💳 Credit / Debit Card</option>
@@ -1337,8 +1329,9 @@ export const Accounts: React.FC = () => {
 
                 {/* Balance */}
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Current Balance (₹)</label>
+                  <label htmlFor="edit-account-balance" className="block text-xs font-semibold text-gray-600 mb-1.5">Current Balance (₹)</label>
                   <input
+                    id="edit-account-balance"
                     type="number"
                     value={editingAccount.balance}
                     onChange={(e) => setEditingAccount(prev => prev ? { ...prev, balance: parseFloat(e.target.value) || 0 } : null)}
@@ -1360,6 +1353,8 @@ export const Accounts: React.FC = () => {
                       "relative w-11 h-6 rounded-full transition-all duration-200",
                       editingAccount.isActive ? "bg-gradient-to-r from-pink-500 to-rose-500" : "bg-gray-200"
                     )}
+                    aria-label={editingAccount.isActive ? 'Deactivate account' : 'Activate account'}
+                    title={editingAccount.isActive ? 'Deactivate account' : 'Activate account'}
                   >
                     <span
                       className={cn(
@@ -1471,3 +1466,4 @@ export const Accounts: React.FC = () => {
     </div>
   );
 };
+

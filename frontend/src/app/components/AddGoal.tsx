@@ -183,8 +183,9 @@ export const AddGoal: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Goal Name *</label>
+                  <label htmlFor="add-goal-name" className="block text-sm font-semibold text-gray-900 mb-2">Goal Name *</label>
                   <input
+                    id="add-goal-name"
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -217,8 +218,9 @@ export const AddGoal: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Description</label>
+                  <label htmlFor="add-goal-description" className="block text-sm font-semibold text-gray-900 mb-2">Description</label>
                   <textarea
+                    id="add-goal-description"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-gray-50"
@@ -232,10 +234,11 @@ export const AddGoal: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Target Amount *</label>
+                  <label htmlFor="add-goal-target-amount" className="block text-sm font-semibold text-gray-900 mb-2">Target Amount *</label>
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 text-lg">{currency}</span>
                     <input
+                      id="add-goal-target-amount"
                       type="number"
                       step="0.01"
                       value={formData.targetAmount || ''}
@@ -248,10 +251,11 @@ export const AddGoal: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Initial Contribution</label>
+                  <label htmlFor="add-goal-initial-contribution" className="block text-sm font-semibold text-gray-900 mb-2">Initial Contribution</label>
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 text-lg">{currency}</span>
                     <input
+                      id="add-goal-initial-contribution"
                       type="number"
                       step="0.01"
                       value={formData.currentAmount || ''}
@@ -264,8 +268,9 @@ export const AddGoal: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Target Date *</label>
+                  <label htmlFor="add-goal-target-date" className="block text-sm font-semibold text-gray-900 mb-2">Target Date *</label>
                   <input
+                    id="add-goal-target-date"
                     type="date"
                     value={formData.deadline}
                     onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
@@ -277,10 +282,11 @@ export const AddGoal: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Monthly Saving Plan</label>
+                  <label htmlFor="add-goal-monthly-saving" className="block text-sm font-semibold text-gray-900 mb-2">Monthly Saving Plan</label>
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 text-lg">{currency}</span>
                     <input
+                      id="add-goal-monthly-saving"
                       type="number"
                       step="0.01"
                       value={formData.monthlySavingPlan || ''}
@@ -341,6 +347,8 @@ export const AddGoal: React.FC = () => {
                         type="button"
                         onClick={copyInviteLink}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700"
+                        aria-label="Copy invite link"
+                        title="Copy invite link"
                       >
                         <Copy size={14} /> Copy invite link
                       </button>
@@ -348,13 +356,17 @@ export const AddGoal: React.FC = () => {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <input
+                        id="add-goal-member-name"
                         type="text"
                         value={memberInput.name}
                         onChange={(e) => setMemberInput({ ...memberInput, name: e.target.value })}
                         className="px-3 py-2 border border-gray-200 rounded-lg bg-white"
                         placeholder="Name"
+                        aria-label="Member name"
+                        title="Member name"
                       />
                       <select
+                        id="add-goal-member-contact-type"
                         value={memberInput.contactType}
                         onChange={(e) => setMemberInput({ ...memberInput, contactType: e.target.value as 'phone' | 'email' | 'link' })}
                         aria-label="Member contact type"
@@ -366,22 +378,27 @@ export const AddGoal: React.FC = () => {
                         <option value="link">Invite Link</option>
                       </select>
                       <input
+                        id="add-goal-member-contact-value"
                         type="text"
                         value={memberInput.contactValue}
                         onChange={(e) => setMemberInput({ ...memberInput, contactValue: e.target.value })}
                         className="px-3 py-2 border border-gray-200 rounded-lg bg-white"
                         placeholder="Phone or email"
+                        aria-label="Member contact value"
+                        title="Member contact value"
                       />
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={addMember} className="px-3 py-2 rounded-lg bg-black text-white text-sm">+ Add Member</button>
+                      <button type="button" onClick={addMember} className="px-3 py-2 rounded-lg bg-black text-white text-sm" aria-label="Add member" title="Add member">+ Add Member</button>
                       {friends.slice(0, 4).map((friend) => (
                         <button
                           key={friend.id}
                           type="button"
                           onClick={() => addFriendAsMember(friend)}
                           className="px-3 py-2 rounded-lg border border-gray-300 text-xs"
+                          aria-label={`Add ${friend.name} as member`}
+                          title={`Add ${friend.name} as member`}
                         >
                           {friend.name}
                         </button>

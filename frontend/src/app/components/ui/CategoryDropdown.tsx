@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Check } from 'lucide-react';
-import { getCategoryCartoonIcon, getCategoryColor } from './CartoonCategoryIcons';
+import { getCategoryCartoonIcon } from './CartoonCategoryIcons';
 import { cn } from '@/lib/utils';
 
 interface CategoryDropdownProps {
@@ -97,13 +97,11 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
-            style={{ maxHeight: '320px', overflowY: 'auto' }}
+            className="absolute z-50 w-full mt-2 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
           >
             <div className="py-2">
               {options.map((option, index) => {
                 const isSelected = option === value;
-                const bgColor = getCategoryColor(option);
                 
                 return (
                   <motion.button
@@ -134,12 +132,7 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
                       </span>
                     </div>
                     {isSelected && (
-                      <div 
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ 
-                          backgroundColor: bgColor 
-                        }}
-                      >
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center bg-blue-500">
                         <Check className="w-4 h-4 text-white" />
                       </div>
                     )}

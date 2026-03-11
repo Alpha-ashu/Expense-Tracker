@@ -85,9 +85,9 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
     }
   };
 
-  const handleDeleteBill = async (billId: number) => {
+  const handleDeleteBill = async (billId: string) => {
     try {
-      await backendService.deleteExpenseBill(String(billId));
+      await backendService.deleteExpenseBill(billId);
       toast.success('Bill deleted');
       // Refresh bills after delete
       const backendBills = await backendService.getExpenseBills(String(transactionId));

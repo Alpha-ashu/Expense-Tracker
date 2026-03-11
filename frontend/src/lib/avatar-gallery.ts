@@ -50,8 +50,8 @@ const toId = (file: string, index: number) => {
 
 const toUrl = (url: string) => url;
 
-const buildOptions = () =>
-  AVATAR_FILES.map((file, index) => ({
+const buildOptions = (): AvatarOption[] =>
+  AVATAR_FILES.map((file, index): AvatarOption => ({
     id: toId(file.path, index),
     url: toUrl(file.url),
     gender: 'neutral',

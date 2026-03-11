@@ -192,6 +192,25 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     maximumFractionDigits: 0,
   });
 
+  const getProgressWidthClass = (value: number) => {
+    const progressValue = Math.max(0, Math.min(100, value));
+    const bucket = Math.round(progressValue / 10) * 10;
+
+    switch (bucket) {
+      case 0: return 'w-0';
+      case 10: return 'w-[10%]';
+      case 20: return 'w-[20%]';
+      case 30: return 'w-[30%]';
+      case 40: return 'w-[40%]';
+      case 50: return 'w-1/2';
+      case 60: return 'w-[60%]';
+      case 70: return 'w-[70%]';
+      case 80: return 'w-[80%]';
+      case 90: return 'w-[90%]';
+      default: return 'w-full';
+    }
+  };
+
   const tabs = [
     { id: 'all', label: 'All Assets', icon: TrendingUp },
     { id: 'bank', label: 'Banks', icon: Wallet },
@@ -220,7 +239,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35 } };
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50" style={{ maxWidth: '100vw' }}>
+    <div className="w-full min-h-screen max-w-[100vw] overflow-x-hidden bg-gray-50">
       <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full overflow-x-hidden">
 
         {/* Header */}
@@ -318,7 +337,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           <AnimatePresence mode="wait">
             {filteredAccounts.length > 0 ? (
               <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}
-                className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}
+                className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth touch-scroll"
               >
                 {filteredAccounts.map((account) => (
                   <Card key={account.id} className="p-4 w-[280px] sm:w-[320px] shrink-0 snap-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
@@ -642,8 +661,10 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                         <span>{formatCurrency(goal.targetAmount)}</span>
                       </div>
                       <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div className="bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${progress}%` }} />
+                        <div className={cn(
+                          'bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full transition-all duration-500',
+                          getProgressWidthClass(progress)
+                        )} />
                       </div>
                     </div>
                     <p className="text-xs font-semibold text-pink-600">{progress.toFixed(0)}% Complete</p>

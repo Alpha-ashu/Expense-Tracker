@@ -518,8 +518,9 @@ const ContributeModal: React.FC<{
         <h3 className="text-2xl font-display font-bold mb-6 text-gray-900">Add Contribution</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Amount</label>
+            <label htmlFor="goal-contribution-amount" className="block text-sm font-bold text-gray-700 mb-2">Amount</label>
             <input
+              id="goal-contribution-amount"
               type="number"
               step="0.01"
               value={amount || ''}
@@ -534,8 +535,9 @@ const ContributeModal: React.FC<{
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">From Account</label>
+            <label htmlFor="goal-contribution-account" className="block text-sm font-bold text-gray-700 mb-2">From Account</label>
             <select
+              id="goal-contribution-account"
               value={accountId}
               onChange={(e) => setAccountId(parseInt(e.target.value))}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 font-medium appearance-none bg-white"

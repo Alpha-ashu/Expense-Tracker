@@ -44,23 +44,12 @@ function initializeApp(): void {
     // Fallback rendering
     const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
     root.render(
-      <div style={{ 
-        padding: '20px', 
-        textAlign: 'center', 
-        fontFamily: 'Arial, sans-serif' 
-      }}>
+      <div className="p-5 text-center font-sans">
         <h1>Application Error</h1>
         <p>Sorry, the application failed to load. Please refresh the page and try again.</p>
         <button 
           onClick={() => window.location.reload()}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
+          className="px-5 py-2.5 bg-blue-600 text-white rounded cursor-pointer border-0"
         >
           Refresh Page
         </button>

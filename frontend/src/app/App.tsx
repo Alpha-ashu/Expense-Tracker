@@ -395,9 +395,9 @@ const AppContent: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content relative overflow-x-hidden">
         <TopBar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main" style={{ maxWidth: '100%' }}>
+        <main className="flex-1 max-w-full overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
           {/* Global alignment envelope — centers content on wide screens */}
-          <div className="w-full max-w-[1440px] mx-auto overflow-x-hidden" style={{ isolation: 'isolate' }}>
+          <div className="w-full max-w-[1440px] mx-auto overflow-x-hidden isolate">
             {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">

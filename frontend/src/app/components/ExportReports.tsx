@@ -397,10 +397,11 @@ export const ExportReports: React.FC = () => {
           {exportOptions.dateRange === 'custom' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="export-start-date" className="block text-sm font-medium text-gray-700 mb-2">
                   Start date
                 </label>
                 <input
+                  id="export-start-date"
                   type="date"
                   value={exportOptions.startDate ? toLocalDateKey(exportOptions.startDate) ?? '' : ''}
                   onChange={(e) =>
@@ -416,10 +417,11 @@ export const ExportReports: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="export-end-date" className="block text-sm font-medium text-gray-700 mb-2">
                   End date
                 </label>
                 <input
+                  id="export-end-date"
                   type="date"
                   value={exportOptions.endDate ? toLocalDateKey(exportOptions.endDate) ?? '' : ''}
                   onChange={(e) =>

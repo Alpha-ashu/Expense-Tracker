@@ -41,6 +41,7 @@ html, body, #root {
   body {
     font-size: 14px;
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     line-height: 1.5;
   }
   
@@ -119,13 +120,16 @@ html, body, #root {
   padding-right: max(0.5rem, env(safe-area-inset-right));
 }
 
+.touch-scroll {
+  overscroll-behavior: contain;
+}
+
 /* Main content container - allow full viewport usage */
 @media (max-width: 1024px) {
   main {
     min-height: calc(100vh - var(--header-height) - var(--bottom-reserved-space));
     overflow-x: hidden;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -202,7 +206,6 @@ html, body, #root {
 /* Universal scrollbar hiding - Hide scrollbars from all elements */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -222,11 +225,6 @@ html, body, #root {
 
 *::-webkit-scrollbar-thumb {
   background: transparent;
-}
-
-/* Firefox scrollbar hiding */
-* {
-  scrollbar-width: none;
 }
 
 /* IE scrollbar hiding */
@@ -303,7 +301,6 @@ html {
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
   }
   
   /* Make first item reachable */
@@ -314,7 +311,8 @@ html {
   
   .scroll-snap-x > * {
     scroll-snap-align: start;
-    min-width: fit-content;
+    min-width: -webkit-fill-available;
+    min-width: max-content;
   }
 }
 
