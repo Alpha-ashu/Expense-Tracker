@@ -1091,7 +1091,6 @@ export const AddTransaction: React.FC = () => {
   const selectedIncomeCategory = !isExpense
     ? Object.values(INCOME_CATEGORIES).find((category) => category.name === formData.category) ?? null
     : null;
-  const incomeAccentColor = selectedIncomeCategory?.color ?? '#10B981';
   const formattedTransactionDate = useMemo(() => {
     const parsedDate = new Date(`${formData.date}T00:00:00`);
     if (Number.isNaN(parsedDate.getTime())) return formData.date;
@@ -2111,8 +2110,7 @@ export const AddTransaction: React.FC = () => {
                     >
                       <div className="flex items-center gap-3">
                         <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-inner`}
-                          style={{ backgroundColor: `${incomeAccentColor}18`, color: incomeAccentColor }}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-inner"
                         >
                           <span className="text-lg leading-none">{selectedIncomeCategory?.icon ?? '💵'}</span>
                         </div>
@@ -2172,8 +2170,7 @@ export const AddTransaction: React.FC = () => {
                                   )}
                                 >
                                   <div
-                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold`}
-                                    style={{ backgroundColor: `${incomeAccentColor}18`, color: incomeAccentColor }}
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[11px] font-bold text-emerald-600"
                                   >
                                     {initials}
                                   </div>
@@ -2242,8 +2239,7 @@ export const AddTransaction: React.FC = () => {
             <div className="flex items-center gap-3">
               {!isExpense && (
                 <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-inner`}
-                  style={{ backgroundColor: `${incomeAccentColor}18`, color: incomeAccentColor }}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-inner"
                 >
                   <AlignLeft size={16} />
                 </div>

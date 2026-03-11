@@ -66,8 +66,11 @@ export const NotificationPopup: React.FC<NotificationPopupProps> = ({
                 <h3 className="text-white font-bold">Recent Notifications</h3>
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="text-white/60 hover:text-white transition-colors"
+                aria-label="Close notifications popup"
+                title="Close notifications popup"
               >
                 <X size={20} />
               </button>
