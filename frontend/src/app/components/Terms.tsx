@@ -1,14 +1,23 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { PageHeader } from '@/app/components/ui/PageHeader';
 import { FileText, Shield, Info, AlertTriangle, Scale, Mail } from 'lucide-react';
+import { PublicNavbar } from './ui/PublicNavbar';
 
 interface TermsProps {
   onBack?: () => void;
   onGetStarted?: () => void;
+  onNavigate?: (page: string) => void;
+  onLogin?: () => void;
+  hideNavbar?: boolean;
 }
 
-export const Terms: React.FC<TermsProps> = ({ onBack, onGetStarted }) => {
+export const Terms: React.FC<TermsProps> = ({
+  onBack = () => { },
+  onGetStarted = () => { },
+  onNavigate = () => { },
+  onLogin = () => { },
+  hideNavbar = false
+}) => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -43,36 +52,15 @@ export const Terms: React.FC<TermsProps> = ({ onBack, onGetStarted }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 select-none pb-20">
-      {/* Navbar Minimal */}
-      <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">
-        <div className="max-w-6xl mx-auto pointer-events-auto h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-6 lg:px-10 flex items-center justify-between ring-1 ring-black/5">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={onBack}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-blue-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
-              <FileText className="w-5 h-5 text-white filter drop-shadow-sm" />
-            </div>
-            <span className="text-xl font-extrabold text-gray-900 tracking-tight">Finora</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="hidden sm:block text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Back
-              </button>
-            )}
-            {onGetStarted && (
-              <button
-                onClick={onGetStarted}
-                className="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 active:scale-95"
-              >
-                Get Started
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      {!hideNavbar && (
+        <PublicNavbar
+          onNavigate={onNavigate}
+          onLogin={onLogin}
+          onGetStarted={onGetStarted}
+          currentPage="terms"
+        />
+      )}
 
       <div className="max-w-4xl mx-auto px-6 pt-40 lg:pt-52 pb-24">
         <div className="mb-16 text-center">
@@ -142,7 +130,6 @@ export const Terms: React.FC<TermsProps> = ({ onBack, onGetStarted }) => {
         </motion.div>
       </div>
 
-      {/* Footer Minimal */}
       <footer className="py-10 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400">© {new Date().getFullYear()} Finora. All rights reserved.</p>
       </footer>

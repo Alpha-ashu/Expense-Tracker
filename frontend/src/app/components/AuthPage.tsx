@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { signIn, signUp } from '@/lib/supabase-helpers';
-import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
+import { Shield, Eye, EyeOff, Mail, Lock, User, Check, ArrowRight, Loader2 } from 'lucide-react';
+import { FinoraLogo } from './ui/FinoraLogo';
 import { toast } from 'sonner';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { Terms } from './Terms';
@@ -102,7 +103,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           {/* Logo/Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 mb-4 bg-gray-50 rounded-full p-2 shadow-sm border border-gray-100">
-              <img src="/logo.png" alt="Finora Logo" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23F59E0B"/><text x="50" y="55" font-family="Arial" font-size="50" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">$</text></svg>' }} />
+              <FinoraLogo className="w-12 h-12" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Finora</h1>
             <p className="text-gray-500 mt-2">

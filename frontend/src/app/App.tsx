@@ -138,7 +138,7 @@ const AppContent: React.FC = () => {
   // so we never show it during the async auth-loading window).
   const [showLanding, setShowLanding] = useState(true);
   const [publicPage, setPublicPage] = useState<PublicPage>('landing');
-  const [authInitialStep, setAuthInitialStep] = useState<'welcome' | 'signin'>('welcome');
+  const [authInitialStep, setAuthInitialStep] = useState<'welcome' | 'signin' | 'signup'>('welcome');
   const [criticalPagesPrefetched, setCriticalPagesPrefetched] = useState(false);
   const hasModuleReloaded = useRef(false);
 
@@ -380,7 +380,20 @@ const AppContent: React.FC = () => {
           );
       }
     }
-    return <AuthFlow onBack={() => setShowLanding(true)} initialStep={authInitialStep} />;
+    return (
+      <AuthFlow
+        onBack={() => setShowLanding(true)}
+        initialStep={authInitialStep}
+        onNavigate={(page) => {
+          if (['landing', 'about', 'pricing', 'contact', 'privacy', 'terms'].includes(page)) {
+            setPublicPage(page as PublicPage);
+            setShowLanding(true);
+          }
+        }}
+        onLogin={() => setAuthInitialStep('signin')}
+        onGetStarted={() => setAuthInitialStep('signup')}
+      />
+    );
   }
 
   // Gate 1: Onboarding (BEFORE PIN)
@@ -461,8 +474,18 @@ const AppContent: React.FC = () => {
       case 'settings': return <Settings />;
       case 'notifications': return <Notifications />;
       case 'user-profile': return <UserProfile />;
-      case 'privacy-policy': return <PrivacyPolicy />;
-      case 'terms': return <Terms />;
+      case 'privacy-policy': return (
+        <PrivacyPolicy
+          hideNavbar
+          onNavigate={(page) => setCurrentPage(page)}
+        />
+      );
+      case 'terms': return (
+        <Terms
+          hideNavbar
+          onNavigate={(page) => setCurrentPage(page)}
+        />
+      );
       case 'diagnostics': return <Diagnostics />;
       case 'auth-callback': return <AuthCallback />;
       case 'admin-feature-panel': return <AdminFeaturePanel />;

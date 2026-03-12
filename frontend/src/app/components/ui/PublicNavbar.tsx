@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Rocket, Star, MessageSquare, Shield, FileText } from 'lucide-react';
+import { Menu, X, Star, MessageSquare, Shield, FileText } from 'lucide-react';
+import { FinoraLogo } from './FinoraLogo';
 
 interface PublicNavbarProps {
     onNavigate: (page: string) => void;
@@ -27,7 +28,10 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
         { name: 'Home', id: 'landing' },
         { name: 'About', id: 'about' },
         { name: 'Features', id: 'features' },
-        { name: 'Pricing', id: 'pricing' }
+        { name: 'Pricing', id: 'pricing' },
+        { name: 'Privacy', id: 'privacy' },
+        { name: 'Terms', id: 'terms' },
+        { name: 'Support', id: 'contact' }
     ];
 
     const handleLinkClick = (id: string) => {
@@ -56,18 +60,14 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
         setMenuOpen(false);
     };
 
-    const logoIcon = (
-        <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white filter drop-shadow-sm" stroke="currentColor" strokeWidth={3}>
-            <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1" />
-        </svg>
-    );
+    const logoIcon = <FinoraLogo className="w-8 h-8 drop-shadow-md" />;
 
     return (
         <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">
             <div className="max-w-6xl mx-auto pointer-events-auto h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-6 lg:px-10 flex items-center justify-between transition-all duration-300 ring-1 ring-black/5">
                 {/* Logo */}
                 <div className="flex items-center gap-3 cursor-pointer group" onClick={() => handleLinkClick('landing')}>
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-blue-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         {logoIcon}
                     </div>
                     <span className="text-xl font-extrabold text-gray-900 tracking-tight">Finora</span>
@@ -80,8 +80,8 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
                             key={link.id}
                             onClick={() => handleLinkClick(link.id)}
                             className={`text-sm font-semibold transition-all duration-200 hover:scale-105 active:scale-95 ${currentPage === link.id
-                                    ? 'text-blue-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                                ? 'text-blue-600'
+                                : 'text-gray-600 hover:text-gray-900'
                                 }`}
                         >
                             {link.name}

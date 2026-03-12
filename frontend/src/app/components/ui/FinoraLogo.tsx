@@ -2,43 +2,30 @@ import React from 'react';
 
 export const FinoraLogo = ({ className = "w-10 h-10" }: { className?: string }) => (
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className={className}>
-        {/* Outer yellow border */}
-        <circle cx="50" cy="50" r="48" fill="#FDE047" />
-        {/* Inner background - lighter yellow on top-left, darker orange on bottom-right */}
-        <circle cx="50" cy="50" r="42" fill="#FBBF24" />
-        {/* Diagonal darker shading for 3D effect */}
-        <path
-            d="M20.3 79.7 A 42 42 0 0 0 79.7 20.3 L92 50 A 42 42 0 0 1 50 92 Z"
-            fill="#F59E0B"
-            clipPath="url(#inner-circle)"
-        />
-        <clipPath id="inner-circle">
-            <circle cx="50" cy="50" r="42" />
-        </clipPath>
-        <path
-            d="M 8 8 L 92 92 L 92 8 L 8 92"
-            stroke="none"
-            fill="none"
-        />
-        {/* Diagonal darker orange shadow */}
-        <path
-            d="M 20.3 20.3 L 79.7 79.7 L 79.7 20.3 Z"
-            fill="#EA580C"
-            clipPath="url(#inner-circle)"
-            opacity="0.8"
-        />
-        {/* Dollar Sign */}
-        <text
-            x="50"
-            y="54"
-            fontFamily="Arial, sans-serif"
-            fontSize="58"
-            fontWeight="bold"
-            fill="white"
-            textAnchor="middle"
-            dominantBaseline="middle"
-        >
-            $
-        </text>
+        <defs>
+            <linearGradient id="finora-top" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#e11d48" />
+            </linearGradient>
+            <linearGradient id="finora-right" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#f43f5e" />
+                <stop offset="100%" stopColor="#f59e0b" />
+            </linearGradient>
+            <linearGradient id="finora-bottom" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#34d399" />
+                <stop offset="100%" stopColor="#0ea5e9" />
+            </linearGradient>
+            <linearGradient id="finora-left" x1="100%" y1="0%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#06b6d4" />
+                <stop offset="100%" stopColor="#8b5cf6" />
+            </linearGradient>
+        </defs>
+
+        <g style={{ mixBlendMode: 'normal' }}>
+            <path d="M 50 65 Q 95 35, 50 0 Q 5 35, 50 65 Z" fill="url(#finora-top)" opacity="0.9" />
+            <path d="M 35 50 Q 65 5, 100 50 Q 65 95, 35 50 Z" fill="url(#finora-right)" opacity="0.9" />
+            <path d="M 50 35 Q 5 65, 50 100 Q 95 65, 50 35 Z" fill="url(#finora-bottom)" opacity="0.9" />
+            <path d="M 65 50 Q 35 95, 0 50 Q 35 5, 65 50 Z" fill="url(#finora-left)" opacity="0.9" />
+        </g>
     </svg>
 );

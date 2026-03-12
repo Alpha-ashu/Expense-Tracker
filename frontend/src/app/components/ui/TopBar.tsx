@@ -214,7 +214,6 @@ export const TopBar: React.FC = () => {
                             <div className="flex flex-col h-full">
                                 <div className="p-6 border-b border-gray-100">
                                     <h1 className="text-2xl font-bold font-display text-gray-900">Finora</h1>
-                                    <p className="text-sm text-gray-500 mt-1">Your Financial OS</p>
                                 </div>
 
                                 <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
