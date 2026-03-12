@@ -8,7 +8,7 @@ import { PINSetup } from './PINSetup';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
-import { TermsOfService } from '@/app/components/TermsOfService';
+import { Terms } from '@/app/components/Terms';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 
 type AuthStep =
@@ -43,8 +43,13 @@ interface SalaryAccount {
   isPrimary: boolean;
 }
 
-export const AuthFlow: React.FC = () => {
-  const [step, setStep] = useState<AuthStep>('welcome');
+interface AuthFlowProps {
+  onBack?: () => void;
+  initialStep?: AuthStep;
+}
+
+export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
+  const [step, setStep] = useState<AuthStep>(initialStep || 'welcome');
   const [email, setEmail] = useState('');
   const [isNewUser, setIsNewUser] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -169,7 +174,7 @@ export const AuthFlow: React.FC = () => {
       const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
       const isServerError = error?.status === 500 || error?.message?.toLowerCase().includes('internal server error');
       const isSmtpError = error?.message?.toLowerCase().includes('sending confirmation email') || error?.message?.toLowerCase().includes('smtp');
-      
+
       let errMsg = error.message || 'Failed to create account';
       if (isNetworkError) {
         errMsg = 'Cannot connect to server. Please try again later.';
@@ -178,7 +183,7 @@ export const AuthFlow: React.FC = () => {
       } else if (isSmtpError) {
         errMsg = "We couldn't send a verification email. Please try again later.";
       }
-      
+
       toast.error(errMsg);
     } finally {
       setIsLoading(false);
@@ -410,6 +415,15 @@ export const AuthFlow: React.FC = () => {
             >
               Sign In
             </motion.button>
+
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="w-full mt-4 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2"
+              >
+                ← Back to Landing Page
+              </button>
+            )}
           </div>
         </motion.div>
       </div>
@@ -732,7 +746,7 @@ export const AuthFlow: React.FC = () => {
     case 'privacy':
       return <PrivacyPolicy onBack={() => setStep('signup')} />;
     case 'terms':
-      return <TermsOfService onBack={() => setStep('signup')} />;
+      return <Terms onBack={() => setStep('signup')} />;
     case 'otp-verify':
       return (
         <OTPVerification

@@ -1,85 +1,151 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { FileText } from 'lucide-react';
+import { FileText, Shield, Info, AlertTriangle, Scale, Mail } from 'lucide-react';
 
-export const Terms: React.FC = () => {
+interface TermsProps {
+  onBack?: () => void;
+  onGetStarted?: () => void;
+}
+
+export const Terms: React.FC<TermsProps> = ({ onBack, onGetStarted }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const sections = [
+    {
+      title: "1. Acceptance of Terms",
+      icon: <Info className="w-5 h-5 text-blue-500" />,
+      content: "By accessing and using Finora, you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application. Your continued use of the service signifies your agreement to any changes we may make."
+    },
+    {
+      title: "2. Use of the Service",
+      icon: <Scale className="w-5 h-5 text-indigo-500" />,
+      content: "Finora is provided for personal financial management purposes only. You agree to use the service responsibly and not to misuse or attempt to gain unauthorized access to any part of the system. We reserve the right to suspend or terminate access for any violation of these terms."
+    },
+    {
+      title: "3. Account Responsibility",
+      icon: <Shield className="w-5 h-5 text-green-500" />,
+      content: "You are responsible for maintaining the confidentiality of your account credentials and Security PIN. You are liable for all actions taken under your account. Finora uses bank-grade encryption, but the security of your device remains your responsibility."
+    },
+    {
+      title: "4. Financial Data Disclaimer",
+      icon: <AlertTriangle className="w-5 h-5 text-amber-500" />,
+      content: "The application provides tools for tracking and analyzing your finances. It does not constitute certified financial, investment, or tax advice. Always consult a qualified professional before making significant financial decisions."
+    },
+    {
+      title: "5. Limitation of Liability",
+      icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
+      content: "We are not liable for any loss or damage arising from your use of the app, including but not limited to data loss, financial decisions made based on app data, or service interruptions. The app is provided 'as is' without warranties."
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 pb-24">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <PageHeader
-          title="Terms & Conditions"
-          showBack
-          backTo="settings"
-          icon={<FileText size={24} />}
-        />
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 select-none pb-20">
+      {/* Navbar Minimal */}
+      <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">
+        <div className="max-w-6xl mx-auto pointer-events-auto h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-6 lg:px-10 flex items-center justify-between ring-1 ring-black/5">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={onBack}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-blue-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
+              <FileText className="w-5 h-5 text-white filter drop-shadow-sm" />
+            </div>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">Finora</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="hidden sm:block text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Back
+              </button>
+            )}
+            {onGetStarted && (
+              <button
+                onClick={onGetStarted}
+                className="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 active:scale-95"
+              >
+                Get Started
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-6 pt-40 lg:pt-52 pb-24">
+        <div className="mb-16 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-full text-blue-600 font-bold text-[10px] uppercase tracking-widest mb-6"
+          >
+            Legal Documentation
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl lg:text-5xl font-extrabold tracking-tight mb-4"
+          >
+            Terms & Conditions
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-gray-500"
+          >
+            Last updated: March 2026 • Version 2.0
+          </motion.p>
+        </div>
+
+        <div className="space-y-6">
+          {sections.map((section, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + idx * 0.05 }}
+              className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-gray-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  {section.icon}
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
+              </div>
+              <p className="text-gray-600 leading-relaxed pl-14">
+                {section.content}
+              </p>
+            </motion.div>
+          ))}
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[30px] overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass p-6 space-y-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-16 p-10 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[3rem] text-white text-center"
         >
-          <p className="text-sm text-gray-500">Last updated: January 2025</p>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">1. Acceptance of Terms</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              By accessing and using this application, you accept and agree to be bound by these
-              Terms and Conditions. If you do not agree to these terms, please do not use the app.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">2. Use of the Service</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              This app is provided for personal financial management purposes only. You agree to
-              use the service responsibly and not to misuse or attempt to gain unauthorized access
-              to any part of the system.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">3. Account Responsibility</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              You are responsible for maintaining the confidentiality of your account credentials
-              and PIN. You are liable for all actions taken under your account.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">4. Financial Data Disclaimer</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              The app provides tools for tracking and analyzing your finances. It does not
-              constitute financial advice. Always consult a qualified financial advisor for major
-              financial decisions.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">5. Limitation of Liability</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              We are not liable for any loss or damage arising from your use of the app, including
-              but not limited to data loss, financial decisions made based on app data, or service
-              interruptions.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">6. Changes to Terms</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              We reserve the right to update these terms at any time. Continued use of the app
-              after changes are posted constitutes your acceptance of the updated terms.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">7. Contact</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              For questions about these terms, please contact us through the app's support channel.
-            </p>
-          </section>
+          <Mail className="w-10 h-10 mx-auto mb-6 text-violet-200" />
+          <h3 className="text-2xl font-bold mb-4">Questions about these terms?</h3>
+          <p className="text-violet-100 mb-8 max-w-md mx-auto">
+            Our legal team is here to clarify any points. Drop us a message and we'll get back to you within 24 hours.
+          </p>
+          <a
+            href="mailto:legal@finora.app"
+            className="inline-flex items-center gap-2 bg-white text-violet-600 px-8 py-4 rounded-2xl font-bold hover:bg-violet-50 transition-colors"
+          >
+            Contact Legal Team
+          </a>
         </motion.div>
       </div>
+
+      {/* Footer Minimal */}
+      <footer className="py-10 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">© {new Date().getFullYear()} Finora. All rights reserved.</p>
+      </footer>
     </div>
   );
 };

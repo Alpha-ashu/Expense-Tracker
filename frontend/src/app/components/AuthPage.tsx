@@ -3,7 +3,7 @@ import { signIn, signUp } from '@/lib/supabase-helpers';
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PrivacyPolicy } from './PrivacyPolicy';
-import { TermsOfService } from './TermsOfService';
+import { Terms } from './Terms';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -92,7 +92,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
   }
 
   if (currentView === 'terms') {
-    return <TermsOfService onBack={() => setCurrentView('auth')} />;
+    return <Terms onBack={() => setCurrentView('auth')} />;
   }
 
   return (

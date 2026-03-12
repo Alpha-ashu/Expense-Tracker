@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 
 interface LandingPageProps {
   onGetStarted: () => void;
+  onLogin: () => void;
+  onNavigate: (page: string) => void;
 }
 
 // Animated counter hook
@@ -22,7 +24,7 @@ function useCounter(target: number, duration = 1800, start = false) {
   return count;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin, onNavigate }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
@@ -63,7 +65,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const navLinks = ['Home', 'About', 'Features', 'Pricing'];
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 80;
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+      window.scrollTo({
+        top: elementPosition - offset,
+        behavior: 'smooth'
+      });
+      setMenuOpen(false);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMenuOpen(false);
+    }
+  };
+
+  const navLinks = [
+    { name: 'Home', id: 'home' },
+    { name: 'About', id: 'about' },
+    { name: 'Features', id: 'features' },
+    { name: 'Pricing', id: 'pricing' }
+  ];
 
   const features = [
     {
@@ -147,82 +170,88 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       </div>
 
       {/* ── Navbar ──────────────────────────────────────────────────────── */}
-      <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
-          scrolled ? 'bg-white/80 backdrop-blur-xl shadow-sm' : 'bg-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">
+        <div className="max-w-6xl mx-auto pointer-events-auto h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-6 lg:px-10 flex items-center justify-between transition-all duration-300 ring-1 ring-black/5">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={onGetStarted}>
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center shadow-md shadow-violet-200">
-              <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 text-white" stroke="currentColor" strokeWidth={2.5}>
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => scrollToSection('home')}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-blue-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
+              <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white filter drop-shadow-sm" stroke="currentColor" strokeWidth={3}>
                 <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1" />
               </svg>
             </div>
-            <span className="text-lg font-bold text-gray-900 tracking-tight">Finora</span>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">Finora</span>
           </div>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-7">
+          <nav className="hidden md:flex items-center gap-9">
             {navLinks.map((link) => (
               <button
-                key={link}
-                onClick={link === 'Home' ? undefined : onGetStarted}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-200"
+                key={link.id}
+                onClick={['home', 'features'].includes(link.id) ? () => scrollToSection(link.id) : () => onNavigate(link.id)}
+                className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-all duration-200 hover:scale-105 active:scale-95"
               >
-                {link}
+                {link.name}
               </button>
             ))}
           </nav>
 
-          {/* CTA button */}
-          <button
-            onClick={onGetStarted}
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-gray-700 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
-          >
-            Get Started
-            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-xs">
-              ↗
-            </span>
-          </button>
+          {/* CTA buttons */}
+          <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={onLogin}
+              className="px-5 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Log In
+            </button>
+            <button
+              onClick={onGetStarted}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-all duration-300 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 group"
+            >
+              Get Started
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-xs translate-x-1 group-hover:translate-x-2 transition-transform">
+                ↗
+              </span>
+            </button>
+          </div>
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 rounded-xl hover:bg-gray-100 transition-colors"
+            className="md:hidden p-2 rounded-full hover:bg-black/5 transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Menu"
           >
-            <div className={`w-5 h-0.5 bg-gray-700 mb-1 transition-all duration-200 ${menuOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
-            <div className={`w-5 h-0.5 bg-gray-700 mb-1 transition-all duration-200 ${menuOpen ? 'opacity-0' : ''}`} />
-            <div className={`w-5 h-0.5 bg-gray-700 transition-all duration-200 ${menuOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
+            <div className={`w-5 h-0.5 bg-gray-700 mb-1.5 transition-all duration-300 ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <div className={`w-5 h-0.5 bg-gray-700 mb-1.5 transition-all duration-300 ${menuOpen ? 'opacity-0' : ''}`} />
+            <div className={`w-5 h-0.5 bg-gray-700 transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
           </button>
         </div>
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden bg-white/95 backdrop-blur-xl border-t border-gray-100 px-6 pb-4 space-y-1">
+          <div className="md:hidden mt-3 pointer-events-auto bg-white/70 backdrop-blur-2xl border border-white/20 rounded-3xl overflow-hidden p-3 shadow-2xl animate-in fade-in zoom-in duration-200">
             {navLinks.map((link) => (
               <button
-                key={link}
-                onClick={() => { setMenuOpen(false); if (link !== 'Home') onGetStarted(); }}
-                className="block w-full text-left py-3 text-sm font-medium text-gray-600 hover:text-gray-900 border-b border-gray-50 last:border-0"
+                key={link.id}
+                onClick={['home', 'features'].includes(link.id) ? () => scrollToSection(link.id) : () => onNavigate(link.id)}
+                className="block w-full text-left px-4 py-4 text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-black/5 rounded-2xl transition-all"
               >
-                {link}
+                {link.name}
               </button>
             ))}
-            <button
-              onClick={onGetStarted}
-              className="w-full mt-3 py-3 px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold text-center"
-            >
-              Get Started →
-            </button>
+            <div className="border-t border-black/5 mt-2 pt-2">
+              <button
+                onClick={onGetStarted}
+                className="w-full py-4 px-4 rounded-2xl bg-blue-600 text-white text-sm font-bold text-center shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-transform"
+              >
+                Get Started
+              </button>
+            </div>
           </div>
         )}
       </header>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-12 lg:pt-20 pb-16">
+      <section id="home" className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-40 lg:pt-52 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left: copy */}
           <div className="space-y-7 animate-[fadeSlideUp_0.7s_ease_both]">
@@ -352,20 +381,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       </section>
 
       {/* ── Marquee logos (trust bar) ───────────────────────────────────── */}
-      <div className="border-y border-gray-100 bg-gray-50/60 py-5 overflow-hidden">
+      <div id="about" className="border-y border-gray-100 bg-gray-50/60 py-5 overflow-hidden">
         <div className="flex gap-12 animate-[marquee_20s_linear_infinite] whitespace-nowrap">
           {['Smart Budgets', 'AI Insights', 'Offline First', 'Bank Security', 'Live Markets', 'Group Splits', 'Goal Tracking', 'PDF Reports',
             'Smart Budgets', 'AI Insights', 'Offline First', 'Bank Security', 'Live Markets', 'Group Splits', 'Goal Tracking', 'PDF Reports'].map((item, i) => (
-            <span key={i} className="text-sm font-semibold text-gray-400 flex items-center gap-3 flex-shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-              {item}
-            </span>
-          ))}
+              <span key={i} className="text-sm font-semibold text-gray-400 flex items-center gap-3 flex-shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                {item}
+              </span>
+            ))}
         </div>
       </div>
 
       {/* ── Features section ────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
+      <section id="features" className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
         <div className="text-center mb-14 space-y-4">
           <p className="text-violet-600 font-semibold text-sm tracking-widest uppercase">
             Why choose Finora
@@ -424,7 +453,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       </section>
 
       {/* ── CTA banner ──────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
+      <section id="pricing" className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-600 via-purple-600 to-pink-500 p-10 lg:p-16 text-center shadow-2xl shadow-purple-300/40">
           {/* Decorative blobs */}
           <div className="pointer-events-none absolute -top-12 -right-12 w-60 h-60 rounded-full bg-white/10 blur-2xl" />
@@ -473,13 +502,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             © {new Date().getFullYear()} Finora. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
-            {['Privacy', 'Terms', 'Support'].map((link) => (
+            {[
+              { name: 'Privacy', id: 'privacy' },
+              { name: 'Terms', id: 'terms' },
+              { name: 'Support', id: 'contact' }
+            ].map((link) => (
               <button
-                key={link}
-                onClick={onGetStarted}
+                key={link.id}
+                onClick={() => onNavigate(link.id)}
                 className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
               >
-                {link}
+                {link.name}
               </button>
             ))}
           </div>

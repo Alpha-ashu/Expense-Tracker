@@ -22,6 +22,11 @@ import { OfflineBanner } from '@/app/components/OfflineBanner';
 import { AuthFlow } from '@/components/auth/AuthFlow';
 import { PINAuth } from '@/app/components/PINAuth';
 import { LandingPage } from '@/app/components/LandingPage';
+import { AboutPage } from '@/app/components/AboutPage';
+import { PricingPage } from '@/app/components/PricingPage';
+import { ContactPage } from '@/app/components/ContactPage';
+import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
+import { Terms } from '@/app/components/Terms';
 
 // ── Page components — lazy loaded, each gets its own async chunk ─────────────
 const Dashboard = lazy(() => import('@/app/components/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -63,8 +68,6 @@ const AddGold = lazy(() => import('@/app/components/AddGold').then(m => ({ defau
 const AddFriends = lazy(() => import('@/app/components/AddFriends').then(m => ({ default: m.AddFriends })));
 const UserProfile = lazy(() => import('@/app/components/UserProfile').then(m => ({ default: m.UserProfile })));
 const Notifications = lazy(() => import('@/app/components/Notifications').then(m => ({ default: m.Notifications })));
-const PrivacyPolicy = lazy(() => import('@/app/components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
-const Terms = lazy(() => import('@/app/components/Terms').then(m => ({ default: m.Terms })));
 const SimpleAutoTest = lazy(() => import('@/components/ui/SimpleAutoTest').then(m => ({ default: m.SimpleAutoTest })));
 const NewUserOnboarding = lazy(() => import('@/components/onboarding/NewUserOnboarding').then(m => ({ default: m.NewUserOnboarding })));
 
@@ -111,6 +114,8 @@ class PageErrorBoundary extends React.Component<
   }
 }
 
+type PublicPage = 'landing' | 'about' | 'pricing' | 'contact' | 'privacy' | 'terms';
+
 const AppContent: React.FC = () => {
   const appContext = useOptionalApp();
   if (!appContext) {
@@ -131,7 +136,9 @@ const AppContent: React.FC = () => {
   const [showQuickAction, setShowQuickAction] = useState(false);
   // Landing page: shown only to confirmed unauthenticated visitors (set via effect
   // so we never show it during the async auth-loading window).
-  const [showLanding, setShowLanding] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
+  const [publicPage, setPublicPage] = useState<PublicPage>('landing');
+  const [authInitialStep, setAuthInitialStep] = useState<'welcome' | 'signin'>('welcome');
   const [criticalPagesPrefetched, setCriticalPagesPrefetched] = useState(false);
   const hasModuleReloaded = useRef(false);
 
@@ -182,7 +189,7 @@ const AppContent: React.FC = () => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const message = String(event.reason?.message || event.reason || '');
       if (message.includes('Failed to fetch dynamically imported module') ||
-          message.includes('Expected a JavaScript-or-Wasm module script')) {
+        message.includes('Expected a JavaScript-or-Wasm module script')) {
         handleModuleFailure();
       }
     };
@@ -190,7 +197,7 @@ const AppContent: React.FC = () => {
     const handleError = (event: ErrorEvent) => {
       const message = String(event.message || '');
       if (message.includes('Failed to fetch dynamically imported module') ||
-          message.includes('Expected a JavaScript-or-Wasm module script')) {
+        message.includes('Expected a JavaScript-or-Wasm module script')) {
         handleModuleFailure();
       }
     };
@@ -231,8 +238,8 @@ const AppContent: React.FC = () => {
     }
 
     const cleanupNetwork = setupNetworkListener(
-      () => {},
-      () => {}
+      () => { },
+      () => { }
     );
     return () => { cleanupNetwork(); };
   }, [user, authLoading, criticalPagesPrefetched]);
@@ -306,13 +313,84 @@ const AppContent: React.FC = () => {
 
   if (!user) {
     if (showLanding) {
-      return (
-        <LandingPage
-          onGetStarted={() => setShowLanding(false)}
-        />
-      );
+      switch (publicPage) {
+        case 'about':
+          return (
+            <AboutPage
+              onBack={() => setPublicPage('landing')}
+              onGetStarted={() => setShowLanding(false)}
+              onNavigate={(page) => setPublicPage(page as PublicPage)}
+              onLogin={() => {
+                setAuthInitialStep('signin');
+                setShowLanding(false);
+              }}
+            />
+          );
+        case 'pricing':
+          return (
+            <PricingPage
+              onBack={() => setPublicPage('landing')}
+              onGetStarted={() => setShowLanding(false)}
+              onNavigate={(page) => setPublicPage(page as PublicPage)}
+              onLogin={() => {
+                setAuthInitialStep('signin');
+                setShowLanding(false);
+              }}
+            />
+          );
+        case 'contact':
+          return (
+            <ContactPage
+              onBack={() => setPublicPage('landing')}
+              onGetStarted={() => setShowLanding(false)}
+              onNavigate={(page) => setPublicPage(page as PublicPage)}
+              onLogin={() => {
+                setAuthInitialStep('signin');
+                setShowLanding(false);
+              }}
+            />
+          );
+        case 'privacy':
+          return (
+            <PrivacyPolicy
+              onBack={() => setPublicPage('landing')}
+              onGetStarted={() => setShowLanding(false)}
+              onNavigate={(page) => setPublicPage(page as PublicPage)}
+              onLogin={() => {
+                setAuthInitialStep('signin');
+                setShowLanding(false);
+              }}
+            />
+          );
+        case 'terms':
+          return (
+            <Terms
+              onBack={() => setPublicPage('landing')}
+              onGetStarted={() => setShowLanding(false)}
+              onNavigate={(page) => setPublicPage(page as PublicPage)}
+              onLogin={() => {
+                setAuthInitialStep('signin');
+                setShowLanding(false);
+              }}
+            />
+          );
+        default:
+          return (
+            <LandingPage
+              onGetStarted={() => {
+                setAuthInitialStep('welcome');
+                setShowLanding(false);
+              }}
+              onLogin={() => {
+                setAuthInitialStep('signin');
+                setShowLanding(false);
+              }}
+              onNavigate={(page) => setPublicPage(page as PublicPage)}
+            />
+          );
+      }
     }
-    return <AuthFlow />;
+    return <AuthFlow onBack={() => setShowLanding(true)} initialStep={authInitialStep} />;
   }
 
   // Gate 1: Onboarding (BEFORE PIN)

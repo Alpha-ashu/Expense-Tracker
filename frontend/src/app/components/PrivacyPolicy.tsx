@@ -1,83 +1,153 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { PageHeader } from '@/app/components/ui/PageHeader';
-import { Shield } from 'lucide-react';
+import { Shield, Lock, Eye, Cloud, Database, Mail, HardDrive } from 'lucide-react';
 
 interface PrivacyPolicyProps {
   onBack?: () => void;
+  onGetStarted?: () => void;
 }
 
-export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
+export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack, onGetStarted }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const sections = [
+    {
+      title: "1. Data Collection",
+      icon: <Database className="w-5 h-5 text-blue-500" />,
+      content: "We collect information you provide directly, such as your profile details and financial transactions. We also collect device information to ensure security and cross-device synchronization. Your financial data is encrypted and handled with the highest level of confidentiality."
+    },
+    {
+      title: "2. How We Use Data",
+      icon: <Eye className="w-5 h-5 text-indigo-500" />,
+      content: "Your data is used solely to provide and improve Finora services, including AI-powered financial insights, personalized budgeting, and secure data sync. We DO NOT sell your personal or financial information to third parties."
+    },
+    {
+      title: "3. Data Storage & Security",
+      icon: <Lock className="w-5 h-5 text-green-500" />,
+      content: "We use bank-grade AES-256 encryption for all data storage. For local-first operations, data is stored securely on your device. Cloud synchronization uses encrypted channels to our protected Supabase infrastructure."
+    },
+    {
+      title: "4. Your Privacy Rights",
+      icon: <Shield className="w-5 h-5 text-amber-500" />,
+      content: "You have the right to access, export, or delete your data at any time through the app settings. We comply with GDPR and other regional privacy regulations to ensure your data remains under your control."
+    },
+    {
+      title: "5. Offline Sync",
+      icon: <HardDrive className="w-5 h-5 text-pink-500" />,
+      content: "Finora operates with a local-first philosophy. This means your data is primary on your device, ensuring privacy even when you're not connected to the internet."
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 pb-24">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6">
-        <PageHeader
-          title="Privacy Policy"
-          showBack
-          backTo="settings"
-          onBack={onBack}
-          icon={<Shield size={24} />}
-        />
+    <div className="min-h-screen bg-white font-sans text-gray-900 select-none pb-20">
+      {/* Navbar Minimal */}
+      <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">
+        <div className="max-w-6xl mx-auto pointer-events-auto h-16 rounded-full bg-white/10 backdrop-blur-2xl border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-6 lg:px-10 flex items-center justify-between ring-1 ring-black/5">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={onBack}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 via-fuchsia-500 to-blue-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
+              <Shield className="w-5 h-5 text-white filter drop-shadow-sm" />
+            </div>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">Finora</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="hidden sm:block text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Back
+              </button>
+            )}
+            {onGetStarted && (
+              <button
+                onClick={onGetStarted}
+                className="px-6 py-2.5 rounded-full bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 active:scale-95"
+              >
+                Get Started
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-6 pt-40 lg:pt-52 pb-24">
+        <div className="mb-16 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full text-green-600 font-bold text-[10px] uppercase tracking-widest mb-6"
+          >
+            Privacy Commitment
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl lg:text-5xl font-extrabold tracking-tight mb-4"
+          >
+            Privacy Policy
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-gray-500"
+          >
+            Your data is yours. We're just here to help you manage it.
+          </motion.p>
+        </div>
+
+        <div className="space-y-6">
+          {sections.map((section, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + idx * 0.05 }}
+              className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100/50 hover:bg-white hover:shadow-xl hover:border-white transition-all group"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-10 h-10 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+                  {section.icon}
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
+              </div>
+              <p className="text-gray-600 leading-relaxed pl-14">
+                {section.content}
+              </p>
+            </motion.div>
+          ))}
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-[30px] overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass p-6 space-y-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-16 p-10 bg-gray-900 rounded-[3rem] text-white text-center relative overflow-hidden"
         >
-          <p className="text-sm text-gray-500">Last updated: January 2025</p>
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+            <div className="absolute -top-[50%] -left-[20%] w-[100%] h-[100%] bg-blue-500 rounded-full blur-[120px]" />
+            <div className="absolute -bottom-[50%] -right-[20%] w-[100%] h-[100%] bg-purple-500 rounded-full blur-[120px]" />
+          </div>
 
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">1. Information We Collect</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              We collect information you provide directly to us when creating an account, including
-              your name, email address, and encrypted financial data such as transactions, budgets,
-              and accounts.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">2. How We Use Your Information</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Your financial data is used solely to power the app's features — expense tracking,
-              budget analysis, loan management, and goal tracking. We do not sell or share your
-              personal financial information with third parties.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">3. Data Security</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              We implement industry-standard encryption to secure your data both in transit and at
-              rest. Your Security PIN acts as an encryption key, meaning we cannot read your
-              sensitive financial data without it.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">4. Sharing of Information</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              We do not sell, trade, or rent your personal information to others. Aggregated,
-              anonymised statistics may be used to improve the service.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">5. Data Retention</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              We retain your data for as long as your account is active. You can delete your data
-              at any time via Settings → Data Management.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold text-gray-900">6. Contact</h2>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              If you have questions about this privacy policy, please contact us through the app's
-              support channel.
-            </p>
-          </section>
+          <Lock className="w-10 h-10 mx-auto mb-6 text-gray-400" />
+          <h3 className="text-2xl font-bold mb-4">Secure by Design</h3>
+          <p className="text-gray-400 mb-8 max-w-md mx-auto">
+            We believe privacy is a fundamental right. Finora is built from the ground up to be the most private financial tool you've ever used.
+          </p>
+          <div className="flex items-center justify-center gap-4">
+            <div className="px-4 py-2 rounded-xl border border-gray-800 text-xs font-bold text-gray-500 uppercase tracking-widest">End-to-End Encrypted</div>
+            <div className="px-4 py-2 rounded-xl border border-gray-800 text-xs font-bold text-gray-500 uppercase tracking-widest">Local First</div>
+          </div>
         </motion.div>
       </div>
+
+      {/* Footer Minimal */}
+      <footer className="py-10 border-t border-gray-100 text-center">
+        <p className="text-xs text-gray-400">© {new Date().getFullYear()} Finora. All rights reserved.</p>
+      </footer>
     </div>
   );
 };
