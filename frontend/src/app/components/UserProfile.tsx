@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ShieldAlert, Trash2, X, KeyRound, Check } from 'lucide-react';
+import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ShieldAlert, Trash2, X, KeyRound, Check, MapPin, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
@@ -17,11 +17,15 @@ import { AVATAR_OPTIONS, DEFAULT_AVATAR, resolveAvatarSelection } from '@/lib/av
 interface ProfileData {
   firstName: string;
   lastName: string;
+  gender: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say' | '';
   email: string;
   mobile: string;
   dateOfBirth: string;
   monthlyIncome: number;
   jobType: 'businessman' | 'salaried' | 'freelancer' | '';
+  country: string;
+  state: string;
+  city: string;
   profilePhoto?: string;
   avatarId?: string;
 }
@@ -35,7 +39,7 @@ interface VerificationState {
 
 export const UserProfile: React.FC = () => {
   const { user, signOut } = useAuth();
-  const { setCurrentPage } = useApp();
+  const { setCurrentPage, currency, setCurrency } = useApp();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -129,11 +133,15 @@ export const UserProfile: React.FC = () => {
   const [profileData, setProfileData] = useState<ProfileData>({
     firstName: '',
     lastName: '',
+    gender: '',
     email: user?.email || '',
     mobile: '',
     dateOfBirth: '',
     monthlyIncome: 0,
     jobType: '',
+    country: '',
+    state: '',
+    city: '',
     profilePhoto: DEFAULT_AVATAR.url,
     avatarId: DEFAULT_AVATAR.id,
   });
@@ -158,6 +166,15 @@ export const UserProfile: React.FC = () => {
     if (v.includes('freelance')) return 'freelancer';
     // Everything else (full-time, part-time, salaried, employment, student, retired, etc.) → salaried
     return 'salaried';
+  };
+
+  /** Human-readable label for gender */
+  const genderLabel = (v: string) => {
+    if (v === 'male') return 'Male';
+    if (v === 'female') return 'Female';
+    if (v === 'non-binary') return 'Non-binary';
+    if (v === 'prefer-not-to-say') return 'Prefer not to say';
+    return '—';
   };
 
   /** Human-readable label for a canonical jobType value */
@@ -212,11 +229,15 @@ export const UserProfile: React.FC = () => {
           ...prev,
           firstName: firstName || prev.firstName,
           lastName: lastName || prev.lastName,
+          gender: (p.gender || prev.gender || '') as ProfileData['gender'],
           email: user.email || prev.email,
           mobile: p.mobile || prev.mobile || '',
           dateOfBirth: p.dateOfBirth || prev.dateOfBirth || '',
           monthlyIncome: monthlyIncomeVal || prev.monthlyIncome,
           jobType: (normalizeJobType(p.jobType) || prev.jobType) as ProfileData['jobType'],
+          country: p.country || prev.country || '',
+          state: p.state || prev.state || '',
+          city: p.city || prev.city || '',
           profilePhoto: resolveAvatar(p.profilePhoto || prev.profilePhoto, p.avatarId || prev.avatarId).url,
           avatarId: resolveAvatar(p.profilePhoto || prev.profilePhoto, p.avatarId || prev.avatarId).id,
         }));
@@ -262,11 +283,15 @@ export const UserProfile: React.FC = () => {
         setProfileData({
           firstName,
           lastName,
+          gender: ((data as any).gender || '') as ProfileData['gender'],
           email: data.email || user.email || '',
           mobile: data.phone || '',
           dateOfBirth: data.date_of_birth || '',
           monthlyIncome: monthlyIncomeVal,
           jobType: (normalizeJobType(data.job_type) || '') as ProfileData['jobType'],
+          country: (data as any).country || '',
+          state: (data as any).state || '',
+          city: (data as any).city || '',
           profilePhoto: resolved.url,
           avatarId: resolved.id,
         });
@@ -274,11 +299,15 @@ export const UserProfile: React.FC = () => {
         localStorage.setItem('user_profile', JSON.stringify({
           displayName: `${firstName} ${lastName}`.trim(),
           firstName, lastName,
+          gender: (data as any).gender || '',
           mobile: data.phone || '',
           dateOfBirth: data.date_of_birth || '',
           jobType: data.job_type || '',
           salary: ((data.annual_income || (monthlyIncomeVal * 12)) || 0).toString(),
           monthlyIncome: monthlyIncomeVal,
+          country: (data as any).country || '',
+          state: (data as any).state || '',
+          city: (data as any).city || '',
           profilePhoto: resolved.url,
           avatarUrl: resolved.url,
           avatarId: resolved.id,
@@ -367,6 +396,10 @@ export const UserProfile: React.FC = () => {
         date_of_birth: tempData.dateOfBirth || null,
         monthly_income: tempData.monthlyIncome,
         job_type: tempData.jobType || null,
+        gender: tempData.gender || null,
+        country: tempData.country || null,
+        state: tempData.state || null,
+        city: tempData.city || null,
       });
 
       if (error) {
@@ -397,15 +430,20 @@ export const UserProfile: React.FC = () => {
       setIsEditingForm(false);
       // Save latest profile to localStorage for persistence
       const updatedAt = new Date().toISOString();
+      setCurrency(currency); // persist any currency change via AppContext
       localStorage.setItem('user_profile', JSON.stringify({
         displayName: `${tempData.firstName} ${tempData.lastName}`.trim(),
         firstName: tempData.firstName,
         lastName: tempData.lastName,
+        gender: tempData.gender,
         mobile: tempData.mobile,
         dateOfBirth: tempData.dateOfBirth,
         jobType: tempData.jobType,
         salary: (tempData.monthlyIncome || 0) * 12,
         monthlyIncome: tempData.monthlyIncome || 0,
+        country: tempData.country,
+        state: tempData.state,
+        city: tempData.city,
         profilePhoto: resolvedAvatar.url,
         avatarUrl: resolvedAvatar.url,
         avatarId: resolvedAvatar.id,
@@ -745,6 +783,12 @@ export const UserProfile: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <User size={14} className="text-gray-400" /> Gender
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{genderLabel(profileData.gender)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
                       <Calendar size={14} className="text-gray-400" /> Date of Birth
                     </span>
                     <span className="text-sm font-semibold text-gray-900">
@@ -801,6 +845,25 @@ export const UserProfile: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <User size={12} className="text-gray-400" /> Gender
+                      </label>
+                      <select
+                        value={tempData.gender}
+                        onChange={(e) => setTempData({ ...tempData, gender: e.target.value as ProfileData['gender'] })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        aria-label="Select gender"
+                        id="gender"
+                        name="gender"
+                      >
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="non-binary">Non-binary</option>
+                        <option value="prefer-not-to-say">Prefer not to say</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                         <Calendar size={12} className="text-gray-400" /> Date of Birth
                       </label>
                       <input
@@ -813,6 +876,9 @@ export const UserProfile: React.FC = () => {
                         name="dateOfBirth"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                         <Briefcase size={12} className="text-gray-400" /> Job Type
@@ -831,21 +897,159 @@ export const UserProfile: React.FC = () => {
                         <option value="freelancer">Freelancer</option>
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <span className="text-gray-400 font-bold text-sm">₹</span> Monthly Income
+                      </label>
+                      <input
+                        type="number"
+                        value={tempData.monthlyIncome || ''}
+                        onChange={(e) => setTempData({ ...tempData, monthlyIncome: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="0.00"
+                        id="monthlyIncome"
+                        name="monthlyIncome"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
-                      <span className="text-gray-400 font-bold text-sm">₹</span> Monthly Income
-                    </label>
-                    <input
-                      type="number"
-                      value={tempData.monthlyIncome || ''}
-                      onChange={(e) => setTempData({ ...tempData, monthlyIncome: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="0.00"
-                      id="monthlyIncome"
-                      name="monthlyIncome"
-                    />
+                  <button
+                    onClick={handleSaveProfile}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              )}
+            </Card>
+          </motion.div>
+
+          {/* ── Location & Currency Card ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <MapPin size={18} className="text-blue-500" /> Location &amp; Currency
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsEditingForm(!isEditingForm);
+                    if (isEditingForm) setTempData(profileData);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                    isEditingForm
+                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                  }`}
+                >
+                  {isEditingForm ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
+
+              {!isEditingForm ? (
+                <div className="divide-y divide-gray-100">
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-400" /> Country
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.country || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-400" /> State / Province
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.state || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <MapPin size={14} className="text-gray-400" /> City
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.city || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <DollarSign size={14} className="text-gray-400" /> Currency
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{currency}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <MapPin size={12} className="text-gray-400" /> Country
+                      </label>
+                      <input
+                        type="text"
+                        value={tempData.country}
+                        onChange={(e) => setTempData({ ...tempData, country: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="e.g. India"
+                        id="country"
+                        name="country"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <MapPin size={12} className="text-gray-400" /> State / Province
+                      </label>
+                      <input
+                        type="text"
+                        value={tempData.state}
+                        onChange={(e) => setTempData({ ...tempData, state: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="e.g. Maharashtra"
+                        id="state"
+                        name="state"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <MapPin size={12} className="text-gray-400" /> City
+                      </label>
+                      <input
+                        type="text"
+                        value={tempData.city}
+                        onChange={(e) => setTempData({ ...tempData, city: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="e.g. Mumbai"
+                        id="city"
+                        name="city"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <DollarSign size={12} className="text-gray-400" /> Currency
+                      </label>
+                      <select
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        aria-label="Select currency"
+                        id="currency"
+                        name="currency"
+                      >
+                        <option value="USD">USD — US Dollar</option>
+                        <option value="EUR">EUR — Euro</option>
+                        <option value="GBP">GBP — British Pound</option>
+                        <option value="INR">INR — Indian Rupee</option>
+                        <option value="JPY">JPY — Japanese Yen</option>
+                        <option value="AUD">AUD — Australian Dollar</option>
+                        <option value="CAD">CAD — Canadian Dollar</option>
+                        <option value="CHF">CHF — Swiss Franc</option>
+                        <option value="CNY">CNY — Chinese Yuan</option>
+                        <option value="SGD">SGD — Singapore Dollar</option>
+                      </select>
+                    </div>
                   </div>
 
                   <button

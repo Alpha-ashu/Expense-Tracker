@@ -181,29 +181,43 @@ function getMarketState(meta: any, exchange: string) {
 }
 
 async function fetchYahooChart(yahooSymbol: string) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0',
-    },
-    signal: AbortSignal.timeout(8_000),
-  });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  const payload = await response.json();
-  const result = payload?.chart?.result?.[0];
-
-  if (!result?.meta || result.meta.regularMarketPrice == null) {
-    return null;
-  }
-
-  return {
-    meta: result.meta,
-    yahooSymbol,
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Referer': 'https://finance.yahoo.com/',
+    'Origin': 'https://finance.yahoo.com',
   };
+  const path = `/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
+
+  for (const host of ['query1.finance.yahoo.com', 'query2.finance.yahoo.com']) {
+    try {
+      const response = await fetch(`https://${host}${path}`, {
+        headers,
+        signal: AbortSignal.timeout(8_000),
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const payload = await response.json();
+      const result = payload?.chart?.result?.[0];
+
+      if (!result?.meta || result.meta.regularMarketPrice == null) {
+        continue;
+      }
+
+      return {
+        meta: result.meta,
+        yahooSymbol,
+      };
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
 }
 
 async function resolveChart(symbol: string, market?: string) {
@@ -309,7 +323,9 @@ async function handleSearch(searchParams: URLSearchParams, res: VercelResponse) 
   const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=15`;
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Referer': 'https://finance.yahoo.com/',
     },
     signal: AbortSignal.timeout(8_000),
   });

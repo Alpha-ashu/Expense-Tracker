@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Activity, Loader2, TrendingDown, TrendingUp } from 'lucide-react';
-import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
+import { fetchMultipleQuotes, getStockDataSetupHint, hasDirectStockProvider, StockQuote } from '@/lib/stockApi';
 import { buildFlashItems, formatFlashPrice, getFlashAssets, inferCountryFromCurrency, type FlashItem, type FlashTone } from '@/lib/marketFlash';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/contexts/AppContext';
@@ -72,6 +72,7 @@ export const LiveMarketTicker: React.FC = () => {
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
   const [userCountry, setUserCountry] = useState(() => readSelectedCountry(currency));
   const [loading, setLoading] = useState(true);
+  const [setupHint, setSetupHint] = useState<string | null>(null);
   const loadInFlight = useRef(false);
 
   useEffect(() => {
@@ -98,6 +99,16 @@ export const LiveMarketTicker: React.FC = () => {
       }
 
       loadInFlight.current = true;
+      const hint = getStockDataSetupHint();
+      if (hint && !hasDirectStockProvider()) {
+        if (active) {
+          setSetupHint(hint);
+          setLoading(false);
+        }
+        loadInFlight.current = false;
+        return;
+      }
+
       const { assets } = getFlashAssets(userCountry, currency);
       try {
         const data = await fetchMultipleQuotes(assets.map(asset => asset.symbol));
@@ -106,6 +117,7 @@ export const LiveMarketTicker: React.FC = () => {
         }
 
         setQuotes(data);
+        setSetupHint(null);
       } catch (error) {
         console.error('Failed to load live market ticker quotes:', error);
       } finally {
@@ -148,7 +160,7 @@ export const LiveMarketTicker: React.FC = () => {
           </div>
         ) : items.length === 0 ? (
           <div className="flex min-h-[32px] items-center px-4 text-sm font-medium text-gray-500">
-            Live movers are unavailable right now.
+            {setupHint || 'Live movers are unavailable right now.'}
           </div>
         ) : (
           <div className="live-market-flash-track">

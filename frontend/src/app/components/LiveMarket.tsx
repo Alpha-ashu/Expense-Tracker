@@ -4,7 +4,7 @@ import {
   Activity, BarChart2, ChevronRight, Wifi, WifiOff, Clock, ChevronLeft,
 } from 'lucide-react';
 import {
-  fetchStockQuote, fetchMultipleQuotes, searchStocks,
+  fetchStockQuote, fetchMultipleQuotes, searchStocks, setStockProxyDisabled,
   formatMarketCap, formatPrice, getCacheAge, getCachedQuotes, getDefaultWatchlist, displaySymbol, getStockDataSetupHint,
   StockQuote, StockSearchResult, MarketCategory, MARKET_LABELS,
 } from '@/lib/stockApi';
@@ -686,7 +686,7 @@ export const LiveMarket: React.FC = () => {
                     </p>
                   )}
                   <button
-                    onClick={() => loadQuotes(pageSymbols)}
+                    onClick={() => { setStockProxyDisabled(false); loadQuotes(pageSymbols); }}
                     className="text-xs bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-gray-800 transition-colors"
                   >
                     Retry

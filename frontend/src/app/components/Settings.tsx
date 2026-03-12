@@ -13,6 +13,7 @@ import {
   createBackup,
   listBackups
 } from '@/lib/importExport';
+import { isStockProxyDisabled, setStockProxyDisabled as persistStockProxyDisabled } from '@/lib/stockApi';
 import supabase from '@/utils/supabase/client';
 import { permissionService } from '@/services/permissionService';
 import { ImportDataModal } from '@/app/components/ImportDataModal';
@@ -37,6 +38,7 @@ export const Settings: React.FC = () => {
   const [importHistory, setImportHistory] = useState<Array<any>>([]);
   const [showImportHistory, setShowImportHistory] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [stockProxyDisabled, setStockProxyDisabledState] = useState(() => isStockProxyDisabled());
   const [smsStatus, setSmsStatus] = useState<SmsDetectionStatus>({
     supported: false,
     enabled: false,
@@ -72,6 +74,17 @@ export const Settings: React.FC = () => {
     const updated = { ...notifSettings, [key]: !notifSettings[key] };
     setNotifSettings(updated);
     localStorage.setItem('notificationSettings', JSON.stringify(updated));
+  };
+
+  const handleToggleStockProxy = () => {
+    const next = !stockProxyDisabled;
+    setStockProxyDisabledState(next);
+    persistStockProxyDisabled(next);
+    if (next) {
+      toast.info('Stock proxy disabled. Live quotes will use direct providers only.');
+    } else {
+      toast.success('Stock proxy enabled.');
+    }
   };
 
   const smsTransactions = useLiveQuery(
@@ -341,37 +354,6 @@ export const Settings: React.FC = () => {
           <div className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="text-green-600" size={20} />
-                </div>
-                <h4 className="font-medium text-gray-900">Currency</h4>
-              </div>
-              <select
-                value={currency}
-                onChange={(e) => {
-                  setCurrency(e.target.value);
-                  toast.success(`Currency changed to ${e.target.value}`);
-                }}
-                className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
-                aria-label="Select currency"
-              >
-                <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
-                <option value="INR">INR - Indian Rupee</option>
-                <option value="JPY">JPY - Japanese Yen</option>
-                <option value="AUD">AUD - Australian Dollar</option>
-                <option value="CAD">CAD - Canadian Dollar</option>
-                <option value="CHF">CHF - Swiss Franc</option>
-                <option value="CNY">CNY - Chinese Yuan</option>
-                <option value="SGD">SGD - Singapore Dollar</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Globe className="text-purple-600" size={20} />
                 </div>
@@ -397,6 +379,37 @@ export const Settings: React.FC = () => {
                 <option value="hi">हिन्दी (Hindi)</option>
                 <option value="ar">العربية (Arabic)</option>
               </select>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Shield className="text-amber-600" size={20} />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">Stock Proxy</h4>
+                  <p className="text-xs text-gray-500">Disable backend proxy for market data in dev.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Toggle stock proxy"
+                title="Toggle stock proxy"
+                onClick={handleToggleStockProxy}
+                className={cn(
+                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black/20',
+                  stockProxyDisabled ? 'bg-gray-300' : 'bg-black',
+                )}
+              >
+                <span
+                  className={cn(
+                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform duration-200',
+                    stockProxyDisabled ? 'translate-x-0' : 'translate-x-5',
+                  )}
+                />
+              </button>
             </div>
           </div>
         </div>
@@ -914,4 +927,3 @@ export const Settings: React.FC = () => {
     </div>
   );
 };
-

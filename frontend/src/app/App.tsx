@@ -129,10 +129,18 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, setAuthenticated } = useSecurity();
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
-  // Landing page: shown only to unauthenticated visitors
-  const [showLanding, setShowLanding] = useState(() => !user);
+  // Landing page: shown only to confirmed unauthenticated visitors (set via effect
+  // so we never show it during the async auth-loading window).
+  const [showLanding, setShowLanding] = useState(false);
   const [criticalPagesPrefetched, setCriticalPagesPrefetched] = useState(false);
   const hasModuleReloaded = useRef(false);
+
+  // Show landing page only once we KNOW the user is not signed in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      setShowLanding((prev) => (prev ? prev : true));
+    }
+  }, [authLoading, user]);
 
   // Static initialization (runs once)
   useEffect(() => {

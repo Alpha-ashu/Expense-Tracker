@@ -8,12 +8,28 @@ const ALLOW_DIRECT_BACKEND_FALLBACK = (import.meta.env.VITE_ALLOW_DIRECT_BACKEND
 
 const CACHE_KEY = 'stock_quotes_cache';
 const CACHE_TS_KEY = 'stock_quotes_cache_ts';
+const PROXY_DISABLED_STORAGE_KEY = 'stock_proxy_disabled';
 const PROXY_BACKOFF_MS = 60_000;
 const PROXY_GLOBAL_BACKOFF_MS = 45_000;
+const PROXY_GLOBAL_BACKOFF_STORAGE_KEY = 'stock_proxy_global_backoff_until';
 const BATCH_CHUNK_SIZE = 8;
 
 const proxyUnavailableUntil = new Map<string, number>();
 let proxyGlobalUnavailableUntil = 0;
+const PROXY_DISABLED_ENV = (import.meta.env.VITE_DISABLE_STOCK_PROXY || 'false').toLowerCase() === 'true';
+
+if (typeof window !== 'undefined') {
+  const stored = Number(localStorage.getItem(PROXY_GLOBAL_BACKOFF_STORAGE_KEY));
+  if (Number.isFinite(stored) && stored > 0) {
+    proxyGlobalUnavailableUntil = stored;
+  }
+  // Clear any stale "permanently disabled" flag written by previous auto-disable logic.
+  // The Vercel /api/v1/stocks proxy is always the authoritative source; only
+  // VITE_DISABLE_STOCK_PROXY=true (i.e. PROXY_DISABLED_ENV) should ever block it.
+  if (!PROXY_DISABLED_ENV) {
+    try { localStorage.removeItem(PROXY_DISABLED_STORAGE_KEY); } catch { /* ignore */ }
+  }
+}
 
 export type MarketCategory = 'all' | 'nse' | 'bse' | 'us' | 'forex' | 'crypto';
 
@@ -172,6 +188,10 @@ export function getStockDataSetupHint(): string | null {
     return null;
   }
 
+  if (isStockProxyDisabled()) {
+    return 'Stock proxy is disabled. Enable it or add VITE_TWELVEDATA_API_KEY to frontend/.env.local.';
+  }
+
   const proxyCandidates = getStockProxyBases();
   if (proxyCandidates.length > 0 && proxyCandidates.every(base => !canUseProxy(base))) {
     if (typeof window !== 'undefined' && window.location.protocol === 'https:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
@@ -233,6 +253,38 @@ function normalizeProxyBase(base: string, origin = getOrigin()) {
   }
 }
 
+export function isStockProxyDisabled() {
+  if (PROXY_DISABLED_ENV) return true;
+  if (typeof window === 'undefined') return false;
+  try {
+    return localStorage.getItem(PROXY_DISABLED_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setStockProxyDisabled(disabled: boolean) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (disabled) {
+      localStorage.setItem(PROXY_DISABLED_STORAGE_KEY, 'true');
+    } else {
+      localStorage.removeItem(PROXY_DISABLED_STORAGE_KEY);
+      proxyGlobalUnavailableUntil = 0;
+      proxyUnavailableUntil.clear();
+      localStorage.removeItem(PROXY_GLOBAL_BACKOFF_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function maybeAutoDisableProxy() {
+  // No-op: permanent auto-disable removed. The Vercel /api/v1/stocks proxy is
+  // always available in production. Transient failures use per-proxy backoff
+  // (markProxyUnavailable) rather than a permanent localStorage flag.
+}
+
 function uniq(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -272,6 +324,10 @@ function getBackendBaseCandidates() {
 }
 
 function getStockProxyBases() {
+  if (isStockProxyDisabled()) {
+    return [];
+  }
+
   const origin = getOrigin();
   const bases = getBackendBaseCandidates().map(base => normalizeProxyBase(`${base}/stocks`, origin));
   return uniq(bases);
@@ -556,11 +612,23 @@ function canUseAnyProxy(proxyBases: string[]) {
     return false;
   }
 
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = Number(localStorage.getItem(PROXY_GLOBAL_BACKOFF_STORAGE_KEY));
+      if (Number.isFinite(stored) && stored <= Date.now()) {
+        localStorage.removeItem(PROXY_GLOBAL_BACKOFF_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
   return proxyBases.some(base => canUseProxy(base));
 }
 
 function markAllProxiesUnavailable(durationMs = PROXY_GLOBAL_BACKOFF_MS) {
   proxyGlobalUnavailableUntil = Date.now() + durationMs;
+  // Intentionally NOT persisted to localStorage so the block resets on page reload.
 }
 
 function chunkArray<T>(arr: T[], chunkSize: number) {
@@ -590,6 +658,10 @@ function mergeQuotesPreferNonNull(
 }
 
 async function fetchProxyQuote(symbol: string, market?: string) {
+  if (isStockProxyDisabled()) {
+    return null;
+  }
+
   const target = resolveBackendTarget(symbol, market);
 
   for (const proxyBase of getStockProxyBases()) {
@@ -607,6 +679,9 @@ async function fetchProxyQuote(symbol: string, market?: string) {
     try {
       const res = await fetchWithRetry(url.toString(), { signal: AbortSignal.timeout(10_000) }, 0, 500);
       if (!res.ok) {
+        if (res.status >= 500) {
+          markAllProxiesUnavailable();
+        }
         markProxyUnavailable(proxyBase);
         continue;
       }
@@ -626,6 +701,10 @@ async function fetchProxyQuote(symbol: string, market?: string) {
 }
 
 async function fetchProxyBatch(symbols: string[], market?: string) {
+  if (isStockProxyDisabled()) {
+    return null;
+  }
+
   if (symbols.length === 0) {
     return null;
   }
@@ -936,6 +1015,10 @@ export async function fetchStockQuote(symbol: string, market?: string): Promise<
     return readCache()[symbol] ?? null;
   }
 
+  if (getStockDataSetupHint() && !hasDirectStockProvider()) {
+    return readCache()[symbol] ?? null;
+  }
+
   const proxyQuote = await fetchProxyQuote(symbol, market);
   if (proxyQuote) {
     writeCache({ [symbol]: proxyQuote });
@@ -961,6 +1044,10 @@ export async function fetchMultipleQuotes(symbols: string[], market?: string): P
   }
 
   if (!navigator.onLine || normalizedSymbols.length === 0) {
+    return map;
+  }
+
+  if (getStockDataSetupHint() && !hasDirectStockProvider()) {
     return map;
   }
 
