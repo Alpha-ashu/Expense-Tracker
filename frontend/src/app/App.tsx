@@ -355,11 +355,6 @@ const AppContent: React.FC = () => {
             <PrivacyPolicy
               onBack={() => setPublicPage('landing')}
               onGetStarted={() => setShowLanding(false)}
-              onNavigate={(page) => setPublicPage(page as PublicPage)}
-              onLogin={() => {
-                setAuthInitialStep('signin');
-                setShowLanding(false);
-              }}
             />
           );
         case 'terms':
@@ -367,11 +362,6 @@ const AppContent: React.FC = () => {
             <Terms
               onBack={() => setPublicPage('landing')}
               onGetStarted={() => setShowLanding(false)}
-              onNavigate={(page) => setPublicPage(page as PublicPage)}
-              onLogin={() => {
-                setAuthInitialStep('signin');
-                setShowLanding(false);
-              }}
             />
           );
         default:
