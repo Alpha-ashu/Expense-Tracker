@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet } from 'lucide-react';
@@ -30,33 +30,63 @@ export const Transactions: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<{ id: number; description: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(200);
+
+  const deferredSearch = useDeferredValue(searchQuery);
+  const normalizedSearch = useMemo(() => deferredSearch.trim().toLowerCase(), [deferredSearch]);
+
+  const timeFilteredTransactions = useMemo(
+    () => filterByTimePeriod(transactions, timePeriod),
+    [transactions, timePeriod]
+  );
 
   const filteredTransactions = useMemo(() => {
-    // First filter by time period
-    const timeFiltered = filterByTimePeriod(transactions, timePeriod);
-    // Then filter by type and search
-    return timeFiltered
-      .filter(t => filterType === 'all' || t.type === filterType)
-      .filter(t =>
-        t.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-  }, [transactions, filterType, searchQuery, timePeriod]);
+    const hasSearch = normalizedSearch.length > 0;
+    return timeFilteredTransactions.filter((transaction) => {
+      if (filterType !== 'all' && transaction.type !== filterType) return false;
+      if (!hasSearch) return true;
+      const description = transaction.description?.toLowerCase() ?? '';
+      const category = transaction.category?.toLowerCase() ?? '';
+      return description.includes(normalizedSearch) || category.includes(normalizedSearch);
+    });
+  }, [timeFilteredTransactions, filterType, normalizedSearch]);
 
   const stats = useMemo(() => {
-    // Stats based on time-filtered transactions
-    const timeFiltered = filterByTimePeriod(transactions, timePeriod);
-    const expenses = timeFiltered.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const income = timeFiltered.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    let expenses = 0;
+    let income = 0;
+    for (const transaction of timeFilteredTransactions) {
+      if (transaction.type === 'expense') expenses += transaction.amount;
+      if (transaction.type === 'income') income += transaction.amount;
+    }
     return { expenses, income, netFlow: income - expenses };
-  }, [transactions, timePeriod]);
+  }, [timeFilteredTransactions]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
+  const currencyFormatter = useMemo(() => (
+    new Intl.NumberFormat('en-US', { style: 'currency', currency })
+  ), [currency]);
+
+  const formatCurrency = (amount: number) => currencyFormatter.format(amount);
+
+  const accountById = useMemo(() => {
+    const map = new Map<number, (typeof accounts)[number]>();
+    accounts.forEach((account) => {
+      if (account.id != null) map.set(account.id, account);
+    });
+    return map;
+  }, [accounts]);
+
+  useEffect(() => {
+    setVisibleCount(200);
+  }, [filterType, timePeriod, normalizedSearch]);
+
+  const visibleTransactions = useMemo(
+    () => filteredTransactions.slice(0, visibleCount),
+    [filteredTransactions, visibleCount]
+  );
+
+  const hasMoreTransactions = filteredTransactions.length > visibleTransactions.length;
+  const shouldAnimateRows = visibleTransactions.length <= 60;
+  const RowComponent: React.ElementType = shouldAnimateRows ? motion.tr : 'tr';
 
   const handleDeleteTransaction = (id: number, description: string) => {
     setTransactionToDelete({ id, description });
@@ -204,18 +234,22 @@ export const Transactions: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredTransactions.map((transaction, i) => {
-                const account = accounts.find(a => a.id === transaction.accountId);
+              {visibleTransactions.map((transaction, i) => {
+                const account = accountById.get(transaction.accountId);
                 const displayType = transaction.type === 'transfer'
                   ? (transaction.subcategory === 'Transfer In' ? 'income' : 'expense')
                   : transaction.type;
 
+                const animationProps = shouldAnimateRows ? {
+                  initial: { opacity: 0, y: 10 },
+                  animate: { opacity: 1, y: 0 },
+                  transition: { delay: Math.min(i, 12) * 0.02 },
+                } : undefined;
+
                 return (
-                  <motion.tr
+                  <RowComponent
                     key={transaction.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.02 }}
+                    {...(animationProps ?? {})}
                     className="group hover:bg-gray-50/80 transition-colors"
                   >
                     <td className="px-6 py-4 pl-8">
@@ -273,21 +307,32 @@ export const Transactions: React.FC = () => {
                         </Button>
                       </div>
                     </td>
-                  </motion.tr>
+                  </RowComponent>
                 );
               })}
             </tbody>
           </table>
-          {filteredTransactions.length === 0 && (
-            <div className="py-20 flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                <Search className="text-gray-300" size={32} />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">No transactions found</h3>
-              <p className="text-gray-500 text-sm max-w-xs mt-1">Try adjusting your filters or search query to find what you're looking for.</p>
-            </div>
-          )}
         </div>
+        {filteredTransactions.length === 0 && (
+          <div className="py-20 flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <Search className="text-gray-300" size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900">No transactions found</h3>
+            <p className="text-gray-500 text-sm max-w-xs mt-1">Try adjusting your filters or search query to find what you're looking for.</p>
+          </div>
+        )}
+        {hasMoreTransactions && (
+          <div className="flex items-center justify-center py-4">
+            <Button
+              variant="secondary"
+              onClick={() => setVisibleCount((count) => count + 200)}
+              className="text-xs sm:text-sm h-9 px-4"
+            >
+              Load more transactions
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Transaction Type Modal */}

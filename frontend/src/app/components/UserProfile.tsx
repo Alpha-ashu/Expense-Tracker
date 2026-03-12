@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
-import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ChevronDown, ChevronUp, ShieldAlert, FileText, Smartphone, Trash2, X, KeyRound, Check } from 'lucide-react';
+import { Lock, Eye, EyeOff, Mail, Phone, User, Calendar, Briefcase, LogOut, ShieldAlert, Trash2, X, KeyRound, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
@@ -624,7 +624,7 @@ export const UserProfile: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center gap-3"
+            className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8 flex flex-col items-center gap-4"
           >
             <motion.div
               animate={{ y: [0, -6, 0] }}
@@ -711,149 +711,151 @@ export const UserProfile: React.FC = () => {
             transition={{ delay: 0.1 }}
           >
             <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
-              {/* Editable Fields */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-gray-900">Basic Information</h3>
-                  <button
-                    onClick={() => {
-                      setIsEditingForm(!isEditingForm);
-                      if (isEditingForm) setTempData(profileData);
-                    }}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${isEditingForm
-                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
-                  >
-                    {isEditingForm ? 'Cancel' : 'Edit'}
-                  </button>
-                </div>
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-lg font-bold text-gray-900">Basic Information</h3>
+                <button
+                  onClick={() => {
+                    setIsEditingForm(!isEditingForm);
+                    if (isEditingForm) setTempData(profileData);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isEditingForm
+                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                    }`}
+                >
+                  {isEditingForm ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
 
-                {/* First Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                  {isEditingForm ? (
-                    <input
-                      type="text"
-                      value={tempData.firstName}
-                      onChange={(e) => setTempData({ ...tempData, firstName: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter first name"
-                      aria-label="First name"
-                      id="firstName"
-                      name="firstName"
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-medium text-lg">{profileData.firstName}</p>
-                  )}
-                </div>
-
-                {/* Last Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                  {isEditingForm ? (
-                    <input
-                      type="text"
-                      value={tempData.lastName}
-                      onChange={(e) => setTempData({ ...tempData, lastName: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter last name"
-                      aria-label="Last name"
-                      id="lastName"
-                      name="lastName"
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-medium text-lg">{profileData.lastName}</p>
-                  )}
-                </div>
-
-                {/* Date of Birth */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <Calendar size={16} className="text-gray-500" />
-                    Date of Birth
-                  </label>
-                  {isEditingForm ? (
-                    <input
-                      type="date"
-                      value={tempData.dateOfBirth}
-                      onChange={(e) => setTempData({ ...tempData, dateOfBirth: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      aria-label="Date of birth"
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                    />
-                  ) : (
-                    <p className="text-gray-900 font-medium text-lg">
-                      {/* Bug 4 fix: guard against "Invalid Date" when dateOfBirth is empty */}
+              {!isEditingForm ? (
+                /* View mode — clean horizontal info rows */
+                <div className="divide-y divide-gray-100">
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <User size={14} className="text-gray-400" /> First Name
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.firstName || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <User size={14} className="text-gray-400" /> Last Name
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.lastName || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <Calendar size={14} className="text-gray-400" /> Date of Birth
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">
                       {profileData.dateOfBirth
-                        ? new Date(profileData.dateOfBirth).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
-                        : 'Not specified'}
-                    </p>
-                  )}
+                        ? new Date(profileData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <Briefcase size={14} className="text-gray-400" /> Job Type
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">{jobTypeLabel(profileData.jobType)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-gray-500 flex items-center gap-2">
+                      <span className="text-gray-400 font-bold text-sm w-3.5 inline-flex justify-center">₹</span> Monthly Income
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900">₹ {(profileData.monthlyIncome || 0).toLocaleString()}</span>
+                  </div>
                 </div>
+              ) : (
+                /* Edit mode — form with two-column grid for related fields */
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">First Name</label>
+                      <input
+                        type="text"
+                        value={tempData.firstName}
+                        onChange={(e) => setTempData({ ...tempData, firstName: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="Enter first name"
+                        aria-label="First name"
+                        id="firstName"
+                        name="firstName"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Last Name</label>
+                      <input
+                        type="text"
+                        value={tempData.lastName}
+                        onChange={(e) => setTempData({ ...tempData, lastName: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        placeholder="Enter last name"
+                        aria-label="Last name"
+                        id="lastName"
+                        name="lastName"
+                      />
+                    </div>
+                  </div>
 
-                {/* Job Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <Briefcase size={16} className="text-gray-500" />
-                    Job Type
-                  </label>
-                  {isEditingForm ? (
-                    <select
-                      value={tempData.jobType}
-                      onChange={(e) => setTempData({ ...tempData, jobType: e.target.value as any })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      aria-label="Select job type"
-                      id="jobType"
-                      name="jobType"
-                    >
-                      <option value="">Select job type</option>
-                      <option value="salaried">Salaried / Employed</option>
-                      <option value="businessman">Self-employed / Business Owner</option>
-                      <option value="freelancer">Freelancer</option>
-                    </select>
-                  ) : (
-                    <p className="text-gray-900 font-medium text-lg">
-                      {jobTypeLabel(profileData.jobType)}
-                    </p>
-                  )}
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <Calendar size={12} className="text-gray-400" /> Date of Birth
+                      </label>
+                      <input
+                        type="date"
+                        value={tempData.dateOfBirth}
+                        onChange={(e) => setTempData({ ...tempData, dateOfBirth: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        aria-label="Date of birth"
+                        id="dateOfBirth"
+                        name="dateOfBirth"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                        <Briefcase size={12} className="text-gray-400" /> Job Type
+                      </label>
+                      <select
+                        value={tempData.jobType}
+                        onChange={(e) => setTempData({ ...tempData, jobType: e.target.value as any })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        aria-label="Select job type"
+                        id="jobType"
+                        name="jobType"
+                      >
+                        <option value="">Select job type</option>
+                        <option value="salaried">Salaried / Employed</option>
+                        <option value="businessman">Self-employed / Business Owner</option>
+                        <option value="freelancer">Freelancer</option>
+                      </select>
+                    </div>
+                  </div>
 
-                {/* Monthly Income */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <span className="text-gray-500 font-bold text-base">₹</span>
-                    Monthly Income
-                  </label>
-                  {isEditingForm ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                      <span className="text-gray-400 font-bold text-sm">₹</span> Monthly Income
+                    </label>
                     <input
                       type="number"
                       value={tempData.monthlyIncome || ''}
                       onChange={(e) => setTempData({ ...tempData, monthlyIncome: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       placeholder="0.00"
                       id="monthlyIncome"
                       name="monthlyIncome"
                     />
-                  ) : (
-                    <p className="text-gray-900 font-medium text-lg">₹ {profileData.monthlyIncome.toLocaleString()}</p>
-                  )}
-                </div>
+                  </div>
 
-                {isEditingForm && (
                   <button
                     onClick={handleSaveProfile}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition-colors mt-4"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-colors"
                   >
                     Save Changes
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </Card>
           </motion.div>
 
@@ -1215,90 +1217,6 @@ export const UserProfile: React.FC = () => {
                   <LogOut size={18} />
                   {isSigningOut ? 'Signing Out...' : 'Sign Out'}
                 </button>
-              </div>
-            </Card>
-          </motion.div>
-
-          {/* Legal & Policies Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <ShieldAlert size={20} className="text-purple-600" />
-                Legal &amp; Privacy Policies
-              </h3>
-
-              <div className="space-y-4">
-                {/* Privacy Policy */}
-                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
-                    <div className="flex items-center gap-3">
-                      <FileText size={18} className="text-gray-500" />
-                      <span className="font-medium text-gray-900">Privacy Policy</span>
-                    </div>
-                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
-                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
-                  </summary>
-                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
-                    <p className="mb-2"><strong>Effective Date:</strong> March 5, 2026</p>
-                    <p className="mb-2">We collect and use your personal information solely to provide and improve the Finance Tracker application. Your financial data is securely encrypted and stored.</p>
-                    <p>We do not sell your personal data to third parties. For more detailed information, please review our full Privacy Policy on our website.</p>
-                  </div>
-                </details>
-
-                {/* SMS & Message Reading Policy */}
-                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
-                    <div className="flex items-center gap-3">
-                      <Smartphone size={18} className="text-gray-500" />
-                      <span className="font-medium text-gray-900">SMS &amp; Message Reading Policy</span>
-                    </div>
-                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
-                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
-                  </summary>
-                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
-                    <p className="mb-2"><strong>Usage of SMS Data:</strong></p>
-                    <p className="mb-2">If you opt-in to automatic transaction tracking, our app may read SMS messages strictly from recognized banks and financial institutions to automatically log your expenses and incomes.</p>
-                    <p>We use local on-device processing where possible. Message data is only transmitted to our servers if required to properly extract transaction amounts securely, and is never used for marketing purposes.</p>
-                  </div>
-                </details>
-
-                {/* Terms of Service */}
-                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
-                    <div className="flex items-center gap-3">
-                      <FileText size={18} className="text-gray-500" />
-                      <span className="font-medium text-gray-900">Terms of Service</span>
-                    </div>
-                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
-                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
-                  </summary>
-                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
-                    <p className="mb-2">By using this application, you agree to our Terms of Service.</p>
-                    <p>You are responsible for maintaining the confidentiality of your account login information and are fully responsible for all activities that occur under your account.</p>
-                  </div>
-                </details>
-
-                {/* Contact Us */}
-                <details className="group bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                  <summary className="flex items-center justify-between p-4 cursor-pointer list-none">
-                    <div className="flex items-center gap-3">
-                      <Mail size={18} className="text-gray-500" />
-                      <span className="font-medium text-gray-900">Contact &amp; Support</span>
-                    </div>
-                    <ChevronDown size={18} className="text-gray-500 group-open:hidden" />
-                    <ChevronUp size={18} className="text-gray-500 hidden group-open:block" />
-                  </summary>
-                  <div className="p-4 pt-0 text-sm text-gray-600 border-t border-gray-200 bg-white">
-                    <p className="mb-2">If you have any questions or need support regarding your account, privacy, or usage of the application, please reach out to our team:</p>
-                    <p className="mb-1"><strong>Email:</strong> support@financetracker.com</p>
-                    <p><strong>Phone:</strong> 1-800-[SUPPORT]</p>
-                  </div>
-                </details>
-
               </div>
             </Card>
           </motion.div>

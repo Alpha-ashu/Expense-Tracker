@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '@/lib/database';
-import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, Shield, AlertCircle, CheckCircle2, Bell, ExternalLink, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +44,35 @@ export const Settings: React.FC = () => {
     historicalScanCompleted: false,
   });
   const [isSmsBusy, setIsSmsBusy] = useState(false);
+
+  const [notifSettings, setNotifSettings] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('notificationSettings');
+      return stored ? JSON.parse(stored) : {
+        transactionAlerts: true,
+        budgetAlerts: true,
+        loanReminders: true,
+        groupExpenseUpdates: true,
+        goalProgressAlerts: true,
+        appUpdates: true,
+      };
+    } catch {
+      return {
+        transactionAlerts: true,
+        budgetAlerts: true,
+        loanReminders: true,
+        groupExpenseUpdates: true,
+        goalProgressAlerts: true,
+        appUpdates: true,
+      };
+    }
+  });
+
+  const toggleNotif = (key: string) => {
+    const updated = { ...notifSettings, [key]: !notifSettings[key] };
+    setNotifSettings(updated);
+    localStorage.setItem('notificationSettings', JSON.stringify(updated));
+  };
 
   const smsTransactions = useLiveQuery(
     () => db.smsTransactions.orderBy('detectedAt').reverse().limit(12).toArray(),
@@ -293,11 +322,137 @@ export const Settings: React.FC = () => {
       <PageHeader
         icon={<SettingsIcon size={24} className="sm:w-8 sm:h-8" />}
         title="Settings"
-        subtitle="Manage your data and preferences"
         showBack
         backTo="dashboard"
       />
 
+      {/* ── Preferences ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
+      >
+        <div className="p-6 border-b border-white/10">
+          <h3 className="text-lg font-semibold text-gray-900">Preferences</h3>
+        </div>
+
+        <div className="divide-y divide-gray-200">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <DollarSign className="text-green-600" size={20} />
+                </div>
+                <h4 className="font-medium text-gray-900">Currency</h4>
+              </div>
+              <select
+                value={currency}
+                onChange={(e) => {
+                  setCurrency(e.target.value);
+                  toast.success(`Currency changed to ${e.target.value}`);
+                }}
+                className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                aria-label="Select currency"
+              >
+                <option value="USD">USD - US Dollar</option>
+                <option value="EUR">EUR - Euro</option>
+                <option value="GBP">GBP - British Pound</option>
+                <option value="INR">INR - Indian Rupee</option>
+                <option value="JPY">JPY - Japanese Yen</option>
+                <option value="AUD">AUD - Australian Dollar</option>
+                <option value="CAD">CAD - Canadian Dollar</option>
+                <option value="CHF">CHF - Swiss Franc</option>
+                <option value="CNY">CNY - Chinese Yuan</option>
+                <option value="SGD">SGD - Singapore Dollar</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Globe className="text-purple-600" size={20} />
+                </div>
+                <h4 className="font-medium text-gray-900">Language</h4>
+              </div>
+              <select
+                value={language}
+                onChange={(e) => {
+                  setLanguage(e.target.value);
+                  toast.success(`Language changed to ${e.target.value}`);
+                }}
+                className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                aria-label="Select language"
+              >
+                <option value="en">English</option>
+                <option value="es">Español (Spanish)</option>
+                <option value="fr">Français (French)</option>
+                <option value="de">Deutsch (German)</option>
+                <option value="it">Italiano (Italian)</option>
+                <option value="pt">Português (Portuguese)</option>
+                <option value="ja">日本語 (Japanese)</option>
+                <option value="zh">中文 (Chinese)</option>
+                <option value="hi">हिन्दी (Hindi)</option>
+                <option value="ar">العربية (Arabic)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Notification Settings ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
+      >
+        <div className="p-6 border-b border-white/10">
+          <h3 className="text-lg font-semibold text-gray-900">Notification Settings</h3>
+        </div>
+        <div className="divide-y divide-gray-200">
+          {[
+            { key: 'transactionAlerts',   label: 'Transaction Alerts' },
+            { key: 'budgetAlerts',        label: 'Budget Alerts' },
+            { key: 'loanReminders',       label: 'Loan & EMI Reminders' },
+            { key: 'groupExpenseUpdates', label: 'Group Expense Updates' },
+            { key: 'goalProgressAlerts',  label: 'Goal Progress Alerts' },
+            { key: 'appUpdates',          label: 'App Updates & Announcements' },
+          ].map(({ key, label }) => (
+            <div key={key} className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bell className="text-blue-600" size={18} />
+                  </div>
+                  <h4 className="font-medium text-gray-900">{label}</h4>
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Toggle ${label}`}
+                  title={`Toggle ${label}`}
+                  onClick={() => toggleNotif(key)}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black/20',
+                    notifSettings[key] ? 'bg-black' : 'bg-gray-300',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform duration-200',
+                      notifSettings[key] ? 'translate-x-5' : 'translate-x-0',
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ── Data Management ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -306,22 +461,16 @@ export const Settings: React.FC = () => {
       >
         <div className="p-6 border-b border-white/10">
           <h3 className="text-lg font-semibold text-gray-900">Data Management</h3>
-          <p className="text-sm text-gray-500 mt-1">Import, export, and manage your financial data</p>
         </div>
 
         <div className="divide-y divide-gray-200">
           <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Download className="text-green-600" size={20} />
                 </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Export Data</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Download all your data as a JSON or CSV file for backup
-                  </p>
-                </div>
+                <h4 className="font-medium text-gray-900">Export Data</h4>
               </div>
               <div className="flex gap-2">
                 <button
@@ -341,17 +490,12 @@ export const Settings: React.FC = () => {
           </div>
 
           <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Upload className="text-blue-600" size={20} />
                 </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Import Data</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Preview and import CSV or JSON from other expense trackers, or restore a Finora backup
-                  </p>
-                </div>
+                <h4 className="font-medium text-gray-900">Import Data</h4>
               </div>
               <button
                 onClick={() => setShowImportModal(true)}
@@ -363,17 +507,12 @@ export const Settings: React.FC = () => {
           </div>
 
           <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Database className="text-yellow-600" size={20} />
                 </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Create Backup</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Create an automatic backup of all your data
-                  </p>
-                </div>
+                <h4 className="font-medium text-gray-900">Create Backup</h4>
               </div>
               <button
                 onClick={handleCreateBackup}
@@ -413,10 +552,7 @@ export const Settings: React.FC = () => {
           {importHistory.length > 0 && (
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h4 className="font-medium text-gray-900">Recent Imports ({importHistory.length})</h4>
-                  <p className="text-sm text-gray-500 mt-1">Track imported files, skipped duplicates, and created categories</p>
-                </div>
+                <h4 className="font-medium text-gray-900">Recent Imports ({importHistory.length})</h4>
                 <button
                   onClick={() => setShowImportHistory(!showImportHistory)}
                   className="text-black hover:text-gray-700 text-sm font-medium"
@@ -456,17 +592,12 @@ export const Settings: React.FC = () => {
           )}
 
           <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                   <Trash2 className="text-red-600" size={20} />
                 </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Clear All Data</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Permanently delete all your data from this device
-                  </p>
-                </div>
+                <h4 className="font-medium text-gray-900">Clear All Data</h4>
               </div>
               <button
                 onClick={handleClearAllData}
@@ -498,13 +629,8 @@ export const Settings: React.FC = () => {
         className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
         <div className="p-6 border-b border-white/10">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">SMS Transaction Detection</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Detect bank, UPI, card, and wallet transactions from SMS on Android. SMS content stays on this device.
-              </p>
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="text-lg font-semibold text-gray-900">SMS Transaction Detection</h3>
             <button
               type="button"
               onClick={handleToggleSmsDetection}
@@ -571,22 +697,8 @@ export const Settings: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-4">
-              <div className="flex items-start gap-3">
-                <Shield className="text-sky-600 mt-0.5" size={18} />
-                <div>
-                  <p className="font-medium text-gray-900">Privacy</p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    SMS messages are processed locally only to detect bank transactions. Raw SMS content is not uploaded to the server, and you can clear stored detections anytime.
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {!smsStatus.supported && (
-              <p className="text-sm text-gray-500 mt-4">
-                Desktop and iPhone builds will not scan SMS. Transactions you import from Android will still sync across your devices through the normal account and transaction sync flow.
-              </p>
+              <p className="text-sm text-gray-500 mt-4">Available on Android only.</p>
             )}
 
             {smsStatus.supported && (
@@ -615,13 +727,8 @@ export const Settings: React.FC = () => {
           </div>
 
           <div className="p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h4 className="font-medium text-gray-900">Detected Transactions</h4>
-                <p className="text-sm text-gray-500 mt-1">
-                  Review SMS detections before adding them to your tracker.
-                </p>
-              </div>
+            <div className="flex items-center justify-between gap-4">
+              <h4 className="font-medium text-gray-900">Detected Transactions</h4>
               {smsStatus.lastScanAt && (
                 <p className="text-xs text-gray-400">
                   Last scan: {new Date(smsStatus.lastScanAt).toLocaleString()}
@@ -697,111 +804,22 @@ export const Settings: React.FC = () => {
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50/80 p-6 mt-5 text-center">
-                <p className="text-gray-600 font-medium">No SMS transactions detected yet</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Turn on SMS detection to scan the last 30 days of bank messages and process new incoming transaction SMS automatically.
-                </p>
+                <p className="text-gray-500 text-sm">No SMS transactions detected yet</p>
               </div>
             )}
           </div>
         </div>
       </motion.div>
 
+      {/* ── Feature Visibility ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
-      >
-        <div className="p-6 border-b border-white/10">
-          <h3 className="text-lg font-semibold text-gray-900">Preferences</h3>
-          <p className="text-sm text-gray-500 mt-1">Customize your app experience</p>
-        </div>
-
-        <div className="divide-y divide-gray-200">
-          <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <DollarSign className="text-green-600" size={20} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Currency</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Select your preferred currency for all transactions
-                  </p>
-                </div>
-              </div>
-              <select
-                value={currency}
-                onChange={(e) => {
-                  setCurrency(e.target.value);
-                  toast.success(`Currency changed to ${e.target.value}`);
-                }}
-                className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
-                aria-label="Select currency"
-              >
-                <option value="USD">USD - US Dollar</option>
-                <option value="EUR">EUR - Euro</option>
-                <option value="GBP">GBP - British Pound</option>
-                <option value="INR">INR - Indian Rupee</option>
-                <option value="JPY">JPY - Japanese Yen</option>
-                <option value="AUD">AUD - Australian Dollar</option>
-                <option value="CAD">CAD - Canadian Dollar</option>
-                <option value="CHF">CHF - Swiss Franc</option>
-                <option value="CNY">CNY - Chinese Yuan</option>
-                <option value="SGD">SGD - Singapore Dollar</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Globe className="text-purple-600" size={20} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Language</h4>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Choose your preferred language
-                  </p>
-                </div>
-              </div>
-              <select
-                value={language}
-                onChange={(e) => {
-                  setLanguage(e.target.value);
-                  toast.success(`Language changed to ${e.target.value}`);
-                }}
-                className="px-3 py-2 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
-                aria-label="Select language"
-              >
-                <option value="en">English</option>
-                <option value="es">Español (Spanish)</option>
-                <option value="fr">Français (French)</option>
-                <option value="de">Deutsch (German)</option>
-                <option value="it">Italiano (Italian)</option>
-                <option value="pt">Português (Portuguese)</option>
-                <option value="ja">日本語 (Japanese)</option>
-                <option value="zh">中文 (Chinese)</option>
-                <option value="hi">हिन्दी (Hindi)</option>
-                <option value="ar">العربية (Arabic)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.45 }}
         className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
       >
         <div className="p-6 border-b border-white/10">
           <h3 className="text-lg font-semibold text-gray-900">Feature Visibility</h3>
-          <p className="text-sm text-gray-500 mt-1">Select which features you want to see in your app</p>
         </div>
 
         <div className="p-6">
@@ -833,12 +851,7 @@ export const Settings: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{feature.icon}</span>
-                    <div>
-                      <p className="font-medium text-gray-900">{feature.label}</p>
-                      <p className="text-xs text-gray-500">
-                        {visibleFeatures[feature.key] ? 'Visible' : 'Hidden'}
-                      </p>
-                    </div>
+                    <p className="font-medium text-gray-900">{feature.label}</p>
                   </div>
                   {visibleFeatures[feature.key] ? (
                     <Eye size={20} className="text-gray-700" />
@@ -848,6 +861,52 @@ export const Settings: React.FC = () => {
                 </div>
               </button>
             ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Legal ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
+      >
+        <div className="p-6 border-b border-white/10">
+          <h3 className="text-lg font-semibold text-gray-900">Legal</h3>
+        </div>
+        <div className="divide-y divide-gray-200">
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="text-gray-500" size={18} />
+                </div>
+                <h4 className="font-medium text-gray-900">Privacy Policy</h4>
+              </div>
+              <button
+                onClick={() => setCurrentPage('privacy-policy')}
+                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View <ExternalLink size={14} />
+              </button>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <FileText className="text-gray-500" size={18} />
+                </div>
+                <h4 className="font-medium text-gray-900">Terms &amp; Conditions</h4>
+              </div>
+              <button
+                onClick={() => setCurrentPage('terms')}
+                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View <ExternalLink size={14} />
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>

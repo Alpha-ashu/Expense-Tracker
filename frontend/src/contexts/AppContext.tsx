@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
+import { offlineSyncEngine, SyncStats, useSyncStats } from '@/lib/offline-sync-engine';
 
 interface AppContextType {
   currentPage: string;
@@ -27,6 +28,9 @@ interface AppContextType {
   addAccount: (account: Omit<Account, 'id'>) => Promise<void>;
   visibleFeatures: FeatureVisibility;
   setVisibleFeatures: (features: FeatureVisibility) => void;
+  // Offline-first sync
+  syncStats: SyncStats;
+  triggerSync: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -55,7 +59,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const parsed = stored ? JSON.parse(stored) : {};
     return normalizeFeatures(parsed);
   });
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  const syncStats = useSyncStats();
 
   const accounts = useLiveQuery(() => db.accounts.toArray(), [manualRefreshToken]) || [];
   const friends = useLiveQuery(() => db.friends.toArray(), [manualRefreshToken]) || [];
@@ -65,9 +70,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const investments = useLiveQuery(() => db.investments.toArray(), [manualRefreshToken]) || [];
   const groupExpenses = useLiveQuery(() => db.groupExpenses.toArray(), [manualRefreshToken]) || [];
 
-  const totalBalance = accounts
-    .filter(acc => acc.isActive)
-    .reduce((sum, acc) => sum + acc.balance, 0);
+  const totalBalance = useMemo(() => (
+    accounts.filter(acc => acc.isActive).reduce((sum, acc) => sum + acc.balance, 0)
+  ), [accounts]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -100,33 +105,62 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setManualRefreshToken(prev => prev + 1);
   }, []);
 
+  // ── Offline-first sync engine lifecycle ────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id) return;
+    // Start periodic background sync once authenticated
+    offlineSyncEngine.start();
+    // Kick off an initial sync immediately (delta-pull + push pending)
+    offlineSyncEngine.sync();
+    return () => offlineSyncEngine.stop();
+  }, [user?.id]);
+
+  const triggerSync = useCallback(() => {
+    if (user?.id) offlineSyncEngine.sync();
+  }, [user?.id]);
+
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
     try {
-      await db.transactions.add(transaction);
+      const withStatus = { ...transaction, syncStatus: 'pending' as const, version: 1, updatedAt: new Date() };
+      const id = await db.transactions.add(withStatus as any);
+      if (user?.id) {
+        await offlineSyncEngine.enqueue(user.id, 'transactions', 'create', id as number, { ...withStatus, id }, undefined, 1);
+      }
     } catch (error) {
       console.error('Failed to add transaction:', error);
       throw error;
     }
-  }, []);
+  }, [user?.id]);
 
   const updateAccount = useCallback(async (accountId: number, updates: Partial<Account>) => {
     try {
-      await db.accounts.update(accountId, updates);
+      const updatedAt = new Date();
+      await db.accounts.update(accountId, { ...updates, updatedAt, syncStatus: 'pending' });
+      if (user?.id) {
+        const full = await db.accounts.get(accountId);
+        if (full) {
+          await offlineSyncEngine.enqueue(user.id, 'accounts', 'update', accountId, { ...full, updatedAt }, full.cloudId, (full.version ?? 0) + 1);
+        }
+      }
     } catch (error) {
       console.error('Failed to update account:', error);
       throw error;
     }
-  }, []);
+  }, [user?.id]);
 
   const addAccount = useCallback(async (account: Omit<Account, 'id'>) => {
     try {
-      const id = await db.accounts.add(account);
+      const withMeta = { ...account, syncStatus: 'pending' as const, version: 1, updatedAt: new Date() };
+      const id = await db.accounts.add(withMeta as any);
+      if (user?.id) {
+        await offlineSyncEngine.enqueue(user.id, 'accounts', 'create', id as number, { ...withMeta, id }, undefined, 1);
+      }
       return id;
     } catch (error) {
       console.error('Failed to add account:', error);
       throw error;
     }
-  }, []);
+  }, [user?.id]);
 
   // Save currency and language to localStorage
   useEffect(() => {
@@ -269,32 +303,58 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setVisibleFeaturesState(mergeVisibleFeatures(normalized, roleFeatures));
   }, [role]);
 
+  const contextValue = useMemo(() => ({
+    currentPage,
+    setCurrentPage,
+    accounts,
+    friends,
+    transactions,
+    loans,
+    goals,
+    investments,
+    groupExpenses,
+    totalBalance,
+    currency,
+    setCurrency,
+    language,
+    setLanguage,
+    refreshData,
+    isOnline,
+    addTransaction,
+    updateAccount,
+    addAccount,
+    visibleFeatures,
+    setVisibleFeatures,
+    syncStats,
+    triggerSync,
+  }), [
+    currentPage,
+    setCurrentPage,
+    accounts,
+    friends,
+    transactions,
+    loans,
+    goals,
+    investments,
+    groupExpenses,
+    totalBalance,
+    currency,
+    setCurrency,
+    language,
+    setLanguage,
+    refreshData,
+    isOnline,
+    addTransaction,
+    updateAccount,
+    addAccount,
+    visibleFeatures,
+    setVisibleFeatures,
+    syncStats,
+    triggerSync,
+  ]);
+
   return (
-    <AppContext.Provider
-      value={{
-        currentPage,
-        setCurrentPage,
-        accounts,
-        friends,
-        transactions,
-        loans,
-        goals,
-        investments,
-        groupExpenses,
-        totalBalance,
-        currency,
-        setCurrency,
-        language,
-        setLanguage,
-        refreshData,
-        isOnline,
-        addTransaction,
-        updateAccount,
-        addAccount,
-        visibleFeatures,
-        setVisibleFeatures,
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
@@ -328,6 +388,8 @@ export const useApp = () => {
       addAccount: async () => {},
       visibleFeatures: getVisibleFeaturesForRole('user', import.meta.env.MODE),
       setVisibleFeatures: () => {},
+      syncStats: { pendingCount: 0, lastSyncedAt: null, status: 'idle' as const },
+      triggerSync: () => {},
     } as AppContextType;
   }
 

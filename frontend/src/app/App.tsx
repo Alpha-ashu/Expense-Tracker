@@ -16,6 +16,7 @@ import { BottomNav } from '@/app/components/BottomNav';
 import { QuickActionModal } from '@/app/components/QuickActionModal';
 import { PWAInstallPrompt } from '@/app/components/PWAInstallPrompt';
 import { LimitedModeBanner } from '@/components/common/LimitedModeBanner';
+import { OfflineBanner } from '@/app/components/OfflineBanner';
 
 // ── Auth / Security (shown before app shell — eager load) ────────────────────
 import { AuthFlow } from '@/components/auth/AuthFlow';
@@ -38,6 +39,7 @@ const VoiceInput = lazy(() => import('@/app/components/VoiceInput').then(m => ({
 const VoiceReview = lazy(() => import('@/app/components/VoiceReview').then(m => ({ default: m.VoiceReview })));
 const AuthCallback = lazy(() => import('@/app/components/AuthCallback').then(m => ({ default: m.AuthCallback })));
 const AdminDashboard = lazy(() => import('@/app/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const SyncMonitorDashboard = lazy(() => import('@/app/components/SyncMonitorDashboard').then(m => ({ default: m.SyncMonitorDashboard })));
 const AdvisorWorkspace = lazy(() => import('@/app/components/AdvisorWorkspace').then(m => ({ default: m.AdvisorWorkspace })));
 const AdminFeaturePanel = lazy(() => import('@/app/components/AdminFeaturePanel').then(m => ({ default: m.AdminFeaturePanel })));
 const AdvisorPanel = lazy(() => import('@/app/components/AdvisorPanel').then(m => ({ default: m.AdvisorPanel })));
@@ -60,6 +62,8 @@ const AddGold = lazy(() => import('@/app/components/AddGold').then(m => ({ defau
 const AddFriends = lazy(() => import('@/app/components/AddFriends').then(m => ({ default: m.AddFriends })));
 const UserProfile = lazy(() => import('@/app/components/UserProfile').then(m => ({ default: m.UserProfile })));
 const Notifications = lazy(() => import('@/app/components/Notifications').then(m => ({ default: m.Notifications })));
+const PrivacyPolicy = lazy(() => import('@/app/components/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const Terms = lazy(() => import('@/app/components/Terms').then(m => ({ default: m.Terms })));
 const SimpleAutoTest = lazy(() => import('@/components/ui/SimpleAutoTest').then(m => ({ default: m.SimpleAutoTest })));
 const NewUserOnboarding = lazy(() => import('@/components/onboarding/NewUserOnboarding').then(m => ({ default: m.NewUserOnboarding })));
 
@@ -369,11 +373,14 @@ const AppContent: React.FC = () => {
       case 'settings': return <Settings />;
       case 'notifications': return <Notifications />;
       case 'user-profile': return <UserProfile />;
+      case 'privacy-policy': return <PrivacyPolicy />;
+      case 'terms': return <Terms />;
       case 'diagnostics': return <Diagnostics />;
       case 'auth-callback': return <AuthCallback />;
       case 'admin-feature-panel': return <AdminFeaturePanel />;
       case 'advisor-panel': return <AdvisorPanel />;
       case 'admin': return <AdminDashboard />;
+      case 'sync-monitor': return <SyncMonitorDashboard />;
       case 'advisor': return <AdvisorWorkspace />;
       case 'voice-input': return <VoiceInput />;
       case 'voice-review': return <VoiceReview />;
@@ -385,7 +392,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen flex overflow-x-hidden bg-gray-50 app-container">
-      <LimitedModeBanner />
+      {/* OfflineBanner is fixed-position — stays outside document flow, never disrupts the flex row */}
+      <OfflineBanner />
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:block fixed left-0 top-0 h-full z-50 w-28">
@@ -394,6 +402,8 @@ const AppContent: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content relative overflow-x-hidden">
+        {/* LimitedModeBanner inside the column so it never competes for flex-row width */}
+        <LimitedModeBanner />
         <TopBar />
         <main className="flex-1 max-w-full overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
           {/* Global alignment envelope — centers content on wide screens */}

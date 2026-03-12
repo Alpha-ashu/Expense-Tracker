@@ -173,6 +173,20 @@ export const AdminDashboard: React.FC = () => {
             <li>Reset to defaults anytime</li>
           </ul>
         </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <h3 className="font-semibold text-gray-900 mb-3">🔄 Sync Monitoring</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            Monitor offline-first sync health, view the sync queue, inspect event logs,
+            retry failed items, and trigger force-resyncs.
+          </p>
+          <button
+            onClick={() => setCurrentPage('sync-monitor')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors"
+          >
+            Open Sync Monitor
+          </button>
+        </div>
       </div>
     </CenteredLayout>
   );

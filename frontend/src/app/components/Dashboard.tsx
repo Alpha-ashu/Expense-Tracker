@@ -46,22 +46,34 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   const timeFilteredTransactions = useMemo(() =>
     filterByTimePeriod(transactions, timePeriod), [transactions, timePeriod]);
 
+  const filteredAccountIdSet = useMemo(
+    () => new Set(filteredAccounts.map((account) => account.id)),
+    [filteredAccounts],
+  );
+
   const filteredTransactions = useMemo(() => {
     if (activeTab === 'all') return timeFilteredTransactions;
-    const accountIds = filteredAccounts.map(a => a.id);
-    return timeFilteredTransactions.filter(t => accountIds.includes(t.accountId));
-  }, [timeFilteredTransactions, filteredAccounts, activeTab]);
+    return timeFilteredTransactions.filter(t => filteredAccountIdSet.has(t.accountId));
+  }, [timeFilteredTransactions, filteredAccountIdSet, activeTab]);
 
-  const stats = useMemo(() => ({
-    totalBalance: accounts.filter(a => a.isActive).reduce((sum, a) => sum + a.balance, 0),
-    monthlyIncome: timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
-    monthlyExpense: timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
-    savingsRate: timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) > 0
-      ? ((timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0) -
-        timeFilteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)) /
-        timeFilteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)) * 100
-      : 0,
-  }), [accounts, timeFilteredTransactions]);
+  const stats = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    for (const transaction of timeFilteredTransactions) {
+      if (transaction.type === 'income') income += transaction.amount;
+      if (transaction.type === 'expense') expense += transaction.amount;
+    }
+
+    const totalBalance = accounts.filter(a => a.isActive).reduce((sum, a) => sum + a.balance, 0);
+    const savingsRate = income > 0 ? ((income - expense) / income) * 100 : 0;
+
+    return {
+      totalBalance,
+      monthlyIncome: income,
+      monthlyExpense: expense,
+      savingsRate,
+    };
+  }, [accounts, timeFilteredTransactions]);
 
   const recentTransactions = useMemo(() => filteredTransactions.slice(0, 5), [filteredTransactions]);
 

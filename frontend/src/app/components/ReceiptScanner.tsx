@@ -316,7 +316,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               )}
             </div>
           </div>
-          <button onClick={handleClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors">
+          <button type="button" onClick={handleClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors" aria-label="Close receipt scanner" title="Close receipt scanner">
             <X size={18} className="text-gray-500" />
           </button>
         </div>

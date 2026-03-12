@@ -8,6 +8,7 @@ import { useSharedMenu } from '@/hooks/useSharedMenu';
 import { motion, Reorder, useDragControls } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Notification as AppNotification } from '@/lib/database';
+import { SyncStatusBar } from '@/app/components/ui/SyncStatusBar';
 
 interface DraggablePageMenuItemProps {
     item: NavigationItem;
@@ -251,6 +252,11 @@ export const TopBar: React.FC = () => {
 
                 {/* Right: Bell and Profile */}
                 <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
+                    {/* Sync status pill — hidden on very small screens to save space */}
+                    <div className="hidden sm:block">
+                        <SyncStatusBar compact />
+                    </div>
+
                     {/* Notification Bell */}
                     <motion.button
                         whileTap={{ scale: 0.95 }}

@@ -99,6 +99,8 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({
                 size="icon"
                 onClick={onClose}
                 className="rounded-full bg-gray-100 hover:bg-gray-200 text-gray-900"
+                aria-label="Close quick actions"
+                title="Close quick actions"
               >
                 <X size={20} />
               </Button>

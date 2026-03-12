@@ -17,9 +17,12 @@ export interface GoldEntry {
 import Dexie, { Table } from 'dexie';
 
 // Database Interfaces
+export type SyncStatus = 'pending' | 'synced' | 'failed';
+
 export interface Account {
   id?: number;
   remoteId?: number;
+  cloudId?: string;          // Supabase UUID
   name: string;
   type: 'bank' | 'card' | 'cash' | 'wallet';
   balance: number;
@@ -28,11 +31,14 @@ export interface Account {
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface Friend {
   id?: number;
   remoteId?: number;
+  cloudId?: string;
   name: string;
   email?: string;
   phone?: string;
@@ -41,11 +47,14 @@ export interface Friend {
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface Transaction {
   id?: number;
   remoteId?: number;
+  cloudId?: string;          // Supabase UUID
   type: 'expense' | 'income' | 'transfer';
   amount: number;
   accountId: number;
@@ -70,11 +79,14 @@ export interface Transaction {
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface Loan {
   id?: number;
   remoteId?: number;
+  cloudId?: string;
   type: 'borrowed' | 'lent' | 'emi';
   name: string;
   principalAmount: number;
@@ -95,6 +107,8 @@ export interface Loan {
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface LoanPayment {
@@ -109,6 +123,7 @@ export interface LoanPayment {
 export interface Goal {
   id?: number;
   remoteId?: number;
+  cloudId?: string;
   name: string;
   description?: string;
   targetAmount: number;
@@ -122,6 +137,8 @@ export interface Goal {
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface GoalMember {
@@ -146,6 +163,7 @@ export interface GoalContribution {
 export interface GroupExpense {
   id?: number;
   remoteId?: number;
+  cloudId?: string;
   name: string;
   totalAmount: number;
   paidBy: number; // accountId
@@ -165,6 +183,8 @@ export interface GroupExpense {
   createdAt: Date;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface GroupMember {
@@ -189,6 +209,7 @@ export interface GroupItem {
 export interface Investment {
   id?: number;
   remoteId?: number;
+  cloudId?: string;
   assetType: 'stock' | 'crypto' | 'forex' | 'gold' | 'silver' | 'other';
   assetName: string;
   quantity: number;
@@ -226,6 +247,8 @@ export interface Investment {
   closeNotes?: string;
   updatedAt?: Date;
   deletedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface Notification {
@@ -434,16 +457,20 @@ export interface SmsDetectedTransaction {
 
 export interface ToDoList {
   id?: number;
+  cloudId?: string;
   name: string;
   description?: string;
   ownerId: string; // Could be userId or identifier
   createdAt: Date;
   updatedAt?: Date;
   archived: boolean;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface ToDoItem {
   id?: number;
+  cloudId?: string;
   listId: number;
   title: string;
   description?: string;
@@ -454,6 +481,8 @@ export interface ToDoItem {
   createdAt: Date;
   updatedAt?: Date;
   completedAt?: Date;
+  syncStatus?: SyncStatus;
+  version?: number;
 }
 
 export interface ToDoListShare {
@@ -891,4 +920,84 @@ export class ProductionDB extends FinoraDB {
   }
 }
 
-export const db = new ProductionDB();
+// ─── Sync Queue Interface ────────────────────────────────────────────────────
+export interface SyncQueueItem {
+  id?: number;
+  userId: string;
+  table: string;
+  operation: 'create' | 'update' | 'delete';
+  localId: number;
+  cloudId?: string;          // Supabase UUID (undefined for new creates)
+  payload: string;           // JSON-serialised local record
+  createdAt: Date;
+  retries: number;
+  status: 'pending' | 'processing' | 'succeeded' | 'failed';
+  errorMessage?: string;
+  version: number;           // local version counter for conflict resolution
+}
+
+// ─── Sync Event Log Interface (for admin monitoring) ─────────────────────────
+export interface SyncEventLog {
+  id?: number;
+  userId: string;
+  eventType: 'sync_start' | 'sync_success' | 'sync_failure' | 'conflict' | 'queue_flush';
+  affectedTable?: string;
+  recordsProcessed?: number;
+  errorMessage?: string;
+  timestamp: Date;
+  durationMs?: number;
+}
+
+export class OfflineSyncDB extends ProductionDB {
+  syncQueue!: Table<SyncQueueItem>;
+  syncEventLogs!: Table<SyncEventLog>;
+
+  constructor() {
+    super();
+
+    // Version 10: Offline-first sync queue + indexed syncStatus on core tables
+    this.version(10).stores({
+      // Core entity tables — add syncStatus index for fast pending-record queries
+      accounts:     '++id, remoteId, type, isActive, syncStatus',
+      friends:      '++id, remoteId, name, createdAt, syncStatus',
+      transactions: '++id, remoteId, type, accountId, category, date, syncStatus',
+      loans:        '++id, remoteId, type, status, dueDate, friendId, syncStatus',
+      loanPayments: '++id, loanId, date',
+      goals:        '++id, remoteId, isGroupGoal, targetDate, syncStatus',
+      goalContributions: '++id, goalId, date',
+      groupExpenses:'++id, remoteId, date, syncStatus',
+      investments:  '++id, remoteId, assetType, positionStatus, assetCurrency, baseCurrency, syncStatus',
+      notifications:'++id, type, userId, isRead, createdAt, remoteId',
+      gold:         '++id, type, unit, purchaseDate',
+      logs:         'id, level, timestamp',
+      errorReports: 'id, timestamp',
+      backups:      'id, timestamp',
+      settings:     'key',
+      categories:   'id, type',
+      importHistories: '++id, createdAt, fileType, sourceKind, userId',
+      budgets:      'id, category, period',
+      groups:       'id',
+      taxCalculations: '++id, year',
+      financeAdvisors: '++id, verified, rating',
+      advisorSessions: '++id, advisorId, date, status',
+      expenseCategories: 'id, type',
+      expenseBills:    '++id, transactionId, uploadedAt',
+      toDoLists:       '++id, ownerId, createdAt, archived, syncStatus',
+      toDoItems:       '++id, listId, completed, dueDate, priority, syncStatus',
+      toDoListShares:  '++id, listId, sharedWithUserId',
+      advisorAssignments: '++id, advisorId, userId, status',
+      chatMessages:    '++id, conversationId, timestamp, isRead',
+      chatConversations: '++id, conversationId, advisorId, userId',
+      bookingRequests: '++id, advisorId, userId, status, createdAt, sequenceNumber',
+      merchantProfiles: '++id, normalizedName, suggestedCategory, userId, updatedAt',
+      userCategoryPreferences: '++id, merchantKey, keywordKey, userId, updatedAt',
+      documents:       '++id, documentType, userId, processingStatus, uploadDate, accountId',
+      smsTransactions: '++id, &sourceSmsId, userId, status, transactionType, date, matchedAccountId, linkedTransactionId, detectedAt',
+      // New tables for offline-first sync infrastructure
+      syncQueue:     '++id, userId, table, status, createdAt',
+      syncEventLogs: '++id, userId, eventType, timestamp',
+    });
+  }
+}
+
+export const db = new OfflineSyncDB();

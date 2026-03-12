@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { db } from "@/lib/database";
 import {
@@ -199,12 +199,14 @@ export const Accounts: React.FC = () => {
   };
 
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency,
-    }).format(amount);
-  };
+  const currencyFormatter = useMemo(() => (
+    new Intl.NumberFormat("en-US", { style: "currency", currency })
+  ), [currency]);
+
+  const formatCurrency = useCallback(
+    (amount: number) => currencyFormatter.format(amount),
+    [currencyFormatter]
+  );
 
   const handleDeleteAccount = (id: number, name: string) => {
     setAccountToDelete({ id, name });
@@ -607,11 +609,14 @@ export const Accounts: React.FC = () => {
   };
 
 
-  const totalBalance = accounts
-    .filter((a) => a.isActive)
-    .reduce((sum, a) => sum + a.balance, 0);
+  const totalBalance = useMemo(() => (
+    accounts.filter((a) => a.isActive).reduce((sum, a) => sum + a.balance, 0)
+  ), [accounts]);
 
-  const selectedAccount = accounts.find((a) => a.id === selectedAccountId);
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.id === selectedAccountId),
+    [accounts, selectedAccountId]
+  );
   const accountTransactions = useMemo(() => {
     if (!selectedAccountId) return [];
     return transactions.filter((t) => t.accountId === selectedAccountId);

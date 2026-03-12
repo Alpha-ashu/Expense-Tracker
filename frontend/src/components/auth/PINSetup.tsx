@@ -148,8 +148,11 @@ export const PINSetup: React.FC<PINSetupProps> = ({
         <div className="p-6 text-center">
           {onBack && (
             <button
+              type="button"
               onClick={onBack}
               className="absolute left-4 top-4 text-white/80 hover:text-white"
+              aria-label="Go back"
+              title="Go back"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>

@@ -116,7 +116,7 @@ export const Header: React.FC = () => {
       {/* Mobile Menu Button */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
-          <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Open navigation menu">
+          <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Open navigation menu" aria-label="Open navigation menu">
             <Menu size={24} className="text-text-primary" />
           </button>
         </SheetTrigger>

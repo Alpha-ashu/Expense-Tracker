@@ -22,6 +22,30 @@ type SupabaseNotificationRow = {
 };
 
 const SYNCABLE_NOTIFICATION_TYPES = new Set<Notification['type']>(['emi', 'loan', 'goal', 'group']);
+
+/** Maps each notification type to the toggle key used in notificationSettings (localStorage). */
+const NOTIF_TYPE_TO_SETTING_KEY: Partial<Record<Notification['type'], string>> = {
+  emi: 'loanReminders',
+  loan: 'loanReminders',
+  goal: 'goalProgressAlerts',
+  group: 'groupExpenseUpdates',
+  booking: 'transactionAlerts',
+  message: 'transactionAlerts',
+  session: 'appUpdates',
+};
+
+function isNotificationEnabled(type: Notification['type']): boolean {
+  try {
+    const stored = localStorage.getItem('notificationSettings');
+    if (!stored) return true;
+    const settings = JSON.parse(stored) as Record<string, boolean>;
+    const key = NOTIF_TYPE_TO_SETTING_KEY[type];
+    if (!key) return true;
+    return settings[key] !== false;
+  } catch {
+    return true;
+  }
+}
 const SUPPORTED_NOTIFICATION_TYPES = new Set<Notification['type']>([
   'emi',
   'loan',
@@ -257,6 +281,8 @@ export const showNotification = (
 };
 
 export const createNotificationRecord = async (input: NotificationInput) => {
+  if (!isNotificationEnabled(input.type)) return undefined;
+
   const userId = input.userId ?? await getActiveUserId();
   const notification: Notification = {
     ...input,

@@ -124,7 +124,6 @@
     max-width: 100% !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
   }
 
   /* Tab buttons container */
@@ -133,7 +132,6 @@
     max-width: 100% !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
     box-sizing: border-box !important;
@@ -145,7 +143,6 @@
     max-width: 100% !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
     box-sizing: border-box !important;
@@ -156,7 +153,6 @@
     max-width: 100% !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
   }
 
   [class*="flex"][class*="gap"][class*="overflow-x-auto"] {
@@ -164,7 +160,6 @@
     max-width: 100% !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch !important;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
     box-sizing: border-box !important;
