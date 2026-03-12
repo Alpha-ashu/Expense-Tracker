@@ -57,13 +57,11 @@ class SyncService {
   private setupNetworkListeners() {
     window.addEventListener('online', () => {
       this.isOnline = true;
-      toast.success('Back online! Syncing data...');
       this.syncAll();
     });
 
     window.addEventListener('offline', () => {
       this.isOnline = false;
-      toast.warning('You are offline. Changes will sync when reconnected.');
       this.notifyListeners('offline');
     });
   }

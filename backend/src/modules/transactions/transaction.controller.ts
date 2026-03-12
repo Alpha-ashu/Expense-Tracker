@@ -5,9 +5,9 @@ import { prisma } from '../../db/prisma';
 export const getTransactions = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
-    const { accountId, startDate, endDate, category } = req.query;
+    const { accountId, startDate, endDate, category, page, limit } = req.query;
 
-    const where: any = { userId };
+    const where: any = { userId, deletedAt: null };
 
     if (accountId) where.accountId = accountId as string;
     if (category) where.category = category as string;
@@ -17,15 +17,34 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
       if (endDate) where.date.lte = new Date(endDate as string);
     }
 
-    const transactions = await prisma.transaction.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      include: { account: true },
-    });
+    // Pagination — default 50 items per page, max 200
+    const pageNum = Math.max(1, parseInt((page as string) || '1', 10));
+    const pageSize = Math.min(200, Math.max(1, parseInt((limit as string) || '50', 10)));
+    const skip = (pageNum - 1) * pageSize;
 
-    res.json(transactions);
+    const [transactions, total] = await Promise.all([
+      prisma.transaction.findMany({
+        where,
+        orderBy: { date: 'desc' },
+        include: { account: true },
+        skip,
+        take: pageSize,
+      }),
+      prisma.transaction.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: transactions,
+      pagination: {
+        page: pageNum,
+        limit: pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch transactions' });
+    res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
   }
 };
 
@@ -51,79 +70,89 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // For transfers, validate destination account and user ownership
-    if (type === 'transfer' && transferToAccountId) {
-      const destinationAccount = await prisma.account.findUnique({
-        where: { id: transferToAccountId },
-      });
-
-      if (!destinationAccount || destinationAccount.userId !== userId) {
-        return res.status(403).json({ error: 'Invalid destination account' });
-      }
-
-      // Update both account balances
-      const sourceAccount = await prisma.account.findUnique({
-        where: { id: accountId },
-      });
-
-      if (!sourceAccount || sourceAccount.userId !== userId) {
-        return res.status(403).json({ error: 'Invalid source account' });
-      }
-
-      if (sourceAccount.balance < amount) {
-        return res.status(400).json({ error: 'Insufficient balance' });
-      }
-
-      // Create transfer transactions
-      await prisma.account.update({
-        where: { id: accountId },
-        data: { balance: sourceAccount.balance - amount },
-      });
-
-      await prisma.account.update({
-        where: { id: transferToAccountId },
-        data: { balance: destinationAccount.balance + amount },
-      });
-    } else {
-      // Update account balance for non-transfer transactions
-      const account = await prisma.account.findUnique({
-        where: { id: accountId },
-      });
-
-      if (!account || account.userId !== userId) {
-        return res.status(403).json({ error: 'Invalid account' });
-      }
-
-      const balanceAdjustment = type === 'income' ? amount : -amount;
-      await prisma.account.update({
-        where: { id: accountId },
-        data: { balance: account.balance + balanceAdjustment },
-      });
+    // Validate amount is a positive finite number
+    const numericAmount = Number(amount);
+    if (!isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be a positive number' });
     }
 
-    // Create transaction record
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId,
-        accountId,
-        type,
-        amount,
-        category,
-        subcategory,
-        description,
-        merchant,
-        date: new Date(date),
-        tags: tags || [],
-        transferToAccountId,
-        transferType,
-        synced: true,
-      },
-      include: { account: true },
+    // Wrap all balance updates + transaction creation in an atomic DB transaction
+    const transaction = await prisma.$transaction(async (tx) => {
+      if (type === 'transfer' && transferToAccountId) {
+        // Validate destination account ownership
+        const destinationAccount = await tx.account.findUnique({
+          where: { id: transferToAccountId },
+        });
+        if (!destinationAccount || destinationAccount.userId !== userId) {
+          throw Object.assign(new Error('Invalid destination account'), { statusCode: 403 });
+        }
+
+        // Validate source account ownership
+        const sourceAccount = await tx.account.findUnique({
+          where: { id: accountId },
+        });
+        if (!sourceAccount || sourceAccount.userId !== userId) {
+          throw Object.assign(new Error('Invalid source account'), { statusCode: 403 });
+        }
+
+        if (sourceAccount.balance < numericAmount) {
+          throw Object.assign(new Error('Insufficient balance'), { statusCode: 400 });
+        }
+
+        // Update both balances atomically
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: sourceAccount.balance - numericAmount },
+        });
+        await tx.account.update({
+          where: { id: transferToAccountId },
+          data: { balance: destinationAccount.balance + numericAmount },
+        });
+      } else {
+        // Validate account ownership
+        const account = await tx.account.findUnique({
+          where: { id: accountId },
+        });
+        if (!account || account.userId !== userId) {
+          throw Object.assign(new Error('Invalid account'), { statusCode: 403 });
+        }
+
+        const balanceAdjustment = type === 'income' ? numericAmount : -numericAmount;
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: account.balance + balanceAdjustment },
+        });
+      }
+
+      // Create transaction record inside the same atomic unit
+      return tx.transaction.create({
+        data: {
+          userId,
+          accountId,
+          type,
+          amount: numericAmount,
+          category,
+          subcategory,
+          description,
+          merchant,
+          date: new Date(date),
+          tags: tags || [],
+          transferToAccountId,
+          transferType,
+          synced: true,
+        },
+        include: { account: true },
+      });
     });
 
     res.status(201).json(transaction);
-  } catch (error) {
-    console.error('Failed to create transaction:', error);
+  } catch (error: any) {
+    if (error.statusCode === 403) {
+      return res.status(403).json({ error: error.message });
+    }
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Failed to create transaction' });
   }
 };
@@ -142,9 +171,9 @@ export const getTransaction = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    res.json(transaction);
+    res.json({ success: true, data: transaction });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch transaction' });
+    res.status(500).json({ success: false, error: 'Failed to fetch transaction' });
   }
 };
 
@@ -183,9 +212,9 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
       include: { account: true },
     });
 
-    res.json(updated);
+    res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update transaction' });
+    res.status(500).json({ success: false, error: 'Failed to update transaction' });
   }
 };
 
@@ -209,9 +238,9 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
       data: { deletedAt: new Date() },
     });
 
-    res.json({ message: 'Transaction deleted' });
+    res.json({ success: true, message: 'Transaction deleted' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete transaction' });
+    res.status(500).json({ success: false, error: 'Failed to delete transaction' });
   }
 };
 

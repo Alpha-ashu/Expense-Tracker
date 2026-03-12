@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { requireRole } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
+import { logger } from '../../config/logger';
 
 // Get all users (admin only)
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
@@ -35,7 +36,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 
     res.json(users);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch users' });
+    res.status(500).json({ error: 'Failed to fetch users' });
   }
 };
 
@@ -58,7 +59,7 @@ export const getPendingAdvisors = async (req: AuthRequest, res: Response) => {
 
     res.json(advisors);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch pending advisors' });
+    res.status(500).json({ error: 'Failed to fetch pending advisors' });
   }
 };
 
@@ -102,7 +103,7 @@ export const approveAdvisor = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to approve advisor' });
+    res.status(500).json({ error: 'Failed to approve advisor' });
   }
 };
 
@@ -149,7 +150,7 @@ export const rejectAdvisor = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to reject advisor' });
+    res.status(500).json({ error: 'Failed to reject advisor' });
   }
 };
 
@@ -195,7 +196,7 @@ export const getPlatformStats = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch statistics' });
+    res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 };
 
@@ -218,7 +219,8 @@ export const getFeatureFlags = async (req: AuthRequest, res: Response) => {
 
     res.json(flags);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch feature flags' });
+    logger.error('Failed to fetch feature flags', { error });
+    res.status(500).json({ error: 'Failed to fetch feature flags' });
   }
 };
 
@@ -241,7 +243,8 @@ export const toggleFeatureFlag = async (req: AuthRequest, res: Response) => {
       enabled,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to toggle feature flag' });
+    logger.error('Failed to toggle feature flag', { error });
+    res.status(500).json({ error: 'Failed to toggle feature flag' });
   }
 };
 
@@ -276,7 +279,8 @@ export const getUsersReport = async (req: AuthRequest, res: Response) => {
       generatedAt: new Date(),
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to generate users report' });
+    logger.error('Failed to generate users report', { error });
+    res.status(500).json({ error: 'Failed to generate users report' });
   }
 };
 
@@ -324,6 +328,7 @@ export const getRevenueReport = async (req: AuthRequest, res: Response) => {
       generatedAt: new Date(),
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to generate revenue report' });
+    logger.error('Failed to generate revenue report', { error });
+    res.status(500).json({ error: 'Failed to generate revenue report' });
   }
 };

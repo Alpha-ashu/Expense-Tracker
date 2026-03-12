@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
+import { sanitize } from '../../utils/sanitize';
+import { logger } from '../../config/logger';
 
 export const getLoans = async (req: AuthRequest, res: Response) => {
   try {
@@ -12,9 +14,9 @@ export const getLoans = async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(loans);
+    res.json({ success: true, data: loans });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch loans' });
+    res.status(500).json({ success: false, error: 'Failed to fetch loans' });
   }
 };
 
@@ -33,30 +35,35 @@ export const createLoan = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     if (!type || !name || !principalAmount) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    const numericPrincipal = Number(principalAmount);
+    if (!isFinite(numericPrincipal) || numericPrincipal <= 0) {
+      return res.status(400).json({ success: false, error: 'Principal amount must be a positive number' });
     }
 
     const loan = await prisma.loan.create({
       data: {
         userId,
         type,
-        name,
-        principalAmount,
-        outstandingBalance: principalAmount,
+        name: sanitize(name),
+        principalAmount: numericPrincipal,
+        outstandingBalance: numericPrincipal,
         interestRate,
         emiAmount,
         dueDate: dueDate ? new Date(dueDate) : null,
         frequency,
-        contactPerson,
+        contactPerson: contactPerson ? sanitize(contactPerson) : undefined,
         status: 'active',
       },
       include: { payments: true },
     });
 
-    res.status(201).json(loan);
+    res.status(201).json({ success: true, data: loan });
   } catch (error) {
-    console.error('Failed to create loan:', error);
-    res.status(500).json({ error: 'Failed to create loan' });
+    logger.error('Failed to create loan', { error });
+    res.status(500).json({ success: false, error: 'Failed to create loan' });
   }
 };
 
@@ -74,9 +81,9 @@ export const getLoan = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Loan not found' });
     }
 
-    res.json(loan);
+    res.json({ success: true, data: loan });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch loan' });
+    res.status(500).json({ success: false, error: 'Failed to fetch loan' });
   }
 };
 
@@ -84,7 +91,7 @@ export const updateLoan = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
-    const updates = req.body;
+    const body = req.body;
 
     // Verify ownership
     const loan = await prisma.loan.findUnique({
@@ -95,15 +102,23 @@ export const updateLoan = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Loan not found' });
     }
 
+    // Whitelist only permitted fields to prevent mass assignment
+    const allowedFields = ['name', 'type', 'principalAmount', 'outstandingBalance', 'interestRate', 'emiAmount', 'dueDate', 'frequency', 'contactPerson', 'status', 'syncStatus'] as const;
+    const updates: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) updates[field] = body[field];
+    }
+    if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
+
     const updated = await prisma.loan.update({
       where: { id },
       data: { ...updates, updatedAt: new Date() },
       include: { payments: true },
     });
 
-    res.json(updated);
+    res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update loan' });
+    res.status(500).json({ success: false, error: 'Failed to update loan' });
   }
 };
 
@@ -127,9 +142,9 @@ export const deleteLoan = async (req: AuthRequest, res: Response) => {
       data: { deletedAt: new Date() },
     });
 
-    res.json({ message: 'Loan deleted' });
+    res.json({ success: true, message: 'Loan deleted' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete loan' });
+    res.status(500).json({ success: false, error: 'Failed to delete loan' });
   }
 };
 
@@ -140,7 +155,13 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
     const { amount, accountId, notes } = req.body;
 
     if (!amount) {
-      return res.status(400).json({ error: 'Amount is required' });
+      return res.status(400).json({ success: false, error: 'Amount is required' });
+    }
+
+    // Validate amount is a positive finite number
+    const numericAmount = Number(amount);
+    if (!isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'Amount must be a positive number' });
     }
 
     // Verify ownership
@@ -156,7 +177,7 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
     const payment = await prisma.loanPayment.create({
       data: {
         loanId: id,
-        amount,
+        amount: numericAmount,
         accountId,
         date: new Date(),
         notes,
@@ -164,7 +185,7 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
     });
 
     // Update outstanding balance
-    const newBalance = Math.max(0, loan.outstandingBalance - amount);
+    const newBalance = Math.max(0, loan.outstandingBalance - numericAmount);
     await prisma.loan.update({
       where: { id },
       data: {
@@ -173,9 +194,9 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.status(201).json(payment);
+    res.status(201).json({ success: true, data: payment });
   } catch (error) {
-    console.error('Failed to add loan payment:', error);
-    res.status(500).json({ error: 'Failed to add loan payment' });
+    logger.error('Failed to add loan payment', { error });
+    res.status(500).json({ success: false, error: 'Failed to add loan payment' });
   }
 };

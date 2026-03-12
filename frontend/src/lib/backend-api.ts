@@ -13,7 +13,9 @@ function shouldUseLocalFallback(error: unknown) {
   }
 
   const status = error.response?.status;
-  return status == null || status >= 500 || status === 404;
+  // Only fall back to local data on network errors (no status) or genuine server errors (5xx).
+  // A 404 means the resource does not exist — do NOT silently serve stale local data.
+  return status == null || status >= 500;
 }
 
 function normalizeInvestmentDates<T extends Record<string, any>>(investment: T): T {
@@ -255,6 +257,44 @@ class BackendService {
       }
       return config;
     });
+
+    // Normalize error responses so callers always receive a clean Error message
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (!axios.isAxiosError(error)) return Promise.reject(error);
+
+        const status = error.response?.status;
+        const serverMessage = error.response?.data?.error;
+
+        if (!error.response) {
+          return Promise.reject(new Error('No internet connection. Please check your network.'));
+        }
+
+        if (status === 401) {
+          return Promise.reject(new Error('Your session has expired. Please sign in again.'));
+        }
+
+        if (status === 403) {
+          return Promise.reject(new Error('You do not have access to this feature.'));
+        }
+
+        if (status === 429) {
+          return Promise.reject(new Error('Too many requests. Please wait a moment and try again.'));
+        }
+
+        if (status != null && status >= 500) {
+          return Promise.reject(new Error('Something went wrong. Please try again later.'));
+        }
+
+        // 4xx with a server-supplied message — safe to show
+        if (serverMessage) {
+          return Promise.reject(new Error(serverMessage));
+        }
+
+        return Promise.reject(new Error('An unexpected error occurred.'));
+      }
+    );
   }
 
   // Auth Methods

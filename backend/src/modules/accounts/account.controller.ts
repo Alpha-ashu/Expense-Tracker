@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
+import { sanitize } from '../../utils/sanitize';
+import { logger } from '../../config/logger';
 
 export const getAccounts = async (req: AuthRequest, res: Response) => {
   try {
@@ -11,9 +13,9 @@ export const getAccounts = async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    res.json(accounts);
+    res.json({ success: true, data: accounts });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch accounts' });
+    res.status(500).json({ success: false, error: 'Failed to fetch accounts' });
   }
 };
 
@@ -33,7 +35,7 @@ export const createAccount = async (req: AuthRequest, res: Response) => {
     const account = await prisma.account.create({
       data: {
         userId,
-        name,
+        name: sanitize(name),
         type,
         balance: balance || 0,
         currency: currency || 'USD',
@@ -41,10 +43,10 @@ export const createAccount = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.status(201).json(account);
+    res.status(201).json({ success: true, data: account });
   } catch (error) {
-    console.error('Failed to create account:', error);
-    res.status(500).json({ error: 'Failed to create account' });
+    logger.error('Failed to create account', { error });
+    res.status(500).json({ success: false, error: 'Failed to create account' });
   }
 };
 
@@ -67,9 +69,9 @@ export const getAccount = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Account not found' });
     }
 
-    res.json(account);
+    res.json({ success: true, data: account });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch account' });
+    res.status(500).json({ success: false, error: 'Failed to fetch account' });
   }
 };
 
@@ -77,7 +79,7 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
-    const updates = req.body;
+    const body = req.body;
 
     // Verify ownership
     const account = await prisma.account.findUnique({
@@ -88,8 +90,15 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Account not found' });
     }
 
-    if (updates.balance !== undefined && Number(updates.balance) < 0) {
+    if (body.balance !== undefined && Number(body.balance) < 0) {
       return res.status(400).json({ error: 'Account balance cannot be negative' });
+    }
+
+    // Whitelist only permitted fields to prevent mass assignment
+    const allowedFields = ['name', 'type', 'balance', 'currency', 'color', 'icon', 'syncStatus'] as const;
+    const updates: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) updates[field] = body[field];
     }
 
     const updated = await prisma.account.update({
@@ -97,9 +106,9 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
       data: { ...updates, updatedAt: new Date() },
     });
 
-    res.json(updated);
+    res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update account' });
+    res.status(500).json({ success: false, error: 'Failed to update account' });
   }
 };
 
@@ -123,8 +132,8 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
       data: { isActive: false, deletedAt: new Date() },
     });
 
-    res.json({ message: 'Account deleted' });
+    res.json({ success: true, message: 'Account deleted' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete account' });
+    res.status(500).json({ success: false, error: 'Failed to delete account' });
   }
 };

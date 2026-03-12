@@ -231,8 +231,8 @@ const AppContent: React.FC = () => {
     }
 
     const cleanupNetwork = setupNetworkListener(
-      () => toast.success('Back online!'),
-      () => toast.warning('You are offline. Data will sync when reconnected.')
+      () => {},
+      () => {}
     );
     return () => { cleanupNetwork(); };
   }, [user, authLoading, criticalPagesPrefetched]);

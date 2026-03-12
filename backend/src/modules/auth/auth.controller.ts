@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { RegisterInput, LoginInput } from './auth.types';
 import { AuthRequest } from '../../middleware/auth';
 import { sanitize } from '../../utils/sanitize';
+import { logger } from '../../config/logger';
 
 const authService = new AuthService();
 
@@ -52,11 +53,11 @@ export const register = async (req: Request, res: Response) => {
       data: tokens
     });
   } catch (error: any) {
-    console.error('Registration error:', error);
+    logger.error('Registration error', { error: error.message });
     
     let statusCode = 400;
     let errorCode = 'REGISTRATION_FAILED';
-    let errorMessage = error.message || 'Registration failed';
+    let errorMessage = 'Registration failed. Please try again.';
     
     // Handle specific database errors
     if (error.message && error.message.includes('UNIQUE constraint failed')) {
@@ -74,6 +75,7 @@ export const register = async (req: Request, res: Response) => {
     }
     
     res.status(statusCode).json({ 
+      success: false,
       error: errorMessage,
       code: errorCode
     });
@@ -112,11 +114,11 @@ export const login = async (req: Request, res: Response) => {
       data: tokens
     });
   } catch (error: any) {
-    console.error('Login error:', error);
+    logger.error('Login error', { error: error.message });
     
     let statusCode = 401;
     let errorCode = 'LOGIN_FAILED';
-    let errorMessage = error.message || 'Login failed';
+    let errorMessage = 'Invalid email or password. Please check your credentials and try again.';
     
     if (error.message === 'Invalid credentials') {
       errorCode = 'INVALID_CREDENTIALS';
@@ -128,6 +130,7 @@ export const login = async (req: Request, res: Response) => {
     }
     
     res.status(statusCode).json({ 
+      success: false,
       error: errorMessage,
       code: errorCode
     });
@@ -142,43 +145,18 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 
     const user = await authService.getUser(req.userId);
     res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      isApproved: user.isApproved,
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isApproved: user.isApproved,
+      }
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch profile' });
+    logger.error('Get profile error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to fetch profile' });
   }
 };
-
-export const getApiKey = (key: string): string | undefined => {
-  return process.env[key as keyof NodeJS.ProcessEnv] as string | undefined;
-};
-
-export const getStripeApiKey = (): string | undefined => {
-  return getApiKey('STRIPE_API_KEY');
-};
-
-export const getOpenAIApiKey = (): string | undefined => {
-  return getApiKey('OPENAI_API_KEY');
-};
-
-export const getGoogleApiKey = (): string | undefined => {
-  return getApiKey('GOOGLE_API_KEY');
-};
-
-export const getFirebaseSecret = (): string | undefined => {
-  return getApiKey('FIREBASE_SECRET');
-};
-
-export const getAwsSecretAccessKey = (): string | undefined => {
-  return getApiKey('AWS_SECRET_ACCESS_KEY');
-};
-
-export const getSendGridApiKey = (): string | undefined => {
-  return getApiKey('SENDGRID_API_KEY');
-};
-
 

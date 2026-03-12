@@ -148,7 +148,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         // AbortError / CORS / network timeout — non-critical, localStorage already saved
         console.warn('Supabase profile save skipped (non-blocking):', supabaseError);
       }
-      // Step 2: Create initial account entry in Dexie database
+      // Step 2: Create initial account entry in Dexie database (skip if already exists to prevent retry duplication)
       setProgress(35);
       const accountData = {
         name: `${data.bankName} - ${data.accountHolderName}`,
@@ -158,9 +158,18 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         isActive: true,
         createdAt: new Date(),
       };
-      const savedAccount = await saveAccountWithBackendSync(accountData);
-      const accountId = savedAccount.id!;
-      console.log('Created account with ID:', accountId);
+      const { db: localDb } = await import('@/lib/database');
+      const existingAccounts = await localDb.accounts.filter(a => !a.deletedAt).toArray();
+      let accountId: number;
+      if (existingAccounts.length > 0) {
+        // Account already exists (retry scenario) — reuse the first active account
+        accountId = existingAccounts[0].id!;
+        console.log('Reusing existing account with ID:', accountId);
+      } else {
+        const savedAccount = await saveAccountWithBackendSync(accountData);
+        accountId = savedAccount.id!;
+        console.log('Created account with ID:', accountId);
+      }
       // Step 3 (Removed Salary Template)
       setProgress(55);
 

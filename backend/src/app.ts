@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
 
@@ -7,6 +8,9 @@ const app = express();
 
 // Disable X-Powered-By header to prevent server fingerprinting
 app.disable('x-powered-by');
+
+// Add helmet for secure HTTP headers
+app.use(helmet());
 
 const buildAllowedOrigins = () => {
   const origins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')

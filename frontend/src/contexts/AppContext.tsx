@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
-import { offlineSyncEngine, SyncStats, useSyncStats } from '@/lib/offline-sync-engine';
+import type { SyncStats } from '@/lib/offline-sync-engine';
+import { saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
 
 interface AppContextType {
   currentPage: string;
@@ -60,15 +61,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return normalizeFeatures(parsed);
   });
   const { role, user } = useAuth();
-  const syncStats = useSyncStats();
+  const syncStats = useMemo<SyncStats>(() => ({
+    pendingCount: 0,
+    lastSyncedAt: null,
+    status: isOnline ? 'synced' : 'offline',
+  }), [isOnline]);
 
-  const accounts = useLiveQuery(() => db.accounts.toArray(), [manualRefreshToken]) || [];
-  const friends = useLiveQuery(() => db.friends.toArray(), [manualRefreshToken]) || [];
-  const transactions = useLiveQuery(() => db.transactions.orderBy('date').reverse().toArray(), [manualRefreshToken]) || [];
-  const loans = useLiveQuery(() => db.loans.toArray(), [manualRefreshToken]) || [];
-  const goals = useLiveQuery(() => db.goals.toArray(), [manualRefreshToken]) || [];
-  const investments = useLiveQuery(() => db.investments.toArray(), [manualRefreshToken]) || [];
-  const groupExpenses = useLiveQuery(() => db.groupExpenses.toArray(), [manualRefreshToken]) || [];
+  const accounts = useLiveQuery(
+    () => db.accounts.filter(acc => !acc.deletedAt && acc.isActive !== false).toArray(),
+    [manualRefreshToken]
+  ) || [];
+  const friends = useLiveQuery(
+    () => db.friends.filter(f => !f.deletedAt).toArray(),
+    [manualRefreshToken]
+  ) || [];
+  const transactions = useLiveQuery(
+    () => db.transactions.orderBy('date').reverse().filter(txn => !txn.deletedAt).toArray(),
+    [manualRefreshToken]
+  ) || [];
+  const loans = useLiveQuery(
+    () => db.loans.filter(loan => !loan.deletedAt).toArray(),
+    [manualRefreshToken]
+  ) || [];
+  const goals = useLiveQuery(
+    () => db.goals.filter(goal => !goal.deletedAt).toArray(),
+    [manualRefreshToken]
+  ) || [];
+  const investments = useLiveQuery(
+    () => db.investments.filter(inv => !inv.deletedAt).toArray(),
+    [manualRefreshToken]
+  ) || [];
+  const groupExpenses = useLiveQuery(
+    () => db.groupExpenses.filter(ge => !ge.deletedAt).toArray(),
+    [manualRefreshToken]
+  ) || [];
 
   const totalBalance = useMemo(() => (
     accounts.filter(acc => acc.isActive).reduce((sum, acc) => sum + acc.balance, 0)
@@ -105,62 +131,39 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setManualRefreshToken(prev => prev + 1);
   }, []);
 
-  // ── Offline-first sync engine lifecycle ────────────────────────────────────
-  useEffect(() => {
-    if (!user?.id) return;
-    // Start periodic background sync once authenticated
-    offlineSyncEngine.start();
-    // Kick off an initial sync immediately (delta-pull + push pending)
-    offlineSyncEngine.sync();
-    return () => offlineSyncEngine.stop();
-  }, [user?.id]);
-
   const triggerSync = useCallback(() => {
-    if (user?.id) offlineSyncEngine.sync();
+    if (user?.id) {
+      void syncUserDataFromCloud(user.id);
+    }
   }, [user?.id]);
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
     try {
-      const withStatus = { ...transaction, syncStatus: 'pending' as const, version: 1, updatedAt: new Date() };
-      const id = await db.transactions.add(withStatus as any);
-      if (user?.id) {
-        await offlineSyncEngine.enqueue(user.id, 'transactions', 'create', id as number, { ...withStatus, id }, undefined, 1);
-      }
+      await saveTransactionWithBackendSync(transaction);
     } catch (error) {
       console.error('Failed to add transaction:', error);
       throw error;
     }
-  }, [user?.id]);
+  }, []);
 
   const updateAccount = useCallback(async (accountId: number, updates: Partial<Account>) => {
     try {
-      const updatedAt = new Date();
-      await db.accounts.update(accountId, { ...updates, updatedAt, syncStatus: 'pending' });
-      if (user?.id) {
-        const full = await db.accounts.get(accountId);
-        if (full) {
-          await offlineSyncEngine.enqueue(user.id, 'accounts', 'update', accountId, { ...full, updatedAt }, full.cloudId, (full.version ?? 0) + 1);
-        }
-      }
+      await updateAccountWithBackendSync(accountId, updates);
     } catch (error) {
       console.error('Failed to update account:', error);
       throw error;
     }
-  }, [user?.id]);
+  }, []);
 
   const addAccount = useCallback(async (account: Omit<Account, 'id'>) => {
     try {
-      const withMeta = { ...account, syncStatus: 'pending' as const, version: 1, updatedAt: new Date() };
-      const id = await db.accounts.add(withMeta as any);
-      if (user?.id) {
-        await offlineSyncEngine.enqueue(user.id, 'accounts', 'create', id as number, { ...withMeta, id }, undefined, 1);
-      }
-      return id;
+      const saved = await saveAccountWithBackendSync(account);
+      return saved.id as number;
     } catch (error) {
       console.error('Failed to add account:', error);
       throw error;
     }
-  }, [user?.id]);
+  }, []);
 
   // Save currency and language to localStorage
   useEffect(() => {

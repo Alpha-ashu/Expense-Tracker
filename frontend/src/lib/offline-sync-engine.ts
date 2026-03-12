@@ -17,6 +17,12 @@ import { db, SyncQueueItem, SyncEventLog } from './database';
 import supabase from '@/utils/supabase/client';
 import { useState, useEffect, useCallback } from 'react';
 
+// NOTE: Offline-first sync expects Supabase tables to include `local_id` columns.
+// Our current schema does not include those fields, so running this engine
+// causes duplicate rows via conflicting sync strategies. Keep it disabled
+// unless the backend schema is upgraded to match.
+const OFFLINE_SYNC_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_SYNC === 'true';
+
 // ─── Public types ─────────────────────────────────────────────────────────────
 
 export type OverallSyncStatus = 'idle' | 'offline' | 'syncing' | 'synced' | 'error';
@@ -337,7 +343,7 @@ class OfflineSyncEngine {
   private readonly COOLDOWN_MAX_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
-    if (typeof window === 'undefined') return;
+    if (!OFFLINE_SYNC_ENABLED || typeof window === 'undefined') return;
     window.addEventListener('online',  this.handleOnline);
     window.addEventListener('offline', this.handleOffline);
     document.addEventListener('visibilitychange', this.handleVisibility);
@@ -401,6 +407,7 @@ class OfflineSyncEngine {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   start() {
+    if (!OFFLINE_SYNC_ENABLED) return;
     if (this.intervalId) return;
     this.intervalId = setInterval(() => {
       if (this.isOnline && !this.isSyncing) this.sync();
@@ -408,6 +415,7 @@ class OfflineSyncEngine {
   }
 
   stop() {
+    if (!OFFLINE_SYNC_ENABLED) return;
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
@@ -415,6 +423,7 @@ class OfflineSyncEngine {
   }
 
   destroy() {
+    if (!OFFLINE_SYNC_ENABLED) return;
     this.stop();
     if (typeof window === 'undefined') return;
     window.removeEventListener('online',  this.handleOnline);
@@ -467,6 +476,7 @@ class OfflineSyncEngine {
     cloudId?: string,
     version = 1,
   ): Promise<void> {
+    if (!OFFLINE_SYNC_ENABLED) return;
     // Skip tables we don't sync to the cloud
     if (!TABLE_MAP[table]) return;
 
@@ -513,6 +523,7 @@ class OfflineSyncEngine {
   // ── Main sync cycle ────────────────────────────────────────────────────────
 
   async sync(): Promise<void> {
+    if (!OFFLINE_SYNC_ENABLED) return;
     if (this.isSyncing || !this.isOnline) return;
 
     const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
@@ -746,6 +757,14 @@ class OfflineSyncEngine {
   }
 
   getStats(): SyncStats {
+    if (!OFFLINE_SYNC_ENABLED) {
+      return {
+        pendingCount: 0,
+        lastSyncedAt: null,
+        status: 'idle',
+        errorMessage: 'Offline sync disabled (schema incompatible).',
+      };
+    }
     if (!this.isOnline) return { pendingCount: this.pendingCount, lastSyncedAt: this.lastSyncedAt, status: 'offline' };
     if (this.isSyncing)  return { pendingCount: this.pendingCount, lastSyncedAt: this.lastSyncedAt, status: 'syncing' };
     if (this.lastError)  return { pendingCount: this.pendingCount, lastSyncedAt: this.lastSyncedAt, status: 'error', errorMessage: this.lastError };
@@ -775,6 +794,7 @@ class OfflineSyncEngine {
   }
 
   async retryFailed(userId: string): Promise<void> {
+    if (!OFFLINE_SYNC_ENABLED) return;
     const failed = await this.getFailedQueueItems(userId);
     for (const item of failed) {
       if (item.id != null) {
@@ -788,6 +808,7 @@ class OfflineSyncEngine {
 
   /** Force a full resync by clearing local data and pulling everything from cloud */
   async forceFullResync(userId: string): Promise<void> {
+    if (!OFFLINE_SYNC_ENABLED) return;
     localStorage.removeItem('last_sync_at');
     await this.sync();
   }

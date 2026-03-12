@@ -16,11 +16,7 @@ export const requireRole = (allowedRoles: UserRole | UserRole[]) => {
     }
 
     if (!roles.includes(req.user.role as UserRole)) {
-      return res.status(403).json({ 
-        error: 'Access denied',
-        requiredRole: roles.join(' or '),
-        userRole: req.user.role
-      });
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     next();
@@ -38,7 +34,7 @@ const FEATURE_PERMISSIONS: Record<string, UserRole[]> = {
   'goals': ['admin', 'advisor', 'user'],
   'investments': ['admin', 'advisor', 'user'],
   'settings': ['admin', 'advisor', 'user'],
-  
+
   // Feature-specific
   'bookAdvisor': ['user'],
   'manageAvailability': ['advisor'],
@@ -53,7 +49,10 @@ export const requireFeature = (feature: string) => {
     const allowedRoles = FEATURE_PERMISSIONS[feature];
 
     if (!allowedRoles) {
-      return res.status(500).json({ error: 'Feature not found' });
+      // Log the specific feature not found for internal debugging
+      console.error(`Internal Server Error: Feature '${feature}' not found in FEATURE_PERMISSIONS.`);
+      // Return a generic error message to the client for privacy
+      return res.status(500).json({ error: 'An internal server error occurred.' });
     }
 
     if (!req.user?.role) {
@@ -61,11 +60,7 @@ export const requireFeature = (feature: string) => {
     }
 
     if (!allowedRoles.includes(req.user.role as UserRole)) {
-      return res.status(403).json({ 
-        error: 'Feature access denied',
-        feature,
-        userRole: req.user.role
-      });
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     next();
@@ -81,8 +76,8 @@ export const requireApproved = (req: AuthRequest, res: Response, next: NextFunct
   }
 
   if (!req.user.isApproved) {
-    return res.status(403).json({ 
-      error: 'Advisor not yet approved by admin'
+    return res.status(403).json({
+      error: 'Access denied'
     });
   }
 

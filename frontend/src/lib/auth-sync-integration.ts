@@ -88,6 +88,7 @@ const expandTablesForSync = (tables: SyncedTableName[]) => {
 const syncState = {
   hooksInstalled: false,
   processingQueue: false,
+  syncingFromCloud: false,
   suppressionDepth: 0,
   queueTimer: null as ReturnType<typeof setTimeout> | null,
   pullTimer: null as ReturnType<typeof setTimeout> | null,
@@ -446,6 +447,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
     case 'accounts': {
       const base = {
         user_id: userId,
+        local_id: record.id,
         name: record.name,
         type: record.type,
         balance: Number(record.balance ?? 0),
@@ -460,6 +462,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
     case 'friends': {
       const base = {
         user_id: userId,
+        local_id: record.id,
         name: record.name,
         email: record.email ?? null,
         phone: record.phone ?? null,
@@ -493,6 +496,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
 
       const base = {
         user_id: userId,
+        local_id: record.id,
         type: record.type,
         amount: Number(record.amount ?? 0),
         account_id: remoteAccountId,
@@ -528,6 +532,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
 
       const base = {
         user_id: userId,
+        local_id: record.id,
         type: record.type,
         name: record.name,
         principal_amount: Number(record.principalAmount ?? 0),
@@ -554,6 +559,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
     case 'goals': {
       const base = {
         user_id: userId,
+        local_id: record.id,
         name: record.name,
         target_amount: Number(record.targetAmount ?? 0),
         current_amount: Number(record.currentAmount ?? 0),
@@ -583,6 +589,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
 
       const base = {
         user_id: userId,
+        local_id: record.id,
         name: record.name,
         total_amount: Number(record.totalAmount ?? 0),
         paid_by: remotePaidBy,
@@ -638,6 +645,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
 
       const base = {
         user_id: userId,
+        local_id: record.id,
         asset_type: record.assetType,
         asset_name: record.assetName,
         quantity: Number(record.quantity ?? 0),
@@ -690,36 +698,19 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
   if (!payload) return false;
 
   const currentRemoteId = toNumber(localRecord.remoteId);
-  let remoteRecord: any = null;
 
-  if (currentRemoteId) {
-    const { data, error } = await supabase
-      .from(table)
-      .update(payload)
-      .eq('id', currentRemoteId)
-      .eq('user_id', userId)
-      .select()
-      .maybeSingle();
+  // Use UPSERT with onConflict for all sync operations to prevent duplication
+  // This handles both new records (INSERT) and existing ones (UPDATE)
+  const { data: remoteRecord, error } = await supabase
+    .from(table)
+    .upsert(payload, { onConflict: 'user_id,local_id' })
+    .select()
+    .single();
 
-    if (error && !isMissingRemoteRow(error)) {
-      throw error;
-    }
-
-    remoteRecord = data;
-  }
-
-  if (!remoteRecord) {
-    const { data, error } = await supabase
-      .from(table)
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    remoteRecord = data;
+  if (error) {
+    if (isConnectivityError(error)) throw error;
+    console.error(`Upsert failed for ${table}:${localId}`, error);
+    return false;
   }
 
   const remoteId = toNumber(remoteRecord?.id);
@@ -829,6 +820,99 @@ export async function processPendingSyncQueue() {
   }
 }
 
+/**
+ * Deduplicates all tables in the local Dexie database.
+ * Groups records by remoteId (hard match) and by name+key fields (soft match),
+ * keeping the canonical record and deleting orphan duplicates.
+ */
+export async function deduplicateLocalData() {
+  await runWithCloudSyncSuppressed(async () => {
+    const backfillRemoteIds = async (localTable: any) => {
+      const rows: any[] = await localTable.filter((r: any) => !r.remoteId && r.cloudId != null).toArray();
+      if (rows.length === 0) return;
+      await Promise.all(rows.map((row) => {
+        const nextRemoteId = toNumber(row.cloudId);
+        if (!nextRemoteId || !row.id) return Promise.resolve();
+        return localTable.update(row.id, { remoteId: nextRemoteId });
+      }));
+    };
+
+    await backfillRemoteIds(db.accounts);
+    await backfillRemoteIds(db.transactions);
+    await backfillRemoteIds(db.goals);
+    await backfillRemoteIds(db.loans);
+    await backfillRemoteIds(db.investments);
+    await backfillRemoteIds(db.friends);
+    await backfillRemoteIds(db.groupExpenses);
+
+    const dedupTable = async (localTable: any, nameKeyFn: (row: any) => string) => {
+      const all: any[] = await localTable.toArray();
+      if (all.length === 0) return;
+
+      const toDelete = new Set<number>();
+      const seenByRemoteId = new Map<number, number>(); // remoteId -> localId
+      const seenByNameKey = new Map<string, number>();  // nameKey -> localId
+
+      // Sort: prefer records with remoteId, then by latest updatedAt
+      const sorted = [...all].sort((a, b) => {
+        const ridA = toNumber(a.remoteId);
+        const ridB = toNumber(b.remoteId);
+        if (ridA && !ridB) return -1;
+        if (!ridA && ridB) return 1;
+        return (toDate(b.updatedAt)?.getTime() ?? 0) - (toDate(a.updatedAt)?.getTime() ?? 0);
+      });
+
+      for (const row of sorted) {
+        const rid = toNumber(row.remoteId);
+        const nameKey = nameKeyFn(row);
+        const lid = Number(row.id);
+
+        if (rid) {
+          if (seenByRemoteId.has(rid)) {
+            toDelete.add(lid);
+            continue;
+          }
+          seenByRemoteId.set(rid, lid);
+        }
+
+        if (nameKey) {
+          if (seenByNameKey.has(nameKey)) {
+            // If the existing one has a remoteId but this one doesn't, we definitely delete this one
+            // If both have/don't have, we delete this one because it's sorted after (older/less canonical)
+            toDelete.add(lid);
+            continue;
+          }
+          seenByNameKey.set(nameKey, lid);
+        }
+      }
+
+      if (toDelete.size > 0) {
+        console.log(`🗑️ Local dedup: deleting ${toDelete.size} duplicates from ${localTable.name}`);
+        await localTable.bulkDelete(Array.from(toDelete));
+      }
+    };
+
+    await dedupTable(db.accounts, (r) =>
+      `${normalizeText(r.name)}|${r.type}|${normalizeText(r.currency)}`
+    );
+    await dedupTable(db.transactions, (r) =>
+      `${r.type}|${Number(r.amount ?? 0)}|${normalizeText(r.category)}|${normalizeText(r.description)}|${toIsoString(r.date)}`
+    );
+    await dedupTable(db.goals, (r) =>
+      `${normalizeText(r.name)}|${Number(r.targetAmount ?? 0)}`
+    );
+    await dedupTable(db.loans, (r) =>
+      `${normalizeText(r.name)}|${r.type}|${Number(r.principalAmount ?? 0)}`
+    );
+    await dedupTable(db.investments, (r) =>
+      `${normalizeText(r.assetName)}|${r.assetType}|${Number(r.quantity ?? 0)}`
+    );
+    await dedupTable(db.friends, (r) =>
+      `${normalizeText(r.name)}|${normalizeText(r.email)}|${normalizeText(r.phone)}`
+    );
+  });
+}
+
 function findMatchingAccount(remote: any, localAccounts: any[]) {
   return localAccounts.find((account) =>
     !account.remoteId &&
@@ -896,10 +980,24 @@ function findMatchingInvestment(remote: any, localInvestments: any[]) {
   );
 }
 
-function resolveLocalId(remoteId: number, existingRows: any[], matcher?: (rows: any[]) => any) {
-  const byRemoteId = existingRows.find((row) => toNumber(row.remoteId) === remoteId);
+function resolveLocalId(remote: any, existingRows: any[], matcher?: (rows: any[]) => any) {
+  const remoteId = remote.id;
+
+  // 1. Try matching by remoteId (UUID/String or Numeric)
+  const byRemoteId = existingRows.find((row) => {
+    const rId = row.remoteId;
+    return rId === remoteId || (toNumber(rId) === toNumber(remoteId) && rId != null);
+  });
   if (byRemoteId?.id) return Number(byRemoteId.id);
 
+  // 2. Try matching by the local_id field we expressly synced to the cloud
+  const cloudLocalId = toNumber(remote.local_id);
+  if (cloudLocalId) {
+    const byLocalId = existingRows.find((row) => Number(row.id) === cloudLocalId);
+    if (byLocalId) return Number(byLocalId.id);
+  }
+
+  // 3. Fallback to soft-matching (name, amount, date, etc.)
   const matched = matcher ? matcher(existingRows) : undefined;
   if (matched?.id) return Number(matched.id);
 
@@ -931,322 +1029,328 @@ export async function syncUserDataFromCloud(
   userId: string,
   requestedTables: SyncedTableName[] = CORE_SYNC_TABLES
 ) {
-  initializeBackendSync();
-  await processPendingSyncQueue();
+  if (syncState.syncingFromCloud) return;
+  syncState.syncingFromCloud = true;
 
-  const targetTables = requestedTables.length > 0 ? requestedTables : CORE_SYNC_TABLES;
-  const expandedTables = expandTablesForSync(targetTables);
-  const mergeTargets = new Set<SyncedTableName>(targetTables);
-  const shouldFetch = (table: SyncedTableName) => expandedTables.includes(table);
+  try {
+    initializeBackendSync();
+    // Run deduplication pass first to clean up any existing duplicates in local DB
+    await deduplicateLocalData();
+    await processPendingSyncQueue();
 
-  const [
-    remoteAccounts,
-    remoteFriends,
-    remoteTransactions,
-    remoteLoans,
-    remoteGoals,
-    remoteInvestments,
-    remoteGroupExpenses,
-    localAccounts,
-    localFriends,
-    localTransactions,
-    localLoans,
-    localGoals,
-    localInvestments,
-    localGroupExpenses,
-  ] = await Promise.all([
-    shouldFetch('accounts') ? fetchUserRows('accounts', userId) : Promise.resolve([]),
-    shouldFetch('friends') ? fetchUserRows('friends', userId) : Promise.resolve([]),
-    shouldFetch('transactions') ? fetchUserRows('transactions', userId) : Promise.resolve([]),
-    shouldFetch('loans') ? fetchUserRows('loans', userId) : Promise.resolve([]),
-    shouldFetch('goals') ? fetchUserRows('goals', userId) : Promise.resolve([]),
-    shouldFetch('investments') ? fetchUserRows('investments', userId) : Promise.resolve([]),
-    shouldFetch('group_expenses') ? fetchUserRows('group_expenses', userId) : Promise.resolve([]),
-    shouldFetch('accounts') ? db.accounts.toArray() : Promise.resolve([]),
-    shouldFetch('friends') ? db.friends.toArray() : Promise.resolve([]),
-    shouldFetch('transactions') ? db.transactions.toArray() : Promise.resolve([]),
-    shouldFetch('loans') ? db.loans.toArray() : Promise.resolve([]),
-    shouldFetch('goals') ? db.goals.toArray() : Promise.resolve([]),
-    shouldFetch('investments') ? db.investments.toArray() : Promise.resolve([]),
-    shouldFetch('group_expenses') ? db.groupExpenses.toArray() : Promise.resolve([]),
-  ]);
+    const targetTables = requestedTables.length > 0 ? requestedTables : CORE_SYNC_TABLES;
+    const expandedTables = expandTablesForSync(targetTables);
+    const mergeTargets = new Set<SyncedTableName>(targetTables);
+    const shouldFetch = (table: SyncedTableName) => expandedTables.includes(table);
 
-  const accountRemoteToLocal = new Map<number, number>();
-  const friendRemoteToLocal = new Map<number, number>();
-  const groupExpenseRemoteToLocal = new Map<number, number>();
-  const transactionRemoteToLocal = new Map<number, number>();
-
-  const mappedAccounts = remoteAccounts.map((account: any) => {
-    const localId = resolveLocalId(Number(account.id), localAccounts, (rows) => findMatchingAccount(account, rows)) ?? Number(account.id);
-    accountRemoteToLocal.set(Number(account.id), localId);
-
-    return {
-      id: localId,
-      remoteId: Number(account.id),
-      name: account.name,
-      type: account.type,
-      balance: Number(account.balance ?? 0),
-      currency: account.currency ?? 'INR',
-      isActive: account.is_active ?? true,
-      createdAt: toDate(account.created_at) ?? new Date(),
-      updatedAt: toDate(account.updated_at),
-      deletedAt: toDate(account.deleted_at),
-    };
-  });
-
-  const mappedFriends = remoteFriends.map((friend: any) => {
-    const localId = resolveLocalId(Number(friend.id), localFriends, (rows) => findMatchingFriend(friend, rows)) ?? Number(friend.id);
-    friendRemoteToLocal.set(Number(friend.id), localId);
-
-    return {
-      id: localId,
-      remoteId: Number(friend.id),
-      name: friend.name,
-      email: friend.email ?? undefined,
-      phone: friend.phone ?? undefined,
-      avatar: friend.avatar ?? undefined,
-      notes: friend.notes ?? undefined,
-      createdAt: toDate(friend.created_at) ?? new Date(),
-      updatedAt: toDate(friend.updated_at),
-      deletedAt: toDate(friend.deleted_at),
-    };
-  });
-
-  remoteGroupExpenses.forEach((group: any) => {
-    const localPaidBy = accountRemoteToLocal.get(Number(group.paid_by)) ?? Number(group.paid_by);
-    const localId = resolveLocalId(
-      Number(group.id),
-      localGroupExpenses,
-      (rows) => findMatchingGroupExpense(group, rows, localPaidBy)
-    ) ?? Number(group.id);
-
-    groupExpenseRemoteToLocal.set(Number(group.id), localId);
-  });
-
-  const mappedTransactions = remoteTransactions.map((transaction: any) => {
-    const localAccountId = accountRemoteToLocal.get(Number(transaction.account_id)) ?? Number(transaction.account_id);
-    const localTransferAccountId = transaction.transfer_to_account_id
-      ? accountRemoteToLocal.get(Number(transaction.transfer_to_account_id)) ?? Number(transaction.transfer_to_account_id)
-      : undefined;
-    const localGroupExpenseId = transaction.group_expense_id
-      ? groupExpenseRemoteToLocal.get(Number(transaction.group_expense_id)) ?? undefined
-      : undefined;
-    const localId = resolveLocalId(
-      Number(transaction.id),
+    const [
+      remoteAccounts,
+      remoteFriends,
+      remoteTransactions,
+      remoteLoans,
+      remoteGoals,
+      remoteInvestments,
+      remoteGroupExpenses,
+      localAccounts,
+      localFriends,
       localTransactions,
-      (rows) => findMatchingTransaction(transaction, rows, localAccountId)
-    ) ?? Number(transaction.id);
+      localLoans,
+      localGoals,
+      localInvestments,
+      localGroupExpenses,
+    ] = await Promise.all([
+      shouldFetch('accounts') ? fetchUserRows('accounts', userId) : Promise.resolve([]),
+      shouldFetch('friends') ? fetchUserRows('friends', userId) : Promise.resolve([]),
+      shouldFetch('transactions') ? fetchUserRows('transactions', userId) : Promise.resolve([]),
+      shouldFetch('loans') ? fetchUserRows('loans', userId) : Promise.resolve([]),
+      shouldFetch('goals') ? fetchUserRows('goals', userId) : Promise.resolve([]),
+      shouldFetch('investments') ? fetchUserRows('investments', userId) : Promise.resolve([]),
+      shouldFetch('group_expenses') ? fetchUserRows('group_expenses', userId) : Promise.resolve([]),
+      shouldFetch('accounts') ? db.accounts.toArray() : Promise.resolve([]),
+      shouldFetch('friends') ? db.friends.toArray() : Promise.resolve([]),
+      shouldFetch('transactions') ? db.transactions.toArray() : Promise.resolve([]),
+      shouldFetch('loans') ? db.loans.toArray() : Promise.resolve([]),
+      shouldFetch('goals') ? db.goals.toArray() : Promise.resolve([]),
+      shouldFetch('investments') ? db.investments.toArray() : Promise.resolve([]),
+      shouldFetch('group_expenses') ? db.groupExpenses.toArray() : Promise.resolve([]),
+    ]);
 
-    transactionRemoteToLocal.set(Number(transaction.id), localId);
+    const accountRemoteToLocal = new Map<number, number>();
+    const friendRemoteToLocal = new Map<number, number>();
+    const groupExpenseRemoteToLocal = new Map<number, number>();
+    const transactionRemoteToLocal = new Map<number, number>();
 
-    return {
-      id: localId,
-      remoteId: Number(transaction.id),
-      type: transaction.type,
-      amount: Number(transaction.amount ?? 0),
-      accountId: localAccountId,
-      category: transaction.category ?? 'Other',
-      subcategory: transaction.subcategory ?? undefined,
-      description: transaction.description ?? '',
-      merchant: transaction.merchant ?? undefined,
-      date: toDate(transaction.date) ?? new Date(),
-      tags: Array.isArray(transaction.tags) ? transaction.tags : undefined,
-      attachment: transaction.attachment ?? undefined,
-      transferToAccountId: localTransferAccountId,
-      transferType: transaction.transfer_type ?? undefined,
-      expenseMode: transaction.expense_mode ?? undefined,
-      groupExpenseId: localGroupExpenseId,
-      groupName: transaction.group_name ?? undefined,
-      splitType: transaction.split_type ?? undefined,
-      importSource: transaction.import_source ?? undefined,
-      importMetadata: transaction.import_metadata ?? undefined,
-      originalCategory: transaction.original_category ?? undefined,
-      importedAt: toDate(transaction.imported_at),
-      createdAt: toDate(transaction.created_at) ?? new Date(),
-      updatedAt: toDate(transaction.updated_at),
-      deletedAt: toDate(transaction.deleted_at),
-    };
-  });
+    const localAccountIdSet = new Set(localAccounts.map(a => Number(a.id)));
 
-  const mappedLoans = remoteLoans.map((loan: any) => {
-    const localFriendId = loan.friend_id
-      ? friendRemoteToLocal.get(Number(loan.friend_id)) ?? undefined
-      : undefined;
-    const localAccountId = loan.account_id
-      ? accountRemoteToLocal.get(Number(loan.account_id)) ?? undefined
-      : undefined;
-    const localId = resolveLocalId(Number(loan.id), localLoans, (rows) => findMatchingLoan(loan, rows)) ?? Number(loan.id);
+    const mappedAccounts = remoteAccounts.map((account: any) => {
+      const resolvedId = resolveLocalId(account, localAccounts, (rows) => findMatchingAccount(account, rows));
+      const remoteNumericId = Number(account.id);
+      // Only use the remote numeric ID as local key if no existing local record would be overwritten
+      // (i.e., no local record with that ID exists OR it already maps to this remote account)
+      const hasConflict = resolvedId === undefined &&
+        localAccountIdSet.has(remoteNumericId) &&
+        !localAccounts.some(r => Number(r.id) === remoteNumericId && toNumber(r.remoteId) === remoteNumericId);
+      const localId = resolvedId ?? (hasConflict ? undefined : remoteNumericId);
+      accountRemoteToLocal.set(remoteNumericId, resolvedId ?? remoteNumericId);
 
-    return {
-      id: localId,
-      remoteId: Number(loan.id),
-      type: loan.type,
-      name: loan.name,
-      principalAmount: Number(loan.principal_amount ?? 0),
-      outstandingBalance: Number(loan.outstanding_balance ?? 0),
-      interestRate: loan.interest_rate ?? undefined,
-      totalPayable: loan.total_payable ?? undefined,
-      emiAmount: loan.emi_amount ?? undefined,
-      dueDate: toDate(loan.due_date),
-      loanDate: toDate(loan.loan_date),
-      frequency: loan.frequency ?? undefined,
-      status: loan.status ?? 'active',
-      contactPerson: loan.contact_person ?? undefined,
-      friendId: localFriendId,
-      contactEmail: loan.contact_email ?? undefined,
-      contactPhone: loan.contact_phone ?? undefined,
-      accountId: localAccountId,
-      notes: loan.notes ?? undefined,
-      createdAt: toDate(loan.created_at) ?? new Date(),
-      updatedAt: toDate(loan.updated_at),
-      deletedAt: toDate(loan.deleted_at),
-    };
-  });
+      return {
+        id: localId,
+        remoteId: Number(account.id),
+        name: account.name,
+        type: account.type,
+        balance: Number(account.balance ?? 0),
+        currency: account.currency ?? 'INR',
+        isActive: account.is_active ?? true,
+        createdAt: toDate(account.created_at) ?? new Date(),
+        updatedAt: toDate(account.updated_at),
+        deletedAt: toDate(account.deleted_at),
+      };
+    });
 
-  const mappedGoals = remoteGoals.map((goal: any) => {
-    const localId = resolveLocalId(Number(goal.id), localGoals, (rows) => findMatchingGoal(goal, rows)) ?? Number(goal.id);
+    const mappedFriends = remoteFriends.map((friend: any) => {
+      const localId = resolveLocalId(friend, localFriends, (rows) => findMatchingFriend(friend, rows)) ?? Number(friend.id);
+      friendRemoteToLocal.set(Number(friend.id), localId);
 
-    return {
-      id: localId,
-      remoteId: Number(goal.id),
-      name: goal.name,
-      targetAmount: Number(goal.target_amount ?? 0),
-      currentAmount: Number(goal.current_amount ?? 0),
-      targetDate: toDate(goal.target_date) ?? new Date(),
-      category: goal.category ?? 'other',
-      isGroupGoal: goal.is_group_goal ?? false,
-      createdAt: toDate(goal.created_at) ?? new Date(),
-      updatedAt: toDate(goal.updated_at),
-      deletedAt: toDate(goal.deleted_at),
-    };
-  });
+      return {
+        id: localId,
+        remoteId: Number(friend.id),
+        name: friend.name,
+        email: friend.email ?? undefined,
+        phone: friend.phone ?? undefined,
+        avatar: friend.avatar ?? undefined,
+        notes: friend.notes ?? undefined,
+        createdAt: toDate(friend.created_at) ?? new Date(),
+        updatedAt: toDate(friend.updated_at),
+        deletedAt: toDate(friend.deleted_at),
+      };
+    });
 
-  const mappedGroupExpenses = remoteGroupExpenses.map((group: any) => {
-    const localPaidBy = accountRemoteToLocal.get(Number(group.paid_by)) ?? Number(group.paid_by);
-    const localId = groupExpenseRemoteToLocal.get(Number(group.id)) ?? Number(group.id);
+    remoteGroupExpenses.forEach((group: any) => {
+      const localPaidBy = accountRemoteToLocal.get(Number(group.paid_by)) ?? Number(group.paid_by);
+      const localId = resolveLocalId(group, localGroupExpenses, (rows) => findMatchingGroupExpense(group, rows, localPaidBy)) ?? Number(group.id);
 
-    const members = Array.isArray(group.members)
-      ? group.members.map((member: any) => ({
+      groupExpenseRemoteToLocal.set(Number(group.id), localId);
+    });
+
+    const mappedTransactions = remoteTransactions.map((transaction: any) => {
+      const localAccountId = accountRemoteToLocal.get(Number(transaction.account_id)) ?? Number(transaction.account_id);
+      const localTransferAccountId = transaction.transfer_to_account_id
+        ? accountRemoteToLocal.get(Number(transaction.transfer_to_account_id)) ?? Number(transaction.transfer_to_account_id)
+        : undefined;
+      const localGroupExpenseId = transaction.group_expense_id
+        ? groupExpenseRemoteToLocal.get(Number(transaction.group_expense_id)) ?? undefined
+        : undefined;
+      const localId = resolveLocalId(transaction, localTransactions, (rows) => findMatchingTransaction(transaction, rows, localAccountId)) ?? Number(transaction.id);
+
+      transactionRemoteToLocal.set(Number(transaction.id), localId);
+
+      return {
+        id: localId,
+        remoteId: Number(transaction.id),
+        type: transaction.type,
+        amount: Number(transaction.amount ?? 0),
+        accountId: localAccountId,
+        category: transaction.category ?? 'Other',
+        subcategory: transaction.subcategory ?? undefined,
+        description: transaction.description ?? '',
+        merchant: transaction.merchant ?? undefined,
+        date: toDate(transaction.date) ?? new Date(),
+        tags: Array.isArray(transaction.tags) ? transaction.tags : undefined,
+        attachment: transaction.attachment ?? undefined,
+        transferToAccountId: localTransferAccountId,
+        transferType: transaction.transfer_type ?? undefined,
+        expenseMode: transaction.expense_mode ?? undefined,
+        groupExpenseId: localGroupExpenseId,
+        groupName: transaction.group_name ?? undefined,
+        splitType: transaction.split_type ?? undefined,
+        importSource: transaction.import_source ?? undefined,
+        importMetadata: transaction.import_metadata ?? undefined,
+        originalCategory: transaction.original_category ?? undefined,
+        importedAt: toDate(transaction.imported_at),
+        createdAt: toDate(transaction.created_at) ?? new Date(),
+        updatedAt: toDate(transaction.updated_at),
+        deletedAt: toDate(transaction.deleted_at),
+      };
+    });
+
+    const mappedLoans = remoteLoans.map((loan: any) => {
+      const localFriendId = loan.friend_id
+        ? friendRemoteToLocal.get(Number(loan.friend_id)) ?? undefined
+        : undefined;
+      const localAccountId = loan.account_id
+        ? accountRemoteToLocal.get(Number(loan.account_id)) ?? undefined
+        : undefined;
+      const localId = resolveLocalId(loan, localLoans, (rows) => findMatchingLoan(loan, rows)) ?? Number(loan.id);
+
+      return {
+        id: localId,
+        remoteId: Number(loan.id),
+        type: loan.type,
+        name: loan.name,
+        principalAmount: Number(loan.principal_amount ?? 0),
+        outstandingBalance: Number(loan.outstanding_balance ?? 0),
+        interestRate: loan.interest_rate ?? undefined,
+        totalPayable: loan.total_payable ?? undefined,
+        emiAmount: loan.emi_amount ?? undefined,
+        dueDate: toDate(loan.due_date),
+        loanDate: toDate(loan.loan_date),
+        frequency: loan.frequency ?? undefined,
+        status: loan.status ?? 'active',
+        contactPerson: loan.contact_person ?? undefined,
+        friendId: localFriendId,
+        contactEmail: loan.contact_email ?? undefined,
+        contactPhone: loan.contact_phone ?? undefined,
+        accountId: localAccountId,
+        notes: loan.notes ?? undefined,
+        createdAt: toDate(loan.created_at) ?? new Date(),
+        updatedAt: toDate(loan.updated_at),
+        deletedAt: toDate(loan.deleted_at),
+      };
+    });
+
+    const mappedGoals = remoteGoals.map((goal: any) => {
+      const localId = resolveLocalId(goal, localGoals, (rows) => findMatchingGoal(goal, rows)) ?? Number(goal.id);
+
+      return {
+        id: localId,
+        remoteId: Number(goal.id),
+        name: goal.name,
+        targetAmount: Number(goal.target_amount ?? 0),
+        currentAmount: Number(goal.current_amount ?? 0),
+        targetDate: toDate(goal.target_date) ?? new Date(),
+        category: goal.category ?? 'other',
+        isGroupGoal: goal.is_group_goal ?? false,
+        createdAt: toDate(goal.created_at) ?? new Date(),
+        updatedAt: toDate(goal.updated_at),
+        deletedAt: toDate(goal.deleted_at),
+      };
+    });
+
+    const mappedGroupExpenses = remoteGroupExpenses.map((group: any) => {
+      const localPaidBy = accountRemoteToLocal.get(Number(group.paid_by)) ?? Number(group.paid_by);
+      const localId = groupExpenseRemoteToLocal.get(Number(group.id)) ?? Number(group.id);
+
+      const members = Array.isArray(group.members)
+        ? group.members.map((member: any) => ({
           ...member,
           friendId: member?.friendId
             ? friendRemoteToLocal.get(Number(member.friendId)) ?? undefined
             : undefined,
         }))
-      : [];
+        : [];
 
-    return {
-      id: localId,
-      remoteId: Number(group.id),
-      name: group.name,
-      totalAmount: Number(group.total_amount ?? 0),
-      paidBy: localPaidBy,
-      date: toDate(group.date) ?? new Date(),
-      members,
-      items: Array.isArray(group.items) ? group.items : [],
-      description: group.description ?? undefined,
-      category: group.category ?? undefined,
-      subcategory: group.subcategory ?? undefined,
-      splitType: group.split_type ?? undefined,
-      yourShare: group.your_share ?? undefined,
-      expenseTransactionId: group.expense_transaction_id
-        ? transactionRemoteToLocal.get(Number(group.expense_transaction_id)) ?? undefined
-        : undefined,
-      createdBy: group.created_by ?? undefined,
-      createdByName: group.created_by_name ?? undefined,
-      status: group.status ?? undefined,
-      notificationStatus: group.notification_status ?? undefined,
-      createdAt: toDate(group.created_at) ?? new Date(),
-      updatedAt: toDate(group.updated_at),
-      deletedAt: toDate(group.deleted_at),
-    };
-  });
+      return {
+        id: localId,
+        remoteId: Number(group.id),
+        name: group.name,
+        totalAmount: Number(group.total_amount ?? 0),
+        paidBy: localPaidBy,
+        date: toDate(group.date) ?? new Date(),
+        members,
+        items: Array.isArray(group.items) ? group.items : [],
+        description: group.description ?? undefined,
+        category: group.category ?? undefined,
+        subcategory: group.subcategory ?? undefined,
+        splitType: group.split_type ?? undefined,
+        yourShare: group.your_share ?? undefined,
+        expenseTransactionId: group.expense_transaction_id
+          ? transactionRemoteToLocal.get(Number(group.expense_transaction_id)) ?? undefined
+          : undefined,
+        createdBy: group.created_by ?? undefined,
+        createdByName: group.created_by_name ?? undefined,
+        status: group.status ?? undefined,
+        notificationStatus: group.notification_status ?? undefined,
+        createdAt: toDate(group.created_at) ?? new Date(),
+        updatedAt: toDate(group.updated_at),
+        deletedAt: toDate(group.deleted_at),
+      };
+    });
 
-  const mappedInvestments = remoteInvestments.map((investment: any) => {
-    const localId = resolveLocalId(
-      Number(investment.id),
-      localInvestments,
-      (rows) => findMatchingInvestment(investment, rows)
-    ) ?? Number(investment.id);
+    const mappedInvestments = remoteInvestments.map((investment: any) => {
+      const localId = resolveLocalId(investment, localInvestments, (rows) => findMatchingInvestment(investment, rows)) ?? Number(investment.id);
 
-    return {
-      id: localId,
-      remoteId: Number(investment.id),
-      assetType: investment.asset_type,
-      assetName: investment.asset_name,
-      quantity: Number(investment.quantity ?? 0),
-      buyPrice: Number(investment.buy_price ?? 0),
-      currentPrice: Number(investment.current_price ?? 0),
-      totalInvested: Number(investment.total_invested ?? 0),
-      currentValue: Number(investment.current_value ?? 0),
-      profitLoss: Number(investment.profit_loss ?? 0),
-      purchaseDate: toDate(investment.purchase_date) ?? new Date(),
-      lastUpdated: toDate(investment.last_updated) ?? new Date(),
-      broker: investment.broker ?? undefined,
-      description: investment.description ?? undefined,
-      assetCurrency: investment.asset_currency ?? undefined,
-      baseCurrency: investment.base_currency ?? undefined,
-      buyFxRate: investment.buy_fx_rate ?? undefined,
-      lastKnownFxRate: investment.last_known_fx_rate ?? undefined,
-      totalInvestedNative: investment.total_invested_native ?? undefined,
-      currentValueNative: investment.current_value_native ?? undefined,
-      valuationVersion: investment.valuation_version ?? undefined,
-      positionStatus: investment.position_status ?? undefined,
-      closedAt: toDate(investment.closed_at),
-      closePrice: investment.close_price ?? undefined,
-      closeFxRate: investment.close_fx_rate ?? undefined,
-      grossSaleValue: investment.gross_sale_value ?? undefined,
-      netSaleValue: investment.net_sale_value ?? undefined,
-      fundingAccountId: investment.funding_account_id
-        ? accountRemoteToLocal.get(Number(investment.funding_account_id)) ?? undefined
-        : undefined,
-      purchaseFees: investment.purchase_fees ?? undefined,
-      purchaseTransactionId: investment.purchase_transaction_id
-        ? transactionRemoteToLocal.get(Number(investment.purchase_transaction_id)) ?? undefined
-        : undefined,
-      purchaseFeeTransactionId: investment.purchase_fee_transaction_id
-        ? transactionRemoteToLocal.get(Number(investment.purchase_fee_transaction_id)) ?? undefined
-        : undefined,
-      saleTransactionId: investment.sale_transaction_id
-        ? transactionRemoteToLocal.get(Number(investment.sale_transaction_id)) ?? undefined
-        : undefined,
-      saleFeeTransactionId: investment.sale_fee_transaction_id
-        ? transactionRemoteToLocal.get(Number(investment.sale_fee_transaction_id)) ?? undefined
-        : undefined,
-      closingFees: investment.closing_fees ?? undefined,
-      realizedProfitLoss: investment.realized_profit_loss ?? undefined,
-      settlementAccountId: investment.settlement_account_id
-        ? accountRemoteToLocal.get(Number(investment.settlement_account_id)) ?? undefined
-        : undefined,
-      closeNotes: investment.close_notes ?? undefined,
-      createdAt: toDate(investment.created_at) ?? new Date(),
-      updatedAt: toDate(investment.updated_at),
-      deletedAt: toDate(investment.deleted_at),
-    };
-  });
+      return {
+        id: localId,
+        remoteId: Number(investment.id),
+        assetType: investment.asset_type,
+        assetName: investment.asset_name,
+        quantity: Number(investment.quantity ?? 0),
+        buyPrice: Number(investment.buy_price ?? 0),
+        currentPrice: Number(investment.current_price ?? 0),
+        totalInvested: Number(investment.total_invested ?? 0),
+        currentValue: Number(investment.current_value ?? 0),
+        profitLoss: Number(investment.profit_loss ?? 0),
+        purchaseDate: toDate(investment.purchase_date) ?? new Date(),
+        lastUpdated: toDate(investment.last_updated) ?? new Date(),
+        broker: investment.broker ?? undefined,
+        description: investment.description ?? undefined,
+        assetCurrency: investment.asset_currency ?? undefined,
+        baseCurrency: investment.base_currency ?? undefined,
+        buyFxRate: investment.buy_fx_rate ?? undefined,
+        lastKnownFxRate: investment.last_known_fx_rate ?? undefined,
+        totalInvestedNative: investment.total_invested_native ?? undefined,
+        currentValueNative: investment.current_value_native ?? undefined,
+        valuationVersion: investment.valuation_version ?? undefined,
+        positionStatus: investment.position_status ?? undefined,
+        closedAt: toDate(investment.closed_at),
+        closePrice: investment.close_price ?? undefined,
+        closeFxRate: investment.close_fx_rate ?? undefined,
+        grossSaleValue: investment.gross_sale_value ?? undefined,
+        netSaleValue: investment.net_sale_value ?? undefined,
+        fundingAccountId: investment.funding_account_id
+          ? accountRemoteToLocal.get(Number(investment.funding_account_id)) ?? undefined
+          : undefined,
+        purchaseFees: investment.purchase_fees ?? undefined,
+        purchaseTransactionId: investment.purchase_transaction_id
+          ? transactionRemoteToLocal.get(Number(investment.purchase_transaction_id)) ?? undefined
+          : undefined,
+        purchaseFeeTransactionId: investment.purchase_fee_transaction_id
+          ? transactionRemoteToLocal.get(Number(investment.purchase_fee_transaction_id)) ?? undefined
+          : undefined,
+        saleTransactionId: investment.sale_transaction_id
+          ? transactionRemoteToLocal.get(Number(investment.sale_transaction_id)) ?? undefined
+          : undefined,
+        saleFeeTransactionId: investment.sale_fee_transaction_id
+          ? transactionRemoteToLocal.get(Number(investment.sale_fee_transaction_id)) ?? undefined
+          : undefined,
+        closingFees: investment.closing_fees ?? undefined,
+        realizedProfitLoss: investment.realized_profit_loss ?? undefined,
+        settlementAccountId: investment.settlement_account_id
+          ? accountRemoteToLocal.get(Number(investment.settlement_account_id)) ?? undefined
+          : undefined,
+        closeNotes: investment.close_notes ?? undefined,
+        createdAt: toDate(investment.created_at) ?? new Date(),
+        updatedAt: toDate(investment.updated_at),
+        deletedAt: toDate(investment.deleted_at),
+      };
+    });
 
-  await runWithCloudSyncSuppressed(async () => {
-    if (mergeTargets.has('accounts')) {
-      await mergeRemoteTable('accounts', remoteAccounts, mappedAccounts, localAccounts);
-    }
-    if (mergeTargets.has('friends')) {
-      await mergeRemoteTable('friends', remoteFriends, mappedFriends, localFriends);
-    }
-    if (mergeTargets.has('transactions')) {
-      await mergeRemoteTable('transactions', remoteTransactions, mappedTransactions, localTransactions);
-    }
-    if (mergeTargets.has('loans')) {
-      await mergeRemoteTable('loans', remoteLoans, mappedLoans, localLoans);
-    }
-    if (mergeTargets.has('goals')) {
-      await mergeRemoteTable('goals', remoteGoals, mappedGoals, localGoals);
-    }
-    if (mergeTargets.has('group_expenses')) {
-      await mergeRemoteTable('group_expenses', remoteGroupExpenses, mappedGroupExpenses, localGroupExpenses);
-    }
-    if (mergeTargets.has('investments')) {
-      await mergeRemoteTable('investments', remoteInvestments, mappedInvestments, localInvestments);
-    }
-  });
+    await runWithCloudSyncSuppressed(async () => {
+      if (mergeTargets.has('accounts')) {
+        await mergeRemoteTable('accounts', remoteAccounts, mappedAccounts, localAccounts);
+      }
+      if (mergeTargets.has('friends')) {
+        await mergeRemoteTable('friends', remoteFriends, mappedFriends, localFriends);
+      }
+      if (mergeTargets.has('transactions')) {
+        await mergeRemoteTable('transactions', remoteTransactions, mappedTransactions, localTransactions);
+      }
+      if (mergeTargets.has('loans')) {
+        await mergeRemoteTable('loans', remoteLoans, mappedLoans, localLoans);
+      }
+      if (mergeTargets.has('goals')) {
+        await mergeRemoteTable('goals', remoteGoals, mappedGoals, localGoals);
+      }
+      if (mergeTargets.has('group_expenses')) {
+        await mergeRemoteTable('group_expenses', remoteGroupExpenses, mappedGroupExpenses, localGroupExpenses);
+      }
+      if (mergeTargets.has('investments')) {
+        await mergeRemoteTable('investments', remoteInvestments, mappedInvestments, localInvestments);
+      }
+    });
+  } finally {
+    syncState.syncingFromCloud = false;
+  }
 }
 
 function scheduleCloudPull(userId: string, tables: SyncedTableName[] = CORE_SYNC_TABLES, delay = 400) {
