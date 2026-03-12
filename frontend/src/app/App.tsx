@@ -21,6 +21,7 @@ import { OfflineBanner } from '@/app/components/OfflineBanner';
 // ── Auth / Security (shown before app shell — eager load) ────────────────────
 import { AuthFlow } from '@/components/auth/AuthFlow';
 import { PINAuth } from '@/app/components/PINAuth';
+import { LandingPage } from '@/app/components/LandingPage';
 
 // ── Page components — lazy loaded, each gets its own async chunk ─────────────
 const Dashboard = lazy(() => import('@/app/components/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -128,6 +129,8 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, setAuthenticated } = useSecurity();
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
+  // Landing page: shown only to unauthenticated visitors
+  const [showLanding, setShowLanding] = useState(() => !user);
   const [criticalPagesPrefetched, setCriticalPagesPrefetched] = useState(false);
   const hasModuleReloaded = useRef(false);
 
@@ -293,7 +296,16 @@ const AppContent: React.FC = () => {
   const hasProfileData = localStorage.getItem('user_profile') || localStorage.getItem('user_settings');
   const isNewUser = !hasCompletedOnboarding && !hasProfileData;
 
-  if (!user) return <AuthFlow />;
+  if (!user) {
+    if (showLanding) {
+      return (
+        <LandingPage
+          onGetStarted={() => setShowLanding(false)}
+        />
+      );
+    }
+    return <AuthFlow />;
+  }
 
   // Gate 1: Onboarding (BEFORE PIN)
   if (!hasCompletedOnboarding && isNewUser) {

@@ -330,10 +330,11 @@ class OfflineSyncEngine {
   private lastSyncedAt: Date | null = null;
   private lastError: string | undefined;
   private pendingCount = 0;
-  // Circuit breaker: maps cloudTable → timestamp after which we may retry
-  // Persisted to localStorage so cooldowns survive page refreshes.
-  private readonly TABLE_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+  // Circuit breaker with exponential backoff — persisted to localStorage.
+  // 4xx (schema broken): base 1 h, doubles to 24 h cap after ~5 failures → silent.
+  // 5xx (transient):     base 5 min, doubles to 24 h cap.
   private readonly COOLDOWN_STORAGE_KEY = 'sync_table_cooldowns';
+  private readonly COOLDOWN_MAX_MS = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
     if (typeof window === 'undefined') return;
@@ -342,33 +343,50 @@ class OfflineSyncEngine {
     document.addEventListener('visibilitychange', this.handleVisibility);
   }
 
-  private loadCooldowns(): Map<string, number> {
+  /** Raw entry stored per table: retry timestamp + consecutive fail count. */
+  private loadCooldowns(): Map<string, { until: number; count: number }> {
     try {
       const raw = localStorage.getItem(this.COOLDOWN_STORAGE_KEY);
       if (!raw) return new Map();
-      return new Map(Object.entries(JSON.parse(raw) as Record<string, number>));
+      return new Map(
+        Object.entries(
+          JSON.parse(raw) as Record<string, { until: number; count: number }>
+        )
+      );
     } catch {
       return new Map();
     }
   }
 
-  private saveCooldowns(map: Map<string, number>): void {
+  private saveCooldowns(map: Map<string, { until: number; count: number }>): void {
     try {
-      const obj: Record<string, number> = {};
+      const obj: Record<string, { until: number; count: number }> = {};
       map.forEach((v, k) => { obj[k] = v; });
       localStorage.setItem(this.COOLDOWN_STORAGE_KEY, JSON.stringify(obj));
     } catch { /* quota exceeded — ignore */ }
   }
 
   private isTableOnCooldown(cloudTable: string): boolean {
-    const cooldowns = this.loadCooldowns();
-    const until = cooldowns.get(cloudTable);
-    return !!until && Date.now() < until;
+    const entry = this.loadCooldowns().get(cloudTable);
+    return !!entry && Date.now() < entry.until;
   }
 
-  private setTableCooldown(cloudTable: string): void {
+  /**
+   * Record a failure for `cloudTable` and apply exponential backoff.
+   * @param httpStatus  HTTP status code from Supabase (400, 500, etc.)
+   *   4xx → base 1 hour  (schema / table missing — won't self-heal)
+   *   5xx → base 5 min   (transient server error)
+   * Each consecutive failure doubles the delay, capped at 24 h.
+   */
+  private setTableCooldown(cloudTable: string, httpStatus = 400): void {
     const cooldowns = this.loadCooldowns();
-    cooldowns.set(cloudTable, Date.now() + this.TABLE_COOLDOWN_MS);
+    const prev = cooldowns.get(cloudTable);
+    const count = (prev?.count ?? 0) + 1;
+    const baseMs = httpStatus >= 400 && httpStatus < 500
+      ? 60 * 60 * 1000          // 4xx: 1 hour base
+      : 5 * 60 * 1000;          // 5xx: 5 minute base
+    const delay = Math.min(baseMs * Math.pow(2, count - 1), this.COOLDOWN_MAX_MS);
+    cooldowns.set(cloudTable, { until: Date.now() + delay, count });
     this.saveCooldowns(cooldowns);
   }
 
@@ -631,10 +649,10 @@ class OfflineSyncEngine {
           query = (query as any).gt('updated_at', lastSync.toISOString());
         }
 
-        const { data, error } = await query;
+        const { data, error, status } = await query;
         if (error) {
-          // Back off for 5 minutes if the table/column doesn't exist on Supabase
-          this.setTableCooldown(cloudTable);
+          // Exponential backoff: 4xx (bad schema) starts at 1 h, 5xx starts at 5 min
+          this.setTableCooldown(cloudTable, status ?? 400);
           continue;
         }
 
