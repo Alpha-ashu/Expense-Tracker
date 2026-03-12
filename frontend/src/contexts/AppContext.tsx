@@ -26,7 +26,7 @@ interface AppContextType {
   isOnline: boolean;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<void>;
   updateAccount: (accountId: number, updates: Partial<Account>) => Promise<void>;
-  addAccount: (account: Omit<Account, 'id'>) => Promise<void>;
+  addAccount: (account: Omit<Account, 'id'>) => Promise<number>;
   visibleFeatures: FeatureVisibility;
   setVisibleFeatures: (features: FeatureVisibility) => void;
   // Offline-first sync
@@ -176,16 +176,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   useEffect(() => {
     const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);
-    
+
     // Read feature flag overrides from localStorage (set by admin panel)
     const overrideFlags = localStorage.getItem('featureFlagsOverride');
     let finalFeatures = roleFeatures;
-    
+
     if (overrideFlags) {
       try {
         const parsed = JSON.parse(overrideFlags);
         const overrides: Record<string, boolean> = {};
-        
+
         Object.entries(parsed).forEach(([feature, roleFlags]: [string, any]) => {
           if (roleFlags[role]) {
             overrides[feature] = true;
@@ -193,7 +193,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             overrides[feature] = false;
           }
         });
-        
+
         finalFeatures = {
           ...roleFeatures,
           ...overrides,
@@ -202,7 +202,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.error('Failed to parse feature flag overrides:', e);
       }
     }
-    
+
     setVisibleFeaturesState((prev) => mergeVisibleFeatures(normalizeFeatures(prev), finalFeatures));
   }, [role]);
 
@@ -265,7 +265,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         applyAdminFeatureSettings();
       }
     };
-    
+
     const handleAdminFeatureUpdate = (event: CustomEvent) => {
       console.log('📡 Admin feature update event received:', event.detail);
       applyAdminFeatureSettings();
@@ -284,7 +284,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('adminFeatureUpdate', handleAdminFeatureUpdate as EventListener);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('adminFeatureUpdate', handleAdminFeatureUpdate as EventListener);
@@ -371,7 +371,7 @@ export const useApp = () => {
     console.warn('useApp called without AppProvider; returning fallback context.');
     return {
       currentPage: 'dashboard',
-      setCurrentPage: () => {},
+      setCurrentPage: () => { },
       accounts: [],
       friends: [],
       transactions: [],
@@ -381,18 +381,18 @@ export const useApp = () => {
       groupExpenses: [],
       totalBalance: 0,
       currency: 'INR',
-      setCurrency: () => {},
+      setCurrency: () => { },
       language: 'en',
-      setLanguage: () => {},
-      refreshData: () => {},
+      setLanguage: () => { },
+      refreshData: () => { },
       isOnline: true,
-      addTransaction: async () => {},
-      updateAccount: async () => {},
-      addAccount: async () => {},
+      addTransaction: async () => { },
+      updateAccount: async () => { },
+      addAccount: async () => 0,
       visibleFeatures: getVisibleFeaturesForRole('user', import.meta.env.MODE),
-      setVisibleFeatures: () => {},
+      setVisibleFeatures: () => { },
       syncStats: { pendingCount: 0, lastSyncedAt: null, status: 'idle' as const },
-      triggerSync: () => {},
+      triggerSync: () => { },
     } as AppContextType;
   }
 

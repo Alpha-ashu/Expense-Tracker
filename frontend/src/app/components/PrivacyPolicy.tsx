@@ -3,7 +3,11 @@ import { motion } from 'framer-motion';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Shield } from 'lucide-react';
 
-export const PrivacyPolicy: React.FC = () => {
+interface PrivacyPolicyProps {
+  onBack?: () => void;
+}
+
+export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 pb-24">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
@@ -11,6 +15,7 @@ export const PrivacyPolicy: React.FC = () => {
           title="Privacy Policy"
           showBack
           backTo="settings"
+          onBack={onBack}
           icon={<Shield size={24} />}
         />
 
