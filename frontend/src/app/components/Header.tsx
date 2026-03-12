@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { NavigationItem } from '@/app/constants/navigation';
 import { useSharedMenu } from '@/hooks/useSharedMenu';
 import { Reorder, useDragControls } from 'framer-motion';
+import { FinoraLogo } from './ui/FinoraLogo';
 
 interface DraggableMobileMenuItemProps {
   item: NavigationItem;
@@ -38,7 +39,7 @@ const DraggableMobileMenuItem: React.FC<DraggableMobileMenuItemProps> = ({
         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${isActive
           ? 'bg-accent-secondary/10 text-accent-secondary'
           : 'text-text-secondary hover:bg-white/5 hover:text-text-primary'
-        }`}
+          }`}
       >
         <div
           className="cursor-grab active:cursor-grabbing touch-none p-1 -ml-2"
@@ -112,7 +113,7 @@ export const Header: React.FC = () => {
   return (
     <div className="h-16 bg-bg-card/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-3 sm:px-4 lg:px-6 sticky top-0 z-40">
       {/* Dynamic Logo */}
-      <span className="h-10 w-10 mr-3 inline-block flex items-center justify-center text-3xl font-bold text-blue-600 font-display">$</span>
+      <FinoraLogo className="h-8 w-8 mr-3 drop-shadow-sm" />
       {/* Mobile Menu Button */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <SheetTrigger asChild>
@@ -126,7 +127,6 @@ export const Header: React.FC = () => {
           <div className="flex flex-col h-full bg-bg-card">
             <div className="p-6 border-b border-white/10">
               <h1 className="text-2xl font-bold text-accent-secondary font-display">Finora</h1>
-              <p className="text-sm text-text-secondary mt-1">Your Financial OS</p>
             </div>
 
             <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">

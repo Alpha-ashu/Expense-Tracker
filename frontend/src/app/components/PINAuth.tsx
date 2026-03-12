@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Fingerprint, Shield } from 'lucide-react';
+import { FinoraLogo } from './ui/FinoraLogo';
 import { isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
@@ -163,7 +164,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     };
 
     initPin();
-    
+
     // Check biometric availability on native platforms
     if (Capacitor.isNativePlatform()) {
       checkBiometricAvailability();
@@ -216,12 +217,12 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
         // Store PIN and generate encryption key
         const key = storeMasterKey(pin);
-        
+
         // Backup to Supabase so it survives cache clear
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user?.id && !isUserPinsTableUnavailable()) {
-            const backup = backupPINKeys(); 
+            const backup = backupPINKeys();
             if (backup.hash && backup.salt) {
               const pinHashValue = `${backup.hash}|${backup.salt}`;
               const { error: backupError } = await supabase.from('user_pins').upsert({
@@ -262,7 +263,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         const result = verifyPIN(pin);
-        
+
         if (result.isValid && result.key) {
           // Store in Capacitor Preferences for native platforms
           if (Capacitor.isNativePlatform()) {
@@ -297,7 +298,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         {/* Logo and Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full mb-4">
-            <Shield className="w-10 h-10 text-white" />
+            <FinoraLogo className="w-12 h-12" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Finora</h1>
           <p className="text-blue-100">
@@ -340,11 +341,10 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className={`w-3 h-3 rounded-full transition-all ${
-                    (isCreating && pin.length === 6 ? confirmPin : pin).length > i
+                  className={`w-3 h-3 rounded-full transition-all ${(isCreating && pin.length === 6 ? confirmPin : pin).length > i
                       ? 'bg-blue-600 scale-110'
                       : 'bg-gray-300'
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -397,7 +397,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Your data is secure</p>
                 <p className="text-blue-700">
-                  All your financial data is encrypted and stored locally on your device. 
+                  All your financial data is encrypted and stored locally on your device.
                   Your PIN is never sent to any server.
                 </p>
               </div>

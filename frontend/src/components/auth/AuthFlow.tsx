@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Shield, Cloud, Smartphone, Wallet, TrendingUp, Bell, Sparkles, ArrowRight } from 'lucide-react';
+import { ChevronRight, Shield, Cloud, Smartphone, TrendingUp, Bell, Sparkles, ArrowRight } from 'lucide-react';
+import { FinoraLogo } from '../../app/components/ui/FinoraLogo';
 import { motion } from 'framer-motion';
 import { SignInForm } from './SignInForm';
 import { SignUpForm } from './SignUpForm';
@@ -46,9 +47,14 @@ interface SalaryAccount {
 interface AuthFlowProps {
   onBack?: () => void;
   initialStep?: AuthStep;
+  onNavigate?: (page: string) => void;
+  onLogin?: () => void;
+  onGetStarted?: () => void;
 }
 
-export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
+import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
+
+export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavigate, onLogin, onGetStarted }) => {
   const [step, setStep] = useState<AuthStep>(initialStep || 'welcome');
   const [email, setEmail] = useState('');
   const [isNewUser, setIsNewUser] = useState(false);
@@ -342,6 +348,14 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
 
     return (
       <div className="relative min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex flex-col overflow-hidden font-sans select-none">
+        {onNavigate && onLogin && onGetStarted && (
+          <PublicNavbar
+            onNavigate={onNavigate}
+            onLogin={() => { setStep('signin'); onLogin(); }}
+            onGetStarted={() => { setStep('signup'); onGetStarted(); }}
+            currentPage="welcome"
+          />
+        )}
         {/* Subtle decorative blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-[15%] -left-[10%] w-[60vw] h-[60vw] md:w-[40vw] md:h-[40vw] bg-blue-200/40 rounded-full blur-[80px]" />
@@ -352,7 +366,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="relative z-10 flex-1 flex flex-col justify-center items-center px-6 sm:px-8 mt-12"
+          className="relative z-10 flex-1 flex flex-col justify-center items-center px-6 sm:px-8 mt-24"
         >
           {/* Logo Section */}
           <motion.div variants={itemVariants} className="mb-10 text-center w-full max-w-sm">
@@ -362,8 +376,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
                 transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 rounded-[2rem] border-2 border-blue-200 border-dashed"
               />
-              <div className="absolute inset-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center shadow-[0_8px_32px_rgba(37,99,235,0.25)]">
-                <Wallet className="w-10 h-10 text-white" strokeWidth={1.5} />
+              <div className="absolute inset-2 bg-white rounded-3xl flex items-center justify-center shadow-sm">
+                <FinoraLogo className="w-12 h-12 drop-shadow-sm" />
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
@@ -695,8 +709,16 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
       return renderWelcome();
     case 'signin':
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex items-center justify-center p-4 pt-24">
+          {onNavigate && onLogin && onGetStarted && (
+            <PublicNavbar
+              onNavigate={onNavigate}
+              onLogin={() => { setStep('signin'); onLogin(); }}
+              onGetStarted={() => { setStep('signup'); onGetStarted(); }}
+              currentPage="signin"
+            />
+          )}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden relative z-10">
             <div className="h-1 w-full bg-gradient-to-r from-blue-600 to-indigo-600" />
             <div className="p-6 sm:p-8 border-b border-gray-100">
               <button
@@ -719,8 +741,16 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
       );
     case 'signup':
       return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 flex items-center justify-center p-4 pt-24">
+          {onNavigate && onLogin && onGetStarted && (
+            <PublicNavbar
+              onNavigate={onNavigate}
+              onLogin={() => { setStep('signin'); onLogin(); }}
+              onGetStarted={() => { setStep('signup'); onGetStarted(); }}
+              currentPage="signup"
+            />
+          )}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md overflow-hidden relative z-10">
             <div className="h-1 w-full bg-gradient-to-r from-blue-600 to-indigo-600" />
             <div className="p-6 sm:p-8 border-b border-gray-100">
               <button
@@ -744,9 +774,23 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep }) => {
         </div>
       );
     case 'privacy':
-      return <PrivacyPolicy onBack={() => setStep('signup')} />;
+      return (
+        <PrivacyPolicy
+          onBack={() => setStep('signup')}
+          onNavigate={onNavigate}
+          onLogin={onLogin}
+          onGetStarted={onGetStarted}
+        />
+      );
     case 'terms':
-      return <Terms onBack={() => setStep('signup')} />;
+      return (
+        <Terms
+          onBack={() => setStep('signup')}
+          onNavigate={onNavigate}
+          onLogin={onLogin}
+          onGetStarted={onGetStarted}
+        />
+      );
     case 'otp-verify':
       return (
         <OTPVerification
