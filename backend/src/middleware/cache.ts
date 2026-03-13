@@ -1,6 +1,6 @@
 import { NextFunction, Response } from 'express';
 import { AuthRequest } from './auth';
-import { cacheGetJson, cacheSetJson } from '../cache/redis';
+import { cacheGetJson, cacheRecordMetric, cacheSetJson } from '../cache/redis';
 
 type CacheOptions = {
   prefix: string;
@@ -24,11 +24,15 @@ export const responseCache = ({ prefix, ttlSeconds }: CacheOptions) =>
     const cached = await cacheGetJson<unknown>(key);
 
     if (cached) {
+      cacheRecordMetric(prefix, 'hit');
       return res.json(cached);
     }
 
+    cacheRecordMetric(prefix, 'miss');
+
     const originalJson = res.json.bind(res);
     res.json = (body: unknown) => {
+      cacheRecordMetric(prefix, 'store');
       void cacheSetJson(key, body, ttlSeconds);
       return originalJson(body);
     };

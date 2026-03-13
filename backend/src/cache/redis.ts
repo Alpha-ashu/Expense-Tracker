@@ -4,8 +4,45 @@ import { logger } from '../config/logger';
 
 type RedisStatus = 'disabled' | 'connected' | 'connecting' | 'error';
 
+type CacheMetricType = 'hit' | 'miss' | 'store';
+
+type CacheMetricBucket = {
+  hit: number;
+  miss: number;
+  store: number;
+};
+
 let client: Redis | null = null;
 let status: RedisStatus = 'disabled';
+const cacheMetrics = new Map<string, CacheMetricBucket>();
+const CACHE_METRICS_LOG_EVERY = 50;
+
+const getMetricBucket = (prefix: string): CacheMetricBucket => {
+  const existing = cacheMetrics.get(prefix);
+  if (existing) return existing;
+
+  const created: CacheMetricBucket = { hit: 0, miss: 0, store: 0 };
+  cacheMetrics.set(prefix, created);
+  return created;
+};
+
+export const cacheRecordMetric = (prefix: string, type: CacheMetricType) => {
+  const bucket = getMetricBucket(prefix);
+  bucket[type] += 1;
+
+  const totalReads = bucket.hit + bucket.miss;
+  if (totalReads > 0 && totalReads % CACHE_METRICS_LOG_EVERY === 0) {
+    const hitRate = ((bucket.hit / totalReads) * 100).toFixed(1);
+    logger.info('Cache metrics', {
+      prefix,
+      reads: totalReads,
+      writes: bucket.store,
+      hits: bucket.hit,
+      misses: bucket.miss,
+      hitRate: `${hitRate}%`,
+    });
+  }
+};
 
 const createClient = () => {
   if (!env.REDIS_URL) {
@@ -112,10 +149,14 @@ export const cacheDeleteByPrefix = async (prefix: string) => {
   try {
     const stream = redis.scanStream({ match: `${prefix}*`, count: 100 });
 
-    stream.on('data', (keys: string[]) => {
-      if (keys.length > 0) {
-        void redis.del(...keys);
-      }
+    await new Promise<void>((resolve, reject) => {
+      stream.on('data', (keys: string[]) => {
+        if (keys.length > 0) {
+          void redis.del(...keys);
+        }
+      });
+      stream.on('end', () => resolve());
+      stream.on('error', (error) => reject(error));
     });
   } catch {
     // Best-effort invalidation only.

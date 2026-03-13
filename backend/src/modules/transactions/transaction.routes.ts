@@ -19,14 +19,14 @@ router.use(authMiddleware);
 router.get(
 	'/',
 	validateQuery(transactionQuerySchema),
-	responseCache({ prefix: 'transactions:list', ttlSeconds: 60 }),
+	responseCache({ prefix: 'transactions:list', ttlSeconds: 30 }),
 	TransactionController.getTransactions
 );
 router.post('/', validateBody(transactionCreateValidatedSchema), TransactionController.createTransaction);
 router.get(
 	'/:id',
 	validateParams(transactionIdParamSchema),
-	responseCache({ prefix: 'transactions:item', ttlSeconds: 60 }),
+	responseCache({ prefix: 'transactions:item', ttlSeconds: 90 }),
 	TransactionController.getTransaction
 );
 router.put(
@@ -39,7 +39,7 @@ router.delete('/:id', validateParams(transactionIdParamSchema), TransactionContr
 router.get(
 	'/account/:accountId',
 	validateParams(transactionAccountParamSchema),
-	responseCache({ prefix: 'transactions:account', ttlSeconds: 45 }),
+	responseCache({ prefix: 'transactions:account', ttlSeconds: 30 }),
 	TransactionController.getAccountTransactions
 );
 

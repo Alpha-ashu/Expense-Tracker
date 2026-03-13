@@ -7,9 +7,9 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/', responseCache({ prefix: 'goals:list', ttlSeconds: 60 }), GoalController.getGoals);
+router.get('/', responseCache({ prefix: 'goals:list', ttlSeconds: 180 }), GoalController.getGoals);
 router.post('/', GoalController.createGoal);
-router.get('/:id', responseCache({ prefix: 'goals:item', ttlSeconds: 60 }), GoalController.getGoal);
+router.get('/:id', responseCache({ prefix: 'goals:item', ttlSeconds: 180 }), GoalController.getGoal);
 router.put('/:id', GoalController.updateGoal);
 router.delete('/:id', GoalController.deleteGoal);
 

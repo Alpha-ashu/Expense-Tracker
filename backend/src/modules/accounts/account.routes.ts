@@ -7,9 +7,9 @@ const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/', responseCache({ prefix: 'accounts:list', ttlSeconds: 60 }), AccountController.getAccounts);
+router.get('/', responseCache({ prefix: 'accounts:list', ttlSeconds: 90 }), AccountController.getAccounts);
 router.post('/', AccountController.createAccount);
-router.get('/:id', responseCache({ prefix: 'accounts:item', ttlSeconds: 60 }), AccountController.getAccount);
+router.get('/:id', responseCache({ prefix: 'accounts:item', ttlSeconds: 120 }), AccountController.getAccount);
 router.put('/:id', AccountController.updateAccount);
 router.delete('/:id', AccountController.deleteAccount);
 
