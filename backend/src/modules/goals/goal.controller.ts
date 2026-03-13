@@ -3,6 +3,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
+import { cacheDeleteByPrefix } from '../../cache/redis';
 
 export const getGoals = async (req: AuthRequest, res: Response) => {
   try {
@@ -44,6 +45,8 @@ export const createGoal = async (req: AuthRequest, res: Response) => {
         currentAmount: 0,
       },
     });
+
+    await cacheDeleteByPrefix('goals:');
 
     res.status(201).json({ success: true, data: goal });
   } catch (error) {
@@ -99,6 +102,8 @@ export const updateGoal = async (req: AuthRequest, res: Response) => {
       data: { ...updates, updatedAt: new Date() },
     });
 
+    await cacheDeleteByPrefix('goals:');
+
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update goal' });
@@ -124,6 +129,8 @@ export const deleteGoal = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    await cacheDeleteByPrefix('goals:');
 
     res.json({ success: true, message: 'Goal deleted' });
   } catch (error) {

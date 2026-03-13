@@ -3,6 +3,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
+import { cacheDeleteByPrefix } from '../../cache/redis';
 
 export const getLoans = async (req: AuthRequest, res: Response) => {
   try {
@@ -60,6 +61,8 @@ export const createLoan = async (req: AuthRequest, res: Response) => {
       include: { payments: true },
     });
 
+    await cacheDeleteByPrefix('loans:');
+
     res.status(201).json({ success: true, data: loan });
   } catch (error) {
     logger.error('Failed to create loan', { error });
@@ -116,6 +119,8 @@ export const updateLoan = async (req: AuthRequest, res: Response) => {
       include: { payments: true },
     });
 
+    await cacheDeleteByPrefix('loans:');
+
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update loan' });
@@ -141,6 +146,8 @@ export const deleteLoan = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    await cacheDeleteByPrefix('loans:');
 
     res.json({ success: true, message: 'Loan deleted' });
   } catch (error) {
@@ -193,6 +200,8 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
         status: newBalance === 0 ? 'completed' : 'active',
       },
     });
+
+    await cacheDeleteByPrefix('loans:');
 
     res.status(201).json({ success: true, data: payment });
   } catch (error) {

@@ -3,6 +3,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
+import { cacheDeleteByPrefix } from '../../cache/redis';
 
 export const getAccounts = async (req: AuthRequest, res: Response) => {
   try {
@@ -44,6 +45,9 @@ export const createAccount = async (req: AuthRequest, res: Response) => {
         isActive: true,
       },
     });
+
+    await cacheDeleteByPrefix('accounts:');
+    await cacheDeleteByPrefix('transactions:');
 
     res.status(201).json({ success: true, data: account });
   } catch (error) {
@@ -108,6 +112,9 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
       data: { ...updates, updatedAt: new Date() },
     });
 
+    await cacheDeleteByPrefix('accounts:');
+    await cacheDeleteByPrefix('transactions:');
+
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update account' });
@@ -133,6 +140,9 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: { isActive: false, deletedAt: new Date() },
     });
+
+    await cacheDeleteByPrefix('accounts:');
+    await cacheDeleteByPrefix('transactions:');
 
     res.json({ success: true, message: 'Account deleted' });
   } catch (error) {
