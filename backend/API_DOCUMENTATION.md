@@ -15,7 +15,74 @@
 6. [Payments](#payments)
 7. [Notifications](#notifications)
 8. [Admin](#admin)
-9. [Testing Instructions](#testing)
+9. [Core Finance APIs](#core-finance-apis)
+10. [Testing Instructions](#testing)
+
+---
+
+## Core Finance APIs
+
+All endpoints below require `Authorization: Bearer <token>` and are served under `/api/v1`.
+
+### Accounts
+
+- `GET /accounts`
+- `POST /accounts`
+- `GET /accounts/{id}`
+- `PUT /accounts/{id}`
+- `DELETE /accounts/{id}`
+
+### Transactions
+
+- `GET /transactions`
+- `POST /transactions`
+- `GET /transactions/{id}`
+- `PUT /transactions/{id}`
+- `DELETE /transactions/{id}`
+- `GET /transactions/account/{accountId}`
+
+### Goals
+
+- `GET /goals`
+- `POST /goals`
+- `GET /goals/{id}`
+- `PUT /goals/{id}`
+- `DELETE /goals/{id}`
+
+### Loans
+
+- `GET /loans`
+- `POST /loans`
+- `GET /loans/{id}`
+- `PUT /loans/{id}`
+- `DELETE /loans/{id}`
+- `POST /loans/{id}/payment`
+
+### Investments
+
+- `GET /investments`
+- `POST /investments`
+- `PUT /investments/{id}`
+- `DELETE /investments/{id}`
+
+### Todos
+
+- `GET /todos`
+- `POST /todos`
+- `PUT /todos/{id}`
+- `DELETE /todos/{id}`
+
+### Groups (Group Expense)
+
+- `GET /groups`
+- `POST /groups`
+- `PUT /groups/{id}`
+- `DELETE /groups/{id}`
+
+### Settings
+
+- `GET /settings`
+- `PUT /settings`
 
 ---
 

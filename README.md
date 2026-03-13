@@ -39,3 +39,64 @@ The root folder is kept minimal and primarily retains foundational configuration
 - Build Pipelines (`vite.config.ts`, `package.json`)
 - Deployments (`vercel.json`, `docker-compose.yml`)
 - Source Code Type Definitions and Linter rules (`tsconfig.json`, `postcss.config.mjs`)
+
+## QA Feature Matrix (Admin)
+
+Use this to seed admin data and run an automated end-to-end backend API check for:
+
+- Dashboard
+- Accounts
+- Transactions
+- Calendar
+- Group Expense
+- Loan
+- Todo List
+- Investment
+- Report
+- Goals
+- Setting
+
+### Local run (one command)
+
+From `backend/`:
+
+```bash
+npm run qa:test-features
+```
+
+This command will:
+
+1. Seed deterministic admin mock data.
+2. Start the backend server.
+3. Run the feature matrix script against `/api/v1`.
+4. Stop the backend server automatically.
+
+### CI run
+
+GitHub Actions workflow:
+
+- `.github/workflows/backend-feature-matrix.yml`
+
+The workflow runs on backend changes for pushes and pull requests.
+
+## Frontend-Backend Flow Summary
+
+The app is local-first with cloud synchronization:
+
+1. Frontend screens render from Dexie (IndexedDB) via live queries in App Context.
+2. Auth establishes session and role; backend JWT protects `/api/v1` routes.
+3. Writes are applied locally first and queued/synced to backend and cloud.
+4. Backend persists source-of-truth financial entities in Prisma models.
+5. Redis caches selected GET routes with user-scoped keys and TTL policies.
+6. Cache invalidation runs after create/update/delete mutations.
+
+Key files:
+
+- `frontend/src/contexts/AppContext.tsx`
+- `frontend/src/contexts/AuthContext.tsx`
+- `frontend/src/lib/auth-sync-integration.ts`
+- `frontend/src/lib/backend-api.ts`
+- `backend/src/routes/index.ts`
+- `backend/src/cache/redis.ts`
+- `backend/src/middleware/cache.ts`
+- `backend/src/cache/cache-policy.ts`
