@@ -255,6 +255,7 @@ export const Loans: React.FC = () => {
                             value={editFormData.name}
                             onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                             placeholder="Loan name"
+                            aria-label="Loan name"
                             className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
                           />
                           <input
@@ -262,6 +263,7 @@ export const Loans: React.FC = () => {
                             value={editFormData.principalAmount}
                             onChange={(e) => setEditFormData({ ...editFormData, principalAmount: parseFloat(e.target.value) })}
                             placeholder="Principal amount"
+                            aria-label="Principal amount"
                             className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
                           />
                           <input
@@ -269,6 +271,7 @@ export const Loans: React.FC = () => {
                             value={editFormData.outstandingBalance}
                             onChange={(e) => setEditFormData({ ...editFormData, outstandingBalance: parseFloat(e.target.value) })}
                             placeholder="Outstanding balance"
+                            aria-label="Outstanding balance"
                             className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
                           />
                           {editFormData.emiAmount !== undefined && (
@@ -277,6 +280,7 @@ export const Loans: React.FC = () => {
                               value={editFormData.emiAmount}
                               onChange={(e) => setEditFormData({ ...editFormData, emiAmount: parseFloat(e.target.value) })}
                               placeholder="EMI amount"
+                              aria-label="EMI amount"
                               className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
                             />
                           )}
@@ -284,6 +288,8 @@ export const Loans: React.FC = () => {
                             type="date"
                             value={editFormData.dueDate ? new Date(editFormData.dueDate).toISOString().split('T')[0] : ''}
                             onChange={(e) => setEditFormData({ ...editFormData, dueDate: e.target.value })}
+                            aria-label="Due date"
+                            title="Due date"
                             className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/10"
                           />
                           <div className="flex gap-2">
@@ -328,14 +334,12 @@ export const Loans: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                          <div
-                            className="bg-black h-2 rounded-full transition-all"
-                            style={{
-                              width: `${((loan.principalAmount - loan.outstandingBalance) / loan.principalAmount) * 100}%`,
-                            }}
-                          />
-                        </div>
+                        <progress
+                          className="w-full h-2 mb-3 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-black [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-black"
+                          value={Math.max(0, loan.principalAmount - loan.outstandingBalance)}
+                          max={Math.max(1, loan.principalAmount)}
+                          aria-label="Loan repayment progress"
+                        />
 
                         <button
                           onClick={() => setShowPaymentModal(loan.id!)}
@@ -432,8 +436,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
         <h3 className="text-xl font-bold mb-4">Make Payment</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+            <label htmlFor="loan-payment-amount" className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
             <input
+              id="loan-payment-amount"
               type="number"
               step="0.01"
               value={amount || ''}
@@ -444,8 +449,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pay From</label>
+            <label htmlFor="loan-payment-account" className="block text-sm font-medium text-gray-700 mb-1">Pay From</label>
             <select
+              id="loan-payment-account"
               value={accountId}
               onChange={(e) => setAccountId(parseInt(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -457,8 +463,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+            <label htmlFor="loan-payment-notes" className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
             <textarea
+              id="loan-payment-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
