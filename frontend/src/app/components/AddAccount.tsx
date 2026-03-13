@@ -1,40 +1,123 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
-import { Wallet, Landmark, CreditCard, Banknote, Smartphone, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Wallet, Landmark, CreditCard, Banknote, Smartphone, CheckCircle2, ArrowRight, Globe2, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/app/components/ui/card';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const accountTypes = [
-  { id: 'bank', label: 'Bank Account', icon: Landmark, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', active: 'ring-blue-500' },
-  { id: 'card', label: 'Credit Card', icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', active: 'ring-purple-500' },
-  { id: 'cash', label: 'Cash', icon: Banknote, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', active: 'ring-green-500' },
-  { id: 'wallet', label: 'Digital Wallet', icon: Smartphone, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', active: 'ring-orange-500' },
+  { id: 'bank', label: 'Bank Account', helper: 'Savings and current accounts', icon: Landmark, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', active: 'ring-blue-500' },
+  { id: 'card', label: 'Credit Card', helper: 'Track card spending and bills', icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', active: 'ring-purple-500' },
+  { id: 'cash', label: 'Cash', helper: 'Offline wallet and petty cash', icon: Banknote, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', active: 'ring-green-500' },
+  { id: 'wallet', label: 'Digital Wallet', helper: 'UPI and digital payment apps', icon: Smartphone, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', active: 'ring-orange-500' },
 ];
 
-const BANK_LISTS: Record<string, string[]> = {
-  'India': ['State Bank of India (SBI)', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank', 'Punjab National Bank (PNB)', 'Bank of Baroda', 'Canara Bank', 'Yes Bank', 'Other Bank (Manual Entry)'],
-  'United States': ['Chase', 'Bank of America', 'Wells Fargo', 'Citibank', 'Capital One', 'Other Bank (Manual Entry)'],
-  'United Kingdom': ['Barclays', 'HSBC', 'Lloyds', 'NatWest', 'Santander', 'Other Bank (Manual Entry)'],
-  'Canada': ['RBC Royal Bank', 'TD Bank', 'Scotiabank', 'BMO', 'CIBC', 'Other Bank (Manual Entry)'],
-  'Australia': ['Commonwealth Bank', 'Westpac', 'ANZ', 'NAB', 'Other Bank (Manual Entry)'],
-  'Default': ['Primary Local Bank', 'International Bank', 'Other Bank (Manual Entry)']
+type ProviderBucket = { local: string[]; international: string[] };
+
+const COUNTRY_ALIASES: Record<string, string> = {
+  in: 'India',
+  india: 'India',
+  us: 'United States',
+  usa: 'United States',
+  'united states': 'United States',
+  uk: 'United Kingdom',
+  'united kingdom': 'United Kingdom',
+  gb: 'United Kingdom',
+  ca: 'Canada',
+  canada: 'Canada',
+  au: 'Australia',
+  australia: 'Australia',
 };
 
-const WALLET_LISTS: Record<string, string[]> = {
-  'India': ['Paytm', 'Google Pay', 'PhonePe', 'Amazon Pay', 'Other Wallet (Manual Entry)'],
-  'United States': ['Apple Pay', 'Google Pay', 'PayPal', 'Venmo', 'Cash App', 'Other Wallet (Manual Entry)'],
-  'United Kingdom': ['Apple Pay', 'Google Pay', 'PayPal', 'Monzo', 'Revolut', 'Other Wallet (Manual Entry)'],
-  'Canada': ['Apple Pay', 'Google Pay', 'PayPal', 'Wealthsimple', 'Other Wallet (Manual Entry)'],
-  'Australia': ['Apple Pay', 'Google Pay', 'PayPal', 'Beem It', 'Other Wallet (Manual Entry)'],
-  'Default': ['Apple Pay', 'Google Pay', 'PayPal', 'Other Wallet (Manual Entry)']
+const BANK_PROVIDER_LISTS: Record<string, ProviderBucket> = {
+  'India': {
+    local: ['State Bank of India (SBI)', 'HDFC Bank', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank', 'Punjab National Bank (PNB)', 'Bank of Baroda', 'Canara Bank', 'Yes Bank'],
+    international: ['HSBC', 'Standard Chartered', 'Citibank India', 'Deutsche Bank India'],
+  },
+  'United States': {
+    local: ['Chase', 'Bank of America', 'Wells Fargo', 'Citibank', 'Capital One'],
+    international: ['HSBC US', 'Santander US', 'Barclays US', 'Deutsche Bank'],
+  },
+  'United Kingdom': {
+    local: ['Barclays', 'HSBC UK', 'Lloyds', 'NatWest', 'Santander UK'],
+    international: ['Citibank UK', 'Deutsche Bank UK', 'Bank of America UK', 'JPMorgan UK'],
+  },
+  'Canada': {
+    local: ['RBC Royal Bank', 'TD Bank', 'Scotiabank', 'BMO', 'CIBC'],
+    international: ['HSBC Canada', 'Citibank Canada', 'Deutsche Bank Canada', 'Scotia International'],
+  },
+  'Australia': {
+    local: ['Commonwealth Bank', 'Westpac', 'ANZ', 'NAB'],
+    international: ['HSBC Australia', 'Citibank Australia', 'Deutsche Bank Australia', 'Bank of China Australia'],
+  },
+  'Default': {
+    local: ['Primary Local Bank'],
+    international: ['International Bank'],
+  },
 };
+
+const WALLET_PROVIDER_LISTS: Record<string, ProviderBucket> = {
+  'India': {
+    local: ['Paytm', 'PhonePe', 'MobiKwik', 'Amazon Pay'],
+    international: ['Apple Pay', 'Google Pay', 'PayPal', 'Wise'],
+  },
+  'United States': {
+    local: ['Venmo', 'Cash App', 'Zelle', 'Apple Cash'],
+    international: ['Apple Pay', 'Google Pay', 'PayPal', 'Wise'],
+  },
+  'United Kingdom': {
+    local: ['Monzo', 'Revolut', 'Starling', 'Curve'],
+    international: ['Apple Pay', 'Google Pay', 'PayPal', 'Wise'],
+  },
+  'Canada': {
+    local: ['Interac e-Transfer', 'KOHO', 'Wealthsimple'],
+    international: ['Apple Pay', 'Google Pay', 'PayPal', 'Wise'],
+  },
+  'Australia': {
+    local: ['Beem It', 'Up Bank', 'CommBank Tap & Pay'],
+    international: ['Apple Pay', 'Google Pay', 'PayPal', 'Wise'],
+  },
+  'Default': {
+    local: ['Local Wallet'],
+    international: ['Apple Pay', 'Google Pay', 'PayPal'],
+  },
+};
+
+const QUICK_BALANCE_PRESETS = [0, 1000, 5000, 10000];
+
+function normalizeCountry(country?: string) {
+  const normalized = (country || '').trim().toLowerCase();
+  if (!normalized) {
+    return 'Default';
+  }
+  return COUNTRY_ALIASES[normalized] || country || 'Default';
+}
+
+function inferCountryFromCurrency(currency?: string) {
+  const code = (currency || '').trim().toUpperCase();
+  if (code === 'INR') return 'India';
+  if (code === 'USD') return 'United States';
+  if (code === 'GBP') return 'United Kingdom';
+  if (code === 'CAD') return 'Canada';
+  if (code === 'AUD') return 'Australia';
+  return 'Default';
+}
+
+function normalizeAccountName(name: string) {
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function toValidBalance(value: string) {
+  if (!value || !value.trim()) return 0;
+  const parsed = Number(value.replace(/,/g, '').trim());
+  if (!Number.isFinite(parsed)) return NaN;
+  return parsed;
+}
 
 export const AddAccount: React.FC = () => {
-  const { setCurrentPage, currency, refreshData } = useApp();
+  const { setCurrentPage, currency, refreshData, accounts } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     type: 'bank' as 'bank' | 'card' | 'cash' | 'wallet',
@@ -43,25 +126,46 @@ export const AddAccount: React.FC = () => {
   const [userCountry, setUserCountry] = useState('Default');
   const [provider, setProvider] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isCashSelected = formData.type === 'cash';
 
   useEffect(() => {
-    const rawProfile = localStorage.getItem('user_profile');
-    if (rawProfile) {
-      try {
+    let resolvedCountry = 'Default';
+
+    try {
+      const rawProfile = localStorage.getItem('user_profile');
+      if (rawProfile) {
         const profile = JSON.parse(rawProfile);
-        if (profile.country) {
-          setUserCountry(profile.country);
+        if (profile?.country) {
+          resolvedCountry = normalizeCountry(profile.country);
         }
-      } catch (e) { }
+      }
+
+      if (resolvedCountry === 'Default') {
+        const rawSettings = localStorage.getItem('user_settings');
+        if (rawSettings) {
+          const settings = JSON.parse(rawSettings);
+          if (settings?.country) {
+            resolvedCountry = normalizeCountry(settings.country);
+          }
+        }
+      }
+    } catch {
+      // Use currency fallback if local storage cannot be parsed.
     }
-  }, []);
+
+    if (resolvedCountry === 'Default') {
+      resolvedCountry = inferCountryFromCurrency(currency);
+    }
+
+    setUserCountry(resolvedCountry);
+  }, [currency]);
 
   useEffect(() => {
     setProvider('');
     setFormData(prev => ({ ...prev, name: '' }));
   }, [formData.type, userCountry]);
 
-  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleProviderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setProvider(val);
     if (!val) {
@@ -69,37 +173,59 @@ export const AddAccount: React.FC = () => {
       return;
     }
 
-    if (val === 'Other Bank (Manual Entry)' || val === 'Other Wallet (Manual Entry)') {
-      setFormData(prev => ({ ...prev, name: '' }));
-    } else {
-      let generatedName = `${val} Account`;
-      if (formData.type === 'card') {
-        generatedName = `${val} Credit Card`;
-      } else if (formData.type === 'wallet') {
-        generatedName = `${val} Wallet`;
-      }
-      setFormData(prev => ({ ...prev, name: generatedName }));
+    let generatedName = `${val} Account`;
+    if (formData.type === 'card') {
+      generatedName = `${val} Credit Card`;
+    } else if (formData.type === 'wallet') {
+      generatedName = `${val} Wallet`;
     }
+    setFormData(prev => ({ ...prev, name: generatedName }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
+    const resolvedName = formData.name.trim() || (isCashSelected ? 'Cash Wallet' : '');
+
+    if (!resolvedName) {
       toast.error('Please enter an account name');
       return;
     }
 
-    const parsedBalance = parseFloat(formData.balance) || 0;
+    const parsedBalance = toValidBalance(formData.balance);
+    if (Number.isNaN(parsedBalance)) {
+      toast.error('Please enter a valid balance amount');
+      return;
+    }
+
     if (parsedBalance < 0) {
       toast.error('Account balance cannot be negative');
       return;
     }
 
+    const baseName = resolvedName;
+    const existingNames = new Set(
+      accounts
+        .filter((acc) => acc.type === formData.type && (acc.currency || currency) === currency)
+        .map((acc) => normalizeAccountName(acc.name))
+    );
+
+    let finalName = baseName;
+    if (existingNames.has(normalizeAccountName(baseName))) {
+      let suffix = 2;
+      while (existingNames.has(normalizeAccountName(`${baseName} (${suffix})`))) {
+        suffix += 1;
+      }
+      finalName = `${baseName} (${suffix})`;
+      toast.info(`Account name already exists. Saved as ${finalName}.`);
+    }
+
     setIsSubmitting(true);
     try {
       await saveAccountWithBackendSync({
-        name: formData.name.trim(),
+        name: finalName,
         type: formData.type,
+        provider: isCashSelected ? null : (provider.trim() || null),
+        country: userCountry === 'Default' ? null : userCountry,
         balance: parsedBalance,
         currency,
         isActive: true,
@@ -117,15 +243,56 @@ export const AddAccount: React.FC = () => {
     }
   };
 
-  const currentList = formData.type === 'wallet' ? WALLET_LISTS : BANK_LISTS;
-  const availableOptions = currentList[userCountry] || currentList['Default'];
+  const availableOptions = useMemo(() => {
+    if (formData.type === 'cash') {
+      return [];
+    }
+
+    const providerMap = formData.type === 'wallet' ? WALLET_PROVIDER_LISTS : BANK_PROVIDER_LISTS;
+    const providerSet = providerMap[userCountry] || providerMap['Default'];
+    const uniqueProviders = Array.from(new Set([...providerSet.local, ...providerSet.international]));
+
+    // Add a few globally-known banks so search feels richer beyond country-local records.
+    if (formData.type !== 'wallet') {
+      uniqueProviders.push(
+        'Industrial and Commercial Bank of China',
+        'Agricultural Bank of China',
+        'China Construction Bank',
+        'JPMorgan Chase',
+        'Bank of America',
+        'HSBC'
+      );
+    }
+
+    return Array.from(new Set(uniqueProviders));
+  }, [formData.type, userCountry]);
+
+  const providerSuggestions = useMemo(() => {
+    if (formData.type === 'cash') {
+      return [] as string[];
+    }
+
+    const query = provider.trim().toLowerCase();
+    const ranked = availableOptions
+      .filter((option) => option.toLowerCase().includes(query))
+      .sort((a, b) => {
+        const aStarts = a.toLowerCase().startsWith(query);
+        const bStarts = b.toLowerCase().startsWith(query);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        return a.localeCompare(b);
+      });
+
+    return ranked.slice(0, 10);
+  }, [availableOptions, formData.type, provider]);
+
   const showNameField = formData.type === 'cash' || provider !== '';
 
   return (
-    <div className="w-full min-h-screen bg-gray-50/50 pb-32 lg:pb-8 font-sans">
-      <div className="max-w-[480px] mx-auto px-4 lg:px-0 w-full">
+    <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+      <div className="max-w-[560px] mx-auto px-3 lg:px-4 w-full">
         {/* Header */}
-        <div className="pt-6 lg:pt-10 mb-8">
+        <div className="mb-4 lg:mb-5">
           <PageHeader
             title="New Account"
             subtitle="Let's set up a new place to track your money"
@@ -136,121 +303,122 @@ export const AddAccount: React.FC = () => {
         </div>
 
         {/* Form Card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          <Card className="bg-white/80 backdrop-blur-xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2rem] p-6 lg:p-10 overflow-hidden relative">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+        <div>
+          <Card className="bg-white/95 border border-white shadow-[0_18px_40px_rgba(15,23,42,0.08)] rounded-3xl p-4 lg:p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
 
-            <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 px-3 py-2.5">
+                <div>
+                  <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Quick Setup</p>
+                  <p className="text-sm font-semibold text-slate-800">Create a clean account profile in seconds</p>
+                </div>
+                <span className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1">Modern Flow</span>
+              </div>
 
               {/* Account Type Selection */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-4 tracking-wide uppercase">
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-gray-700 mb-3 tracking-wide uppercase">
                   1. Choose Account Type
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   {accountTypes.map((type) => {
                     const isSelected = formData.type === type.id;
                     const Icon = type.icon;
                     return (
-                      <motion.div
+                      <button
                         key={type.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, type: type.id as any })}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-xl border text-left relative transition-all",
+                          isSelected
+                            ? `border-blue-500 bg-gradient-to-r from-white to-blue-50/80 shadow-sm`
+                            : "border-gray-200 bg-white hover:border-slate-300 hover:bg-slate-50/40"
+                        )}
                       >
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, type: type.id as any })}
-                          className={cn(
-                            "w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-300 text-left relative overflow-hidden group",
-                            isSelected
-                              ? `border-transparent ring-2 ${type.active} bg-white shadow-md`
-                              : "border-gray-100 bg-gray-50/50 hover:bg-gray-100 hover:border-gray-200"
-                          )}
-                        >
-                          {isSelected && (
-                            <div className={cn("absolute inset-0 opacity-10", type.bg)} />
-                          )}
-                          <div className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110",
-                            isSelected ? type.bg : "bg-white shadow-sm border border-gray-100"
+                        <div className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+                          isSelected ? type.bg : "bg-gray-50"
+                        )}>
+                          <Icon size={20} className={isSelected ? type.color : "text-gray-500"} />
+                        </div>
+                        <div>
+                          <p className={cn(
+                            "font-semibold text-base leading-tight",
+                            isSelected ? "text-gray-900" : "text-gray-700"
                           )}>
-                            <Icon size={24} className={isSelected ? type.color : "text-gray-400"} />
-                          </div>
-                          <div>
-                            <p className={cn(
-                              "font-semibold transition-colors",
-                              isSelected ? "text-gray-900" : "text-gray-600"
-                            )}>
-                              {type.label}
-                            </p>
-                          </div>
-                          <AnimatePresence>
-                            {isSelected && (
-                              <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0, opacity: 0 }}
-                                className="absolute top-3 right-3"
-                              >
-                                <CheckCircle2 className={type.color} size={20} />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </button>
-                      </motion.div>
+                            {type.label}
+                          </p>
+                          <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">{type.helper}</p>
+                        </div>
+                        {isSelected && (
+                          <CheckCircle2 className={type.color + ' ml-auto'} size={18} />
+                        )}
+                      </button>
                     );
                   })}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                  <MapPin size={14} className="text-blue-600" />
+                  <span>
+                    Country detected: <span className="font-semibold text-slate-800">{userCountry}</span>
+                  </span>
                 </div>
               </div>
 
               {/* Account Details */}
-              <div className="bg-gray-50/80 rounded-[1.5rem] p-6 space-y-6 border border-gray-100">
+              <div className="bg-white rounded-2xl p-4 space-y-4 border border-slate-200">
                 <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide uppercase">
                   2. Account Details
                 </label>
 
                 {/* Provider Selection */}
-                {formData.type !== 'cash' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {formData.type === 'wallet' ? 'Wallet Provider' : 'Bank / Institution'}
-                    </label>
-                    <select
-                      value={provider}
-                      onChange={handleProviderChange}
-                      className="w-full px-5 py-4 text-lg border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 font-medium appearance-none"
-                    >
-                      <option value="">
-                        Select {formData.type === 'wallet' ? 'Provider' : 'Bank'}
-                      </option>
-                      {availableOptions.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </div>
+                {!isCashSelected && (
+                  <>
+                    <div>
+                      <label htmlFor="accountProvider" className="block text-sm font-medium text-gray-600 mb-2">
+                        {formData.type === 'wallet' ? 'Wallet Provider' : formData.type === 'card' ? 'Card Provider / Bank' : 'Bank / Institution'}
+                      </label>
+                      <input
+                        id="accountProvider"
+                        aria-label={formData.type === 'wallet' ? 'Wallet provider' : formData.type === 'card' ? 'Card provider' : 'Bank provider'}
+                        value={provider}
+                        onChange={handleProviderChange}
+                        list="provider-suggestions"
+                        className="w-full px-4 py-3 text-base border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-gray-900 font-medium appearance-none"
+                        placeholder={formData.type === 'wallet' ? 'Type wallet provider name' : 'Type bank name'}
+                      />
+                      <datalist id="provider-suggestions">
+                        {providerSuggestions.map((opt) => (
+                          <option key={opt} value={opt} />
+                        ))}
+                      </datalist>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                        <Globe2 size={13} />
+                        <span>{providerSuggestions.length} suggestions shown. Keep typing to narrow results.</span>
+                      </div>
+                    </div>
+                  </>
                 )}
 
                 {/* Account Name */}
                 {showNameField && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                    <div className="pt-2">
-                      <label className="block text-sm font-medium text-gray-600 mb-2">
-                        Account Name
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-5 py-4 text-lg border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 placeholder:text-gray-400 font-medium"
-                        placeholder={formData.type === 'cash' ? "e.g., Physical Cash, Safe Drawer" : "e.g., Main Checking, Chase Sapph..."}
-                        required
-                      />
-                    </div>
-                  </motion.div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      {isCashSelected ? 'Cash Label (Optional)' : 'Account Name'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-4 py-3 text-base border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 font-medium"
+                      placeholder={isCashSelected ? '' : 'e.g., Main Checking'}
+                      required={!isCashSelected}
+                    />
+                    {isCashSelected && (
+                      <p className="mt-1.5 text-xs text-slate-500">Leave empty to save as Cash Wallet.</p>
+                    )}
+                  </div>
                 )}
 
                 <div>
@@ -258,7 +426,7 @@ export const AddAccount: React.FC = () => {
                     Current Balance <span className="text-gray-400 font-normal">(Optional)</span>
                   </label>
                   <div className="relative group">
-                    <div className="absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600 group-focus-within:bg-blue-100 group-focus-within:text-blue-700 transition-colors">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600 group-focus-within:bg-blue-100 group-focus-within:text-blue-700 transition-colors">
                       {currency}
                     </div>
                     <input
@@ -267,34 +435,46 @@ export const AddAccount: React.FC = () => {
                       min="0"
                       value={formData.balance}
                       onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-                      className="w-full pl-20 pr-5 py-4 text-2xl font-bold border-2 border-transparent bg-white shadow-sm rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 placeholder:text-gray-300 tracking-tight"
+                      className="w-full pl-16 pr-4 py-3 text-xl font-semibold border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-gray-900 placeholder:text-gray-300 tracking-tight"
                       placeholder="0.00"
                     />
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {QUICK_BALANCE_PRESETS.map((amount) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, balance: amount === 0 ? '' : String(amount) }))}
+                        className="px-2.5 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors"
+                      >
+                        {amount === 0 ? 'Clear' : `+ ${currency} ${amount.toLocaleString()}`}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-3 pt-2 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setCurrentPage('accounts')}
-                  className="px-8 py-4 rounded-xl font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all shrink-0"
+                  className="px-5 py-3 rounded-lg font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all shrink-0"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !formData.name.trim()}
-                  className="w-full relative group overflow-hidden rounded-xl bg-black text-white font-semibold py-4 px-6 flex items-center justify-center gap-2 transition-all hover:bg-gray-900 active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 disabled:cursor-not-allowed shadow-[0_8px_20px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_25px_rgb(0,0,0,0.15)]"
+                  disabled={isSubmitting || (!isCashSelected && !formData.name.trim())}
+                  className="w-full rounded-lg bg-gradient-to-r from-slate-900 to-slate-700 text-white font-semibold py-3 px-5 flex items-center justify-center gap-2 transition-all hover:from-slate-800 hover:to-slate-700 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <span className="relative z-10">{isSubmitting ? 'Creating...' : 'Create Account'}</span>
-                  {!isSubmitting && <ArrowRight size={20} className="relative z-10 group-hover:translate-x-1 transition-transform" />}
+                  <span>{isSubmitting ? 'Creating...' : 'Create Account'}</span>
+                  {!isSubmitting && <ArrowRight size={18} />}
                 </button>
               </div>
             </form>
           </Card>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

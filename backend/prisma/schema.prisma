@@ -90,6 +90,8 @@ model Account {
   deviceId  String?  // Device that created this record
   name      String
   type      String   @default("bank") // bank, card, cash, wallet
+  provider  String?
+  country   String?
   balance   Float    @default(0)
   currency  String   @default("USD")
   isActive  Boolean  @default(true)

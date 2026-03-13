@@ -64,12 +64,18 @@ CREATE TABLE IF NOT EXISTS public.accounts (
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   type TEXT DEFAULT 'bank', 
+  provider TEXT,
+  country TEXT,
   balance NUMERIC DEFAULT 0 CHECK (balance >= 0),
   currency TEXT DEFAULT 'USD',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure existing projects also get new account metadata columns.
+ALTER TABLE IF EXISTS public.accounts ADD COLUMN IF NOT EXISTS provider TEXT;
+ALTER TABLE IF EXISTS public.accounts ADD COLUMN IF NOT EXISTS country TEXT;
 
 -- TRANSACTIONS
 CREATE TABLE IF NOT EXISTS public.transactions (

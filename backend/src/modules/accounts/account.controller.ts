@@ -22,7 +22,7 @@ export const getAccounts = async (req: AuthRequest, res: Response) => {
 export const createAccount = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
-    const { name, type, balance, currency } = req.body;
+    const { name, type, provider, country, balance, currency } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -37,6 +37,8 @@ export const createAccount = async (req: AuthRequest, res: Response) => {
         userId,
         name: sanitize(name),
         type,
+        provider: provider ? sanitize(provider) : null,
+        country: country ? sanitize(country) : null,
         balance: balance || 0,
         currency: currency || 'USD',
         isActive: true,
@@ -95,7 +97,7 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
     }
 
     // Whitelist only permitted fields to prevent mass assignment
-    const allowedFields = ['name', 'type', 'balance', 'currency', 'color', 'icon', 'syncStatus'] as const;
+    const allowedFields = ['name', 'type', 'provider', 'country', 'balance', 'currency', 'color', 'icon', 'syncStatus'] as const;
     const updates: Record<string, any> = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) updates[field] = body[field];
