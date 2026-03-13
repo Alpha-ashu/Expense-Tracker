@@ -253,11 +253,10 @@ export default defineConfig(({ mode }) => {
     },
 
     server: {
-      port: 5173,
+      port: 9002,
       host: true,
       hmr: {
-        protocol: 'ws',
-        host: 'localhost',
+        port: 9002,
       },
       proxy: {
         '/api/v1': {
