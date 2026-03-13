@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
+import { queueTransactionInsertSync } from '@/lib/auth-sync-integration';
 import { backendService } from '@/lib/backend-api';
 import { CreditCard, UserPlus, X, Check, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,8 +22,10 @@ export const AddLoan: React.FC = () => {
     emiAmount: 0,
     description: '',
     accountId: accounts[0]?.id || 0,
+    friendId: undefined as number | undefined,
     status: 'active' as 'active' | 'paid-off' | 'defaulted',
   });
+  const selectedAccount = accounts.find((account) => account.id === formData.accountId);
 
   // Calculate EMI when principal, interest rate, or tenure changes
   const calculateEMI = () => {
@@ -66,23 +69,85 @@ export const AddLoan: React.FC = () => {
       return;
     }
 
+    if (!selectedAccount) {
+      toast.error('Please select an account');
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      await backendService.createLoan({
-        type: 'borrowed',
-        name: formData.lenderName,
-        principalAmount: formData.principalAmount,
-        outstandingBalance: formData.principalAmount,
-        interestRate: formData.interestRate,
-        emiAmount: formData.emiAmount,
-        dueDate: undefined,
-        frequency: 'monthly',
-        status: formData.status === 'active' ? 'active' : (formData.status === 'paid-off' ? 'completed' : 'overdue'),
-        contactPerson: undefined,
-        friendId: undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        deletedAt: undefined
+      const now = new Date();
+      const lenderName = formData.lenderName.trim();
+      const newBalance = selectedAccount.balance + formData.principalAmount;
+
+      const transactionRecord = {
+        type: 'income' as const,
+        amount: formData.principalAmount,
+        accountId: formData.accountId,
+        category: 'Loans',
+        subcategory: 'Loan Received',
+        description: `Borrowed - ${lenderName}`,
+        merchant: lenderName,
+        date: new Date(formData.startDate),
+        tags: ['loan'],
+        expenseMode: 'individual' as const,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      let transactionId = 0;
+
+      await db.transaction('rw', db.transactions, db.loans, db.accounts, async () => {
+        transactionId = await db.transactions.add(transactionRecord);
+
+        await db.loans.add({
+          type: 'borrowed',
+          name: lenderName,
+          principalAmount: formData.principalAmount,
+          outstandingBalance: formData.principalAmount,
+          interestRate: formData.interestRate,
+          emiAmount: formData.emiAmount,
+          frequency: 'monthly',
+          status: formData.status === 'active' ? 'active' : (formData.status === 'paid-off' ? 'completed' : 'overdue'),
+          contactPerson: lenderName,
+          friendId: formData.friendId,
+          accountId: formData.accountId,
+          loanDate: new Date(formData.startDate),
+          notes: formData.description.trim() || undefined,
+          totalPayable: (formData.emiAmount * formData.tenureMonths) || formData.principalAmount,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        await db.accounts.update(formData.accountId, {
+          balance: newBalance,
+          updatedAt: now,
+        });
       });
+
+      queueTransactionInsertSync(transactionId, transactionRecord);
+
+      try {
+        await backendService.createLoan({
+          type: 'borrowed',
+          name: lenderName,
+          principalAmount: formData.principalAmount,
+          outstandingBalance: formData.principalAmount,
+          interestRate: formData.interestRate,
+          emiAmount: formData.emiAmount,
+          dueDate: undefined,
+          frequency: 'monthly',
+          status: formData.status === 'active' ? 'active' : (formData.status === 'paid-off' ? 'completed' : 'overdue'),
+          contactPerson: lenderName,
+          friendId: formData.friendId ? String(formData.friendId) : undefined,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: undefined,
+        });
+      } catch (syncError) {
+        console.info('ℹ️ Loan backend sync skipped:', syncError);
+      }
 
       toast.success(`Loan of ${currency} ${formData.principalAmount} created! EMI: ${currency} ${formData.emiAmount.toFixed(2)}`);
       refreshData();
@@ -90,7 +155,21 @@ export const AddLoan: React.FC = () => {
     } catch (error) {
       console.error('Failed to add loan:', error);
       toast.error('Failed to add loan');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleFriendSelect = (friendId: number) => {
+    const selectedFriend = friends.find((friend) => friend.id === friendId);
+    if (!selectedFriend) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      friendId,
+      lenderName: selectedFriend.name,
+    }));
+    setShowFriendPicker(false);
   };
 
   const totalInterest = (formData.emiAmount * formData.tenureMonths) - formData.principalAmount;
@@ -134,13 +213,39 @@ export const AddLoan: React.FC = () => {
                     <UserPlus size={14} />
                     Select from Friends
                   </button>
-                  <button
-                    type="submit"
-                    className="w-full py-3 px-6 bg-black text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
-                    title="Add Loan"
-                  >
-                    {isLoading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={20} />}
-                  </button>
+
+                  {showFriendPicker && (
+                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium text-green-800">Select a friend:</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFriendPicker(false)}
+                          className="text-green-600 hover:text-green-800"
+                          title="Close Friend Picker"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      <div className="space-y-2 max-h-40 overflow-auto">
+                        {friends.map((friend) => (
+                          <button
+                            key={friend.id}
+                            type="button"
+                            className={`w-full text-left px-3 py-2 rounded-lg border transition-colors flex items-center justify-between ${
+                              formData.friendId === friend.id
+                                ? 'bg-green-100 border-green-300 text-green-800'
+                                : 'bg-white border-green-200 text-green-700 hover:bg-green-100'
+                            }`}
+                            onClick={() => friend.id && handleFriendSelect(friend.id)}
+                          >
+                            <span>{friend.name}</span>
+                            {formData.friendId === friend.id && <Check size={14} />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -288,8 +393,9 @@ export const AddLoan: React.FC = () => {
             <button
               type="submit"
               className="w-full bg-black hover:bg-gray-900 text-white py-3 rounded-xl font-semibold transition-colors shadow-lg"
+              disabled={isLoading}
             >
-              Create Loan
+              {isLoading ? 'Creating Loan...' : 'Create Loan'}
             </button>
           </form>
         </div>

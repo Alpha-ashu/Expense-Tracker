@@ -794,8 +794,32 @@ export const AddTransaction: React.FC = () => {
         const newBalance = loanType === 'borrowed'
           ? selectedAccount.balance + formData.amount
           : selectedAccount.balance - formData.amount;
+        const loanDirectionLabel = loanType === 'borrowed' ? 'Borrowed' : 'Lent';
+        const transactionRecord = {
+          type: loanType === 'borrowed' ? 'income' as const : 'expense' as const,
+          amount: formData.amount,
+          accountId: formData.accountId,
+          category: 'Loans',
+          subcategory: loanType === 'borrowed' ? 'Loan Received' : 'Loan Given',
+          description: `${loanDirectionLabel} - ${contactName}`,
+          merchant: contactName,
+          date: transactionDate,
+          tags: ['loan'],
+          expenseMode: 'individual' as const,
+          importSource: pendingSmsTransactionId ? 'sms' : undefined,
+          importMetadata: pendingSmsTransactionId
+            ? { smsTransactionId: String(pendingSmsTransactionId) }
+            : undefined,
+          importedAt: pendingSmsTransactionId ? now : undefined,
+          createdAt: now,
+          updatedAt: now,
+        };
 
-        await db.transaction('rw', db.loans, db.accounts, async () => {
+        let loanTransactionId = 0;
+
+        await db.transaction('rw', db.loans, db.accounts, db.transactions, async () => {
+          loanTransactionId = await db.transactions.add(transactionRecord);
+
           await db.loans.add({
             type: loanType,
             name: contactName,
@@ -822,6 +846,8 @@ export const AddTransaction: React.FC = () => {
             updatedAt: now,
           });
         });
+
+        queueTransactionInsertSync(loanTransactionId, transactionRecord);
 
         toast.success(
           loanType === 'borrowed'

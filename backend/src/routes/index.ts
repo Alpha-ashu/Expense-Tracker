@@ -15,6 +15,7 @@ import { adminRoutes } from '../modules/admin/admin.routes';
 import { notificationRoutes } from '../modules/notifications/notification.routes';
 import { stockRoutes } from '../modules/stocks/stock.routes';
 import { billsRoutes } from '../modules/bills/bills.routes';
+import { friendRoutes } from '../modules/friends/friend.routes';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.use('/accounts', accountRoutes);
 router.use('/goals', goalRoutes);
 router.use('/loans', loanRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/friends', friendRoutes);
 
 // Advisor & Booking routes
 router.use('/bookings', bookingRoutes);

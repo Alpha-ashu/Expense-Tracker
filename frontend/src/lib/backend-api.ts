@@ -8,6 +8,20 @@ const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/,
 const SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS = import.meta.env.DEV && !import.meta.env.VITE_API_URL;
 
 function shouldUseLocalFallback(error: unknown) {
+  if (error && typeof error === 'object' && 'status' in error) {
+    const status = Number((error as { status?: number }).status);
+    if (Number.isFinite(status)) {
+      return status >= 500;
+    }
+  }
+
+  if (error && typeof error === 'object' && 'original' in error) {
+    const original = (error as { original?: unknown }).original;
+    if (original) {
+      return shouldUseLocalFallback(original);
+    }
+  }
+
   if (!axios.isAxiosError(error)) {
     return false;
   }
@@ -268,31 +282,46 @@ class BackendService {
         const serverMessage = error.response?.data?.error;
 
         if (!error.response) {
-          return Promise.reject(new Error('No internet connection. Please check your network.'));
+          const wrappedError = new Error('No internet connection. Please check your network.') as Error & {
+            status?: number;
+            original?: unknown;
+          };
+          wrappedError.original = error;
+          return Promise.reject(wrappedError);
         }
 
+        const wrapWithStatus = (message: string) => {
+          const wrappedError = new Error(message) as Error & {
+            status?: number;
+            original?: unknown;
+          };
+          wrappedError.status = status;
+          wrappedError.original = error;
+          return wrappedError;
+        };
+
         if (status === 401) {
-          return Promise.reject(new Error('Your session has expired. Please sign in again.'));
+          return Promise.reject(wrapWithStatus('Your session has expired. Please sign in again.'));
         }
 
         if (status === 403) {
-          return Promise.reject(new Error('You do not have access to this feature.'));
+          return Promise.reject(wrapWithStatus('You do not have access to this feature.'));
         }
 
         if (status === 429) {
-          return Promise.reject(new Error('Too many requests. Please wait a moment and try again.'));
+          return Promise.reject(wrapWithStatus('Too many requests. Please wait a moment and try again.'));
         }
 
         if (status != null && status >= 500) {
-          return Promise.reject(new Error('Something went wrong. Please try again later.'));
+          return Promise.reject(wrapWithStatus('Something went wrong. Please try again later.'));
         }
 
         // 4xx with a server-supplied message — safe to show
         if (serverMessage) {
-          return Promise.reject(new Error(serverMessage));
+          return Promise.reject(wrapWithStatus(serverMessage));
         }
 
-        return Promise.reject(new Error('An unexpected error occurred.'));
+        return Promise.reject(wrapWithStatus('An unexpected error occurred.'));
       }
     );
   }
