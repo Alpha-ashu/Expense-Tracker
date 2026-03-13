@@ -1,15 +1,16 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth';
 import { responseCache } from '../../middleware/cache';
+import { CACHE_TTL_SECONDS } from '../../cache/cache-policy';
 import * as LoanController from './loan.controller';
 
 const router = Router();
 
 router.use(authMiddleware);
 
-router.get('/', responseCache({ prefix: 'loans:list', ttlSeconds: 90 }), LoanController.getLoans);
+router.get('/', responseCache({ prefix: 'loans:list', ttlSeconds: CACHE_TTL_SECONDS.loans.list }), LoanController.getLoans);
 router.post('/', LoanController.createLoan);
-router.get('/:id', responseCache({ prefix: 'loans:item', ttlSeconds: 90 }), LoanController.getLoan);
+router.get('/:id', responseCache({ prefix: 'loans:item', ttlSeconds: CACHE_TTL_SECONDS.loans.item }), LoanController.getLoan);
 router.put('/:id', LoanController.updateLoan);
 router.delete('/:id', LoanController.deleteLoan);
 router.post('/:id/payment', LoanController.addLoanPayment);

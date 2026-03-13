@@ -3,6 +3,7 @@ import { authMiddleware } from '../../middleware/auth';
 import { validateBody, validateParams, validateQuery } from '../../middleware/validate';
 import * as TransactionController from './transaction.controller';
 import { responseCache } from '../../middleware/cache';
+import { CACHE_TTL_SECONDS } from '../../cache/cache-policy';
 import {
 	transactionAccountParamSchema,
 	transactionCreateValidatedSchema,
@@ -19,14 +20,14 @@ router.use(authMiddleware);
 router.get(
 	'/',
 	validateQuery(transactionQuerySchema),
-	responseCache({ prefix: 'transactions:list', ttlSeconds: 30 }),
+	responseCache({ prefix: 'transactions:list', ttlSeconds: CACHE_TTL_SECONDS.transactions.list }),
 	TransactionController.getTransactions
 );
 router.post('/', validateBody(transactionCreateValidatedSchema), TransactionController.createTransaction);
 router.get(
 	'/:id',
 	validateParams(transactionIdParamSchema),
-	responseCache({ prefix: 'transactions:item', ttlSeconds: 90 }),
+	responseCache({ prefix: 'transactions:item', ttlSeconds: CACHE_TTL_SECONDS.transactions.item }),
 	TransactionController.getTransaction
 );
 router.put(
@@ -39,7 +40,7 @@ router.delete('/:id', validateParams(transactionIdParamSchema), TransactionContr
 router.get(
 	'/account/:accountId',
 	validateParams(transactionAccountParamSchema),
-	responseCache({ prefix: 'transactions:account', ttlSeconds: 30 }),
+	responseCache({ prefix: 'transactions:account', ttlSeconds: CACHE_TTL_SECONDS.transactions.account }),
 	TransactionController.getAccountTransactions
 );
 

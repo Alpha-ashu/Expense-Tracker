@@ -3,6 +3,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { requireRole } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
 import { logger } from '../../config/logger';
+import { getCacheMetricsSnapshot, getRedisStatus, resetCacheMetrics } from '../../cache/redis';
 
 // Get all users (admin only)
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
@@ -330,5 +331,31 @@ export const getRevenueReport = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     logger.error('Failed to generate revenue report', { error });
     res.status(500).json({ error: 'Failed to generate revenue report' });
+  }
+};
+
+// Get cache metrics (admin only)
+export const getCacheMetrics = async (req: AuthRequest, res: Response) => {
+  try {
+    const reset = req.query.reset === 'true';
+
+    const metrics = getCacheMetricsSnapshot();
+
+    if (reset) {
+      resetCacheMetrics();
+    }
+
+    res.json({
+      success: true,
+      data: {
+        redisStatus: getRedisStatus(),
+        cachePrefixes: metrics,
+        reset,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to fetch cache metrics', { error });
+    res.status(500).json({ success: false, error: 'Failed to fetch cache metrics' });
   }
 };

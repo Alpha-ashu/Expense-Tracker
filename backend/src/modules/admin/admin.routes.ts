@@ -17,6 +17,7 @@ router.post('/users/:advisorId/reject', AdminController.rejectAdvisor);
 
 // Statistics
 router.get('/stats', AdminController.getPlatformStats);
+router.get('/cache/metrics', AdminController.getCacheMetrics);
 
 // Feature flags
 router.get('/features', AdminController.getFeatureFlags);

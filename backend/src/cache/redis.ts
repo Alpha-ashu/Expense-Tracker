@@ -12,6 +12,11 @@ type CacheMetricBucket = {
   store: number;
 };
 
+export type CacheMetricSnapshot = CacheMetricBucket & {
+  reads: number;
+  hitRate: number;
+};
+
 let client: Redis | null = null;
 let status: RedisStatus = 'disabled';
 const cacheMetrics = new Map<string, CacheMetricBucket>();
@@ -42,6 +47,27 @@ export const cacheRecordMetric = (prefix: string, type: CacheMetricType) => {
       hitRate: `${hitRate}%`,
     });
   }
+};
+
+export const getCacheMetricsSnapshot = (): Record<string, CacheMetricSnapshot> => {
+  const snapshot: Record<string, CacheMetricSnapshot> = {};
+
+  for (const [prefix, bucket] of cacheMetrics.entries()) {
+    const reads = bucket.hit + bucket.miss;
+    const hitRate = reads > 0 ? Number(((bucket.hit / reads) * 100).toFixed(2)) : 0;
+
+    snapshot[prefix] = {
+      ...bucket,
+      reads,
+      hitRate,
+    };
+  }
+
+  return snapshot;
+};
+
+export const resetCacheMetrics = () => {
+  cacheMetrics.clear();
 };
 
 const createClient = () => {
