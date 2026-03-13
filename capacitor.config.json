@@ -37,14 +37,7 @@
     "allowMixedContent": false,
     "captureInput": true,
     "webContentsDebuggingEnabled": false,
-    "backgroundColor": "#ffffff",
-    "buildOptions": {
-      "keystorePath": "finance-life-release.keystore",
-      "keystorePassword": "",
-      "keystoreAlias": "finance-life",
-      "keystoreAliasPassword": "",
-      "releaseType": "AAB"
-    }
+    "backgroundColor": "#ffffff"
   },
   "ios": {
     "scheme": "FinanceLife",

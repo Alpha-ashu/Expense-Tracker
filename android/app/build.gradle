@@ -15,11 +15,17 @@ android {
     productFlavors {
         full {
             dimension "smsSupport"
+            manifestPlaceholders = [
+                smsReceiverEnabled: "true"
+            ]
         }
         nosms {
             dimension "smsSupport"
             applicationIdSuffix ".nosms"
             versionNameSuffix "-nosms"
+            manifestPlaceholders = [
+                smsReceiverEnabled: "false"
+            ]
         }
     }
     compileOptions {
@@ -52,7 +58,9 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
             // Use the optimized default proguard file (avoids legacy warning)
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Keep debug builds independent from signing; release only signs when key.properties exists.
