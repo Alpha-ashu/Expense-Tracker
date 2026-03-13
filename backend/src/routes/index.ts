@@ -16,6 +16,9 @@ import { notificationRoutes } from '../modules/notifications/notification.routes
 import { stockRoutes } from '../modules/stocks/stock.routes';
 import { billsRoutes } from '../modules/bills/bills.routes';
 import { friendRoutes } from '../modules/friends/friend.routes';
+import { investmentRoutes } from '../modules/investments/investment.routes';
+import { todoRoutes } from '../modules/todos/todo.routes';
+import { groupRoutes } from '../modules/groups/group.routes';
 
 const router = Router();
 
@@ -33,6 +36,9 @@ router.use('/goals', goalRoutes);
 router.use('/loans', loanRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/friends', friendRoutes);
+router.use('/investments', investmentRoutes);
+router.use('/todos', todoRoutes);
+router.use('/groups', groupRoutes);
 
 // Advisor & Booking routes
 router.use('/bookings', bookingRoutes);
