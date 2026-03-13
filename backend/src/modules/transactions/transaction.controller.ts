@@ -1,13 +1,19 @@
 import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
+import { Prisma } from '@prisma/client';
+
+interface HttpLikeError {
+  statusCode?: number;
+  message?: string;
+}
 
 export const getTransactions = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
     const { accountId, startDate, endDate, category, page, limit } = req.query;
 
-    const where: any = { userId, deletedAt: null };
+    const where: Prisma.TransactionWhereInput = { userId, deletedAt: null };
 
     if (accountId) where.accountId = accountId as string;
     if (category) where.category = category as string;
@@ -65,16 +71,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       transferType,
     } = req.body;
 
-    // Validate required fields
-    if (!accountId || !type || !amount || !category || !date) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    // Validate amount is a positive finite number
     const numericAmount = Number(amount);
-    if (!isFinite(numericAmount) || numericAmount <= 0) {
-      return res.status(400).json({ error: 'Amount must be a positive number' });
-    }
 
     // Wrap all balance updates + transaction creation in an atomic DB transaction
     const transaction = await prisma.$transaction(async (tx) => {
@@ -146,12 +143,13 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json(transaction);
-  } catch (error: any) {
-    if (error.statusCode === 403) {
-      return res.status(403).json({ error: error.message });
+  } catch (error: unknown) {
+    const typedError = error as HttpLikeError;
+    if (typedError.statusCode === 403) {
+      return res.status(403).json({ error: typedError.message || 'Forbidden' });
     }
-    if (error.statusCode === 400) {
-      return res.status(400).json({ error: error.message });
+    if (typedError.statusCode === 400) {
+      return res.status(400).json({ error: typedError.message || 'Bad request' });
     }
     res.status(500).json({ error: 'Failed to create transaction' });
   }
@@ -181,10 +179,10 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
-    const body = req.body;
+    const body = req.body as Record<string, unknown>;
 
     // Whitelist only updatable fields to prevent field injection
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
     const allowedFields = [
       'type', 'amount', 'category', 'subcategory',
       'description', 'merchant', 'date', 'tags',
