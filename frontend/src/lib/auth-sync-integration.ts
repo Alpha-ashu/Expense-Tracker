@@ -57,6 +57,11 @@ const DEFAULT_UPDATED_AT_SUPPORT: Partial<Record<SyncedTableName, boolean>> = {
 
 const deletedAtSupport = new Map<SyncedTableName, boolean>();
 const updatedAtSupport = new Map<SyncedTableName, boolean>();
+const unsupportedRemoteColumns = new Map<SyncedTableName, Set<string>>();
+
+const OPTIONAL_REMOTE_COLUMNS: Partial<Record<SyncedTableName, string[]>> = {
+  accounts: ['provider', 'country'],
+};
 
 const expandTablesForSync = (tables: SyncedTableName[]) => {
   const expanded = new Set<SyncedTableName>(tables);
@@ -291,6 +296,43 @@ function scheduleQueueProcessing(delay = 250) {
     syncState.queueTimer = null;
     void processPendingSyncQueue();
   }, delay);
+}
+
+function getUnsupportedColumns(table: SyncedTableName) {
+  return unsupportedRemoteColumns.get(table) ?? new Set<string>();
+}
+
+function markUnsupportedColumn(table: SyncedTableName, column: string) {
+  const columns = getUnsupportedColumns(table);
+  columns.add(column);
+  unsupportedRemoteColumns.set(table, columns);
+}
+
+function buildRemotePayloadForTable(table: SyncedTableName, payload: any) {
+  const optionalColumns = OPTIONAL_REMOTE_COLUMNS[table];
+  if (!optionalColumns || optionalColumns.length === 0) return payload;
+
+  const unsupportedColumns = getUnsupportedColumns(table);
+  if (unsupportedColumns.size === 0) return payload;
+
+  const nextPayload = { ...payload };
+
+  for (const column of optionalColumns) {
+    if (unsupportedColumns.has(column)) {
+      delete nextPayload[column];
+    }
+  }
+
+  return nextPayload;
+}
+
+function parseMissingColumnName(error: any): string | null {
+  if (!error || error.code !== 'PGRST204' || typeof error.message !== 'string') {
+    return null;
+  }
+
+  const match = error.message.match(/Could not find the '([^']+)' column/i);
+  return match?.[1] ?? null;
 }
 
 export function queueRecordUpsertSync(table: SyncedTableName, localId: number, remoteId?: number) {
@@ -696,18 +738,39 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
   const localRecord = await localTable.get(localId);
   if (!localRecord) return true;
 
-  const payload = await mapLocalRecordToRemote(table, localRecord, userId);
-  if (!payload) return false;
+  const mappedPayload = await mapLocalRecordToRemote(table, localRecord, userId);
+  if (!mappedPayload) return false;
 
   const currentRemoteId = toNumber(localRecord.remoteId);
 
   // Use UPSERT with onConflict for all sync operations to prevent duplication
   // This handles both new records (INSERT) and existing ones (UPDATE)
-  const { data: remoteRecord, error } = await supabase
+  let payload = buildRemotePayloadForTable(table, mappedPayload);
+  let { data: remoteRecord, error } = await supabase
     .from(table)
     .upsert(payload, { onConflict: 'user_id,local_id' })
     .select()
     .single();
+
+  // Backward compatibility: if the remote table schema is behind, drop unsupported
+  // optional columns and retry once.
+  const missingColumn = parseMissingColumnName(error);
+  if (missingColumn) {
+    const tableOptionalColumns = OPTIONAL_REMOTE_COLUMNS[table] ?? [];
+    if (tableOptionalColumns.includes(missingColumn) && missingColumn in payload) {
+      markUnsupportedColumn(table, missingColumn);
+      payload = buildRemotePayloadForTable(table, mappedPayload);
+
+      const retry = await supabase
+        .from(table)
+        .upsert(payload, { onConflict: 'user_id,local_id' })
+        .select()
+        .single();
+
+      remoteRecord = retry.data;
+      error = retry.error;
+    }
+  }
 
   if (error) {
     if (isConnectivityError(error)) throw error;
