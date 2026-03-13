@@ -6,7 +6,7 @@ $login = Invoke-RestMethod -Uri ($base + '/auth/login') -Method Post -ContentTyp
 $token = $login.data.accessToken
 $headers = @{ Authorization = ('Bearer ' + $token) }
 
-$profile = Invoke-RestMethod -Uri ($base + '/auth/profile') -Method Get -Headers $headers
+$userProfileData = Invoke-RestMethod -Uri ($base + '/auth/profile') -Method Get -Headers $headers
 $pinVerify = Invoke-RestMethod -Uri ($base + '/pin/verify') -Method Post -Headers $headers -ContentType 'application/json' -Body (@{ pin = '123456'; deviceId = 'qa-matrix-device' } | ConvertTo-Json)
 
 $accounts = Invoke-RestMethod -Uri ($base + '/accounts') -Method Get -Headers $headers
@@ -67,7 +67,7 @@ $matrix = @(
 )
 
 [pscustomobject]@{
-  auth = [pscustomobject]@{ loginSuccess = $login.success; role = $profile.data.role; pinVerifySuccess = $pinVerify.success }
+  auth = [pscustomobject]@{ loginSuccess = $login.success; role = $userProfileData.data.role; pinVerifySuccess = $pinVerify.success }
   counts = [pscustomobject]@{ accounts = $accounts.data.Count; transactions = $transactions.data.Count; goals = $goals.data.Count; loans = $loans.data.Count; investments = $investments.data.Count; todos = $todos.data.Count; groups = $groups.data.Count }
   matrix = $matrix
 } | ConvertTo-Json -Depth 8

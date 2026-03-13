@@ -301,9 +301,6 @@ export const Groups: React.FC = () => {
           const groupStatus = expense.status
             ?? (friendMembers.some((member) => !(member.paymentStatus === 'paid' || member.paid) && member.share > 0) ? 'pending' : 'settled');
           const coverColor = getCategoryColor(expense.category || 'Miscellaneous');
-          const coverStyle = {
-            background: `linear-gradient(135deg, ${coverColor}, ${coverColor}99)`,
-          };
 
           return (
             <div
@@ -313,8 +310,9 @@ export const Groups: React.FC = () => {
               <div className="flex gap-4">
                 <div
                   className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-[26px] shadow-sm"
-                  style={coverStyle}
+                  title={`Category color ${coverColor}`}
                 >
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-600" />
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.45),transparent_55%)]" />
                   <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/85 shadow-sm backdrop-blur">
                     {getCategoryCartoonIcon(expense.category || 'Miscellaneous', 34)}

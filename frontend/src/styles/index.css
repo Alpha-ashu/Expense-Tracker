@@ -41,6 +41,7 @@ html, body, #root {
   body {
     font-size: 14px;
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     line-height: 1.5;
   }
   

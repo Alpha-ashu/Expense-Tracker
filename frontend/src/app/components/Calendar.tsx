@@ -607,15 +607,22 @@ export const Calendar: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-bold text-gray-900">Add Reminder</h3>
-                <button onClick={() => setShowReminderModal(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setShowReminderModal(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg"
+                  aria-label="Close add reminder modal"
+                  title="Close add reminder modal"
+                >
                   <X size={24} />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Title</label>
+                  <label htmlFor="reminder-title" className="block text-sm font-semibold text-gray-900 mb-2">Title</label>
                   <input
+                    id="reminder-title"
                     type="text"
                     value={newReminder.title}
                     onChange={(e) => setNewReminder({ ...newReminder, title: e.target.value })}
@@ -625,8 +632,9 @@ export const Calendar: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Description (Optional)</label>
+                  <label htmlFor="reminder-description" className="block text-sm font-semibold text-gray-900 mb-2">Description (Optional)</label>
                   <textarea
+                    id="reminder-description"
                     value={newReminder.description}
                     onChange={(e) => setNewReminder({ ...newReminder, description: e.target.value })}
                     placeholder="Add details"
@@ -635,8 +643,9 @@ export const Calendar: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Type</label>
+                  <label htmlFor="reminder-type" className="block text-sm font-semibold text-gray-900 mb-2">Type</label>
                   <select
+                    id="reminder-type"
                     value={newReminder.type}
                     onChange={(e) => setNewReminder({ ...newReminder, type: e.target.value as any })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
@@ -649,17 +658,12 @@ export const Calendar: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">Date</label>
+                  <label htmlFor="reminder-date" className="block text-sm font-semibold text-gray-900 mb-2">Date</label>
                   <input
+                    id="reminder-date"
                     type="date"
                     value={newReminder.date.toISOString().split('T')[0]}
                     onChange={(e) => setNewReminder({ ...newReminder, date: new Date(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  />
-                  <input
-                    type="text"
-                    title="Calendar input"
-                    placeholder="Enter value"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                 </div>
