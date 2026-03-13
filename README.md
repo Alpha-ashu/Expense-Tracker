@@ -64,6 +64,12 @@ From `backend/`:
 npm run qa:test-features
 ```
 
+From project root:
+
+```bash
+npm run qa:backend
+```
+
 This command will:
 
 1. Seed deterministic admin mock data.

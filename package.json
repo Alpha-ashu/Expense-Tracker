@@ -27,6 +27,9 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "qa:backend:seed": "npm --prefix backend run qa:seed-admin",
+    "qa:backend:matrix": "npm --prefix backend run qa:matrix",
+    "qa:backend": "npm --prefix backend run qa:test-features",
     "clean": "rimraf dist node_modules/.vite",
     "postinstall": "npm run db:generate"
   },
