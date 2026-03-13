@@ -100,3 +100,80 @@ Key files:
 - `backend/src/cache/redis.ts`
 - `backend/src/middleware/cache.ts`
 - `backend/src/cache/cache-policy.ts`
+
+## QA Troubleshooting
+
+### 1) Matrix fails with connection error
+
+Symptom: `Unable to connect to the remote server` during `qa:matrix`.
+
+Fix:
+
+```bash
+cd backend
+npm run qa:test-features
+```
+
+Use `qa:test-features` (not `qa:matrix` directly) so the script can start and stop the backend automatically.
+
+### 2) Port 3000 already in use
+
+Symptom: backend fails to start.
+
+Fix (PowerShell):
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000 -State Listen | Select-Object -First 1 -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }
+```
+
+Then rerun:
+
+```bash
+cd backend
+npm run qa:test-features
+```
+
+### 3) Prisma column/model mismatch
+
+Symptom: errors like `column ... does not exist` during seed or runtime.
+
+Fix:
+
+```bash
+cd backend
+npx prisma db push
+npx prisma generate
+```
+
+### 4) Login/auth test failures
+
+Symptom: auth endpoints return 401/invalid credentials.
+
+Fix:
+
+1. Ensure admin seed runs successfully.
+2. Use the seeded credentials:
+  - Email: `shaik.job.details@gmail.com`
+  - Password: `123456789`
+  - PIN: `123456`
+
+### 5) Local DB appears dirty after QA
+
+Symptom: `git status` shows `backend/prisma/dev.db` modified.
+
+Reason: expected local seeded test data.
+
+Suggested handling:
+
+1. Keep it uncommitted for local testing.
+2. Commit only code/docs/workflow/script files.
+
+### 6) CI feature matrix fails on health check
+
+Symptom: workflow times out waiting for `/health`.
+
+Fix checklist:
+
+1. Verify backend build passes locally: `cd backend && npm run build`.
+2. Verify workflow starts backend from `backend/` working directory.
+3. Check workflow artifact `backend-dev-log` for startup errors.
