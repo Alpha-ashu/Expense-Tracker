@@ -14,7 +14,6 @@ export const AddLoan: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     lenderName: '',
-    loanType: 'personal' as 'personal' | 'home' | 'auto' | 'education' | 'business',
     principalAmount: 0,
     interestRate: 0,
     tenureMonths: 12,
@@ -248,24 +247,6 @@ export const AddLoan: React.FC = () => {
                   )}
                 </div>
               )}
-            </div>
-
-            {/* Loan Type */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">Loan Type *</label>
-              <select
-                value={formData.loanType}
-                onChange={(e) => handleFieldChange('loanType', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                aria-label="Loan Type"
-                title="Loan Type"
-              >
-                <option value="personal">Personal Loan</option>
-                <option value="home">Home Loan</option>
-                <option value="auto">Auto Loan</option>
-                <option value="education">Education Loan</option>
-                <option value="business">Business Loan</option>
-              </select>
             </div>
 
             {/* Principal Amount */}

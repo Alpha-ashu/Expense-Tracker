@@ -568,8 +568,10 @@ class BackendService {
       });
 
       const localId = await RealtimeDataManager.addFriend(localFriend);
+
+      const responsePayload = response.data?.data ?? response.data;
       return {
-        ...response.data,
+        ...responsePayload,
         localId,
       };
     } catch (error) {
