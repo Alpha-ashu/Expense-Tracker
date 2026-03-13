@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { authMiddleware } from '../../middleware/auth';
 import { requireRole } from '../../middleware/rbac';
+import { validateQuery } from '../../middleware/validate';
 import * as AdminController from './admin.controller';
+import { adminCacheMetricsQuerySchema } from './admin.validation';
 
 const router = Router();
 
@@ -17,7 +19,7 @@ router.post('/users/:advisorId/reject', AdminController.rejectAdvisor);
 
 // Statistics
 router.get('/stats', AdminController.getPlatformStats);
-router.get('/cache/metrics', AdminController.getCacheMetrics);
+router.get('/cache/metrics', validateQuery(adminCacheMetricsQuerySchema), AdminController.getCacheMetrics);
 
 // Feature flags
 router.get('/features', AdminController.getFeatureFlags);
