@@ -4,6 +4,15 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
   DATABASE_URL: z.string().url(),
+  REDIS_URL: z.string().url().optional(),
+  REDIS_TLS: z
+    .union([z.boolean(), z.string()])
+    .optional()
+    .transform((value) => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') return value === 'true';
+      return false;
+    }),
   JWT_SECRET: z.string().min(32),
   FRONTEND_URL: z.string().url().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),

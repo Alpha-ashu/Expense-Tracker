@@ -23,7 +23,9 @@ export const transactionCreateSchema = z.object({
   tags: z.array(z.string().trim().max(40)).optional(),
   transferToAccountId: z.string().trim().min(1).optional(),
   transferType: z.enum(['self-transfer', 'other-transfer']).optional(),
-}).superRefine((data, ctx) => {
+});
+
+export const transactionCreateValidatedSchema = transactionCreateSchema.superRefine((data, ctx) => {
   if (data.type === 'transfer' && !data.transferToAccountId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

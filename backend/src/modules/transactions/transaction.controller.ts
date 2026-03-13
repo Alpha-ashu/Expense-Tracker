@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { Prisma } from '@prisma/client';
+import { cacheDeleteByPrefix } from '../../cache/redis';
 
 interface HttpLikeError {
   statusCode?: number;
@@ -142,6 +143,8 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       });
     });
 
+    await cacheDeleteByPrefix('transactions:');
+
     res.status(201).json(transaction);
   } catch (error: unknown) {
     const typedError = error as HttpLikeError;
@@ -193,7 +196,9 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
         updates[field] = body[field];
       }
     }
-    if (updates.date) updates.date = new Date(updates.date);
+    if (updates.date !== undefined) {
+      updates.date = new Date(String(updates.date));
+    }
 
     // Verify ownership
     const transaction = await prisma.transaction.findUnique({
@@ -209,6 +214,8 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
       data: updates,
       include: { account: true },
     });
+
+    await cacheDeleteByPrefix('transactions:');
 
     res.json({ success: true, data: updated });
   } catch (error) {
@@ -235,6 +242,8 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    await cacheDeleteByPrefix('transactions:');
 
     res.json({ success: true, message: 'Transaction deleted' });
   } catch (error) {

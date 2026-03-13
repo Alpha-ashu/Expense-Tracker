@@ -193,7 +193,8 @@ class SyncService {
           await this.processEntityOperation(userId, deviceId, entity, conflicts);
         } catch (error) {
           console.error(`Failed to process ${entity.entityType} ${entity.entityId}:`, error);
-          errors.push(`Failed to sync ${entity.entityType}: ${error.message}`);
+          const message = error instanceof Error ? error.message : 'Unknown sync error';
+          errors.push(`Failed to sync ${entity.entityType}: ${message}`);
         }
       }
 

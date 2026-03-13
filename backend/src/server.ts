@@ -1,6 +1,7 @@
 import app from './app';
 import { logger } from './config/logger';
 import { initializeSocket } from './sockets/index';
+import { closeRedis, initRedis } from './cache/redis';
 
 const PORT = process.env.PORT || 3000;
 
@@ -39,5 +40,23 @@ const server = app.listen(PORT, () => {
 
 // Initialize WebSocket
 initializeSocket(server);
+
+void initRedis();
+
+const shutdown = async (signal: string) => {
+  logger.info(`Received ${signal}. Shutting down server...`);
+  server.close(async () => {
+    await closeRedis();
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
+
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
 
 export default server;

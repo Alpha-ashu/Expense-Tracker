@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
+import { getRedisStatus } from './cache/redis';
 
 const app = express();
 
@@ -58,7 +59,13 @@ app.use(express.json({ limit: '1mb' }));
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    services: {
+      redis: getRedisStatus(),
+    },
+  });
 });
 
 // API v1

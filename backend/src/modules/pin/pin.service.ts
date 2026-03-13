@@ -278,13 +278,16 @@ class PinService {
       }
 
       const isExpired = userPin.expiresAt < new Date();
-      const isLocked = userPin.lockedUntil && userPin.lockedUntil > new Date();
+      const lockedUntil = userPin.lockedUntil && userPin.lockedUntil > new Date()
+        ? userPin.lockedUntil.toISOString()
+        : undefined;
+      const isLocked = Boolean(lockedUntil);
 
       return {
         success: true,
         message: isExpired ? 'PIN has expired' : isLocked ? 'PIN is locked' : 'PIN is active',
         expiresAt: userPin.expiresAt.toISOString(),
-        lockedUntil: isLocked ? userPin.lockedUntil.toISOString() : undefined,
+        lockedUntil,
       };
     } catch (error) {
       console.error('Get PIN status error:', error);

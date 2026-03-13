@@ -1,0 +1,123 @@
+import Redis from 'ioredis';
+import { env } from '../config/env';
+import { logger } from '../config/logger';
+
+type RedisStatus = 'disabled' | 'connected' | 'connecting' | 'error';
+
+let client: Redis | null = null;
+let status: RedisStatus = 'disabled';
+
+const createClient = () => {
+  if (!env.REDIS_URL) {
+    status = 'disabled';
+    return null;
+  }
+
+  const redis = new Redis(env.REDIS_URL, {
+    lazyConnect: true,
+    maxRetriesPerRequest: 1,
+    enableReadyCheck: true,
+    tls: env.REDIS_TLS ? {} : undefined,
+  });
+
+  redis.on('connect', () => {
+    status = 'connected';
+    logger.info('Redis connected');
+  });
+
+  redis.on('error', (error) => {
+    status = 'error';
+    logger.warn('Redis error', { error: error.message });
+  });
+
+  redis.on('close', () => {
+    if (status !== 'disabled') {
+      status = 'connecting';
+    }
+  });
+
+  status = 'connecting';
+  return redis;
+};
+
+export const initRedis = async () => {
+  if (!env.REDIS_URL) return;
+
+  if (!client) {
+    client = createClient();
+  }
+
+  if (!client) return;
+
+  try {
+    await client.connect();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown redis init error';
+    logger.warn('Redis initialization failed', { error: message });
+    status = 'error';
+  }
+};
+
+export const getRedisClient = () => {
+  if (!client) {
+    client = createClient();
+  }
+
+  return client;
+};
+
+export const getRedisStatus = () => status;
+
+export const closeRedis = async () => {
+  if (!client) return;
+
+  try {
+    await client.quit();
+  } catch {
+    await client.disconnect();
+  } finally {
+    client = null;
+    status = env.REDIS_URL ? 'connecting' : 'disabled';
+  }
+};
+
+export const cacheGetJson = async <T>(key: string): Promise<T | null> => {
+  const redis = getRedisClient();
+  if (!redis || status === 'disabled') return null;
+
+  try {
+    const raw = await redis.get(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+};
+
+export const cacheSetJson = async (key: string, value: unknown, ttlSeconds: number) => {
+  const redis = getRedisClient();
+  if (!redis || status === 'disabled') return;
+
+  try {
+    await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+  } catch {
+    // Cache failure should not fail API behavior.
+  }
+};
+
+export const cacheDeleteByPrefix = async (prefix: string) => {
+  const redis = getRedisClient();
+  if (!redis || status === 'disabled') return;
+
+  try {
+    const stream = redis.scanStream({ match: `${prefix}*`, count: 100 });
+
+    stream.on('data', (keys: string[]) => {
+      if (keys.length > 0) {
+        void redis.del(...keys);
+      }
+    });
+  } catch {
+    // Best-effort invalidation only.
+  }
+};

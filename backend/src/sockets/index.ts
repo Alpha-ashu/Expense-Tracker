@@ -28,9 +28,10 @@ export class SocketManager {
 
   private setupMiddleware() {
     // Socket authentication middleware
-    this.io.use(async (socket: AuthenticatedSocket, next) => {
+    this.io.use(async (socket, next) => {
+      const authSocket = socket as AuthenticatedSocket;
       try {
-        const token = socket.handshake.auth.token;
+        const token = authSocket.handshake.auth.token;
         if (!token) {
           return next(new Error('Authentication error: No token provided'));
         }
@@ -41,11 +42,11 @@ export class SocketManager {
           return next(new Error('Authentication error: Invalid token'));
         }
 
-        socket.userId = user.id;
-        socket.deviceId = socket.handshake.auth.deviceId || 'unknown';
+        authSocket.userId = user.id;
+        authSocket.deviceId = authSocket.handshake.auth.deviceId || 'unknown';
 
         // Track connected users and devices
-        this.trackUserConnection(user.id, socket.id, socket.deviceId);
+        this.trackUserConnection(user.id, authSocket.id, authSocket.deviceId);
         
         next();
       } catch (error) {
@@ -92,34 +93,35 @@ export class SocketManager {
   }
 
   private setupEventHandlers() {
-    this.io.on('connection', (socket: AuthenticatedSocket) => {
-      const userId = socket.userId;
-      const deviceId = socket.deviceId;
+    this.io.on('connection', (socket) => {
+      const authSocket = socket as AuthenticatedSocket;
+      const userId = authSocket.userId;
+      const deviceId = authSocket.deviceId;
 
       // Socket connected
 
       // Join user-specific room
-      socket.join(`user:${userId}`);
+      authSocket.join(`user:${userId}`);
       
       // Join device-specific room
-      socket.join(`device:${deviceId}`);
+      authSocket.join(`device:${deviceId}`);
 
       // Handle sync requests
-      socket.on('sync_request', async (data) => {
+      authSocket.on('sync_request', async (data) => {
         try {
           const { lastSyncedAt, entityTypes } = data;
           
           // Get latest data for the user
           const syncData = await this.getSyncData(userId, lastSyncedAt, entityTypes);
           
-          socket.emit('sync_response', {
+          authSocket.emit('sync_response', {
             success: true,
             data: syncData,
             timestamp: new Date().toISOString()
           });
         } catch (error) {
           console.error('Sync request error:', error);
-          socket.emit('sync_response', {
+          authSocket.emit('sync_response', {
             success: false,
             error: 'Sync failed',
             timestamp: new Date().toISOString()
@@ -128,7 +130,7 @@ export class SocketManager {
       });
 
       // Handle transaction updates
-      socket.on('transaction_update', async (data) => {
+      authSocket.on('transaction_update', async (data) => {
         try {
           const { transaction } = data;
           
@@ -141,13 +143,13 @@ export class SocketManager {
             timestamp: new Date().toISOString()
           });
 
-          socket.emit('transaction_saved', {
+          authSocket.emit('transaction_saved', {
             success: true,
             transaction: savedTransaction
           });
         } catch (error) {
           console.error('Transaction update error:', error);
-          socket.emit('transaction_saved', {
+          authSocket.emit('transaction_saved', {
             success: false,
             error: 'Failed to save transaction'
           });
@@ -155,7 +157,7 @@ export class SocketManager {
       });
 
       // Handle account updates
-      socket.on('account_update', async (data) => {
+      authSocket.on('account_update', async (data) => {
         try {
           const { account } = data;
           
@@ -166,13 +168,13 @@ export class SocketManager {
             timestamp: new Date().toISOString()
           });
 
-          socket.emit('account_saved', {
+          authSocket.emit('account_saved', {
             success: true,
             account: savedAccount
           });
         } catch (error) {
           console.error('Account update error:', error);
-          socket.emit('account_saved', {
+          authSocket.emit('account_saved', {
             success: false,
             error: 'Failed to save account'
           });
@@ -180,7 +182,7 @@ export class SocketManager {
       });
 
       // Handle goal updates
-      socket.on('goal_update', async (data) => {
+      authSocket.on('goal_update', async (data) => {
         try {
           const { goal } = data;
           
@@ -191,13 +193,13 @@ export class SocketManager {
             timestamp: new Date().toISOString()
           });
 
-          socket.emit('goal_saved', {
+          authSocket.emit('goal_saved', {
             success: true,
             goal: savedGoal
           });
         } catch (error) {
           console.error('Goal update error:', error);
-          socket.emit('goal_saved', {
+          authSocket.emit('goal_saved', {
             success: false,
             error: 'Failed to save goal'
           });
@@ -205,7 +207,7 @@ export class SocketManager {
       });
 
       // Handle booking notifications
-      socket.on('booking_request', async (data) => {
+      authSocket.on('booking_request', async (data) => {
         try {
           const { bookingId, message } = data;
           
