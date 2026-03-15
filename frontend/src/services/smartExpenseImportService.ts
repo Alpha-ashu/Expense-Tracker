@@ -251,6 +251,8 @@ const normalizeText = (value: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+  const normalizeExternalId = (value: string) => normalizeText(value).replace(/\s+/g, '');
+
 const normalizeKey = (value: string) => normalizeText(value).replace(/\s+/g, '');
 
 const slugify = (value: string) => normalizeText(value).replace(/\s+/g, '-');
@@ -1342,13 +1344,23 @@ class SmartExpenseImportService {
     defaultAccountId: number;
   }): Promise<ThirdPartyImportPreview> {
     const categoryCatalog = await getCategoryCatalog();
+    const accounts = await db.accounts.toArray();
+    const accountNameById = new Map(accounts.map((account) => [account.id, account.name]));
     const existingTransactions = await db.transactions.toArray();
     const existingKeys = new Set<string>();
     for (const transaction of existingTransactions) {
       const storedExtId = transaction.importMetadata?.['Expense Id'] ?? transaction.importMetadata?.['External Id'];
       if (storedExtId) {
-        existingKeys.add(`extid::${storedExtId}`);
+        const normalizedExtId = normalizeExternalId(String(storedExtId));
+        if (normalizedExtId) {
+          existingKeys.add(`extid::${normalizedExtId}`);
+        }
       }
+
+      const sourceAccountName = transaction.importMetadata?.['Source Account']
+        || (transaction.accountId ? accountNameById.get(transaction.accountId) : '')
+        || '';
+
       existingKeys.add(buildDuplicateKey(
         new Date(transaction.date),
         Number(transaction.amount) || 0,
@@ -1356,8 +1368,15 @@ class SmartExpenseImportService {
         transaction.accountId ? String(transaction.accountId) : '',
         String(transaction.merchant || ''),
       ));
+
+      existingKeys.add(buildDuplicateKey(
+        new Date(transaction.date),
+        Number(transaction.amount) || 0,
+        String(transaction.description || ''),
+        sourceAccountName,
+        String(transaction.merchant || ''),
+      ));
     }
-    const accounts = await db.accounts.toArray();
     const fallbackAccountId = getFallbackAccountId(accounts, options.defaultAccountId);
     const errors: string[] = [];
 
@@ -1403,16 +1422,36 @@ class SmartExpenseImportService {
       if (amount == null || !Number.isFinite(amount)) rowErrors.push('Invalid amount');
 
       const fallbackDescription = description;
-      const duplicateKey = externalId
-        ? `extid::${externalId}`
-        : buildDuplicateKey(
-            date,
-            amount ?? 0,
-            fallbackDescription,
-            accountTarget.accountId > 0 ? String(accountTarget.accountId) : accountTarget.resolvedAccountName,
-            merchant,
-          );
-      const duplicate = duplicateKey ? existingKeys.has(duplicateKey) : false;
+      const normalizedExtId = normalizeExternalId(externalId);
+      const duplicateKeyByAccountId = buildDuplicateKey(
+        date,
+        amount ?? 0,
+        fallbackDescription,
+        accountTarget.accountId > 0 ? String(accountTarget.accountId) : '',
+        merchant,
+      );
+      const duplicateKeyByAccountName = buildDuplicateKey(
+        date,
+        amount ?? 0,
+        fallbackDescription,
+        sourceAccountName || accountTarget.resolvedAccountName,
+        merchant,
+      );
+
+      const duplicateKey = normalizedExtId
+        ? `extid::${normalizedExtId}`
+        : (duplicateKeyByAccountId || duplicateKeyByAccountName);
+
+      const duplicate = Boolean(
+        (normalizedExtId && existingKeys.has(`extid::${normalizedExtId}`))
+        || (duplicateKeyByAccountId && existingKeys.has(duplicateKeyByAccountId))
+        || (duplicateKeyByAccountName && existingKeys.has(duplicateKeyByAccountName)),
+      );
+
+      // Mark this row's keys immediately so duplicates within the same file are detected too.
+      if (normalizedExtId) existingKeys.add(`extid::${normalizedExtId}`);
+      if (duplicateKeyByAccountId) existingKeys.add(duplicateKeyByAccountId);
+      if (duplicateKeyByAccountName) existingKeys.add(duplicateKeyByAccountName);
 
       return {
         id: createRowId(index),
