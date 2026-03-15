@@ -3,7 +3,6 @@ import { createWorker } from 'tesseract.js';
 import { Upload, Camera, X, CheckCircle2, AlertCircle, Loader, ScanLine, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { db } from '@/lib/database';
-import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -19,6 +18,7 @@ import {
   preprocessReceiptFile,
   SUPPORTED_RECEIPT_MIME_TYPES,
 } from '@/services/receiptScannerService';
+import { financialDataCaptureService } from '@/services/financialDataCaptureService';
 
 /* ─────────────────────────────────────────────────────────────
    Receipt scan result
@@ -210,8 +210,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       const category = normalizeCategorySelection(scanResult.category || 'Shopping', 'expense');
       const subcategory = scanResult.subcategory?.trim() || '';
 
-      // Save transaction (syncs to backend if online)
-      const savedTransaction = await saveTransactionWithBackendSync({
+      const savedTransaction = await financialDataCaptureService.saveTransactionDraft({
         type: 'expense',
         amount,
         accountId: selectedAccountId,
@@ -220,8 +219,24 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         description: scanResult.notes || scanResult.merchantName || 'Receipt',
         merchant: scanResult.merchantName || '',
         date: scanResult.date || new Date(),
-        tags: [],
+        importSource: 'receipt-scanner',
+        importMetadata: {
+          Currency: scanResult.currency || currency,
+          'Invoice Number': scanResult.invoiceNumber || '',
+          'Payment Method': scanResult.paymentMethod || '',
+          'OCR Confidence': scanResult.confidence != null ? String(scanResult.confidence) : '',
+        },
+      }, {
+        userId: user?.id,
+        duplicateDecision: 'notify',
+        onDuplicateNotify: () => {
+          toast.warning('Potential duplicate detected. Review transactions before adding again.');
+        },
       });
+
+      if (!savedTransaction.saved) {
+        return;
+      }
 
       // Update account balance
       const newBalance = account.balance - amount;
@@ -245,12 +260,12 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       if (scanDocumentId) {
         await documentIntelligenceService.updateDocumentRecord(scanDocumentId, {
           processingStatus: 'completed',
-          linkedTransactionId: savedTransaction?.id,
+          linkedTransactionId: savedTransaction.transactionId,
         });
       }
       refreshData();
-      if (savedTransaction?.id) {
-        onTransactionCreated?.(savedTransaction.id);
+      if (savedTransaction.transactionId) {
+        onTransactionCreated?.(savedTransaction.transactionId);
       }
       handleClose();
       // Navigate back to transactions

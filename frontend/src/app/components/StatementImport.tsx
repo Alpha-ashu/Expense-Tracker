@@ -8,6 +8,7 @@ import { Upload, FileText, Table, CheckCircle, XCircle, AlertCircle, Download, E
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { statementImportService, ImportResult, ParsedTransaction, StatementImportOptions } from '@/services/statementImportService';
+import { financialDataCaptureService } from '@/services/financialDataCaptureService';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -116,7 +117,42 @@ export const StatementImport: React.FC<StatementImportProps> = ({
       // Get selected transactions
       const transactionsToImport = Array.from(selectedTransactions).map(index => importResult.transactions[index]);
       
-      await statementImportService.importTransactions(transactionsToImport, options);
+      const importApplyResult = await statementImportService.importTransactions(transactionsToImport, options);
+
+      const queueCandidates = importApplyResult.importedTransactions
+        .map((transaction, index) => ({
+          transaction,
+          transactionId: importApplyResult.insertedTransactionIds[index],
+        }))
+        .filter(({ transaction, transactionId }) => {
+          if (!transactionId) return false;
+          const lowConfidence = (transaction.confidenceScore ?? 0) < 0.72;
+          const uncertainCategory = !transaction.category || /^(others?|miscellaneous)$/i.test(transaction.category);
+          return lowConfidence || uncertainCategory;
+        });
+
+      await financialDataCaptureService.enqueueAiTasks(
+        queueCandidates.map(({ transaction, transactionId }) => ({
+          kind: 'statement-ai-parse' as const,
+          payload: {
+            transactionId,
+            userId: user.id,
+            accountId,
+            type: transaction.transaction_type,
+            amount: transaction.amount,
+            category: transaction.category,
+            subcategory: undefined,
+            merchant: transaction.merchant_name,
+            rawText: transaction.raw_description,
+            confidence: transaction.confidenceScore,
+          },
+        })),
+        { processNow: true },
+      );
+
+      if (queueCandidates.length > 0) {
+        toast.info(`${queueCandidates.length} transactions queued for AI category refinement.`);
+      }
       
       setImportState('success');
       toast.success(`Successfully imported ${transactionsToImport.length} transactions to ${accountName}`);
@@ -362,6 +398,8 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                           type="checkbox"
                           checked={selectedTransactions.has(index)}
                           onChange={() => toggleTransactionSelection(index)}
+                          aria-label={`Select transaction ${index + 1}`}
+                          title={`Select transaction ${index + 1}`}
                           className="rounded border-gray-300"
                         />
                         

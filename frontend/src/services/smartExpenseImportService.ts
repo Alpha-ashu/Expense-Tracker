@@ -155,12 +155,12 @@ interface ExtractedGroupData {
 }
 
 const IMPORTABLE_ARRAY_KEYS = ['transactions', 'expenses', 'entries', 'records', 'items', 'data', 'results', 'payload'];
-const DATE_KEYS = ['date', 'transactiondate', 'transaction_date', 'spentat', 'createdat', 'created_at', 'timestamp'];
-const AMOUNT_KEYS = ['amount', 'total', 'value', 'price', 'expense', 'debit', 'debitamount', 'debit_amount'];
-const CREDIT_KEYS = ['credit', 'creditamount', 'credit_amount', 'income'];
-const CATEGORY_KEYS = ['category', 'categoryname', 'expensecategory', 'expense_type'];
+const DATE_KEYS = ['date', 'transactiondate', 'transaction_date', 'transactiondatetime', 'transaction_datetime', 'spentat', 'createdat', 'created_at', 'timestamp', 'txndate', 'txn_date'];
+const AMOUNT_KEYS = ['amount', 'total', 'value', 'price', 'expense', 'debit', 'debitamount', 'debit_amount', 'transactionamount', 'transaction_amount', 'spentamount', 'spent_amount', 'expenseamount', 'expense_amount', 'paidamount', 'paid_amount'];
+const CREDIT_KEYS = ['credit', 'creditamount', 'credit_amount', 'income', 'receivedamount', 'received_amount', 'creditedamount', 'credited_amount', 'depositamount', 'deposit_amount'];
+const CATEGORY_KEYS = ['category', 'categoryname', 'expensecategory', 'expense_type', 'categorytype', 'category_type', 'transactioncategory', 'transaction_category', 'tag', 'label'];
 const SUBCATEGORY_KEYS = ['subcategory', 'sub_category', 'subcategoryname'];
-const DESCRIPTION_KEYS = ['description', 'details', 'note', 'notes', 'memo', 'title', 'narration'];
+const DESCRIPTION_KEYS = ['description', 'details', 'detail', 'note', 'notes', 'memo', 'title', 'narration', 'remark', 'remarks', 'particulars', 'name', 'text', 'message', 'subject'];
 const MERCHANT_KEYS = ['merchant', 'merchantname', 'merchant_name', 'payee', 'vendor', 'store'];
 const ACCOUNT_KEYS = [
   'account',
@@ -179,10 +179,14 @@ const ACCOUNT_KEYS = [
   'source_account',
   'fromaccount',
   'from_account',
+  'walletref',
+  'wallet_ref',
+  'accountref',
+  'account_ref',
 ];
 const PAYMENT_KEYS = ['paymentmethod', 'payment_method', 'paymentmode', 'payment_mode', 'paymentchannel', 'payment_channel', 'mode', 'method'];
 const CURRENCY_KEYS = ['currency', 'currencycode', 'currency_code'];
-const TYPE_KEYS = ['type', 'transactiontype', 'transaction_type', 'entrytype', 'entry_type'];
+const TYPE_KEYS = ['type', 'transactiontype', 'transaction_type', 'entrytype', 'entry_type', 'nature', 'transactionnature', 'transaction_nature', 'drcr', 'debitcredit', 'debit_credit', 'flow', 'kind'];
 const FX_RATE_KEYS = ['fxrate', 'fx_rate', 'exchangerate', 'exchange_rate', 'rate'];
 const ACCOUNT_BALANCE_KEYS = [
   'balance',
@@ -210,7 +214,7 @@ const GROUP_MEMBER_KEYS = ['participants', 'members', 'sharedwith', 'shared_with
 const GOAL_NAME_KEYS = ['goal', 'goalname', 'goal_name', 'savingsgoal', 'savings_goal', 'savinggoal', 'saving_goal', 'fund', 'bucket'];
 const GOAL_TARGET_KEYS = ['targetamount', 'target_amount', 'goalamount', 'goal_amount'];
 const GOAL_DATE_KEYS = ['goaldate', 'goal_date', 'deadline', 'targetdate', 'target_date'];
-const EXTERNAL_ID_KEYS = ['expenseid', 'expense_id', 'transactionid', 'txnid', 'txid', 'externalid', 'referenceid', 'refid', 'uid', 'uuid'];
+const EXTERNAL_ID_KEYS = ['expenseid', 'expense_id', 'transactionid', 'txnid', 'txid', 'externalid', 'referenceid', 'refid', 'uid', 'uuid', 'recordid', 'record_id'];
 const EXPENSE_MODE_KEYS = ['type', 'expensetype', 'expense_type', 'mode', 'expensemode'];
 const KNOWN_FIELD_GROUPS = [
   ...DATE_KEYS,
@@ -280,6 +284,34 @@ const toDisplayValue = (value: unknown): string => {
   return String(value).trim();
 };
 
+const collectStringLeaves = (value: unknown, bucket: string[] = [], depth = 0): string[] => {
+  if (depth > 4) return bucket;
+  if (value == null) return bucket;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed) bucket.push(trimmed);
+    return bucket;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStringLeaves(item, bucket, depth + 1));
+    return bucket;
+  }
+
+  if (typeof value === 'object') {
+    Object.entries(value as Record<string, unknown>).forEach(([key, item]) => {
+      const normalizedKey = normalizeText(key);
+      if (normalizedKey && !['id', 'uuid', 'uid'].includes(normalizedKey)) {
+        bucket.push(normalizedKey);
+      }
+      collectStringLeaves(item, bucket, depth + 1);
+    });
+  }
+
+  return bucket;
+};
+
 const BOILERPLATE_DESCRIPTION_PATTERNS = [
   /^imported?\s+(test\s+)?expense\s+from/i,
   /^imported?\s+transaction/i,
@@ -314,6 +346,40 @@ const getFieldValue = (lookup: Record<string, unknown>, keys: string[]) => {
     }
   }
   return undefined;
+};
+
+const isFilledValue = (value: unknown) => {
+  if (value == null) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  return true;
+};
+
+const getFieldValueByFuzzyKey = (
+  lookup: Record<string, unknown>,
+  exactKeys: string[],
+  includeTokens: string[],
+  excludeTokens: string[] = [],
+) => {
+  const direct = getFieldValue(lookup, exactKeys);
+  if (isFilledValue(direct)) return direct;
+
+  let best: { value: unknown; score: number } | null = null;
+  for (const [lookupKey, value] of Object.entries(lookup)) {
+    if (!isFilledValue(value)) continue;
+
+    let score = 0;
+    if (exactKeys.includes(lookupKey)) score += 120;
+    if (exactKeys.some((key) => lookupKey.includes(key))) score += 70;
+    if (includeTokens.some((token) => lookupKey.includes(token))) score += 40;
+    if (excludeTokens.some((token) => lookupKey.includes(token))) score -= 120;
+
+    if (score <= 0) continue;
+    if (!best || score > best.score) {
+      best = { value, score };
+    }
+  }
+
+  return best?.value;
 };
 
 const parseAmountValue = (value: unknown): number | null => {
@@ -372,12 +438,88 @@ const parseDateValue = (value: unknown): Date | null => {
 const parseTypeValue = (value: unknown): ImportTransactionType | null => {
   const normalized = normalizeText(toDisplayValue(value));
   if (!normalized) return null;
+  if (['cr', 'credit', 'credited', 'deposit', 'received', 'inflow'].some((item) => normalized === item || normalized.includes(item))) {
+    return 'income';
+  }
+  if (['dr', 'debit', 'debited', 'withdrawal', 'outflow'].some((item) => normalized === item || normalized.includes(item))) {
+    return 'expense';
+  }
   if (['income', 'credit', 'credit entry', 'salary', 'refund'].some((item) => normalized.includes(item))) {
     return 'income';
   }
   if (['expense', 'debit', 'purchase', 'payment', 'spend'].some((item) => normalized.includes(item))) {
     return 'expense';
   }
+  return null;
+};
+
+const inferTransactionTypeFromContext = (input: {
+  rawCategory: string;
+  rawSubcategory: string;
+  description: string;
+  merchant: string;
+  rawText: string;
+}) => {
+  const context = normalizeText(
+    [input.rawCategory, input.rawSubcategory, input.description, input.merchant, input.rawText].filter(Boolean).join(' '),
+  );
+  if (!context) return null;
+
+  const incomeHints = [
+    'salary',
+    'payroll',
+    'stipend',
+    'refund',
+    'reimbursement',
+    'cashback',
+    'interest',
+    'dividend',
+    'credited',
+    'deposit',
+    'received',
+    'income',
+    'payout',
+  ];
+
+  const expenseHints = [
+    'expense',
+    'purchase',
+    'bill',
+    'rent',
+    'groceries',
+    'food',
+    'fuel',
+    'debit',
+    'paid',
+    'spend',
+  ];
+
+  const incomeScore = incomeHints.reduce((score, hint) => score + (context.includes(hint) ? 1 : 0), 0);
+  const expenseScore = expenseHints.reduce((score, hint) => score + (context.includes(hint) ? 1 : 0), 0);
+
+  const veryStrongIncomeHints = ['salary', 'payroll', 'stipend', 'credited', 'credit alert', 'refund', 'cashback'];
+  if (veryStrongIncomeHints.some((hint) => context.includes(hint))) {
+    return 'income';
+  }
+
+  if (incomeScore === 0 && expenseScore === 0) return null;
+  return incomeScore >= expenseScore ? 'income' : 'expense';
+};
+
+const inferTransactionTypeFromNarrative = (text: string): ImportTransactionType | null => {
+  const normalized = normalizeText(text);
+  if (!normalized) return null;
+
+  const strongIncomePattern = /\b(salary|payroll|stipend|refund|reimbursement|cashback|interest|dividend|bonus|credited|credit alert|received|payout)\b/;
+  if (strongIncomePattern.test(normalized)) {
+    return 'income';
+  }
+
+  const strongExpensePattern = /\b(grocer|supermarket|dinner|lunch|food|bill|rent|fuel|petrol|diesel|purchase|spent|debit|paid)\b/;
+  if (strongExpensePattern.test(normalized)) {
+    return 'expense';
+  }
+
   return null;
 };
 
@@ -463,44 +605,63 @@ const isRecordObject = (value: unknown): value is Record<string, unknown> =>
 
 const isStructuredLedgerPayload = (payload: unknown): payload is Record<string, unknown> => {
   if (!isRecordObject(payload)) return false;
-  return Array.isArray(payload.transactions) && Array.isArray(payload.accounts);
+  const hasClassicLedger = Array.isArray(payload.transactions) && Array.isArray(payload.accounts);
+  const hasAltLedger = Array.isArray(payload.records) && Array.isArray(payload.wallets);
+  return hasClassicLedger || hasAltLedger;
 };
 
 const extractStructuredLedgerRecords = (payload: unknown): Array<Record<string, unknown>> => {
   if (!isStructuredLedgerPayload(payload)) return extractJsonRecords(payload);
 
-  const accounts = payload.accounts.filter(isRecordObject);
+  const accountRows = Array.isArray(payload.accounts)
+    ? payload.accounts.filter(isRecordObject)
+    : Array.isArray(payload.wallets)
+      ? payload.wallets.filter(isRecordObject)
+      : [];
+
+  const accounts = accountRows;
   const accountById = new Map<string, Record<string, unknown>>();
   accounts.forEach((account) => {
-    const id = toDisplayValue(account.account_id ?? account.accountId ?? account.id);
+    const id = toDisplayValue(account.account_id ?? account.accountId ?? account.id ?? account.wallet_id ?? account.walletId);
     if (id) accountById.set(normalizeText(id), account);
   });
 
   const userCurrency = isRecordObject(payload.user)
     ? toDisplayValue(payload.user.currency)
-    : '';
+    : (isRecordObject(payload.profile)
+      ? toDisplayValue(payload.profile.currency ?? payload.profile.currency_code ?? payload.profile.currencyCode)
+      : '');
 
-  const transactions = payload.transactions.filter(isRecordObject);
+  const transactionRows = Array.isArray(payload.transactions)
+    ? payload.transactions.filter(isRecordObject)
+    : Array.isArray(payload.records)
+      ? payload.records.filter(isRecordObject)
+      : [];
+
+  const transactions = transactionRows;
   return transactions.map((transaction) => {
     const accountRef = toDisplayValue(
       transaction.account_id
       ?? transaction.accountId
       ?? transaction.account
       ?? transaction.wallet_id
-      ?? transaction.walletId,
+      ?? transaction.walletId
+      ?? transaction.wallet_ref
+      ?? transaction.walletRef,
     );
     const account = accountRef ? accountById.get(normalizeText(accountRef)) : undefined;
 
     const enriched: Record<string, unknown> = { ...transaction };
 
     if (account) {
-      const accountName = toDisplayValue(account.account_name ?? account.accountName ?? account.name);
-      const accountType = toDisplayValue(account.type ?? account.account_type ?? account.accountType);
+      const accountName = toDisplayValue(account.account_name ?? account.accountName ?? account.name ?? account.title);
+      const accountType = toDisplayValue(account.type ?? account.account_type ?? account.accountType ?? account.category);
       const accountBalance = account.balance ?? account.current_balance ?? account.currentBalance;
-      const accountCurrency = toDisplayValue(account.currency);
+      const accountCurrency = toDisplayValue(account.currency ?? account.currency_code ?? account.currencyCode);
 
       if (!toDisplayValue(enriched.account_name) && accountName) enriched.account_name = accountName;
       if (!toDisplayValue(enriched.payment_method) && accountType) enriched.payment_method = accountType;
+      if (!toDisplayValue(enriched.wallet_name) && accountName) enriched.wallet_name = accountName;
       if (enriched.account_balance == null && accountBalance != null) enriched.account_balance = accountBalance;
       if (!toDisplayValue(enriched.currency) && (accountCurrency || userCurrency)) {
         enriched.currency = accountCurrency || userCurrency;
@@ -510,8 +671,20 @@ const extractStructuredLedgerRecords = (payload: unknown): Array<Record<string, 
     }
 
     if (!toDisplayValue(enriched.expense_id)) {
-      const txId = toDisplayValue(enriched.transaction_id ?? enriched.transactionId ?? enriched.id);
+      const txId = toDisplayValue(enriched.transaction_id ?? enriched.transactionId ?? enriched.id ?? enriched.record_id ?? enriched.recordId);
       if (txId) enriched.expense_id = txId;
+    }
+
+    if (!toDisplayValue(enriched.type) && toDisplayValue(enriched.kind)) {
+      enriched.type = enriched.kind;
+    }
+
+    if (!toDisplayValue(enriched.category) && toDisplayValue(enriched.tag)) {
+      enriched.category = enriched.tag;
+    }
+
+    if (!toDisplayValue(enriched.description) && toDisplayValue(enriched.note)) {
+      enriched.description = enriched.note;
     }
 
     return enriched;
@@ -1382,40 +1555,97 @@ class SmartExpenseImportService {
 
     const rows = options.records.map((record, index) => {
       const lookup = buildLookup(record);
-      const date = parseDateValue(getFieldValue(lookup, DATE_KEYS));
-      const debitAmount = parseAmountValue(getFieldValue(lookup, AMOUNT_KEYS));
-      const creditAmount = parseAmountValue(getFieldValue(lookup, CREDIT_KEYS));
+      const rawTextBundle = collectStringLeaves(record).join(' ');
+      const date = parseDateValue(
+        getFieldValueByFuzzyKey(lookup, DATE_KEYS, ['date', 'time', 'created', 'txn', 'transaction'], ['targetdate', 'goaldate', 'deadline']),
+      );
+
+      const debitAmount = parseAmountValue(
+        getFieldValueByFuzzyKey(lookup, AMOUNT_KEYS, ['amount', 'amt', 'total', 'spent', 'debit', 'expense', 'paid'], ['targetamount', 'goalamount', 'balance']),
+      );
+      const creditAmount = parseAmountValue(
+        getFieldValueByFuzzyKey(lookup, CREDIT_KEYS, ['credit', 'income', 'received', 'deposit', 'refund'], ['balance']),
+      );
       let amount = debitAmount ?? creditAmount ?? null;
-      let transactionType = parseTypeValue(getFieldValue(lookup, TYPE_KEYS));
+      const rawDescription = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, DESCRIPTION_KEYS, ['description', 'narration', 'details', 'memo', 'note', 'title']),
+      );
+      const merchant = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, MERCHANT_KEYS, ['merchant', 'vendor', 'payee', 'store']),
+      );
+      const rawCategory = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, CATEGORY_KEYS, ['category', 'type'], ['transactiontype', 'expensemode', 'paymenttype']),
+      );
+      const rawSubcategory = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, SUBCATEGORY_KEYS, ['subcategory', 'sub', 'segment']),
+      );
+      const sourceAccountName = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, ACCOUNT_KEYS, ['account', 'wallet', 'bank', 'card', 'source']),
+      );
+      const sourcePaymentMethod = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, PAYMENT_KEYS, ['payment', 'method', 'mode', 'channel']),
+      );
+
+      const rawTypeCandidate = toDisplayValue(
+        getFieldValueByFuzzyKey(lookup, TYPE_KEYS, ['type', 'nature', 'drcr', 'flow', 'credit', 'debit'], ['expensemode']),
+      );
+      let transactionType = parseTypeValue(rawTypeCandidate);
+
+      const inferredTypeFromContext = inferTransactionTypeFromContext({
+        rawCategory,
+        rawSubcategory,
+        description: rawDescription,
+        merchant,
+        rawText: rawTextBundle,
+      });
 
       if (!transactionType) {
-        if (creditAmount != null && creditAmount > 0 && (debitAmount == null || debitAmount === 0)) transactionType = 'income';
-        else if (amount != null && amount < 0) transactionType = 'expense';
-        else transactionType = 'expense';
+        if (creditAmount != null && creditAmount > 0 && (debitAmount == null || debitAmount === 0)) {
+          transactionType = 'income';
+        } else if (debitAmount != null && debitAmount > 0 && (creditAmount == null || creditAmount === 0)) {
+          transactionType = 'expense';
+        } else if (amount != null && amount < 0) {
+          transactionType = 'expense';
+        } else {
+          transactionType = inferredTypeFromContext ?? 'expense';
+        }
+      } else if (transactionType === 'expense' && inferredTypeFromContext === 'income') {
+        // Some trackers use a generic expense type for every row; prefer strong semantic income hints.
+        transactionType = 'income';
       }
 
       if (amount != null) amount = Math.abs(amount);
 
-      const rawDescription = toDisplayValue(getFieldValue(lookup, DESCRIPTION_KEYS));
-      const merchant = toDisplayValue(getFieldValue(lookup, MERCHANT_KEYS));
-      const rawCategory = toDisplayValue(getFieldValue(lookup, CATEGORY_KEYS));
-      const rawSubcategory = toDisplayValue(getFieldValue(lookup, SUBCATEGORY_KEYS));
-      const sourceAccountName = toDisplayValue(getFieldValue(lookup, ACCOUNT_KEYS));
-      const sourcePaymentMethod = toDisplayValue(getFieldValue(lookup, PAYMENT_KEYS));
       const externalId = toDisplayValue(getFieldValue(lookup, EXTERNAL_ID_KEYS));
       const rawTypeValue = normalizeText(toDisplayValue(getFieldValue(lookup, EXPENSE_MODE_KEYS)));
       const expenseMode: ImportPreviewRow['expenseMode'] =
         rawTypeValue === 'group' || rawTypeValue === 'shared' ? 'group' : 'individual';
       const description = isBoilerplateDescription(rawDescription)
-        ? (merchant || rawSubcategory || rawCategory || rawDescription || `Imported row ${index + 1}`)
-        : (rawDescription || merchant || rawSubcategory || rawCategory || `Imported row ${index + 1}`);
+        ? (merchant || rawSubcategory || rawCategory || rawDescription || rawTextBundle || `Imported row ${index + 1}`)
+        : (rawDescription || merchant || rawSubcategory || rawCategory || rawTextBundle || `Imported row ${index + 1}`);
       const accountTarget = resolveAccountTarget(accounts, fallbackAccountId, sourceAccountName, sourcePaymentMethod);
-      const contextText = [description, merchant, rawCategory, rawSubcategory, sourcePaymentMethod, sourceAccountName].filter(Boolean).join(' ');
+      const contextText = [description, merchant, rawCategory, rawSubcategory, sourcePaymentMethod, sourceAccountName, rawTextBundle].filter(Boolean).join(' ');
       const metadata = buildImportMetadata(record, lookup, options.fileName);
 
-      const categoryResult = transactionType === 'income'
+      // Final semantic pass after description/context is assembled.
+      // This catches generic type fields from third-party apps that can mark every row as expense.
+      const narrativeType = inferTransactionTypeFromNarrative(contextText);
+      if (narrativeType) {
+        transactionType = narrativeType;
+      }
+
+      let categoryResult = transactionType === 'income'
         ? resolveIncomeCategory(rawCategory, contextText, categoryCatalog.incomeNames)
         : resolveExpenseCategory(rawCategory, rawSubcategory, contextText, categoryCatalog.expenseNames);
+
+      // Absolute safety net for noisy third-party schemas.
+      // If final narrative clearly indicates income, force type/category to income-side mapping.
+      const finalNarrative = normalizeText([contextText, rawTypeCandidate].filter(Boolean).join(' '));
+      const hasHardIncomeSignal = /\b(salary|payroll|stipend|refund|reimbursement|cashback|interest|dividend|bonus|credited|credit alert|credit from|received|payout)\b/.test(finalNarrative);
+      if (hasHardIncomeSignal) {
+        transactionType = 'income';
+        categoryResult = resolveIncomeCategory(rawCategory || 'Salary', contextText, categoryCatalog.incomeNames);
+      }
 
       const rowErrors: string[] = [];
       if (!date) rowErrors.push('Invalid date');
@@ -1486,12 +1716,16 @@ class SmartExpenseImportService {
     }
 
     const structuredAccountNames = this.structuredPayload && isStructuredLedgerPayload(this.structuredPayload)
-      ? (Array.isArray(this.structuredPayload.accounts)
+      ? (
+        (Array.isArray(this.structuredPayload.accounts)
           ? this.structuredPayload.accounts
-            .filter(isRecordObject)
-            .map((account) => toDisplayValue(account.account_name ?? account.accountName ?? account.name))
-            .filter(Boolean)
-          : [])
+          : Array.isArray(this.structuredPayload.wallets)
+            ? this.structuredPayload.wallets
+            : [])
+          .filter(isRecordObject)
+          .map((account) => toDisplayValue(account.account_name ?? account.accountName ?? account.name ?? account.title ?? account.wallet_name))
+          .filter(Boolean)
+      )
       : [];
 
     const summary = {
@@ -1678,7 +1912,11 @@ class SmartExpenseImportService {
     let updatedInvestments = 0;
     let createdGroupExpenses = 0;
 
-    const userCurrency = isRecordObject(payload.user) ? toDisplayValue(payload.user.currency) : '';
+    const userCurrency = isRecordObject(payload.user)
+      ? toDisplayValue(payload.user.currency)
+      : (isRecordObject(payload.profile)
+        ? toDisplayValue(payload.profile.currency ?? payload.profile.currency_code ?? payload.profile.currencyCode)
+        : '');
 
     const existingAccounts = await db.accounts.toArray();
     const accountNameMap = new Map(existingAccounts.map((account) => [normalizeText(account.name), account]));
@@ -1686,18 +1924,20 @@ class SmartExpenseImportService {
 
     const accountRows = Array.isArray(payload.accounts)
       ? payload.accounts.filter(isRecordObject)
-      : [];
+      : Array.isArray(payload.wallets)
+        ? payload.wallets.filter(isRecordObject)
+        : [];
 
     for (const accountRow of accountRows) {
-      const accountName = toDisplayValue(accountRow.account_name ?? accountRow.accountName ?? accountRow.name).trim();
+      const accountName = toDisplayValue(accountRow.account_name ?? accountRow.accountName ?? accountRow.name ?? accountRow.title).trim();
       if (!accountName) continue;
 
       const normalizedName = normalizeText(accountName);
       let account = accountNameMap.get(normalizedName);
       if (!account) {
-        const rawType = toDisplayValue(accountRow.type ?? accountRow.account_type ?? accountRow.accountType);
+        const rawType = toDisplayValue(accountRow.type ?? accountRow.account_type ?? accountRow.accountType ?? accountRow.category);
         const balance = parseAmountValue(accountRow.balance ?? accountRow.current_balance ?? accountRow.currentBalance) ?? 0;
-        const currency = toDisplayValue(accountRow.currency) || userCurrency || 'INR';
+        const currency = toDisplayValue(accountRow.currency ?? accountRow.currency_code ?? accountRow.currencyCode) || userCurrency || 'INR';
 
         const newAccount: Account = {
           name: accountName,
@@ -1715,7 +1955,7 @@ class SmartExpenseImportService {
         createdAccounts.push(accountName);
       }
 
-      const externalAccountId = toDisplayValue(accountRow.account_id ?? accountRow.accountId ?? accountRow.id);
+      const externalAccountId = toDisplayValue(accountRow.account_id ?? accountRow.accountId ?? accountRow.id ?? accountRow.wallet_id ?? accountRow.walletId);
       if (externalAccountId && account.id != null) {
         accountExternalMap.set(normalizeText(externalAccountId), account.id);
       }
@@ -1728,7 +1968,9 @@ class SmartExpenseImportService {
     const friendExternalMap = new Map<string, number>();
     const friendRows = Array.isArray(payload.friends)
       ? payload.friends.filter(isRecordObject)
-      : [];
+      : Array.isArray(payload.contacts)
+        ? payload.contacts.filter(isRecordObject)
+        : [];
 
     for (const friendRow of friendRows) {
       const name = toDisplayValue(friendRow.name).trim();
@@ -1756,7 +1998,7 @@ class SmartExpenseImportService {
         createdFriends += 1;
       }
 
-      const externalFriendId = toDisplayValue(friendRow.friend_id ?? friendRow.friendId ?? friendRow.id);
+      const externalFriendId = toDisplayValue(friendRow.friend_id ?? friendRow.friendId ?? friendRow.id ?? friendRow.cid ?? friendRow.contact_id ?? friendRow.contactId);
       if (externalFriendId && existing.id != null) {
         friendExternalMap.set(normalizeText(externalFriendId), existing.id);
       }
@@ -1765,16 +2007,18 @@ class SmartExpenseImportService {
     const existingGoals = await db.goals.toArray();
     const goalRows = Array.isArray(payload.goals)
       ? payload.goals.filter(isRecordObject)
-      : [];
+      : Array.isArray(payload.targets)
+        ? payload.targets.filter(isRecordObject)
+        : [];
 
     for (const goalRow of goalRows) {
-      const goalName = toDisplayValue(goalRow.goal_name ?? goalRow.goalName ?? goalRow.name).trim();
+      const goalName = toDisplayValue(goalRow.goal_name ?? goalRow.goalName ?? goalRow.name ?? goalRow.goal).trim();
       if (!goalName) continue;
 
-      const targetAmount = parseAmountValue(goalRow.target_amount ?? goalRow.targetAmount) ?? 0;
-      const savedAmount = parseAmountValue(goalRow.saved_amount ?? goalRow.savedAmount ?? goalRow.current_amount ?? goalRow.currentAmount) ?? 0;
+      const targetAmount = parseAmountValue(goalRow.target_amount ?? goalRow.targetAmount ?? goalRow.target_value ?? goalRow.targetValue) ?? 0;
+      const savedAmount = parseAmountValue(goalRow.saved_amount ?? goalRow.savedAmount ?? goalRow.current_amount ?? goalRow.currentAmount ?? goalRow.saved) ?? 0;
       const monthlySavingPlan = parseAmountValue(goalRow.monthly_saving_plan ?? goalRow.monthlySavingPlan) ?? undefined;
-      const targetDate = parseDateValue(goalRow.target_date ?? goalRow.targetDate) ?? new Date(timestamp.getFullYear() + 1, timestamp.getMonth(), timestamp.getDate());
+      const targetDate = parseDateValue(goalRow.target_date ?? goalRow.targetDate ?? goalRow.deadline) ?? new Date(timestamp.getFullYear() + 1, timestamp.getMonth(), timestamp.getDate());
 
       const memberRows = Array.isArray(goalRow.friends)
         ? goalRow.friends.filter(isRecordObject)
@@ -1834,10 +2078,12 @@ class SmartExpenseImportService {
     const existingLoans = await db.loans.toArray();
     const loanRows = Array.isArray(payload.loans)
       ? payload.loans.filter(isRecordObject)
-      : [];
+      : Array.isArray(payload.debts)
+        ? payload.debts.filter(isRecordObject)
+        : [];
 
     for (const loanRow of loanRows) {
-      const rawLoanType = normalizeText(toDisplayValue(loanRow.type));
+      const rawLoanType = normalizeText(toDisplayValue(loanRow.type ?? loanRow.direction));
       const loanType: Loan['type'] = rawLoanType.includes('emi')
         ? 'emi'
         : rawLoanType.includes('lend')
@@ -1850,13 +2096,13 @@ class SmartExpenseImportService {
           ? 'overdue'
           : 'active';
 
-      const friendExternalId = toDisplayValue(loanRow.friend_id ?? loanRow.friendId);
+      const friendExternalId = toDisplayValue(loanRow.friend_id ?? loanRow.friendId ?? loanRow.contact ?? loanRow.contact_id ?? loanRow.contactId ?? loanRow.cid);
       const linkedFriendId = friendExternalId ? friendExternalMap.get(normalizeText(friendExternalId)) : undefined;
       const linkedFriend = linkedFriendId != null
         ? existingFriends.find((friend) => friend.id === linkedFriendId)
         : undefined;
 
-      const name = toDisplayValue(loanRow.loan_name ?? loanRow.loanName)
+      const name = toDisplayValue(loanRow.loan_name ?? loanRow.loanName ?? loanRow.debt_id ?? loanRow.debtId)
         || (linkedFriend ? `${linkedFriend.name} ${loanType === 'lent' ? 'Loan Given' : 'Loan'}` : '')
         || 'Imported Loan';
       const principalAmount = parseAmountValue(loanRow.total_amount ?? loanRow.totalAmount ?? loanRow.amount) ?? 0;
@@ -1876,7 +2122,7 @@ class SmartExpenseImportService {
           outstandingBalance,
           emiAmount,
           interestRate,
-          dueDate: parseDateValue(loanRow.due_date ?? loanRow.dueDate) ?? existingLoan.dueDate,
+          dueDate: parseDateValue(loanRow.due_date ?? loanRow.dueDate ?? loanRow.due) ?? existingLoan.dueDate,
           loanDate: parseDateValue(loanRow.start_date ?? loanRow.loan_date ?? loanRow.loanDate) ?? existingLoan.loanDate,
           status,
           friendId: linkedFriendId ?? existingLoan.friendId,
@@ -1897,7 +2143,7 @@ class SmartExpenseImportService {
         outstandingBalance,
         interestRate,
         emiAmount,
-        dueDate: parseDateValue(loanRow.due_date ?? loanRow.dueDate) ?? undefined,
+        dueDate: parseDateValue(loanRow.due_date ?? loanRow.dueDate ?? loanRow.due) ?? undefined,
         loanDate: parseDateValue(loanRow.start_date ?? loanRow.loan_date ?? loanRow.loanDate) ?? undefined,
         status,
         contactPerson: linkedFriend?.name,
@@ -1916,7 +2162,9 @@ class SmartExpenseImportService {
     const existingInvestments = await db.investments.toArray();
     const investmentRows = Array.isArray(payload.investments)
       ? payload.investments.filter(isRecordObject)
-      : [];
+      : Array.isArray(payload.portfolio)
+        ? payload.portfolio.filter(isRecordObject)
+        : [];
 
     for (const investmentRow of investmentRows) {
       const assetTypeRaw = normalizeText(toDisplayValue(investmentRow.type));
@@ -1924,7 +2172,7 @@ class SmartExpenseImportService {
         assetTypeRaw === 'stock' || assetTypeRaw === 'crypto' || assetTypeRaw === 'forex' || assetTypeRaw === 'gold' || assetTypeRaw === 'silver'
           ? assetTypeRaw
           : 'other';
-      const assetName = toDisplayValue(investmentRow.asset_name ?? investmentRow.assetName ?? investmentRow.name).trim();
+      const assetName = toDisplayValue(investmentRow.asset_name ?? investmentRow.assetName ?? investmentRow.name ?? investmentRow.asset).trim();
       if (!assetName) continue;
 
       const market = normalizeText(toDisplayValue(investmentRow.market ?? investmentRow.exchange));
@@ -1944,8 +2192,8 @@ class SmartExpenseImportService {
           );
       const baseCurrency = normalizeCurrencyCode(userCurrency, 'INR');
 
-      const quantity = parseAmountValue(investmentRow.quantity) ?? 0;
-      const buyPrice = parseAmountValue(investmentRow.buy_price ?? investmentRow.buyPrice) ?? 0;
+      const quantity = parseAmountValue(investmentRow.quantity ?? investmentRow.qty) ?? 0;
+      const buyPrice = parseAmountValue(investmentRow.buy_price ?? investmentRow.buyPrice ?? investmentRow.buy) ?? 0;
       const currentPrice = parseAmountValue(investmentRow.current_price ?? investmentRow.currentPrice) ?? buyPrice;
       const totalInvested = Number((quantity * buyPrice).toFixed(2));
       const currentValue = Number((quantity * currentPrice).toFixed(2));
@@ -1997,11 +2245,13 @@ class SmartExpenseImportService {
     const existingGroupExpenses = await db.groupExpenses.toArray();
     const groupRows = Array.isArray(payload.group_expenses)
       ? payload.group_expenses.filter(isRecordObject)
-      : [];
+      : Array.isArray(payload.shared_costs)
+        ? payload.shared_costs.filter(isRecordObject)
+        : [];
 
     for (const groupRow of groupRows) {
       const name = toDisplayValue(groupRow.title ?? groupRow.name ?? groupRow.group_name).trim() || 'Imported Group Expense';
-      const totalAmount = parseAmountValue(groupRow.total_amount ?? groupRow.totalAmount ?? groupRow.amount) ?? 0;
+      const totalAmount = parseAmountValue(groupRow.total_amount ?? groupRow.totalAmount ?? groupRow.amount ?? groupRow.total) ?? 0;
       const date = parseDateValue(groupRow.date) ?? timestamp;
       const key = `${normalizeText(name)}|${toDateKey(date)}|${totalAmount.toFixed(2)}`;
       const exists = existingGroupExpenses.some((item) =>
@@ -2012,7 +2262,7 @@ class SmartExpenseImportService {
       const members = (Array.isArray(groupRow.members) ? groupRow.members : [])
         .filter(isRecordObject)
         .map((memberRow) => {
-          const friendExternalId = toDisplayValue(memberRow.friend_id ?? memberRow.friendId);
+          const friendExternalId = toDisplayValue(memberRow.friend_id ?? memberRow.friendId ?? memberRow.cid ?? memberRow.contact_id ?? memberRow.contactId);
           const friendId = friendExternalId ? friendExternalMap.get(normalizeText(friendExternalId)) : undefined;
           const friend = friendId != null ? existingFriends.find((item) => item.id === friendId) : undefined;
           const share = parseAmountValue(memberRow.share ?? memberRow.amount) ?? 0;

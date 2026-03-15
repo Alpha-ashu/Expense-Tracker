@@ -15,6 +15,7 @@ import {
   type SmsDetectedTransaction,
   type Transaction,
 } from '@/lib/database';
+import { financialDataCaptureService } from '@/services/financialDataCaptureService';
 
 export const SMS_TRANSACTION_DRAFT_STORAGE_KEY = 'smsTransactionDraft';
 const DEEP_LINK_SMS_TRANSACTION_ID_KEY = 'deepLink_smsTransactionId';
@@ -373,6 +374,23 @@ const persistNativeTransaction = async (
 
   if (!existing && notifyUser && savedRecord.status === 'detected') {
     await createNotificationForSmsTransaction(savedRecord);
+  }
+
+  const lowConfidence = Number(savedRecord.confidenceScore || 0) < 0.78;
+  const uncertainCategory = !savedRecord.suggestedCategory || /^(miscellaneous|others?)$/i.test(savedRecord.suggestedCategory);
+  if (savedRecord.id && savedRecord.status === 'detected' && (lowConfidence || uncertainCategory)) {
+    await financialDataCaptureService.enqueueAiTask('sms-ai-parse', {
+      smsTransactionId: savedRecord.id,
+      userId: savedRecord.userId,
+      accountId: savedRecord.matchedAccountId,
+      amount: savedRecord.amount,
+      type: savedRecord.transactionType,
+      merchant: savedRecord.merchant,
+      text: savedRecord.messagePreview,
+      category: savedRecord.suggestedCategory,
+      subcategory: savedRecord.suggestedSubcategory,
+      confidence: savedRecord.confidenceScore,
+    }, { processNow: true });
   }
 
   return {

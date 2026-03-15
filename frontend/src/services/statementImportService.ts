@@ -52,6 +52,12 @@ export interface StatementImportOptions {
   documentId?: number;
 }
 
+export interface ImportApplyResult {
+  importedCount: number;
+  insertedTransactionIds: number[];
+  importedTransactions: ParsedTransaction[];
+}
+
 type TransactionColumns = {
   date?: number;
   description?: number;
@@ -311,7 +317,7 @@ class StatementImportService {
     }
   }
 
-  async importTransactions(transactions: ParsedTransaction[], options: StatementImportOptions): Promise<void> {
+  async importTransactions(transactions: ParsedTransaction[], options: StatementImportOptions): Promise<ImportApplyResult> {
     const validTransactions = transactions.filter((transaction) =>
       transaction.transaction_date && !Number.isNaN(transaction.transaction_date.getTime()),
     );
@@ -319,6 +325,8 @@ class StatementImportService {
     if (validTransactions.length === 0) {
       throw new Error('No valid transactions selected for import');
     }
+
+    let insertedTransactionIds: number[] = [];
 
     await db.transaction('rw', [db.transactions, db.accounts, db.documents, db.merchantProfiles, db.userCategoryPreferences], async () => {
       const newTransactions: Transaction[] = validTransactions.map((transaction) => ({
@@ -336,7 +344,10 @@ class StatementImportService {
         rawDescription: transaction.raw_description,
       } as unknown as Transaction));
 
-      await db.transactions.bulkAdd(newTransactions);
+      const insertedKeys = await db.transactions.bulkAdd(newTransactions, { allKeys: true });
+      insertedTransactionIds = insertedKeys
+        .map((key) => Number(key))
+        .filter((key) => Number.isFinite(key));
 
       const account = await db.accounts.get(options.accountId);
       if (account) {
@@ -377,6 +388,12 @@ class StatementImportService {
         });
       }
     });
+
+    return {
+      importedCount: validTransactions.length,
+      insertedTransactionIds,
+      importedTransactions: validTransactions,
+    };
   }
 
   private async extractPdfText(file: File) {
