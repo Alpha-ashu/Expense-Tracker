@@ -33,9 +33,14 @@ model User {
   transactions         Transaction[]
   expenseBills         ExpenseBill[]
   accounts             Account[]
+  friends              Friend[]
+  categories           Category[]
   goals                Goal[]
+  goalContributions    GoalContribution[]
   loans                Loan[]
+  groupExpenses        GroupExpense[]
   investments          Investment[]
+  importLogs           ImportLog[]
   settings             UserSettings[]
   devices              Device[]
   userPin              UserPin?
@@ -101,8 +106,10 @@ model Account {
   deletedAt DateTime?
 
   // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  goalContributions GoalContribution[]
+  paidGroupExpenses GroupExpense[]     @relation("GroupExpensePaidBy")
 
   @@index([userId])
   @@index([isActive])
@@ -125,6 +132,14 @@ model Transaction {
   attachment           String?
   transferToAccountId  String?
   transferType         String?  // self-transfer, other-transfer
+  expenseMode          String?
+  groupExpenseId       String?
+  groupName            String?
+  splitType            String?
+  importSource         String?
+  importMetadata       String?
+  originalCategory     String?
+  importedAt           DateTime?
   synced               Boolean  @default(false)
   syncStatus           String   @default("synced") // synced, pending, conflict
   createdAt            DateTime @default(now())
@@ -132,14 +147,55 @@ model Transaction {
   deletedAt            DateTime?
 
   // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  groupExpense GroupExpense? @relation(fields: [groupExpenseId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([accountId])
   @@index([date])
   @@index([category])
+  @@index([groupExpenseId])
   @@index([syncStatus])
+}
+
+model Friend {
+  id         String   @id @default(cuid())
+  userId     String
+  deviceId   String?
+  name       String
+  email      String?
+  phone      String?
+  avatar     String?
+  notes      String?
+  syncStatus String   @default("synced")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([syncStatus])
+}
+
+model Category {
+  id                String   @id
+  userId            String
+  name              String
+  type              String
+  color             String
+  icon              String
+  createdFromImport Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@unique([userId, name, type])
 }
 
 model ExpenseBill {
@@ -169,6 +225,7 @@ model Goal {
   userId        String
   deviceId      String?  // Device that created this record
   name          String
+  description   String?
   targetAmount  Float
   currentAmount Float    @default(0)
   targetDate    DateTime
@@ -180,10 +237,69 @@ model Goal {
   deletedAt     DateTime?
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
 
   @@index([userId])
   @@index([targetDate])
+  @@index([syncStatus])
+}
+
+model GoalContribution {
+  id         String   @id @default(cuid())
+  userId     String
+  goalId     String
+  accountId  String
+  amount     Float
+  date       DateTime
+  memberName String?
+  status     String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal    Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([goalId])
+  @@index([accountId])
+  @@index([date])
+}
+
+model GroupExpense {
+  id                   String   @id @default(cuid())
+  userId               String
+  deviceId             String?
+  name                 String
+  totalAmount          Float
+  paidBy               String?
+  date                 DateTime
+  members              String?
+  items                String?
+  description          String?
+  category             String?
+  subcategory          String?
+  splitType            String?
+  yourShare            Float?
+  expenseTransactionId String?
+  createdBy            String?
+  createdByName        String?
+  status               String?
+  notificationStatus   String?
+  syncStatus           String   @default("synced")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  deletedAt            DateTime?
+
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paidByAccount     Account?      @relation("GroupExpensePaidBy", fields: [paidBy], references: [id], onDelete: SetNull)
+  linkedTransaction Transaction[]
+
+  @@index([userId])
+  @@index([paidBy])
+  @@index([date])
   @@index([syncStatus])
 }
 
@@ -254,6 +370,32 @@ model Investment {
 
   @@index([userId])
   @@index([assetType])
+}
+
+model ImportLog {
+  id                String   @id @default(cuid())
+  userId            String
+  fileName          String
+  fileType          String
+  sourceKind        String
+  totalRecords      Int
+  importedRecords   Int
+  skippedRecords    Int
+  duplicateRecords  Int
+  createdCategories String   @default("[]")
+  createdAccounts   String   @default("[]")
+  createdGoals      String   @default("[]")
+  updatedGoals      String   @default("[]")
+  failedRecords     Int      @default(0)
+  errors            String   @default("[]")
+  metadata          String?
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([sourceKind])
 }
 
 model UserSettings {

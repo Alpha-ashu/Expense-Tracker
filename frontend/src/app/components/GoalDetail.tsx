@@ -101,6 +101,30 @@ export const GoalDetail: React.FC = () => {
     });
   }, [goal?.members, contributions]);
 
+  const sortedContributions = useMemo(
+    () => [...contributions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [contributions],
+  );
+
+  const lastContributionDate = sortedContributions.length > 0
+    ? new Date(sortedContributions[sortedContributions.length - 1].date)
+    : null;
+
+  const completedOnDate = useMemo(() => {
+    if (!goal) return null;
+    let runningTotal = 0;
+    for (const contribution of sortedContributions) {
+      runningTotal += contribution.amount;
+      if (runningTotal >= goal.targetAmount) {
+        return new Date(contribution.date);
+      }
+    }
+    if (goal.currentAmount >= goal.targetAmount && lastContributionDate) {
+      return lastContributionDate;
+    }
+    return null;
+  }, [goal, sortedContributions, lastContributionDate]);
+
   const addContribution = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!goal?.id) return;
@@ -183,6 +207,22 @@ export const GoalDetail: React.FC = () => {
 
         <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-amber-800 text-sm">
           Suggested Saving: {formatCurrency(monthlySuggestion.monthlyAmount)} / month for {monthlySuggestion.months} month(s)
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">Contribution Info</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-gray-700">
+            <span>
+              Last contribution: {lastContributionDate
+                ? lastContributionDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                : 'No contribution yet'}
+            </span>
+            {completedOnDate && (
+              <span className="font-semibold text-green-700">
+                Completed on: {completedOnDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            )}
+          </div>
         </div>
       </Card>
 

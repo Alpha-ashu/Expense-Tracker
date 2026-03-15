@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/database';
@@ -37,14 +38,14 @@ import {
   resolvePendingSmsTransactionDraft,
 } from '@/services/smsTransactionDetectionService';
 
-const CATEGORIES = {
+const BUILTIN_CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
   income: Object.values(INCOME_CATEGORIES).map(cat => cat.name),
 };
 
 const DEFAULT_CATEGORY = {
-  expense: CATEGORIES.expense.includes('Food & Dining') ? 'Food & Dining' : CATEGORIES.expense[0],
-  income: CATEGORIES.income.includes('Salary') ? 'Salary' : CATEGORIES.income[0],
+  expense: BUILTIN_CATEGORIES.expense.includes('Food & Dining') ? 'Food & Dining' : BUILTIN_CATEGORIES.expense[0],
+  income: BUILTIN_CATEGORIES.income.includes('Salary') ? 'Salary' : BUILTIN_CATEGORIES.income[0],
 };
 
 /* ─────────────── helpers ─────────────── */
@@ -183,6 +184,24 @@ export const AddTransaction: React.FC = () => {
   const [customExpenseSubcategories, setCustomExpenseSubcategories] = useState<CustomExpenseSubcategory[]>(() =>
     loadCustomExpenseSubcategories(),
   );
+  // Live query merges built-in categories with any custom ones created via import
+  const dbCustomCategories = useLiveQuery(
+    () => db.categories.filter((c) => !c.deletedAt).toArray(),
+    [],
+  ) ?? [];
+  const liveCategories = useMemo(() => {
+    const customExpense = dbCustomCategories
+      .filter((c) => c.type === 'expense' && !BUILTIN_CATEGORIES.expense.includes(c.name))
+      .map((c) => c.name);
+    const customIncome = dbCustomCategories
+      .filter((c) => c.type === 'income' && !BUILTIN_CATEGORIES.income.includes(c.name))
+      .map((c) => c.name);
+    return {
+      expense: [...BUILTIN_CATEGORIES.expense, ...customExpense],
+      income: [...BUILTIN_CATEGORIES.income, ...customIncome],
+    };
+  }, [dbCustomCategories]);
+
   const accountPickerRef = useRef<HTMLDivElement | null>(null);
   const incomeSubcategoryPickerRef = useRef<HTMLDivElement | null>(null);
   const groupFriendPickerRef = useRef<HTMLDivElement | null>(null);
@@ -234,7 +253,7 @@ export const AddTransaction: React.FC = () => {
         category?: string | null; description?: string; date?: string;
       };
       const nextType = draft.type ?? 'expense';
-      const categoryList = CATEGORIES[nextType];
+      const categoryList = liveCategories[nextType];
       const normalizedDraftCategory = draft.category
         ? normalizeCategorySelection(draft.category, nextType)
         : DEFAULT_CATEGORY[nextType];
@@ -1952,7 +1971,7 @@ export const AddTransaction: React.FC = () => {
                 setShowIncomeSubcategoryPicker(false);
                 setFormData(p => ({ ...p, category: v, subcategory: '' }));
               }}
-              options={CATEGORIES[formData.type]}
+              options={liveCategories[formData.type]}
               label=""
             />
           </FieldRow>
@@ -2047,7 +2066,7 @@ export const AddTransaction: React.FC = () => {
                               setManualExpenseCategory(true);
                               setFormData((prev) => ({ ...prev, category: value, subcategory: '' }));
                             }}
-                            options={CATEGORIES.expense}
+                            options={liveCategories.expense}
                             label=""
                           />
                         </motion.div>

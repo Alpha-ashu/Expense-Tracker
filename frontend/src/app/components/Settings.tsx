@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '@/lib/database';
-import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, Shield, AlertCircle, CheckCircle2, Bell, ExternalLink, FileText } from 'lucide-react';
+import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, AlertCircle, CheckCircle2, Bell, ExternalLink, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +13,6 @@ import {
   createBackup,
   listBackups
 } from '@/lib/importExport';
-import { isStockProxyDisabled, setStockProxyDisabled as persistStockProxyDisabled } from '@/lib/stockApi';
 import supabase from '@/utils/supabase/client';
 import { permissionService } from '@/services/permissionService';
 import { ImportDataModal } from '@/app/components/ImportDataModal';
@@ -28,6 +27,7 @@ import {
   scanHistoricalSmsTransactions,
   type SmsDetectionStatus,
 } from '@/services/smsTransactionDetectionService';
+import { runWithCloudSyncSuppressed } from '@/lib/auth-sync-integration';
 
 export const Settings: React.FC = () => {
   const { currency, setCurrency, language, setLanguage, visibleFeatures, setVisibleFeatures, accounts, refreshData, setCurrentPage } = useApp();
@@ -38,7 +38,6 @@ export const Settings: React.FC = () => {
   const [importHistory, setImportHistory] = useState<Array<any>>([]);
   const [showImportHistory, setShowImportHistory] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [stockProxyDisabled, setStockProxyDisabledState] = useState(() => isStockProxyDisabled());
   const [smsStatus, setSmsStatus] = useState<SmsDetectionStatus>({
     supported: false,
     enabled: false,
@@ -74,17 +73,6 @@ export const Settings: React.FC = () => {
     const updated = { ...notifSettings, [key]: !notifSettings[key] };
     setNotifSettings(updated);
     localStorage.setItem('notificationSettings', JSON.stringify(updated));
-  };
-
-  const handleToggleStockProxy = () => {
-    const next = !stockProxyDisabled;
-    setStockProxyDisabledState(next);
-    persistStockProxyDisabled(next);
-    if (next) {
-      toast.info('Stock proxy disabled. Live quotes will use direct providers only.');
-    } else {
-      toast.success('Stock proxy enabled.');
-    }
   };
 
   const smsTransactions = useLiveQuery(
@@ -239,19 +227,80 @@ export const Settings: React.FC = () => {
   const handleClearAllData = async () => {
     if (confirm('This will delete ALL your data. This action cannot be undone. Are you sure?')) {
       if (confirm('Are you ABSOLUTELY sure? This is your last warning!')) {
-        await db.accounts.clear();
-        await db.transactions.clear();
-        await db.loans.clear();
-        await db.goals.clear();
-        await db.investments.clear();
-        await db.groupExpenses.clear();
-        await db.notifications.clear();
-        await db.categories.clear();
-        await db.importHistories.clear();
-        await db.smsTransactions.clear();
+        try {
+          // Clear cloud user-scoped entities first so sync does not restore cleared local records.
+          const cloudTables = ['accounts', 'friends', 'transactions', 'loans', 'goals', 'group_expenses', 'investments'] as const;
+          const cloudDeleteErrors: string[] = [];
+          if (user?.id) {
+            const results = await Promise.allSettled(
+              cloudTables.map((table) => supabase.from(table).delete().eq('user_id', user.id)),
+            );
 
-        toast.success('All data cleared');
-        window.location.reload();
+            results.forEach((result, index) => {
+              if (result.status === 'rejected') {
+                cloudDeleteErrors.push(`${cloudTables[index]}: request failed`);
+                return;
+              }
+              if (result.value.error) {
+                cloudDeleteErrors.push(`${cloudTables[index]}: ${result.value.error.message}`);
+              }
+            });
+          }
+
+          // Prevent stale queued upserts from replaying after reload.
+          localStorage.removeItem('finora_sync_queue_v3');
+
+          await runWithCloudSyncSuppressed(async () => {
+            await Promise.all([
+              db.accounts.clear(),
+              db.friends.clear(),
+              db.transactions.clear(),
+              db.loans.clear(),
+              db.loanPayments.clear(),
+              db.goals.clear(),
+              db.goalContributions.clear(),
+              db.groupExpenses.clear(),
+              db.investments.clear(),
+              db.notifications.clear(),
+              db.categories.clear(),
+              db.importHistories.clear(),
+              db.smsTransactions.clear(),
+              db.documents.clear(),
+              db.merchantProfiles.clear(),
+              db.userCategoryPreferences.clear(),
+              db.expenseBills.clear(),
+              db.expenseCategories.clear(),
+              db.budgets.clear(),
+              db.taxCalculations.clear(),
+              db.gold.clear(),
+              db.groups.clear(),
+              db.toDoItems.clear(),
+              db.toDoLists.clear(),
+              db.toDoListShares.clear(),
+              db.chatMessages.clear(),
+              db.chatConversations.clear(),
+              db.bookingRequests.clear(),
+              db.advisorAssignments.clear(),
+              db.advisorSessions.clear(),
+              db.financeAdvisors.clear(),
+              db.logs.clear(),
+              db.errorReports.clear(),
+              db.backups.clear(),
+            ]);
+          });
+
+          if (cloudDeleteErrors.length > 0) {
+            console.warn('Cloud clear partial failures:', cloudDeleteErrors);
+            toast.warning('Local data cleared. Some cloud rows could not be deleted right now.');
+          } else {
+            toast.success('All user data cleared. Profile/account identity has been preserved.');
+          }
+          refreshData();
+          window.location.reload();
+        } catch (error) {
+          console.error('Failed to clear all data:', error);
+          toast.error('Failed to clear all data');
+        }
       }
     }
   };
@@ -382,36 +431,6 @@ export const Settings: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Shield className="text-amber-600" size={20} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900">Stock Proxy</h4>
-                  <p className="text-xs text-gray-500">Disable backend proxy for market data in dev.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                aria-label="Toggle stock proxy"
-                title="Toggle stock proxy"
-                onClick={handleToggleStockProxy}
-                className={cn(
-                  'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-black/20',
-                  stockProxyDisabled ? 'bg-gray-300' : 'bg-black',
-                )}
-              >
-                <span
-                  className={cn(
-                    'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform duration-200',
-                    stockProxyDisabled ? 'translate-x-0' : 'translate-x-5',
-                  )}
-                />
-              </button>
-            </div>
-          </div>
         </div>
       </motion.div>
 

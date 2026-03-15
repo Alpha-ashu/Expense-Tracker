@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, DollarSign, TrendingUp, AlertCircle, Edit2, Trash2, Home, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
@@ -30,6 +31,7 @@ const getEffectiveLoanStatus = (loan: { dueDate?: Date | string; outstandingBala
 
 export const Loans: React.FC = () => {
   const { loans, currency, accounts, setCurrentPage } = useApp();
+  const loanPayments = useLiveQuery(() => db.loanPayments.toArray(), []) || [];
   const [showPaymentModal, setShowPaymentModal] = useState<number | null>(null);
   const [editingLoanId, setEditingLoanId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
@@ -56,6 +58,38 @@ export const Loans: React.FC = () => {
       currency: currency,
     }).format(amount);
   };
+
+  const formatShortDate = (value?: Date | string) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const latestPaymentByLoan = useMemo(() => {
+    const map = new Map<number, Date>();
+    loanPayments.forEach((payment) => {
+      if (!payment.loanId || !payment.date) return;
+      const paymentDate = new Date(payment.date);
+      if (Number.isNaN(paymentDate.getTime())) return;
+      const existing = map.get(payment.loanId);
+      if (!existing || paymentDate > existing) {
+        map.set(payment.loanId, paymentDate);
+      }
+    });
+    return map;
+  }, [loanPayments]);
+
+  const completionDateByLoan = useMemo(() => {
+    const map = new Map<number, Date>();
+    loans.forEach((loan) => {
+      if (!loan.id) return;
+      if (getEffectiveLoanStatus(loan) !== 'completed') return;
+      const lastPayment = latestPaymentByLoan.get(loan.id);
+      if (lastPayment) map.set(loan.id, lastPayment);
+    });
+    return map;
+  }, [loans, latestPaymentByLoan]);
 
   const getLoanStatusColor = (loan: any) => {
     const status = getEffectiveLoanStatus(loan);
@@ -340,6 +374,22 @@ export const Loans: React.FC = () => {
                           max={Math.max(1, loan.principalAmount)}
                           aria-label="Loan repayment progress"
                         />
+
+                        <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">Payment Info</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-700">
+                            <span>
+                              Last paid: {loan.id && latestPaymentByLoan.get(loan.id)
+                                ? formatShortDate(latestPaymentByLoan.get(loan.id))
+                                : 'No payment yet'}
+                            </span>
+                            {loan.id && completionDateByLoan.get(loan.id) && (
+                              <span className="font-semibold text-green-700">
+                                Completed on: {formatShortDate(completionDateByLoan.get(loan.id))}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
                         <button
                           onClick={() => setShowPaymentModal(loan.id!)}

@@ -189,7 +189,7 @@ export function getStockDataSetupHint(): string | null {
   }
 
   if (isStockProxyDisabled()) {
-    return 'Stock proxy is disabled. Enable it or add VITE_TWELVEDATA_API_KEY to frontend/.env.local.';
+    return 'Stock proxy is disabled in this build. Add VITE_TWELVEDATA_API_KEY to frontend/.env.local for direct quotes.';
   }
 
   const proxyCandidates = getStockProxyBases();

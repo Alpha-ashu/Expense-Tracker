@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -12,12 +13,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { type Account } from '@/lib/database';
+import { type Account, db } from '@/lib/database';
 import { INCOME_CATEGORIES, getExpenseCategoryNames } from '@/lib/expenseCategories';
 import {
   smartExpenseImportService,
   type ImportPreviewRow,
   type SmartImportPreview,
+  type ThirdPartyImportResult,
 } from '@/services/smartExpenseImportService';
 
 interface ImportDataModalProps {
@@ -39,8 +41,8 @@ const formatDate = (date: Date | null) =>
     ? date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     : 'Invalid date';
 
-const expenseCategoryOptions = getExpenseCategoryNames();
-const incomeCategoryOptions = Object.values(INCOME_CATEGORIES).map((category) => category.name);
+const BUILTIN_EXPENSE_CATEGORIES = getExpenseCategoryNames();
+const BUILTIN_INCOME_CATEGORIES = Object.values(INCOME_CATEGORIES).map((category) => category.name);
 
 export const ImportDataModal: React.FC<ImportDataModalProps> = ({
   accounts,
@@ -52,12 +54,40 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<SmartImportPreview | null>(null);
   const [rows, setRows] = useState<ImportPreviewRow[]>([]);
+
+  // Merge built-in categories with any user-created custom categories from prior imports
+  const dbCustomCategories = useLiveQuery(
+    () => db.categories.filter((c) => !c.deletedAt).toArray(),
+    [],
+  ) ?? [];
+  const expenseCategoryOptions = useMemo(() => [
+    ...BUILTIN_EXPENSE_CATEGORIES,
+    ...dbCustomCategories
+      .filter((c) => c.type === 'expense' && !BUILTIN_EXPENSE_CATEGORIES.includes(c.name))
+      .map((c) => c.name),
+  ], [dbCustomCategories]);
+  const incomeCategoryOptions = useMemo(() => [
+    ...BUILTIN_INCOME_CATEGORIES,
+    ...dbCustomCategories
+      .filter((c) => c.type === 'income' && !BUILTIN_INCOME_CATEGORIES.includes(c.name))
+      .map((c) => c.name),
+  ], [dbCustomCategories]);
   const [fallbackAccountId, setFallbackAccountId] = useState<number>(accounts[0]?.id ?? 0);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [importReport, setImportReport] = useState<ThirdPartyImportResult | null>(null);
 
   const visibleRows = useMemo(() => rows.slice(0, 120), [rows]);
+
+  const resetImportState = () => {
+    setSelectedFile(null);
+    setPreview(null);
+    setRows([]);
+    setImportReport(null);
+    setIsParsing(false);
+    setIsImporting(false);
+  };
 
   const handleFileSelection = async (file: File) => {
     if (!file.name.match(/\.(csv|json)$/i)) {
@@ -73,6 +103,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
     setSelectedFile(file);
     setPreview(null);
     setRows([]);
+    setImportReport(null);
     setIsParsing(true);
 
     try {
@@ -93,7 +124,16 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
 
   const handleFallbackAccountChange = (accountId: number) => {
     setFallbackAccountId(accountId);
-    setRows((currentRows) => currentRows.map((row) => ({ ...row, accountId })));
+    const fallbackAccount = accounts.find((account) => account.id === accountId);
+    setRows((currentRows) => currentRows.map((row) => (
+      row.accountResolution === 'fallback'
+        ? {
+            ...row,
+            accountId,
+            resolvedAccountName: fallbackAccount?.name ?? row.resolvedAccountName,
+          }
+        : row
+    )));
   };
 
   const handleCategoryChange = (rowId: string, category: string) => {
@@ -143,9 +183,9 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
         userId,
       });
 
+      setImportReport(result);
       toast.success(`Imported ${result.importedCount} record${result.importedCount === 1 ? '' : 's'}`);
       onImported?.();
-      onClose();
     } catch (error) {
       console.error('Import failed:', error);
       toast.error('Import failed');
@@ -181,7 +221,87 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          {!selectedFile && !isParsing && (
+          {importReport && (
+            <div className="space-y-5">
+              <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-2xl bg-emerald-100 p-2 text-emerald-700">
+                    <CheckCircle2 size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-emerald-900">Import completed</h4>
+                    <p className="mt-1 text-sm text-emerald-800">
+                      Transactions, accounts, and dependent modules were updated from this file.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Imported</p>
+                  <p className="mt-2 text-2xl font-semibold text-gray-900">{importReport.importedCount}</p>
+                </div>
+                <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-amber-600">Duplicates Ignored</p>
+                  <p className="mt-2 text-2xl font-semibold text-amber-900">{importReport.duplicateCount}</p>
+                </div>
+                <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-500">Failed</p>
+                  <p className="mt-2 text-2xl font-semibold text-red-700">{importReport.failedCount}</p>
+                </div>
+                <div className="rounded-[24px] border border-sky-200 bg-sky-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-600">Accounts Created</p>
+                  <p className="mt-2 text-2xl font-semibold text-sky-900">{importReport.createdAccounts.length}</p>
+                </div>
+                <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">Categories Created</p>
+                  <p className="mt-2 text-2xl font-semibold text-emerald-800">{importReport.createdCategories.length}</p>
+                </div>
+                <div className="rounded-[24px] border border-violet-200 bg-violet-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-violet-600">Group Expenses</p>
+                  <p className="mt-2 text-2xl font-semibold text-violet-900">{importReport.createdGroupExpenses}</p>
+                </div>
+                <div className="rounded-[24px] border border-indigo-200 bg-indigo-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-600">Friends Added</p>
+                  <p className="mt-2 text-2xl font-semibold text-indigo-900">{importReport.createdFriends}</p>
+                </div>
+                <div className="rounded-[24px] border border-orange-200 bg-orange-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-orange-600">Loans (New / Updated)</p>
+                  <p className="mt-2 text-2xl font-semibold text-orange-900">{importReport.createdLoans} / {importReport.updatedLoans}</p>
+                </div>
+                <div className="rounded-[24px] border border-cyan-200 bg-cyan-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-600">Investments (New / Updated)</p>
+                  <p className="mt-2 text-2xl font-semibold text-cyan-900">{importReport.createdInvestments} / {importReport.updatedInvestments}</p>
+                </div>
+              </div>
+
+              {(importReport.createdAccounts.length > 0 || importReport.createdCategories.length > 0 || importReport.updatedGoals.length > 0) && (
+                <div className="grid gap-4 lg:grid-cols-3">
+                  {importReport.createdAccounts.length > 0 && (
+                    <div className="rounded-[24px] border border-gray-200 bg-white px-4 py-4">
+                      <h5 className="text-sm font-semibold text-gray-900">Accounts Created</h5>
+                      <p className="mt-2 text-sm text-gray-600">{importReport.createdAccounts.join(', ')}</p>
+                    </div>
+                  )}
+                  {importReport.createdCategories.length > 0 && (
+                    <div className="rounded-[24px] border border-gray-200 bg-white px-4 py-4">
+                      <h5 className="text-sm font-semibold text-gray-900">Categories Created</h5>
+                      <p className="mt-2 text-sm text-gray-600">{importReport.createdCategories.join(', ')}</p>
+                    </div>
+                  )}
+                  {importReport.updatedGoals.length > 0 && (
+                    <div className="rounded-[24px] border border-gray-200 bg-white px-4 py-4">
+                      <h5 className="text-sm font-semibold text-gray-900">Goals Updated</h5>
+                      <p className="mt-2 text-sm text-gray-600">{importReport.updatedGoals.join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!importReport && !selectedFile && !isParsing && (
             <div className="flex h-full flex-col items-center justify-center rounded-[28px] border border-dashed border-gray-300 bg-gray-50/80 px-6 py-16 text-center">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white">
                 <Upload size={24} />
@@ -208,7 +328,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
             </div>
           )}
 
-          {selectedFile && preview?.kind === 'backup' && !isParsing && (
+          {!importReport && selectedFile && preview?.kind === 'backup' && !isParsing && (
             <div className="space-y-5">
               <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
                 <div className="flex items-start gap-3">
@@ -254,15 +374,15 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
             </div>
           )}
 
-          {selectedFile && preview?.kind === 'third-party' && !isParsing && (
+          {!importReport && selectedFile && preview?.kind === 'third-party' && !isParsing && (
             <div className="space-y-5">
               {accounts.length === 0 && (
                 <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
-                  Create at least one account before importing third-party transactions. Backup restore still works without this.
+                  No accounts exist yet. The importer will create accounts automatically from the file or use a generic imported account when needed.
                 </div>
               )}
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                 <div className="rounded-[24px] border border-gray-200 bg-gray-50 px-4 py-4">
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Ready</p>
                   <p className="mt-2 text-2xl font-semibold text-gray-900">{preview.summary.readyRecords}</p>
@@ -279,25 +399,35 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">New Categories</p>
                   <p className="mt-2 text-2xl font-semibold text-emerald-800">{preview.summary.createdCategories.length}</p>
                 </div>
+                <div className="rounded-[24px] border border-sky-200 bg-sky-50 px-4 py-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-sky-600">New Accounts</p>
+                  <p className="mt-2 text-2xl font-semibold text-sky-900">{preview.summary.createdAccounts.length}</p>
+                </div>
               </div>
 
               <div className="grid gap-4 rounded-[28px] border border-gray-200 bg-gray-50/80 p-4 lg:grid-cols-[1.2fr_0.8fr]">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-400">Import Into Account</p>
-                  <select
-                    value={fallbackAccountId}
-                    onChange={(event) => handleFallbackAccountChange(Number(event.target.value))}
-                    className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/5"
-                    aria-label="Select import target account"
-                  >
-                    {accounts.map((account) => (
-                      <option key={account.id} value={account.id}>
-                        {account.name} ({account.currency} {account.balance.toFixed(2)})
-                      </option>
-                    ))}
-                  </select>
+                  {accounts.length > 0 ? (
+                    <select
+                      value={fallbackAccountId}
+                      onChange={(event) => handleFallbackAccountChange(Number(event.target.value))}
+                      className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/5"
+                      aria-label="Select import target account"
+                    >
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} ({account.currency} {account.balance.toFixed(2)})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="mt-2 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-3 text-sm text-gray-600">
+                      Rows without an account hint will be assigned to an imported fallback account automatically.
+                    </div>
+                  )}
                   <p className="mt-2 text-xs text-gray-500">
-                    Extra payment method or account fields from the source file are still preserved in transaction metadata.
+                    Explicit account and payment method fields will create or map accounts automatically. Other extra fields are preserved in metadata.
                   </p>
                 </div>
 
@@ -348,6 +478,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                       <tr className="text-left text-xs uppercase tracking-[0.18em] text-gray-400">
                         <th className="px-4 py-3">Date</th>
                         <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Account</th>
                         <th className="px-4 py-3">Category</th>
                         <th className="px-4 py-3">Status</th>
                         <th className="px-4 py-3">Description</th>
@@ -366,6 +497,14 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                               </div>
                             </td>
                             <td className="px-4 py-3 font-semibold text-gray-900">{formatAmount(row.amount)}</td>
+                            <td className="px-4 py-3 text-gray-600">
+                              <div className="font-medium text-gray-900">{row.resolvedAccountName}</div>
+                              {(row.sourceAccountName || row.sourcePaymentMethod) && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Source: {row.sourceAccountName || row.sourcePaymentMethod}
+                                </p>
+                              )}
+                            </td>
                             <td className="px-4 py-3">
                               <select
                                 value={row.category}
@@ -400,8 +539,10 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                               ) : (
                                 <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                                   <CheckCircle2 size={14} />
-                                  {row.categoryResolution === 'created'
-                                    ? 'New category'
+                                  {row.accountResolution === 'created' || row.accountResolution === 'payment-method'
+                                    ? 'Will create account'
+                                    : row.categoryResolution === 'created'
+                                      ? 'New category'
                                     : row.categoryResolution === 'mapped'
                                       ? 'Will map'
                                       : row.categoryResolution === 'detected'
@@ -446,30 +587,48 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                {selectedFile ? 'Change File' : 'Choose File'}
-              </button>
-              <button
-                onClick={handleImport}
-                disabled={
-                  isParsing ||
-                  isImporting ||
-                  !selectedFile ||
-                  !preview ||
-                  (preview.kind === 'third-party' && accounts.length === 0) ||
-                  (preview.kind === 'third-party' && !canImportThirdParty)
-                }
-                className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isImporting
-                  ? 'Importing...'
-                  : preview?.kind === 'backup'
-                    ? 'Restore Backup'
-                    : 'Confirm Import'}
-              </button>
+              {importReport ? (
+                <>
+                  <button
+                    onClick={resetImportState}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Import Another File
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900"
+                  >
+                    Close
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    {selectedFile ? 'Change File' : 'Choose File'}
+                  </button>
+                  <button
+                    onClick={handleImport}
+                    disabled={
+                      isParsing ||
+                      isImporting ||
+                      !selectedFile ||
+                      !preview ||
+                      (preview.kind === 'third-party' && !canImportThirdParty)
+                    }
+                    className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isImporting
+                      ? 'Importing...'
+                      : preview?.kind === 'backup'
+                        ? 'Restore Backup'
+                        : 'Confirm Import'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -478,6 +637,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
           ref={fileInputRef}
           type="file"
           accept=".csv,.json"
+          aria-label="Choose import file"
           className="hidden"
           onChange={(event) => {
             const file = event.target.files?.[0];

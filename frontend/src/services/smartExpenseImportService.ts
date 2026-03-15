@@ -2,9 +2,15 @@ import {
   db,
   type Account,
   type AppCategory,
+  type Friend,
+  type Goal,
+  type GroupExpense,
   type ImportHistory,
+  type Investment,
+  type Loan,
   type Transaction,
 } from '@/lib/database';
+import { initializeBackendSync } from '@/lib/auth-sync-integration';
 import {
   INCOME_CATEGORIES,
   detectExpenseCategoryFromText,
@@ -13,18 +19,23 @@ import {
   getExpenseCategoryNames,
   normalizeCategorySelection,
 } from '@/lib/expenseCategories';
+import { normalizeCurrencyCode } from '@/lib/currencyUtils';
 import { importDataFromJSON } from '@/lib/importExport';
 
 type ImportFileType = 'csv' | 'json';
-type ImportSourceKind = 'third-party' | 'backup';
 type ImportTransactionType = 'expense' | 'income';
 type CategoryResolution = 'exact' | 'mapped' | 'detected' | 'created' | 'fallback' | 'manual';
+type AccountResolution = 'existing' | 'created' | 'payment-method' | 'fallback' | 'manual';
 
 export interface ImportPreviewRow {
   id: string;
   rowNumber: number;
   transactionType: ImportTransactionType;
   accountId: number;
+  sourceAccountName: string;
+  sourcePaymentMethod: string;
+  resolvedAccountName: string;
+  accountResolution: AccountResolution;
   date: Date | null;
   amount: number;
   description: string;
@@ -39,6 +50,8 @@ export interface ImportPreviewRow {
   errors: string[];
   metadata: Record<string, string>;
   originalData: Record<string, unknown>;
+  externalId?: string;
+  expenseMode?: 'individual' | 'group';
 }
 
 export interface ThirdPartyImportPreview {
@@ -55,6 +68,7 @@ export interface ThirdPartyImportPreview {
     exactMatches: number;
     mappedMatches: number;
     detectedMatches: number;
+    createdAccounts: string[];
     createdCategories: string[];
   };
 }
@@ -66,6 +80,23 @@ export interface BackupImportPreview {
   exportedAt?: string;
   version?: string;
   counts: Array<{ label: string; count: number }>;
+}
+
+export interface ThirdPartyImportResult {
+  importedCount: number;
+  skippedCount: number;
+  duplicateCount: number;
+  failedCount: number;
+  createdAccounts: string[];
+  createdCategories: string[];
+  createdGroupExpenses: number;
+  createdGoals: string[];
+  updatedGoals: string[];
+  createdFriends: number;
+  createdLoans: number;
+  updatedLoans: number;
+  createdInvestments: number;
+  updatedInvestments: number;
 }
 
 export type SmartImportPreview = ThirdPartyImportPreview | BackupImportPreview;
@@ -94,7 +125,36 @@ interface ExistingCategoryCatalog {
   rawCategories: AppCategory[];
 }
 
-const IMPORTABLE_ARRAY_KEYS = ['transactions', 'expenses', 'entries', 'records', 'items', 'data'];
+interface ResolvedAccountTarget {
+  accountId: number;
+  resolvedAccountName: string;
+  accountResolution: AccountResolution;
+}
+
+interface EnsuredAccountResult {
+  accountsByRowId: Map<string, Account>;
+  createdAccounts: string[];
+  createdAccountIds: Set<number>;
+}
+
+interface ExtractedGoalData {
+  goalName: string;
+  targetAmount?: number;
+  targetDate?: Date;
+}
+
+interface GoalRegistryEntry {
+  goal: Goal;
+  created: boolean;
+}
+
+interface ExtractedGroupData {
+  name: string;
+  members: Array<{ name: string; share?: number }>;
+  splitType: 'equal' | 'custom';
+}
+
+const IMPORTABLE_ARRAY_KEYS = ['transactions', 'expenses', 'entries', 'records', 'items', 'data', 'results', 'payload'];
 const DATE_KEYS = ['date', 'transactiondate', 'transaction_date', 'spentat', 'createdat', 'created_at', 'timestamp'];
 const AMOUNT_KEYS = ['amount', 'total', 'value', 'price', 'expense', 'debit', 'debitamount', 'debit_amount'];
 const CREDIT_KEYS = ['credit', 'creditamount', 'credit_amount', 'income'];
@@ -102,10 +162,56 @@ const CATEGORY_KEYS = ['category', 'categoryname', 'expensecategory', 'expense_t
 const SUBCATEGORY_KEYS = ['subcategory', 'sub_category', 'subcategoryname'];
 const DESCRIPTION_KEYS = ['description', 'details', 'note', 'notes', 'memo', 'title', 'narration'];
 const MERCHANT_KEYS = ['merchant', 'merchantname', 'merchant_name', 'payee', 'vendor', 'store'];
-const PAYMENT_KEYS = ['paymentmethod', 'payment_method', 'paymentmode', 'payment_mode', 'account', 'accountname', 'account_name'];
+const ACCOUNT_KEYS = [
+  'account',
+  'accountname',
+  'account_name',
+  'wallet',
+  'walletname',
+  'wallet_name',
+  'bank',
+  'bankname',
+  'bank_name',
+  'card',
+  'cardname',
+  'card_name',
+  'sourceaccount',
+  'source_account',
+  'fromaccount',
+  'from_account',
+];
+const PAYMENT_KEYS = ['paymentmethod', 'payment_method', 'paymentmode', 'payment_mode', 'paymentchannel', 'payment_channel', 'mode', 'method'];
 const CURRENCY_KEYS = ['currency', 'currencycode', 'currency_code'];
 const TYPE_KEYS = ['type', 'transactiontype', 'transaction_type', 'entrytype', 'entry_type'];
 const FX_RATE_KEYS = ['fxrate', 'fx_rate', 'exchangerate', 'exchange_rate', 'rate'];
+const ACCOUNT_BALANCE_KEYS = [
+  'balance',
+  'accountbalance',
+  'account_balance',
+  'availablebalance',
+  'available_balance',
+  'currentbalance',
+  'current_balance',
+  'closingbalance',
+  'closing_balance',
+  'ledgerbalance',
+  'ledger_balance',
+  'runningbalance',
+  'running_balance',
+  'balanceafter',
+  'balance_after',
+  'balanceaftertransaction',
+  'balance_after_transaction',
+  'postbalance',
+  'post_balance',
+];
+const GROUP_NAME_KEYS = ['group', 'groupname', 'group_name', 'groupexpense', 'group_expense', 'sharedexpense', 'shared_expense'];
+const GROUP_MEMBER_KEYS = ['participants', 'members', 'sharedwith', 'shared_with', 'splitwith', 'split_with'];
+const GOAL_NAME_KEYS = ['goal', 'goalname', 'goal_name', 'savingsgoal', 'savings_goal', 'savinggoal', 'saving_goal', 'fund', 'bucket'];
+const GOAL_TARGET_KEYS = ['targetamount', 'target_amount', 'goalamount', 'goal_amount'];
+const GOAL_DATE_KEYS = ['goaldate', 'goal_date', 'deadline', 'targetdate', 'target_date'];
+const EXTERNAL_ID_KEYS = ['expenseid', 'expense_id', 'transactionid', 'txnid', 'txid', 'externalid', 'referenceid', 'refid', 'uid', 'uuid'];
+const EXPENSE_MODE_KEYS = ['type', 'expensetype', 'expense_type', 'mode', 'expensemode'];
 const KNOWN_FIELD_GROUPS = [
   ...DATE_KEYS,
   ...AMOUNT_KEYS,
@@ -114,11 +220,22 @@ const KNOWN_FIELD_GROUPS = [
   ...SUBCATEGORY_KEYS,
   ...DESCRIPTION_KEYS,
   ...MERCHANT_KEYS,
+  ...ACCOUNT_KEYS,
   ...PAYMENT_KEYS,
   ...CURRENCY_KEYS,
   ...TYPE_KEYS,
   ...FX_RATE_KEYS,
+  ...ACCOUNT_BALANCE_KEYS,
+  ...GROUP_NAME_KEYS,
+  ...GROUP_MEMBER_KEYS,
+  ...GOAL_NAME_KEYS,
+  ...GOAL_TARGET_KEYS,
+  ...GOAL_DATE_KEYS,
+  ...EXTERNAL_ID_KEYS,
   'id',
+  'exportedat',
+  'exported_at',
+  'app',
   'tags',
   'location',
   'receipturl',
@@ -161,10 +278,26 @@ const toDisplayValue = (value: unknown): string => {
   return String(value).trim();
 };
 
-const buildDuplicateKey = (date: Date | null, amount: number, description: string) => {
+const BOILERPLATE_DESCRIPTION_PATTERNS = [
+  /^imported?\s+(test\s+)?expense\s+from/i,
+  /^imported?\s+transaction/i,
+  /^sample\s+(expense|transaction)/i,
+  /^test\s+(expense|transaction)/i,
+  /^(auto|system)[- ]?(generated|created)/i,
+  /^expense\s+entry/i,
+];
+
+export const isBoilerplateDescription = (text: string): boolean => {
+  if (!text || !text.trim()) return true;
+  return BOILERPLATE_DESCRIPTION_PATTERNS.some((pattern) => pattern.test(text.trim()));
+};
+
+const buildDuplicateKey = (date: Date | null, amount: number, description: string, accountReference = '', merchant = '') => {
   if (!date || !Number.isFinite(amount)) return '';
   const normalizedDescription = normalizeText(description).replace(/\s+/g, '').slice(0, 80);
-  return `${toDateKey(date)}|${amount.toFixed(2)}|${normalizedDescription}`;
+  const normalizedAccount = normalizeText(accountReference).replace(/\s+/g, '').slice(0, 60);
+  const normalizedMerchant = normalizeText(merchant).replace(/\s+/g, '').slice(0, 60);
+  return `${toDateKey(date)}|${amount.toFixed(2)}|${normalizedAccount}|${normalizedDescription}|${normalizedMerchant}`;
 };
 
 const createRowId = (index: number) =>
@@ -323,38 +456,151 @@ const isFinoraBackupPayload = (payload: unknown): payload is Record<string, unkn
   return Array.isArray(record.accounts) && Array.isArray(record.transactions) && typeof record.version === 'string';
 };
 
-const extractJsonRecords = (payload: unknown): Array<Record<string, unknown>> => {
-  if (Array.isArray(payload)) {
-    return payload.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item));
-  }
+const isRecordObject = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === 'object' && !Array.isArray(value);
 
-  if (!payload || typeof payload !== 'object') return [];
-  const record = payload as Record<string, unknown>;
+const isStructuredLedgerPayload = (payload: unknown): payload is Record<string, unknown> => {
+  if (!isRecordObject(payload)) return false;
+  return Array.isArray(payload.transactions) && Array.isArray(payload.accounts);
+};
 
-  for (const key of IMPORTABLE_ARRAY_KEYS) {
-    if (Array.isArray(record[key])) {
-      return record[key].filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item));
+const extractStructuredLedgerRecords = (payload: unknown): Array<Record<string, unknown>> => {
+  if (!isStructuredLedgerPayload(payload)) return extractJsonRecords(payload);
+
+  const accounts = payload.accounts.filter(isRecordObject);
+  const accountById = new Map<string, Record<string, unknown>>();
+  accounts.forEach((account) => {
+    const id = toDisplayValue(account.account_id ?? account.accountId ?? account.id);
+    if (id) accountById.set(normalizeText(id), account);
+  });
+
+  const userCurrency = isRecordObject(payload.user)
+    ? toDisplayValue(payload.user.currency)
+    : '';
+
+  const transactions = payload.transactions.filter(isRecordObject);
+  return transactions.map((transaction) => {
+    const accountRef = toDisplayValue(
+      transaction.account_id
+      ?? transaction.accountId
+      ?? transaction.account
+      ?? transaction.wallet_id
+      ?? transaction.walletId,
+    );
+    const account = accountRef ? accountById.get(normalizeText(accountRef)) : undefined;
+
+    const enriched: Record<string, unknown> = { ...transaction };
+
+    if (account) {
+      const accountName = toDisplayValue(account.account_name ?? account.accountName ?? account.name);
+      const accountType = toDisplayValue(account.type ?? account.account_type ?? account.accountType);
+      const accountBalance = account.balance ?? account.current_balance ?? account.currentBalance;
+      const accountCurrency = toDisplayValue(account.currency);
+
+      if (!toDisplayValue(enriched.account_name) && accountName) enriched.account_name = accountName;
+      if (!toDisplayValue(enriched.payment_method) && accountType) enriched.payment_method = accountType;
+      if (enriched.account_balance == null && accountBalance != null) enriched.account_balance = accountBalance;
+      if (!toDisplayValue(enriched.currency) && (accountCurrency || userCurrency)) {
+        enriched.currency = accountCurrency || userCurrency;
+      }
+    } else if (!toDisplayValue(enriched.currency) && userCurrency) {
+      enriched.currency = userCurrency;
     }
-  }
 
-  return [];
+    if (!toDisplayValue(enriched.expense_id)) {
+      const txId = toDisplayValue(enriched.transaction_id ?? enriched.transactionId ?? enriched.id);
+      if (txId) enriched.expense_id = txId;
+    }
+
+    return enriched;
+  });
 };
 
 const buildLookup = (record: Record<string, unknown>) => {
   const lookup: Record<string, unknown> = {};
+
+  const visit = (value: unknown, path: string[] = []) => {
+    if (Array.isArray(value)) {
+      const leafKey = path[path.length - 1];
+      if (leafKey) lookup[normalizeKey(leafKey)] = value;
+      return;
+    }
+
+    if (value && typeof value === 'object') {
+      Object.entries(value as Record<string, unknown>).forEach(([childKey, childValue]) => {
+        const nextPath = [...path, childKey];
+        lookup[normalizeKey(childKey)] = childValue;
+        lookup[normalizeKey(nextPath.join('_'))] = childValue;
+        visit(childValue, nextPath);
+      });
+      return;
+    }
+
+    const leafKey = path[path.length - 1];
+    if (leafKey) {
+      lookup[normalizeKey(leafKey)] = value;
+      lookup[normalizeKey(path.join('_'))] = value;
+    }
+  };
+
   Object.entries(record).forEach(([key, value]) => {
     lookup[normalizeKey(key)] = value;
+    visit(value, [key]);
   });
+
   return lookup;
 };
 
-const buildDescription = (baseDescription: string, metadata: Record<string, string>, sourceName: string) => {
-  const lines = Object.entries(metadata)
-    .filter(([, value]) => value)
-    .map(([key, value]) => `${key}: ${value}`);
+const extractJsonRecords = (payload: unknown): Array<Record<string, unknown>> => {
+  const queue: unknown[] = [payload];
+  const seen = new Set<unknown>();
+  let bestCandidate: Array<Record<string, unknown>> = [];
 
-  lines.push(`Imported From: ${sourceName}`);
-  return [baseDescription.trim(), ...lines].filter(Boolean).join('\n');
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current == null || seen.has(current)) continue;
+    seen.add(current);
+
+    if (Array.isArray(current)) {
+      const objectRows = current.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item));
+      if (objectRows.length > 0) {
+        if (objectRows.length === current.length) return objectRows;
+        if (objectRows.length > bestCandidate.length) bestCandidate = objectRows;
+      }
+
+      current.forEach((item) => {
+        if (item && typeof item === 'object') queue.push(item);
+      });
+      continue;
+    }
+
+    if (current && typeof current === 'object') {
+      const record = current as Record<string, unknown>;
+
+      for (const key of IMPORTABLE_ARRAY_KEYS) {
+        if (Array.isArray(record[key])) {
+          const prioritized = record[key].filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item));
+          if (prioritized.length > 0) return prioritized;
+        }
+      }
+
+      Object.values(record).forEach((value) => {
+        if (value && typeof value === 'object') queue.push(value);
+      });
+
+      const lookup = buildLookup(record);
+      if ((getFieldValue(lookup, DATE_KEYS) != null || getFieldValue(lookup, AMOUNT_KEYS) != null) && bestCandidate.length === 0) {
+        bestCandidate = [record];
+      }
+    }
+  }
+
+  return bestCandidate;
+};
+
+const buildDescription = (baseDescription: string, merchant: string, category: string) => {
+  const primary = baseDescription.trim() || merchant.trim() || category.trim() || 'Imported expense';
+  return primary.replace(/\s+/g, ' ').slice(0, 160);
 };
 
 const resolveImportedAmount = (
@@ -381,6 +627,155 @@ const resolveImportedAmount = (
 };
 
 const getIncomeCategoryNames = () => Object.values(INCOME_CATEGORIES).map((category) => category.name);
+
+const GENERIC_PAYMENT_METHOD_NAMES = new Set(['cash', 'upi', 'wallet', 'credit card', 'debit card', 'card', 'net banking', 'bank transfer']);
+
+const toFriendlyAccountName = (accountName: string, paymentMethod: string) => {
+  if (accountName) return accountName.trim();
+
+  const normalizedPayment = normalizeText(paymentMethod);
+  if (!normalizedPayment) return 'Imported Account';
+  if (normalizedPayment.includes('cash')) return 'Cash Wallet';
+  if (normalizedPayment.includes('upi')) return 'UPI Wallet';
+  if (normalizedPayment.includes('wallet')) return 'Digital Wallet';
+  if (normalizedPayment.includes('credit') || normalizedPayment.includes('debit') || normalizedPayment.includes('card')) return 'Imported Card';
+  if (normalizedPayment.includes('net banking') || normalizedPayment.includes('bank')) return 'Imported Bank Account';
+  return titleCase(paymentMethod);
+};
+
+const inferAccountType = (accountName: string, paymentMethod: string): Account['type'] => {
+  const normalized = normalizeText(`${accountName} ${paymentMethod}`);
+  if (normalized.includes('cash')) return 'cash';
+  if (
+    normalized.includes('wallet') ||
+    normalized.includes('upi') ||
+    normalized.includes('paytm') ||
+    normalized.includes('phonepe') ||
+    normalized.includes('gpay') ||
+    normalized.includes('google pay') ||
+    normalized.includes('paypal') ||
+    normalized.includes('cred')
+  ) {
+    return 'wallet';
+  }
+  if (
+    normalized.includes('card') ||
+    normalized.includes('credit') ||
+    normalized.includes('debit') ||
+    normalized.includes('visa') ||
+    normalized.includes('mastercard') ||
+    normalized.includes('amex') ||
+    normalized.includes('rupay')
+  ) {
+    return 'card';
+  }
+  return 'bank';
+};
+
+const findMatchingAccount = (accounts: Account[], accountName: string, paymentMethod: string) => {
+  const normalizedTarget = normalizeText(accountName);
+  if (normalizedTarget) {
+    const exact = accounts.find((account) => normalizeText(account.name) === normalizedTarget);
+    if (exact) return exact;
+
+    const fuzzy = accounts.find((account) => {
+      const normalizedAccount = normalizeText(account.name);
+      return normalizedAccount.includes(normalizedTarget) || normalizedTarget.includes(normalizedAccount);
+    });
+    if (fuzzy) return fuzzy;
+  }
+
+  const normalizedPayment = normalizeText(paymentMethod);
+  if (GENERIC_PAYMENT_METHOD_NAMES.has(normalizedPayment)) {
+    const inferredType = inferAccountType(accountName, paymentMethod);
+    return accounts.find((account) => account.type === inferredType && account.isActive !== false && !account.deletedAt);
+  }
+
+  return undefined;
+};
+
+const resolveAccountTarget = (
+  accounts: Account[],
+  fallbackAccountId: number,
+  sourceAccountName: string,
+  sourcePaymentMethod: string,
+): ResolvedAccountTarget => {
+  const friendlyName = toFriendlyAccountName(sourceAccountName, sourcePaymentMethod);
+  const matched = findMatchingAccount(accounts, sourceAccountName || friendlyName, sourcePaymentMethod);
+  if (matched?.id != null) {
+    return {
+      accountId: matched.id,
+      resolvedAccountName: matched.name,
+      accountResolution: 'existing',
+    };
+  }
+
+  if (sourceAccountName) {
+    return {
+      accountId: fallbackAccountId,
+      resolvedAccountName: sourceAccountName.trim(),
+      accountResolution: 'created',
+    };
+  }
+
+  if (sourcePaymentMethod) {
+    return {
+      accountId: fallbackAccountId,
+      resolvedAccountName: friendlyName,
+      accountResolution: 'payment-method',
+    };
+  }
+
+  const fallbackAccount = accounts.find((account) => account.id === fallbackAccountId) ?? accounts[0];
+  if (fallbackAccount?.id != null) {
+    return {
+      accountId: fallbackAccount.id,
+      resolvedAccountName: fallbackAccount.name,
+      accountResolution: 'fallback',
+    };
+  }
+
+  return {
+    accountId: 0,
+    resolvedAccountName: 'Imported Account',
+    accountResolution: 'created',
+  };
+};
+
+const buildImportMetadata = (
+  record: Record<string, unknown>,
+  lookup: Record<string, unknown>,
+  fileName: string,
+) => {
+  const metadata: Record<string, string> = {};
+
+  Object.entries(record).forEach(([key, value]) => {
+    if (KNOWN_FIELD_GROUPS.includes(normalizeKey(key))) return;
+    const displayValue = toDisplayValue(value);
+    if (displayValue) {
+      metadata[titleCase(key.replace(/[_-]+/g, ' '))] = displayValue;
+    }
+  });
+
+  const sourceAccount = toDisplayValue(getFieldValue(lookup, ACCOUNT_KEYS));
+  const paymentMethod = toDisplayValue(getFieldValue(lookup, PAYMENT_KEYS));
+  const currency = toDisplayValue(getFieldValue(lookup, CURRENCY_KEYS));
+  const fxRate = toDisplayValue(getFieldValue(lookup, FX_RATE_KEYS));
+  const accountBalance = toDisplayValue(getFieldValue(lookup, ACCOUNT_BALANCE_KEYS));
+  const location = toDisplayValue(lookup.location);
+  const tags = toDisplayValue(lookup.tags);
+
+  if (sourceAccount) metadata['Source Account'] = sourceAccount;
+  if (paymentMethod) metadata['Payment Method'] = paymentMethod;
+  if (currency) metadata.Currency = currency;
+  if (fxRate) metadata['FX Rate'] = fxRate;
+  if (accountBalance) metadata['Account Balance'] = accountBalance;
+  if (location) metadata.Location = location;
+  if (tags) metadata.Tags = tags;
+  metadata['Source File'] = fileName;
+
+  return metadata;
+};
 
 const findClosestCategory = (category: string, candidates: string[]) => {
   const normalizedTarget = normalizeText(category);
@@ -419,6 +814,20 @@ const resolveExpenseCategory = (
   contextText: string,
   existingNames: Set<string>,
 ) => {
+  // First: check exact (case-insensitive) match against all known categories,
+  // including any custom categories the user created from prior imports.
+  if (rawCategory) {
+    const rawNorm = normalizeText(rawCategory);
+    const exactMatch = Array.from(existingNames).find((name) => normalizeText(name) === rawNorm);
+    if (exactMatch) {
+      return {
+        category: exactMatch,
+        subcategory: rawSubcategory ? titleCase(rawSubcategory) : '',
+        resolution: 'exact' as const,
+      };
+    }
+  }
+
   const subcategoryCandidate = rawSubcategory || rawCategory;
   const subcategoryMatch = subcategoryCandidate ? getCategoryForExpenseSubcategory(subcategoryCandidate) : null;
   if (subcategoryMatch) {
@@ -506,8 +915,14 @@ const resolveIncomeCategory = (rawCategory: string, contextText: string, existin
 
 const getCategoryCatalog = async (): Promise<ExistingCategoryCatalog> => {
   const rawCategories = await db.categories.toArray();
-  const expenseNames = new Set<string>([...getExpenseCategoryNames(), ...rawCategories.filter((item) => item.type === 'expense').map((item) => item.name)]);
-  const incomeNames = new Set<string>([...getIncomeCategoryNames(), ...rawCategories.filter((item) => item.type === 'income').map((item) => item.name)]);
+  const expenseNames = new Set<string>([
+    ...getExpenseCategoryNames(),
+    ...rawCategories.filter((item) => item.type === 'expense').map((item) => item.name),
+  ]);
+  const incomeNames = new Set<string>([
+    ...getIncomeCategoryNames(),
+    ...rawCategories.filter((item) => item.type === 'income').map((item) => item.name),
+  ]);
   return { expenseNames, incomeNames, rawCategories };
 };
 
@@ -516,56 +931,89 @@ const getFallbackAccountId = (accounts: Account[], requestedAccountId: number) =
   return accounts[0]?.id ?? 0;
 };
 
-const buildImportMetadata = (
-  record: Record<string, unknown>,
-  lookup: Record<string, unknown>,
-  fileName: string,
-) => {
-  const metadata: Record<string, string> = {};
+const parseMembers = (value: unknown): Array<{ name: string; share?: number }> => {
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((item) => {
+        if (typeof item === 'string') return [{ name: item.trim() }];
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>;
+          const name = toDisplayValue(record.name ?? record.member ?? record.participant ?? record.user);
+          const share = parseAmountValue(record.share ?? record.amount ?? record.value);
+          return name ? [{ name, share: share ?? undefined }] : [];
+        }
+        return [];
+      })
+      .filter((member) => member.name);
+  }
 
-  Object.entries(record).forEach(([key, value]) => {
-    if (KNOWN_FIELD_GROUPS.includes(normalizeKey(key))) return;
-    const displayValue = toDisplayValue(value);
-    if (displayValue) {
-      metadata[titleCase(key.replace(/[_-]+/g, ' '))] = displayValue;
-    }
-  });
+  const text = toDisplayValue(value);
+  if (!text) return [];
 
-  const paymentMethod = toDisplayValue(getFieldValue(lookup, PAYMENT_KEYS));
-  const currency = toDisplayValue(getFieldValue(lookup, CURRENCY_KEYS));
-  const fxRate = toDisplayValue(getFieldValue(lookup, FX_RATE_KEYS));
-  const location = toDisplayValue(lookup.location);
-  const tags = toDisplayValue(lookup.tags);
+  return text
+    .split(/[,;|/]/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => ({ name: token }));
+};
 
-  if (paymentMethod) metadata['Payment Method'] = paymentMethod;
-  if (currency) metadata.Currency = currency;
-  if (fxRate) metadata['FX Rate'] = fxRate;
-  if (location) metadata.Location = location;
-  if (tags) metadata.Tags = tags;
-  metadata['Source File'] = fileName;
+const extractGroupData = (lookup: Record<string, unknown>, row: ImportPreviewRow): ExtractedGroupData | null => {
+  const groupName = toDisplayValue(getFieldValue(lookup, GROUP_NAME_KEYS));
+  const members = parseMembers(getFieldValue(lookup, GROUP_MEMBER_KEYS));
+  if (!groupName && members.length === 0) return null;
+  if (row.transactionType !== 'expense') return null;
 
-  return metadata;
+  return {
+    name: groupName || row.description || 'Imported Group Expense',
+    members,
+    splitType: members.some((member) => member.share != null) ? 'custom' : 'equal',
+  };
+};
+
+const extractGoalData = (lookup: Record<string, unknown>): ExtractedGoalData | null => {
+  const goalName = toDisplayValue(getFieldValue(lookup, GOAL_NAME_KEYS));
+  if (!goalName) return null;
+
+  const targetAmount = parseAmountValue(getFieldValue(lookup, GOAL_TARGET_KEYS)) ?? undefined;
+  const targetDate = parseDateValue(getFieldValue(lookup, GOAL_DATE_KEYS)) ?? undefined;
+  return {
+    goalName: titleCase(goalName),
+    targetAmount,
+    targetDate,
+  };
 };
 
 class SmartExpenseImportService {
+  private structuredPayload: Record<string, unknown> | null = null;
+
   async analyzeFile(file: File, options: AnalyzeOptions): Promise<SmartImportPreview> {
     const text = await file.text();
     const fileType = file.name.toLowerCase().endsWith('.csv') ? 'csv' : 'json';
 
     if (fileType === 'json') {
-      const payload = JSON.parse(text);
+      let payload: unknown;
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        throw new Error('Invalid JSON file');
+      }
+
       if (isFinoraBackupPayload(payload)) {
+        this.structuredPayload = null;
         return this.buildBackupPreview(file.name, payload);
       }
+
+      this.structuredPayload = isStructuredLedgerPayload(payload) ? payload : null;
 
       return this.buildThirdPartyPreview({
         fileName: file.name,
         fileType,
-        records: extractJsonRecords(payload),
+        records: extractStructuredLedgerRecords(payload),
         defaultAccountId: options.defaultAccountId,
       });
     }
 
+    this.structuredPayload = null;
     return this.buildThirdPartyPreview({
       fileName: file.name,
       fileType,
@@ -574,92 +1022,267 @@ class SmartExpenseImportService {
     });
   }
 
-  async applyPreviewImport(options: ApplyPreviewOptions) {
+  async applyPreviewImport(options: ApplyPreviewOptions): Promise<ThirdPartyImportResult> {
+    initializeBackendSync();
+
     const importableRows = options.rows.filter((row) => {
       if (row.errors.length > 0) return false;
       if (options.skipDuplicates && row.duplicate) return false;
       return true;
     });
 
-    const accountBalanceChanges = new Map<number, number>();
     const categoryCatalog = await getCategoryCatalog();
     const importedAt = new Date();
+    const invalidRowErrors = options.rows
+      .filter((row) => row.errors.length > 0)
+      .map((row) => `Row ${row.rowNumber}: ${row.errors.join(', ')}`);
+    const duplicateCount = options.skipDuplicates ? options.rows.filter((row) => row.duplicate).length : 0;
+    const runtimeErrors: string[] = [];
+    const accountBalanceChanges = new Map<number, number>();
+    const accountFlows = new Map<number, { inflow: number; outflow: number }>();
+    const importedAccountSnapshots = new Map<number, { date: Date; balance: number }>();
+    const updatedGoals = new Set<string>();
+
     let createdCategories: string[] = [];
-    const accounts = await db.accounts.toArray();
-    const accountsById = new Map(accounts.map((account) => [account.id, account]));
+    let createdAccounts: string[] = [];
+    let createdGoals: string[] = [];
+    let createdGroupExpenses = 0;
+    let createdFriends = 0;
+    let createdLoans = 0;
+    let updatedLoans = 0;
+    let createdInvestments = 0;
+    let updatedInvestments = 0;
+    let importedCount = 0;
 
-    const transactionsToImport: Transaction[] = importableRows.map((row) => {
-      const accountCurrency = accountsById.get(row.accountId)?.currency;
-      const resolvedAmount = resolveImportedAmount(row.amount, row.metadata, accountCurrency);
-      const metadata = resolvedAmount !== row.amount
-        ? {
-            ...row.metadata,
-            'Original Amount': String(row.amount),
+    const structuredPayload = this.structuredPayload;
+    this.structuredPayload = null;
+
+    await db.transaction(
+      'rw',
+      db.transactions,
+      db.accounts,
+      db.friends,
+      db.loans,
+      db.investments,
+      db.importHistories,
+      db.categories,
+      db.groupExpenses,
+      db.goals,
+      db.goalContributions,
+      async () => {
+        if (structuredPayload && isStructuredLedgerPayload(structuredPayload)) {
+          const companionResult = await this.importStructuredCompanionData({
+            payload: structuredPayload,
+            userId: options.userId,
+            timestamp: importedAt,
+          });
+          createdAccounts = [...createdAccounts, ...companionResult.createdAccounts];
+          createdGoals = [...createdGoals, ...companionResult.createdGoals];
+          companionResult.updatedGoals.forEach((name) => updatedGoals.add(name));
+          createdFriends += companionResult.createdFriends;
+          createdLoans += companionResult.createdLoans;
+          updatedLoans += companionResult.updatedLoans;
+          createdInvestments += companionResult.createdInvestments;
+          updatedInvestments += companionResult.updatedInvestments;
+          createdGroupExpenses += companionResult.createdGroupExpenses;
+        }
+
+        createdCategories = await this.ensureCategories(importableRows, categoryCatalog, options.userId);
+
+        const ensuredAccounts = await this.ensureAccounts(importableRows);
+        createdAccounts = ensuredAccounts.createdAccounts;
+        const goalRegistry = await this.buildGoalRegistry();
+
+        for (const row of importableRows) {
+          try {
+            const account = ensuredAccounts.accountsByRowId.get(row.id);
+            if (!account?.id) {
+              throw new Error('Could not resolve an account for this row');
+            }
+
+            const resolvedAmount = resolveImportedAmount(row.amount, row.metadata, account.currency);
+            const metadataBase = resolvedAmount !== row.amount
+              ? {
+                  ...row.metadata,
+                  'Original Amount': String(row.amount),
+                }
+              : row.metadata;
+            // Persist the external ID so duplicate detection works on re-import.
+            // EXTERNAL_ID_KEYS are excluded from importMetadata by buildImportMetadata
+            // (they are in KNOWN_FIELD_GROUPS), so we must inject it explicitly here.
+            const metadata = row.externalId
+              ? { ...metadataBase, 'Expense Id': row.externalId }
+              : metadataBase;
+
+            const description = buildDescription(row.description, row.merchant, row.category);
+            const transactionPayload: Transaction = {
+              accountId: account.id,
+              amount: resolvedAmount,
+              category: row.category,
+              subcategory: row.subcategory || undefined,
+              description,
+              merchant: row.merchant || undefined,
+              date: row.date!,
+              type: row.transactionType,
+              expenseMode: row.expenseMode ?? 'individual',
+              createdAt: importedAt,
+              updatedAt: importedAt,
+              importedAt,
+              importSource: options.fileName,
+              importMetadata: metadata,
+              originalCategory: row.rawCategory || undefined,
+            };
+
+            const transactionId = await db.transactions.add(transactionPayload);
+            importedCount += 1;
+
+            const accountChange = row.transactionType === 'income' ? resolvedAmount : -resolvedAmount;
+            accountBalanceChanges.set(account.id, (accountBalanceChanges.get(account.id) ?? 0) + accountChange);
+
+            const currentFlow = accountFlows.get(account.id) ?? { inflow: 0, outflow: 0 };
+            if (row.transactionType === 'income') {
+              currentFlow.inflow += resolvedAmount;
+            } else {
+              currentFlow.outflow += resolvedAmount;
+            }
+            accountFlows.set(account.id, currentFlow);
+
+            const importedBalance = parseAmountValue(row.metadata['Account Balance']);
+            if (importedBalance != null && Number.isFinite(importedBalance) && row.date) {
+              const previousSnapshot = importedAccountSnapshots.get(account.id);
+              if (!previousSnapshot || row.date.getTime() >= previousSnapshot.date.getTime()) {
+                importedAccountSnapshots.set(account.id, {
+                  date: row.date,
+                  balance: importedBalance,
+                });
+              }
+            }
+
+            const lookup = buildLookup(row.originalData);
+            const groupData = extractGroupData(lookup, row);
+            if (groupData) {
+              const groupExpenseId = await this.createImportedGroupExpense({
+                accountId: account.id,
+                amount: resolvedAmount,
+                category: row.category,
+                date: row.date!,
+                description: row.description,
+                groupData,
+                transactionId,
+                userId: options.userId,
+                createdAt: importedAt,
+              });
+
+              await db.transactions.update(transactionId, {
+                groupExpenseId,
+                expenseMode: 'group',
+                groupName: groupData.name,
+                splitType: groupData.splitType,
+                updatedAt: importedAt,
+              } as Partial<Transaction>);
+              createdGroupExpenses += 1;
+            }
+
+            const goalData = extractGoalData(lookup);
+            if (goalData) {
+              const goalEntry = await this.ensureGoal(goalRegistry, goalData, row, importedAt);
+              if (goalEntry.created) createdGoals.push(goalEntry.goal.name);
+              updatedGoals.add(goalEntry.goal.name);
+
+              await db.goalContributions.add({
+                goalId: goalEntry.goal.id!,
+                amount: resolvedAmount,
+                accountId: account.id,
+                date: row.date!,
+                notes: `Imported from ${options.fileName}`,
+              });
+
+              await db.goals.update(goalEntry.goal.id!, {
+                currentAmount: goalEntry.goal.currentAmount + resolvedAmount,
+                updatedAt: importedAt,
+              });
+              goalEntry.goal.currentAmount += resolvedAmount;
+            }
+          } catch (error) {
+            runtimeErrors.push(`Row ${row.rowNumber}: ${error instanceof Error ? error.message : 'Import failed'}`);
           }
-        : row.metadata;
-      const description = buildDescription(row.description, metadata, options.fileName);
-      const accountChange = row.transactionType === 'income' ? resolvedAmount : -resolvedAmount;
-      accountBalanceChanges.set(row.accountId, (accountBalanceChanges.get(row.accountId) ?? 0) + accountChange);
+        }
 
-      return {
-        accountId: row.accountId,
-        amount: resolvedAmount,
-        category: row.category,
-        subcategory: row.subcategory || undefined,
-        description,
-        merchant: row.merchant || undefined,
-        date: row.date!,
-        type: row.transactionType,
-        createdAt: importedAt,
-        importedAt,
-        importSource: options.fileName,
-        importMetadata: metadata,
-        originalCategory: row.rawCategory || undefined,
-      };
-    });
+        for (const [accountId, change] of accountBalanceChanges.entries()) {
+          const account = await db.accounts.get(accountId);
+          if (!account) continue;
 
-    await db.transaction('rw', db.transactions, db.accounts, db.importHistories, db.categories, async () => {
-      createdCategories = await this.ensureCategories(importableRows, categoryCatalog, options.userId);
+          const importedSnapshot = importedAccountSnapshots.get(accountId);
+          if (importedSnapshot) {
+            await db.accounts.update(accountId, {
+              balance: importedSnapshot.balance,
+              updatedAt: importedAt,
+            });
+            continue;
+          }
 
-      if (transactionsToImport.length > 0) {
-        await db.transactions.bulkAdd(transactionsToImport);
-      }
+          const flows = accountFlows.get(accountId) ?? { inflow: 0, outflow: 0 };
+          const nextBalance = account.balance + change;
 
-      for (const [accountId, change] of accountBalanceChanges.entries()) {
-        const account = await db.accounts.get(accountId);
-        if (!account) continue;
-        await db.accounts.update(accountId, {
-          balance: account.balance + change,
-          updatedAt: importedAt,
-        });
-      }
+          if (
+            ensuredAccounts.createdAccountIds.has(accountId)
+            && account.type !== 'card'
+            && nextBalance < 0
+            && flows.inflow <= 0
+          ) {
+            await db.accounts.update(accountId, {
+              balance: 0,
+              updatedAt: importedAt,
+            });
+            continue;
+          }
 
-      const history: ImportHistory = {
-        fileName: options.fileName,
-        fileType: options.fileType,
-        sourceKind: 'third-party',
-        totalRecords: options.rows.length,
-        importedRecords: transactionsToImport.length,
-        skippedRecords: options.rows.length - transactionsToImport.length,
-        duplicateRecords: options.rows.filter((row) => row.duplicate).length,
-        createdCategories,
-        errors: options.rows
-          .filter((row) => row.errors.length > 0)
-          .map((row) => `Row ${row.rowNumber}: ${row.errors.join(', ')}`),
-        createdAt: importedAt,
-        userId: options.userId,
-        metadata: {
-          fallbackAccountId: options.rows[0]?.accountId,
-        },
-      };
+          await db.accounts.update(accountId, {
+            balance: nextBalance,
+            updatedAt: importedAt,
+          });
+        }
 
-      await db.importHistories.add(history);
-    });
+        const history: ImportHistory = {
+          fileName: options.fileName,
+          fileType: options.fileType,
+          sourceKind: 'third-party',
+          totalRecords: options.rows.length,
+          importedRecords: importedCount,
+          skippedRecords: options.rows.length - importedCount,
+          duplicateRecords: options.rows.filter((row) => row.duplicate).length,
+          createdCategories,
+          errors: [...invalidRowErrors, ...runtimeErrors],
+          createdAt: importedAt,
+          userId: options.userId,
+          metadata: {
+            fallbackAccountId: options.rows[0]?.accountId,
+            createdAccounts: Array.from(new Set(createdAccounts)),
+            createdGoals: Array.from(new Set(createdGoals)),
+            updatedGoals: Array.from(updatedGoals),
+            createdGroupExpenses,
+          },
+        };
+
+        await db.importHistories.add(history);
+      },
+    );
 
     return {
-      importedCount: transactionsToImport.length,
-      skippedCount: options.rows.length - transactionsToImport.length,
+      importedCount,
+      skippedCount: options.rows.length - importedCount,
+      duplicateCount,
+      failedCount: invalidRowErrors.length + runtimeErrors.length,
+      createdAccounts: Array.from(new Set(createdAccounts)),
       createdCategories,
+      createdGroupExpenses,
+      createdGoals: Array.from(new Set(createdGoals)),
+      updatedGoals: Array.from(updatedGoals),
+      createdFriends,
+      createdLoans,
+      updatedLoans,
+      createdInvestments,
+      updatedInvestments,
     };
   }
 
@@ -720,9 +1343,20 @@ class SmartExpenseImportService {
   }): Promise<ThirdPartyImportPreview> {
     const categoryCatalog = await getCategoryCatalog();
     const existingTransactions = await db.transactions.toArray();
-    const existingKeys = new Set(existingTransactions.map((transaction) =>
-      buildDuplicateKey(new Date(transaction.date), Number(transaction.amount) || 0, String(transaction.description || '')),
-    ));
+    const existingKeys = new Set<string>();
+    for (const transaction of existingTransactions) {
+      const storedExtId = transaction.importMetadata?.['Expense Id'] ?? transaction.importMetadata?.['External Id'];
+      if (storedExtId) {
+        existingKeys.add(`extid::${storedExtId}`);
+      }
+      existingKeys.add(buildDuplicateKey(
+        new Date(transaction.date),
+        Number(transaction.amount) || 0,
+        String(transaction.description || ''),
+        transaction.accountId ? String(transaction.accountId) : '',
+        String(transaction.merchant || ''),
+      ));
+    }
     const accounts = await db.accounts.toArray();
     const fallbackAccountId = getFallbackAccountId(accounts, options.defaultAccountId);
     const errors: string[] = [];
@@ -743,12 +1377,21 @@ class SmartExpenseImportService {
 
       if (amount != null) amount = Math.abs(amount);
 
-      const description = toDisplayValue(getFieldValue(lookup, DESCRIPTION_KEYS));
+      const rawDescription = toDisplayValue(getFieldValue(lookup, DESCRIPTION_KEYS));
       const merchant = toDisplayValue(getFieldValue(lookup, MERCHANT_KEYS));
       const rawCategory = toDisplayValue(getFieldValue(lookup, CATEGORY_KEYS));
       const rawSubcategory = toDisplayValue(getFieldValue(lookup, SUBCATEGORY_KEYS));
-      const paymentMethod = toDisplayValue(getFieldValue(lookup, PAYMENT_KEYS));
-      const contextText = [description, merchant, rawCategory, rawSubcategory, paymentMethod].filter(Boolean).join(' ');
+      const sourceAccountName = toDisplayValue(getFieldValue(lookup, ACCOUNT_KEYS));
+      const sourcePaymentMethod = toDisplayValue(getFieldValue(lookup, PAYMENT_KEYS));
+      const externalId = toDisplayValue(getFieldValue(lookup, EXTERNAL_ID_KEYS));
+      const rawTypeValue = normalizeText(toDisplayValue(getFieldValue(lookup, EXPENSE_MODE_KEYS)));
+      const expenseMode: ImportPreviewRow['expenseMode'] =
+        rawTypeValue === 'group' || rawTypeValue === 'shared' ? 'group' : 'individual';
+      const description = isBoilerplateDescription(rawDescription)
+        ? (merchant || rawSubcategory || rawCategory || rawDescription || `Imported row ${index + 1}`)
+        : (rawDescription || merchant || rawSubcategory || rawCategory || `Imported row ${index + 1}`);
+      const accountTarget = resolveAccountTarget(accounts, fallbackAccountId, sourceAccountName, sourcePaymentMethod);
+      const contextText = [description, merchant, rawCategory, rawSubcategory, sourcePaymentMethod, sourceAccountName].filter(Boolean).join(' ');
       const metadata = buildImportMetadata(record, lookup, options.fileName);
 
       const categoryResult = transactionType === 'income'
@@ -759,15 +1402,27 @@ class SmartExpenseImportService {
       if (!date) rowErrors.push('Invalid date');
       if (amount == null || !Number.isFinite(amount)) rowErrors.push('Invalid amount');
 
-      const fallbackDescription = description || merchant || rawSubcategory || rawCategory || `Imported row ${index + 1}`;
-      const duplicateKey = buildDuplicateKey(date, amount ?? 0, fallbackDescription);
+      const fallbackDescription = description;
+      const duplicateKey = externalId
+        ? `extid::${externalId}`
+        : buildDuplicateKey(
+            date,
+            amount ?? 0,
+            fallbackDescription,
+            accountTarget.accountId > 0 ? String(accountTarget.accountId) : accountTarget.resolvedAccountName,
+            merchant,
+          );
       const duplicate = duplicateKey ? existingKeys.has(duplicateKey) : false;
 
       return {
         id: createRowId(index),
         rowNumber: index + 1,
         transactionType,
-        accountId: fallbackAccountId,
+        accountId: accountTarget.accountId,
+        sourceAccountName,
+        sourcePaymentMethod,
+        resolvedAccountName: accountTarget.resolvedAccountName,
+        accountResolution: accountTarget.accountResolution,
         date,
         amount: amount ?? 0,
         description: fallbackDescription,
@@ -782,12 +1437,23 @@ class SmartExpenseImportService {
         errors: rowErrors,
         metadata,
         originalData: record,
+        externalId: externalId || undefined,
+        expenseMode,
       } satisfies ImportPreviewRow;
     });
 
     if (rows.length === 0) {
       errors.push('No importable rows were found in this file.');
     }
+
+    const structuredAccountNames = this.structuredPayload && isStructuredLedgerPayload(this.structuredPayload)
+      ? (Array.isArray(this.structuredPayload.accounts)
+          ? this.structuredPayload.accounts
+            .filter(isRecordObject)
+            .map((account) => toDisplayValue(account.account_name ?? account.accountName ?? account.name))
+            .filter(Boolean)
+          : [])
+      : [];
 
     const summary = {
       totalRecords: rows.length,
@@ -797,6 +1463,12 @@ class SmartExpenseImportService {
       exactMatches: rows.filter((row) => row.categoryResolution === 'exact').length,
       mappedMatches: rows.filter((row) => row.categoryResolution === 'mapped').length,
       detectedMatches: rows.filter((row) => row.categoryResolution === 'detected').length,
+      createdAccounts: Array.from(new Set([
+        ...rows
+          .filter((row) => row.accountResolution === 'created' || row.accountResolution === 'payment-method')
+          .map((row) => row.resolvedAccountName),
+        ...structuredAccountNames,
+      ])),
       createdCategories: Array.from(new Set(rows
         .filter((row) => row.categoryResolution === 'created')
         .map((row) => row.category))),
@@ -853,6 +1525,554 @@ class SmartExpenseImportService {
     }
 
     return createdCategories;
+  }
+
+  private async ensureAccounts(rows: ImportPreviewRow[]): Promise<EnsuredAccountResult> {
+    const accounts = await db.accounts.toArray();
+    const accountCache = [...accounts];
+    const accountsByRowId = new Map<string, Account>();
+    const createdAccounts: string[] = [];
+    const createdAccountIds = new Set<number>();
+    const timestamp = new Date();
+    const defaultCurrency = accounts[0]?.currency || 'INR';
+
+    for (const row of rows) {
+      const desiredName = toFriendlyAccountName(row.sourceAccountName, row.sourcePaymentMethod) || row.resolvedAccountName;
+      const matched = findMatchingAccount(accountCache, desiredName, row.sourcePaymentMethod)
+        ?? accountCache.find((account) => account.id === row.accountId);
+
+      if (matched) {
+        accountsByRowId.set(row.id, matched);
+        continue;
+      }
+
+      const newAccount: Account = {
+        name: desiredName || 'Imported Account',
+        type: inferAccountType(row.sourceAccountName || desiredName, row.sourcePaymentMethod),
+        balance: 0,
+        currency: row.metadata.Currency || defaultCurrency,
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+
+      const newAccountId = await db.accounts.add(newAccount);
+      const created = { ...newAccount, id: newAccountId };
+      accountCache.push(created);
+      accountsByRowId.set(row.id, created);
+      createdAccounts.push(created.name);
+      createdAccountIds.add(newAccountId);
+    }
+
+    return {
+      accountsByRowId,
+      createdAccounts,
+      createdAccountIds,
+    };
+  }
+
+  private async buildGoalRegistry() {
+    const goals = await db.goals.toArray();
+    return new Map(goals.map((goal) => [normalizeText(goal.name), { goal, created: false } satisfies GoalRegistryEntry]));
+  }
+
+  private async ensureGoal(
+    registry: Map<string, GoalRegistryEntry>,
+    goalData: ExtractedGoalData,
+    row: ImportPreviewRow,
+    timestamp: Date,
+  ): Promise<GoalRegistryEntry> {
+    const key = normalizeText(goalData.goalName);
+    const existing = registry.get(key);
+    if (existing) return existing;
+
+    const baseDate = row.date ?? timestamp;
+    const defaultTargetDate = new Date(baseDate);
+    defaultTargetDate.setFullYear(defaultTargetDate.getFullYear() + 1);
+
+    const goal: Goal = {
+      name: goalData.goalName,
+      description: `Imported from ${row.description}`,
+      targetAmount: goalData.targetAmount ?? row.amount,
+      currentAmount: 0,
+      targetDate: goalData.targetDate ?? defaultTargetDate,
+      category: row.category,
+      isGroupGoal: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      syncStatus: 'pending',
+      version: 1,
+    };
+
+    const goalId = await db.goals.add(goal);
+    const entry: GoalRegistryEntry = {
+      goal: { ...goal, id: goalId },
+      created: true,
+    };
+    registry.set(key, entry);
+    return entry;
+  }
+
+  private async importStructuredCompanionData(options: {
+    payload: Record<string, unknown>;
+    userId?: string;
+    timestamp: Date;
+  }): Promise<{
+    createdAccounts: string[];
+    createdGoals: string[];
+    updatedGoals: string[];
+    createdFriends: number;
+    createdLoans: number;
+    updatedLoans: number;
+    createdInvestments: number;
+    updatedInvestments: number;
+    createdGroupExpenses: number;
+  }> {
+    const { payload, timestamp } = options;
+    const createdAccounts: string[] = [];
+    const createdGoals: string[] = [];
+    const updatedGoals: string[] = [];
+    let createdFriends = 0;
+    let createdLoans = 0;
+    let updatedLoans = 0;
+    let createdInvestments = 0;
+    let updatedInvestments = 0;
+    let createdGroupExpenses = 0;
+
+    const userCurrency = isRecordObject(payload.user) ? toDisplayValue(payload.user.currency) : '';
+
+    const existingAccounts = await db.accounts.toArray();
+    const accountNameMap = new Map(existingAccounts.map((account) => [normalizeText(account.name), account]));
+    const accountExternalMap = new Map<string, number>();
+
+    const accountRows = Array.isArray(payload.accounts)
+      ? payload.accounts.filter(isRecordObject)
+      : [];
+
+    for (const accountRow of accountRows) {
+      const accountName = toDisplayValue(accountRow.account_name ?? accountRow.accountName ?? accountRow.name).trim();
+      if (!accountName) continue;
+
+      const normalizedName = normalizeText(accountName);
+      let account = accountNameMap.get(normalizedName);
+      if (!account) {
+        const rawType = toDisplayValue(accountRow.type ?? accountRow.account_type ?? accountRow.accountType);
+        const balance = parseAmountValue(accountRow.balance ?? accountRow.current_balance ?? accountRow.currentBalance) ?? 0;
+        const currency = toDisplayValue(accountRow.currency) || userCurrency || 'INR';
+
+        const newAccount: Account = {
+          name: accountName,
+          type: inferAccountType(accountName, rawType),
+          balance,
+          currency,
+          isActive: true,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+
+        const id = await db.accounts.add(newAccount);
+        account = { ...newAccount, id };
+        accountNameMap.set(normalizedName, account);
+        createdAccounts.push(accountName);
+      }
+
+      const externalAccountId = toDisplayValue(accountRow.account_id ?? accountRow.accountId ?? accountRow.id);
+      if (externalAccountId && account.id != null) {
+        accountExternalMap.set(normalizeText(externalAccountId), account.id);
+      }
+    }
+
+    const refreshedAccounts = await db.accounts.toArray();
+    const fallbackAccount = refreshedAccounts[0];
+
+    const existingFriends = await db.friends.toArray();
+    const friendExternalMap = new Map<string, number>();
+    const friendRows = Array.isArray(payload.friends)
+      ? payload.friends.filter(isRecordObject)
+      : [];
+
+    for (const friendRow of friendRows) {
+      const name = toDisplayValue(friendRow.name).trim();
+      if (!name) continue;
+      const email = toDisplayValue(friendRow.email) || undefined;
+      const phone = toDisplayValue(friendRow.phone) || undefined;
+
+      let existing = existingFriends.find((friend) => {
+        if (email && friend.email && normalizeText(friend.email) === normalizeText(email)) return true;
+        if (phone && friend.phone && normalizeText(friend.phone) === normalizeText(phone)) return true;
+        return normalizeText(friend.name) === normalizeText(name);
+      });
+
+      if (!existing) {
+        const newFriend: Friend = {
+          name,
+          email,
+          phone,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+        const id = await db.friends.add(newFriend);
+        existing = { ...newFriend, id };
+        existingFriends.push(existing);
+        createdFriends += 1;
+      }
+
+      const externalFriendId = toDisplayValue(friendRow.friend_id ?? friendRow.friendId ?? friendRow.id);
+      if (externalFriendId && existing.id != null) {
+        friendExternalMap.set(normalizeText(externalFriendId), existing.id);
+      }
+    }
+
+    const existingGoals = await db.goals.toArray();
+    const goalRows = Array.isArray(payload.goals)
+      ? payload.goals.filter(isRecordObject)
+      : [];
+
+    for (const goalRow of goalRows) {
+      const goalName = toDisplayValue(goalRow.goal_name ?? goalRow.goalName ?? goalRow.name).trim();
+      if (!goalName) continue;
+
+      const targetAmount = parseAmountValue(goalRow.target_amount ?? goalRow.targetAmount) ?? 0;
+      const savedAmount = parseAmountValue(goalRow.saved_amount ?? goalRow.savedAmount ?? goalRow.current_amount ?? goalRow.currentAmount) ?? 0;
+      const monthlySavingPlan = parseAmountValue(goalRow.monthly_saving_plan ?? goalRow.monthlySavingPlan) ?? undefined;
+      const targetDate = parseDateValue(goalRow.target_date ?? goalRow.targetDate) ?? new Date(timestamp.getFullYear() + 1, timestamp.getMonth(), timestamp.getDate());
+
+      const memberRows = Array.isArray(goalRow.friends)
+        ? goalRow.friends.filter(isRecordObject)
+        : [];
+      const members = memberRows.flatMap((memberRow) => {
+        const friendId = toDisplayValue(memberRow.friend_id ?? memberRow.friendId);
+        const contribution = parseAmountValue(memberRow.contribution ?? memberRow.share) ?? undefined;
+        const friend = friendId
+          ? existingFriends.find((item) => item.id === friendExternalMap.get(normalizeText(friendId)))
+          : undefined;
+
+        if (!friend) return [];
+        return [{
+          name: friend.name,
+          contactType: friend.email ? 'email' as const : 'phone' as const,
+          contactValue: friend.email || friend.phone || friend.name,
+          contribution,
+          status: 'paid' as const,
+        }];
+      });
+
+      const existingGoal = existingGoals.find((goal) => normalizeText(goal.name) === normalizeText(goalName));
+      if (existingGoal?.id != null) {
+        await db.goals.update(existingGoal.id, {
+          targetAmount: targetAmount || existingGoal.targetAmount,
+          currentAmount: savedAmount,
+          monthlySavingPlan,
+          targetDate,
+          members: members.length > 0 ? members : existingGoal.members,
+          isGroupGoal: members.length > 0,
+          updatedAt: timestamp,
+        });
+        updatedGoals.push(goalName);
+        continue;
+      }
+
+      const newGoal: Goal = {
+        name: goalName,
+        description: `Imported from structured file`,
+        targetAmount: targetAmount || savedAmount,
+        currentAmount: savedAmount,
+        monthlySavingPlan,
+        targetDate,
+        category: 'Savings',
+        isGroupGoal: members.length > 0,
+        members: members.length > 0 ? members : undefined,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        syncStatus: 'pending',
+        version: 1,
+      };
+      await db.goals.add(newGoal);
+      existingGoals.push(newGoal);
+      createdGoals.push(goalName);
+    }
+
+    const existingLoans = await db.loans.toArray();
+    const loanRows = Array.isArray(payload.loans)
+      ? payload.loans.filter(isRecordObject)
+      : [];
+
+    for (const loanRow of loanRows) {
+      const rawLoanType = normalizeText(toDisplayValue(loanRow.type));
+      const loanType: Loan['type'] = rawLoanType.includes('emi')
+        ? 'emi'
+        : rawLoanType.includes('lend')
+          ? 'lent'
+          : 'borrowed';
+      const statusText = normalizeText(toDisplayValue(loanRow.status));
+      const status: Loan['status'] = statusText.includes('complete')
+        ? 'completed'
+        : statusText.includes('overdue')
+          ? 'overdue'
+          : 'active';
+
+      const friendExternalId = toDisplayValue(loanRow.friend_id ?? loanRow.friendId);
+      const linkedFriendId = friendExternalId ? friendExternalMap.get(normalizeText(friendExternalId)) : undefined;
+      const linkedFriend = linkedFriendId != null
+        ? existingFriends.find((friend) => friend.id === linkedFriendId)
+        : undefined;
+
+      const name = toDisplayValue(loanRow.loan_name ?? loanRow.loanName)
+        || (linkedFriend ? `${linkedFriend.name} ${loanType === 'lent' ? 'Loan Given' : 'Loan'}` : '')
+        || 'Imported Loan';
+      const principalAmount = parseAmountValue(loanRow.total_amount ?? loanRow.totalAmount ?? loanRow.amount) ?? 0;
+      const emiAmount = parseAmountValue(loanRow.emi_amount ?? loanRow.emiAmount) ?? undefined;
+      const remainingEmi = parseAmountValue(loanRow.remaining_emi ?? loanRow.remainingEmi) ?? undefined;
+      const outstandingBalance = loanType === 'emi' && emiAmount != null && remainingEmi != null
+        ? Number((emiAmount * remainingEmi).toFixed(2))
+        : principalAmount;
+      const interestRate = parseAmountValue(loanRow.interest_rate ?? loanRow.interestRate) ?? undefined;
+
+      const existingLoan = existingLoans.find((loan) =>
+        normalizeText(loan.name) === normalizeText(name) && loan.type === loanType,
+      );
+      if (existingLoan?.id != null) {
+        await db.loans.update(existingLoan.id, {
+          principalAmount: principalAmount || existingLoan.principalAmount,
+          outstandingBalance,
+          emiAmount,
+          interestRate,
+          dueDate: parseDateValue(loanRow.due_date ?? loanRow.dueDate) ?? existingLoan.dueDate,
+          loanDate: parseDateValue(loanRow.start_date ?? loanRow.loan_date ?? loanRow.loanDate) ?? existingLoan.loanDate,
+          status,
+          friendId: linkedFriendId ?? existingLoan.friendId,
+          contactPerson: linkedFriend?.name ?? existingLoan.contactPerson,
+          contactEmail: linkedFriend?.email ?? existingLoan.contactEmail,
+          contactPhone: linkedFriend?.phone ?? existingLoan.contactPhone,
+          accountId: existingLoan.accountId ?? fallbackAccount?.id,
+          updatedAt: timestamp,
+        });
+        updatedLoans += 1;
+        continue;
+      }
+
+      const newLoan: Loan = {
+        type: loanType,
+        name,
+        principalAmount,
+        outstandingBalance,
+        interestRate,
+        emiAmount,
+        dueDate: parseDateValue(loanRow.due_date ?? loanRow.dueDate) ?? undefined,
+        loanDate: parseDateValue(loanRow.start_date ?? loanRow.loan_date ?? loanRow.loanDate) ?? undefined,
+        status,
+        contactPerson: linkedFriend?.name,
+        friendId: linkedFriendId,
+        contactEmail: linkedFriend?.email,
+        contactPhone: linkedFriend?.phone,
+        accountId: fallbackAccount?.id,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      await db.loans.add(newLoan);
+      existingLoans.push(newLoan);
+      createdLoans += 1;
+    }
+
+    const existingInvestments = await db.investments.toArray();
+    const investmentRows = Array.isArray(payload.investments)
+      ? payload.investments.filter(isRecordObject)
+      : [];
+
+    for (const investmentRow of investmentRows) {
+      const assetTypeRaw = normalizeText(toDisplayValue(investmentRow.type));
+      const assetType: Investment['assetType'] =
+        assetTypeRaw === 'stock' || assetTypeRaw === 'crypto' || assetTypeRaw === 'forex' || assetTypeRaw === 'gold' || assetTypeRaw === 'silver'
+          ? assetTypeRaw
+          : 'other';
+      const assetName = toDisplayValue(investmentRow.asset_name ?? investmentRow.assetName ?? investmentRow.name).trim();
+      if (!assetName) continue;
+
+      const market = normalizeText(toDisplayValue(investmentRow.market ?? investmentRow.exchange));
+      const symbol = normalizeText(toDisplayValue(investmentRow.symbol));
+      const rowCurrency = toDisplayValue(investmentRow.currency ?? investmentRow.currency_code);
+      const assetCurrency = rowCurrency
+        ? normalizeCurrencyCode(rowCurrency, normalizeCurrencyCode(userCurrency, 'INR'))
+        : (
+            market.includes('nse')
+            || market.includes('bse')
+            || symbol.endsWith('ns')
+            || symbol.endsWith('bo')
+            || assetType === 'gold'
+            || assetType === 'silver'
+              ? 'INR'
+              : normalizeCurrencyCode(userCurrency, 'INR')
+          );
+      const baseCurrency = normalizeCurrencyCode(userCurrency, 'INR');
+
+      const quantity = parseAmountValue(investmentRow.quantity) ?? 0;
+      const buyPrice = parseAmountValue(investmentRow.buy_price ?? investmentRow.buyPrice) ?? 0;
+      const currentPrice = parseAmountValue(investmentRow.current_price ?? investmentRow.currentPrice) ?? buyPrice;
+      const totalInvested = Number((quantity * buyPrice).toFixed(2));
+      const currentValue = Number((quantity * currentPrice).toFixed(2));
+      const profitLoss = Number((currentValue - totalInvested).toFixed(2));
+
+      const existingInvestment = existingInvestments.find((investment) =>
+        normalizeText(investment.assetName) === normalizeText(assetName)
+        && investment.assetType === assetType,
+      );
+
+      if (existingInvestment?.id != null) {
+        await db.investments.update(existingInvestment.id, {
+          quantity,
+          buyPrice,
+          currentPrice,
+          assetCurrency,
+          baseCurrency,
+          totalInvested,
+          currentValue,
+          profitLoss,
+          lastUpdated: timestamp,
+          updatedAt: timestamp,
+        });
+        updatedInvestments += 1;
+        continue;
+      }
+
+      const newInvestment: Investment = {
+        assetType,
+        assetName,
+        assetCurrency,
+        baseCurrency,
+        quantity,
+        buyPrice,
+        currentPrice,
+        totalInvested,
+        currentValue,
+        profitLoss,
+        purchaseDate: timestamp,
+        lastUpdated: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      } as Investment;
+      await db.investments.add(newInvestment);
+      existingInvestments.push(newInvestment);
+      createdInvestments += 1;
+    }
+
+    const existingGroupExpenses = await db.groupExpenses.toArray();
+    const groupRows = Array.isArray(payload.group_expenses)
+      ? payload.group_expenses.filter(isRecordObject)
+      : [];
+
+    for (const groupRow of groupRows) {
+      const name = toDisplayValue(groupRow.title ?? groupRow.name ?? groupRow.group_name).trim() || 'Imported Group Expense';
+      const totalAmount = parseAmountValue(groupRow.total_amount ?? groupRow.totalAmount ?? groupRow.amount) ?? 0;
+      const date = parseDateValue(groupRow.date) ?? timestamp;
+      const key = `${normalizeText(name)}|${toDateKey(date)}|${totalAmount.toFixed(2)}`;
+      const exists = existingGroupExpenses.some((item) =>
+        `${normalizeText(item.name)}|${toDateKey(new Date(item.date))}|${Number(item.totalAmount).toFixed(2)}` === key,
+      );
+      if (exists) continue;
+
+      const members = (Array.isArray(groupRow.members) ? groupRow.members : [])
+        .filter(isRecordObject)
+        .map((memberRow) => {
+          const friendExternalId = toDisplayValue(memberRow.friend_id ?? memberRow.friendId);
+          const friendId = friendExternalId ? friendExternalMap.get(normalizeText(friendExternalId)) : undefined;
+          const friend = friendId != null ? existingFriends.find((item) => item.id === friendId) : undefined;
+          const share = parseAmountValue(memberRow.share ?? memberRow.amount) ?? 0;
+          const paid = normalizeText(toDisplayValue(memberRow.status)).includes('paid');
+          return {
+            name: friend?.name || toDisplayValue(memberRow.name) || 'Member',
+            share,
+            paid,
+            friendId,
+            email: friend?.email,
+            phone: friend?.phone,
+            paymentStatus: paid ? 'paid' as const : 'pending' as const,
+          };
+        });
+
+      const paidByAccountId = fallbackAccount?.id ?? 0;
+      if (!paidByAccountId) continue;
+
+      const newGroupExpense: GroupExpense = {
+        name,
+        totalAmount,
+        paidBy: paidByAccountId,
+        date,
+        members,
+        splitType: 'custom',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      await db.groupExpenses.add(newGroupExpense);
+      existingGroupExpenses.push(newGroupExpense);
+      createdGroupExpenses += 1;
+    }
+
+    return {
+      createdAccounts: Array.from(new Set(createdAccounts)),
+      createdGoals: Array.from(new Set(createdGoals)),
+      updatedGoals: Array.from(new Set(updatedGoals)),
+      createdFriends,
+      createdLoans,
+      updatedLoans,
+      createdInvestments,
+      updatedInvestments,
+      createdGroupExpenses,
+    };
+  }
+
+  private async createImportedGroupExpense(options: {
+    accountId: number;
+    amount: number;
+    category: string;
+    date: Date;
+    description: string;
+    groupData: ExtractedGroupData;
+    transactionId: number;
+    userId?: string;
+    createdAt: Date;
+  }) {
+    const memberCount = Math.max(1, options.groupData.members.length + 1);
+    const equalShare = Number((options.amount / memberCount).toFixed(2));
+    const externalShares = options.groupData.members.reduce((sum, member) => sum + (member.share ?? 0), 0);
+    const yourShare = options.groupData.splitType === 'custom'
+      ? Math.max(0, Number((options.amount - externalShares).toFixed(2)))
+      : equalShare;
+
+    const members = [
+      {
+        name: 'You',
+        share: yourShare,
+        paid: true,
+        isCurrentUser: true,
+        paidAmount: yourShare,
+        paymentStatus: 'paid' as const,
+      },
+      ...options.groupData.members.map((member) => ({
+        name: member.name,
+        share: member.share ?? equalShare,
+        paid: false,
+        paidAmount: 0,
+        paymentStatus: 'pending' as const,
+      })),
+    ];
+
+    return db.groupExpenses.add({
+      name: options.groupData.name,
+      totalAmount: options.amount,
+      paidBy: options.accountId,
+      date: options.date,
+      members,
+      description: options.description,
+      category: options.category,
+      splitType: options.groupData.splitType,
+      yourShare,
+      expenseTransactionId: options.transactionId,
+      createdBy: options.userId,
+      status: options.groupData.members.length > 0 ? 'pending' : 'settled',
+      notificationStatus: 'pending',
+      createdAt: options.createdAt,
+      updatedAt: options.createdAt,
+    });
   }
 }
 

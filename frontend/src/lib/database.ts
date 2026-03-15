@@ -366,6 +366,10 @@ export interface ImportHistory {
     exportedAt?: string;
     version?: string;
     fallbackAccountId?: number;
+    createdAccounts?: string[];
+    createdGoals?: string[];
+    updatedGoals?: string[];
+    createdGroupExpenses?: number;
   };
 }
 

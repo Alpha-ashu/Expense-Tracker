@@ -35,9 +35,18 @@ export const Transactions: React.FC = () => {
   const deferredSearch = useDeferredValue(searchQuery);
   const normalizedSearch = useMemo(() => deferredSearch.trim().toLowerCase(), [deferredSearch]);
 
+  const filterReferenceDate = useMemo(() => {
+    if (transactions.length === 0) return new Date();
+    return transactions.reduce((latest, transaction) => {
+      const txDate = new Date(transaction.date);
+      if (Number.isNaN(txDate.getTime())) return latest;
+      return txDate > latest ? txDate : latest;
+    }, new Date(transactions[0].date));
+  }, [transactions]);
+
   const timeFilteredTransactions = useMemo(
-    () => filterByTimePeriod(transactions, timePeriod),
-    [transactions, timePeriod]
+    () => filterByTimePeriod(transactions, timePeriod, filterReferenceDate),
+    [transactions, timePeriod, filterReferenceDate]
   );
 
   const filteredTransactions = useMemo(() => {

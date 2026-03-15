@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
+import { isBoilerplateDescription } from '@/services/smartExpenseImportService';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
 import type { SyncStats } from '@/lib/offline-sync-engine';
@@ -61,6 +62,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return normalizeFeatures(parsed);
   });
   const { role, user } = useAuth();
+  const attemptedBalanceRepairKeyRef = useRef<string | null>(null);
   const syncStats = useMemo<SyncStats>(() => ({
     pendingCount: 0,
     lastSyncedAt: null,
@@ -99,6 +101,161 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const totalBalance = useMemo(() => (
     accounts.filter(acc => acc.isActive).reduce((sum, acc) => sum + acc.balance, 0)
   ), [accounts]);
+
+  // One-time: repair imported transaction titles that have boilerplate descriptions.
+  // Uses the stored merchant field that was saved alongside the transaction.
+  useEffect(() => {
+    if (transactions.length === 0) return;
+    const REPAIR_KEY = 'finora_description_repair_v2';
+    if (localStorage.getItem(REPAIR_KEY)) return;
+
+    const toRepair = transactions.filter(
+      (txn) =>
+        !txn.deletedAt &&
+        isBoilerplateDescription(txn.description) &&
+        Boolean(txn.merchant?.trim() || txn.importSource),
+    );
+
+    localStorage.setItem(REPAIR_KEY, 'done');
+    if (toRepair.length === 0) return;
+
+    void db.transaction('rw', db.transactions, async () => {
+      const now = new Date();
+      for (const txn of toRepair) {
+        if (!txn.id) continue;
+        const repaired = txn.merchant?.trim() || txn.category || 'Imported expense';
+        await db.transactions.update(txn.id, { description: repaired, updatedAt: now });
+      }
+    });
+  }, [transactions]);
+
+  useEffect(() => {
+    if (accounts.length === 0 || transactions.length === 0) return;
+
+    const activeAccounts = accounts.filter((account) => account.isActive !== false && !account.deletedAt);
+    if (activeAccounts.length === 0) return;
+
+    const allZeroBalances = activeAccounts.every((account) => Math.abs(account.balance) < 0.000001);
+
+    const importedNegativeNonCardAccounts = activeAccounts.filter(
+      (account) => account.type !== 'card' && account.balance < 0,
+    );
+
+    const shouldAttemptNegativeImportRepair = importedNegativeNonCardAccounts.some((account) => {
+      if (!account.id) return false;
+      return transactions.some(
+        (txn) => txn.accountId === account.id && !txn.deletedAt && Boolean(txn.importSource || txn.importedAt),
+      );
+    });
+
+    if (!allZeroBalances && !shouldAttemptNegativeImportRepair) return;
+
+    const repairKey = `${activeAccounts.map((account) => `${account.id}:${Number(account.balance).toFixed(2)}`).join(',')}::${transactions.length}`;
+    if (attemptedBalanceRepairKeyRef.current === repairKey) return;
+    attemptedBalanceRepairKeyRef.current = repairKey;
+
+    const balanceByAccountId = new Map<number, number>();
+    const flowByAccountId = new Map<number, { inflow: number; outflow: number }>();
+    const latestSnapshotByAccountId = new Map<number, { date: Date; balance: number }>();
+
+    for (const txn of transactions) {
+      if (!txn.accountId || txn.deletedAt) continue;
+
+      const snapshotValue = txn.importMetadata?.['Account Balance'];
+      if (snapshotValue) {
+        const parsedSnapshot = Number.parseFloat(
+          String(snapshotValue)
+            .replace(/[()]/g, '')
+            .replace(/[^\d.,-]/g, '')
+            .replace(/,(?=\d{3}\b)/g, ''),
+        );
+        const txDate = new Date(txn.date);
+        if (Number.isFinite(parsedSnapshot) && !Number.isNaN(txDate.getTime())) {
+          const existing = latestSnapshotByAccountId.get(txn.accountId);
+          if (!existing || txDate.getTime() >= existing.date.getTime()) {
+            latestSnapshotByAccountId.set(txn.accountId, {
+              date: txDate,
+              balance: parsedSnapshot,
+            });
+          }
+        }
+      }
+
+      const currentFlow = flowByAccountId.get(txn.accountId) ?? { inflow: 0, outflow: 0 };
+
+      if (txn.type === 'income') {
+        balanceByAccountId.set(txn.accountId, (balanceByAccountId.get(txn.accountId) ?? 0) + txn.amount);
+        currentFlow.inflow += txn.amount;
+        flowByAccountId.set(txn.accountId, currentFlow);
+        continue;
+      }
+
+      if (txn.type === 'expense') {
+        balanceByAccountId.set(txn.accountId, (balanceByAccountId.get(txn.accountId) ?? 0) - txn.amount);
+        currentFlow.outflow += txn.amount;
+        flowByAccountId.set(txn.accountId, currentFlow);
+        continue;
+      }
+
+      if (txn.type === 'transfer') {
+        balanceByAccountId.set(txn.accountId, (balanceByAccountId.get(txn.accountId) ?? 0) - txn.amount);
+        currentFlow.outflow += txn.amount;
+        flowByAccountId.set(txn.accountId, currentFlow);
+        if (txn.transferToAccountId) {
+          balanceByAccountId.set(
+            txn.transferToAccountId,
+            (balanceByAccountId.get(txn.transferToAccountId) ?? 0) + txn.amount,
+          );
+          const destinationFlow = flowByAccountId.get(txn.transferToAccountId) ?? { inflow: 0, outflow: 0 };
+          destinationFlow.inflow += txn.amount;
+          flowByAccountId.set(txn.transferToAccountId, destinationFlow);
+        }
+      }
+
+    }
+
+    const hasNonZeroDerivedBalance = Array.from(balanceByAccountId.values()).some((value) => Math.abs(value) > 0.000001);
+    if (!hasNonZeroDerivedBalance && !shouldAttemptNegativeImportRepair) return;
+
+    void db.transaction('rw', db.accounts, async () => {
+      const now = new Date();
+      for (const account of activeAccounts) {
+        if (!account.id) continue;
+
+        const latestSnapshot = latestSnapshotByAccountId.get(account.id);
+        if (latestSnapshot) {
+          await db.accounts.update(account.id, {
+            balance: Number(latestSnapshot.balance.toFixed(2)),
+            updatedAt: now,
+          });
+          continue;
+        }
+
+        const derivedBalance = balanceByAccountId.get(account.id);
+        if (derivedBalance == null) continue;
+
+        const flows = flowByAccountId.get(account.id) ?? { inflow: 0, outflow: 0 };
+        const hasImportedRows = transactions.some(
+          (txn) => txn.accountId === account.id && !txn.deletedAt && Boolean(txn.importSource || txn.importedAt),
+        );
+
+        let repairedBalance = derivedBalance;
+        if (
+          hasImportedRows
+          && account.type !== 'card'
+          && repairedBalance < 0
+          && flows.inflow <= 0
+        ) {
+          repairedBalance = 0;
+        }
+
+        await db.accounts.update(account.id, {
+          balance: Number(repairedBalance.toFixed(2)),
+          updatedAt: now,
+        });
+      }
+    });
+  }, [accounts, transactions]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);

@@ -54,8 +54,8 @@ export const Calendar: React.FC = () => {
 
   // Filter transactions by selected time period
   const filteredTransactions = useMemo(() => {
-    return filterByTimePeriod(transactions, timePeriod);
-  }, [transactions, timePeriod]);
+    return filterByTimePeriod(transactions, timePeriod, currentDate);
+  }, [transactions, timePeriod, currentDate]);
 
   // Calculate summary stats for filtered transactions
   const summaryStats = useMemo(() => {
@@ -80,7 +80,7 @@ export const Calendar: React.FC = () => {
   // Group transactions by date
   const transactionsByDate = useMemo(() => {
     const grouped: { [key: string]: typeof transactions } = {};
-    transactions.forEach((transaction) => {
+    filteredTransactions.forEach((transaction) => {
       if (!transaction.date) return;
       const date = new Date(transaction.date);
       const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -90,7 +90,7 @@ export const Calendar: React.FC = () => {
       grouped[dateKey].push(transaction);
     });
     return grouped;
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   // Group reminders by date
   const remindersByDate = useMemo(() => {
@@ -278,7 +278,7 @@ export const Calendar: React.FC = () => {
   const summaryCardClass = 'rounded-[20px] px-3 py-4 sm:px-4 sm:py-4.5 shadow-sm transition-transform hover:-translate-y-0.5 min-w-0';
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 lg:py-6 max-w-[1600px] mx-auto space-y-4 sm:space-y-5">
       {/* App Header */}
       <PageHeader
         title="Calendar"
@@ -363,9 +363,9 @@ export const Calendar: React.FC = () => {
       </div>
 
       {/* Calendar Card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden max-w-[980px] mx-auto">
         {/* Month Navigation */}
-        <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-3 sm:px-5 py-3 flex items-center justify-between">
           <button
             onClick={handlePrevMonth}
             className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 transition-colors flex items-center justify-center"
@@ -374,10 +374,10 @@ export const Calendar: React.FC = () => {
             <ChevronLeft size={20} className="text-white" />
           </button>
           <div className="text-center">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">
+            <h2 className="text-lg sm:text-xl font-bold text-white leading-tight">
               {MONTHS[currentDate.getMonth()]}
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5">{currentDate.getFullYear()}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{currentDate.getFullYear()}</p>
           </div>
           <button
             onClick={handleNextMonth}
@@ -389,46 +389,51 @@ export const Calendar: React.FC = () => {
         </div>
 
         {/* Calendar Grid */}
-        <div className="p-4 sm:p-6">
+        <div className="p-2.5 sm:p-3.5 lg:p-4">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-3">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 mb-2.5">
             {DAYS.map((day) => (
-              <div key={day} className="text-center font-medium text-gray-400 text-xs py-2">
+              <div key={day} className="text-center font-medium text-gray-400 text-[11px] sm:text-xs py-1.5">
                 {day}
               </div>
             ))}
           </div>
 
           {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 lg:gap-1.5">
             <AnimatePresence>
               {calendarDays.map((date, index) => {
-                const isToday = isCurrentMonth && date.getDate() === today.getDate();
+                const isToday = getDateKey(date) === getDateKey(today);
                 const isSelected = selectedDate && getDateKey(date) === getDateKey(selectedDate);
-                const isCurrentMonth_ = date.getMonth() === currentDate.getMonth();
+                const isCurrentMonth_ =
+                  date.getMonth() === currentDate.getMonth()
+                  && date.getFullYear() === currentDate.getFullYear();
                 const hasAct = hasActivity(date);
-
-                // If not current month, render an empty placeholder block to maintain grid spacing
-                if (!isCurrentMonth_) {
-                  return <div key={`empty-${index}`} className="aspect-square opacity-0 pointer-events-none" />;
-                }
 
                 return (
                   <motion.button
-                    key={getDateKey(date)}
+                    key={`${getDateKey(date)}-${index}`}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    onClick={() => setSelectedDate(date)}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      if (!isCurrentMonth_) {
+                        setCurrentDate(new Date(date.getFullYear(), date.getMonth(), 1));
+                      }
+                    }}
                     className={cn(
-                      'aspect-square rounded-xl transition-all duration-200 flex flex-col items-center justify-center relative group',
+                      'w-full h-[clamp(2.7rem,4.8vh,3.85rem)] rounded-xl transition-all duration-200 flex flex-col items-center justify-center relative group',
                       isSelected
                         ? 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-lg shadow-pink-500/30 font-bold z-10'
                         : isToday
                           ? 'bg-gray-900 text-white shadow-md font-bold'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 hover:shadow-sm',
-                      'text-sm sm:text-base'
+                          : isCurrentMonth_
+                            ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 hover:shadow-sm'
+                            : 'bg-gray-50/70 text-gray-300 hover:bg-gray-100/80',
+                      'text-sm'
                     )}
+                    title={date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   >
                     {date.getDate()}
 

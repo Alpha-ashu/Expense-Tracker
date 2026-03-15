@@ -43,8 +43,19 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     return accounts.filter(a => a.type === activeTab);
   }, [accounts, activeTab]);
 
+  const filterReferenceDate = useMemo(() => {
+    if (transactions.length === 0) return new Date();
+    return transactions.reduce((latest, transaction) => {
+      const txDate = new Date(transaction.date);
+      if (Number.isNaN(txDate.getTime())) return latest;
+      return txDate > latest ? txDate : latest;
+    }, new Date(transactions[0].date));
+  }, [transactions]);
+
   const timeFilteredTransactions = useMemo(() =>
-    filterByTimePeriod(transactions, timePeriod), [transactions, timePeriod]);
+    filterByTimePeriod(transactions, timePeriod, filterReferenceDate),
+    [transactions, timePeriod, filterReferenceDate],
+  );
 
   const filteredAccountIdSet = useMemo(
     () => new Set(filteredAccounts.map((account) => account.id)),

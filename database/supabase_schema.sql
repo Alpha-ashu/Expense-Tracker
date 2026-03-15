@@ -66,16 +66,71 @@ CREATE TABLE IF NOT EXISTS public.accounts (
   type TEXT DEFAULT 'bank', 
   provider TEXT,
   country TEXT,
-  balance NUMERIC DEFAULT 0 CHECK (balance >= 0),
+  balance NUMERIC DEFAULT 0,
   currency TEXT DEFAULT 'USD',
   is_active BOOLEAN DEFAULT true,
+  sync_status TEXT DEFAULT 'synced',
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
 
 -- Ensure existing projects also get new account metadata columns.
 ALTER TABLE IF EXISTS public.accounts ADD COLUMN IF NOT EXISTS provider TEXT;
 ALTER TABLE IF EXISTS public.accounts ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE IF EXISTS public.accounts ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';
+ALTER TABLE IF EXISTS public.accounts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+DO $$
+DECLARE
+  constraint_name TEXT;
+BEGIN
+  SELECT con.conname
+  INTO constraint_name
+  FROM pg_constraint con
+  JOIN pg_class rel ON rel.oid = con.conrelid
+  JOIN pg_namespace nsp ON nsp.oid = rel.relnamespace
+  WHERE nsp.nspname = 'public'
+    AND rel.relname = 'accounts'
+    AND con.contype = 'c'
+    AND pg_get_constraintdef(con.oid) ILIKE '%balance >= 0%'
+  LIMIT 1;
+
+  IF constraint_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public.accounts DROP CONSTRAINT %I', constraint_name);
+  END IF;
+END $$;
+
+-- FRIENDS
+CREATE TABLE IF NOT EXISTS public.friends (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  local_id INT,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  avatar TEXT,
+  notes TEXT,
+  sync_status TEXT DEFAULT 'synced',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- CATEGORIES
+CREATE TABLE IF NOT EXISTS public.categories (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  color TEXT NOT NULL,
+  icon TEXT NOT NULL,
+  created_from_import BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  UNIQUE (user_id, name, type)
+);
 
 -- TRANSACTIONS
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -91,11 +146,34 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   merchant TEXT,
   date TIMESTAMPTZ NOT NULL,
   tags TEXT[],
+  attachment TEXT,
   transfer_to_account_id TEXT,
   transfer_type TEXT,
+  expense_mode TEXT,
+  group_expense_id TEXT,
+  group_name TEXT,
+  split_type TEXT,
+  import_source TEXT,
+  import_metadata JSONB DEFAULT '{}'::jsonb,
+  original_category TEXT,
+  imported_at TIMESTAMPTZ,
+  sync_status TEXT DEFAULT 'synced',
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
+
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS attachment TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS expense_mode TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS group_expense_id TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS group_name TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS split_type TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS import_source TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS import_metadata JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS original_category TEXT;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS imported_at TIMESTAMPTZ;
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';
+ALTER TABLE IF EXISTS public.transactions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 -- GOALS
 CREATE TABLE IF NOT EXISTS public.goals (
@@ -103,11 +181,34 @@ CREATE TABLE IF NOT EXISTS public.goals (
   local_id INT,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
+  description TEXT,
   target_amount NUMERIC NOT NULL,
   current_amount NUMERIC DEFAULT 0,
   target_date TIMESTAMPTZ NOT NULL,
   category TEXT,
   is_group_goal BOOLEAN DEFAULT false,
+  sync_status TEXT DEFAULT 'synced',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+ALTER TABLE IF EXISTS public.goals ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE IF EXISTS public.goals ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';
+ALTER TABLE IF EXISTS public.goals ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- GOAL CONTRIBUTIONS
+CREATE TABLE IF NOT EXISTS public.goal_contributions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  local_id INT,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  goal_id UUID REFERENCES public.goals(id) ON DELETE CASCADE NOT NULL,
+  account_id UUID REFERENCES public.accounts(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL,
+  date TIMESTAMPTZ NOT NULL,
+  member_name TEXT,
+  status TEXT,
+  notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -174,9 +275,68 @@ CREATE TABLE IF NOT EXISTS public.group_expenses (
   date TIMESTAMPTZ NOT NULL,
   members JSONB DEFAULT '[]'::jsonb,
   items JSONB DEFAULT '[]'::jsonb,
+  description TEXT,
+  category TEXT,
+  subcategory TEXT,
+  split_type TEXT,
+  your_share NUMERIC,
+  expense_transaction_id TEXT,
+  created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_by_name TEXT,
+  status TEXT,
+  notification_status TEXT,
+  sync_status TEXT DEFAULT 'synced',
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
 );
+
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS subcategory TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS split_type TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS your_share NUMERIC;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS expense_transaction_id TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS created_by_name TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS status TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS notification_status TEXT;
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS sync_status TEXT DEFAULT 'synced';
+ALTER TABLE IF EXISTS public.group_expenses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- IMPORT LOGS
+CREATE TABLE IF NOT EXISTS public.import_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  source_kind TEXT NOT NULL,
+  total_records INT NOT NULL DEFAULT 0,
+  imported_records INT NOT NULL DEFAULT 0,
+  skipped_records INT NOT NULL DEFAULT 0,
+  duplicate_records INT NOT NULL DEFAULT 0,
+  failed_records INT NOT NULL DEFAULT 0,
+  created_accounts JSONB DEFAULT '[]'::jsonb,
+  created_categories JSONB DEFAULT '[]'::jsonb,
+  created_goals JSONB DEFAULT '[]'::jsonb,
+  updated_goals JSONB DEFAULT '[]'::jsonb,
+  errors JSONB DEFAULT '[]'::jsonb,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- IMPORT / FINANCE INDEXES
+CREATE INDEX IF NOT EXISTS idx_accounts_user_active ON public.accounts(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_friends_user_name ON public.friends(user_id, name);
+CREATE INDEX IF NOT EXISTS idx_categories_user_type_name ON public.categories(user_id, type, name);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_account_date ON public.transactions(account_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_group_expense ON public.transactions(group_expense_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_import_source ON public.transactions(import_source);
+CREATE INDEX IF NOT EXISTS idx_goals_user_target_date ON public.goals(user_id, target_date);
+CREATE INDEX IF NOT EXISTS idx_goal_contributions_goal_date ON public.goal_contributions(goal_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_group_expenses_user_date ON public.group_expenses(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_import_logs_user_created_at ON public.import_logs(user_id, created_at DESC);
 
 -- TAX CALCULATIONS
 CREATE TABLE IF NOT EXISTS public.tax_calculations (
@@ -338,7 +498,7 @@ $$ LANGUAGE plpgsql;
 DO $$
 DECLARE
   t TEXT;
-  arr TEXT[] := ARRAY['profiles', 'devices', 'user_pins', 'accounts', 'transactions', 'goals', 'loans', 'investments', 'user_settings', 'group_expenses', 'tax_calculations', 'finance_advisors', 'advisor_sessions', 'booking_requests', 'chat_conversations', 'todo_lists', 'todo_items'];
+  arr TEXT[] := ARRAY['profiles', 'devices', 'user_pins', 'accounts', 'friends', 'categories', 'transactions', 'goals', 'goal_contributions', 'loans', 'investments', 'user_settings', 'group_expenses', 'tax_calculations', 'finance_advisors', 'advisor_sessions', 'booking_requests', 'chat_conversations', 'todo_lists', 'todo_items'];
 BEGIN
   FOREACH t IN ARRAY arr
   LOOP
@@ -355,12 +515,16 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_pins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goal_contributions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.investments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_expenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.import_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tax_calculations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.finance_advisors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.advisor_sessions ENABLE ROW LEVEL SECURITY;
@@ -396,7 +560,7 @@ $$ LANGUAGE plpgsql;
 DO $$
 DECLARE
   t TEXT;
-  generic_tables TEXT[] := ARRAY['devices', 'user_pins', 'accounts', 'transactions', 'goals', 'loans', 'investments', 'user_settings', 'group_expenses', 'tax_calculations', 'notifications'];
+  generic_tables TEXT[] := ARRAY['devices', 'user_pins', 'accounts', 'friends', 'categories', 'transactions', 'goals', 'goal_contributions', 'loans', 'investments', 'user_settings', 'group_expenses', 'import_logs', 'tax_calculations', 'notifications'];
 BEGIN
   FOREACH t IN ARRAY generic_tables
   LOOP
