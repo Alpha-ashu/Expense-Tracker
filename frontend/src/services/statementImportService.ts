@@ -5,6 +5,7 @@
 
 import { db, type Transaction } from '@/lib/database';
 import { documentIntelligenceService } from './documentIntelligenceService';
+import { createWorker } from 'tesseract.js';
 // @ts-ignore
 import * as pdfjsLib from 'pdfjs-dist/build/pdf';
 
@@ -268,6 +269,15 @@ class StatementImportService {
 
       if (file.type === 'application/pdf') {
         rawText = await this.extractPdfText(file);
+        const compactTextLength = rawText.replace(/\s+/g, '').length;
+
+        if (compactTextLength < 120) {
+          const ocrText = await this.extractPdfTextWithOcr(file);
+          if (ocrText.replace(/\s+/g, '').length > compactTextLength) {
+            rawText = ocrText;
+          }
+        }
+
         transactions = await this.extractTransactionsFromText(rawText, options.userId);
       } else if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
         rawText = await file.text();
@@ -428,6 +438,60 @@ class StatementImportService {
     }
 
     return fullText;
+  }
+
+  private async extractPdfTextWithOcr(file: File) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableFontFace: true }).promise;
+    const maxPages = Math.min(pdf.numPages, 4);
+    const pageTexts: string[] = [];
+
+    const worker = await createWorker('eng', 1);
+
+    try {
+      for (let pageIndex = 1; pageIndex <= maxPages; pageIndex += 1) {
+        const page = await pdf.getPage(pageIndex);
+        const viewport = page.getViewport({ scale: 2.25 });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.floor(viewport.width));
+        canvas.height = Math.max(1, Math.floor(viewport.height));
+
+        const context = canvas.getContext('2d');
+        if (!context) continue;
+
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: context, viewport }).promise;
+
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const { data } = imageData;
+        for (let i = 0; i < data.length; i += 4) {
+          const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          const bw = lum > 170 ? 255 : 0;
+          data[i] = bw;
+          data[i + 1] = bw;
+          data[i + 2] = bw;
+          data[i + 3] = 255;
+        }
+        context.putImageData(imageData, 0, 0);
+
+        const blob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((value) => resolve(value), 'image/png', 0.95);
+        });
+        if (!blob) continue;
+
+        const result = await worker.recognize(blob);
+        const pageText = result.data.text?.trim();
+        if (pageText) {
+          pageTexts.push(pageText);
+        }
+      }
+    } finally {
+      await worker.terminate();
+    }
+
+    return pageTexts.join('\n');
   }
 
   private async extractTransactionsFromSpreadsheet(file: File, userId: string, errors: string[]) {

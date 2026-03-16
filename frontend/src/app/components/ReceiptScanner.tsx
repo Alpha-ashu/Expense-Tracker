@@ -20,6 +20,8 @@ import {
 } from '@/services/receiptScannerService';
 import { financialDataCaptureService } from '@/services/financialDataCaptureService';
 
+const RECEIPT_OCR_ON_DEVICE_ONLY_KEY = 'receipt_scanner_on_device_only';
+
 /* ─────────────────────────────────────────────────────────────
    Receipt scan result
 ───────────────────────────────────────────────────────────── */
@@ -75,6 +77,15 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const [scanStatus, setScanStatus] = useState('');
   const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
   const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
+  const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY);
+      if (stored == null) return true;
+      return stored === 'true';
+    } catch {
+      return true;
+    }
+  });
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
     initialAccountId ?? accounts[0]?.id ?? null
   );
@@ -86,6 +97,14 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     if (!isOpen) return;
     setSelectedAccountId(initialAccountId ?? accounts[0]?.id ?? null);
   }, [accounts, initialAccountId, isOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY, String(onDeviceOnly));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [onDeviceOnly]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -114,6 +133,10 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     let documentId = scanDocumentId;
 
     try {
+      if (!onDeviceOnly) {
+        toast.info('Cloud OCR enhancement is not configured yet. Using on-device OCR for this scan.');
+      }
+
       documentId = scanDocumentId ?? await documentIntelligenceService.createDocumentRecord({
         documentType: 'receipt',
         file: selectedFile,
@@ -371,12 +394,32 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Take photo" />
 
               <div className="bg-blue-50 rounded-2xl p-4">
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-white/80 px-3 py-2">
+                  <div>
+                    <p className="text-xs font-semibold text-blue-800">On-device OCR only</p>
+                    <p className="text-[11px] text-blue-700">Receipt image processing stays on this device.</p>
+                  </div>
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-blue-800">
+                    <input
+                      type="checkbox"
+                      checked={onDeviceOnly}
+                      onChange={(event) => setOnDeviceOnly(event.target.checked)}
+                      className="h-4 w-4 rounded border-blue-300"
+                      aria-label="Use on-device OCR only"
+                      title="Use on-device OCR only"
+                    />
+                    Enabled
+                  </label>
+                </div>
                 <p className="text-xs text-blue-700 font-semibold">💡 Tips for best results</p>
                 <ul className="text-xs text-blue-600 mt-1 space-y-0.5 list-disc list-inside">
                   <li>Ensure receipt is flat and well-lit</li>
                   <li>Capture the entire receipt including the total</li>
                   <li>Avoid blurry or dark images</li>
                 </ul>
+                <p className="mt-2 text-[11px] text-blue-700">
+                  Privacy note: OCR runs in your browser/app runtime. Your receipts are not uploaded for scanning.
+                </p>
               </div>
             </div>
           )}

@@ -34,6 +34,10 @@ export const SUPPORTED_RECEIPT_MIME_TYPES = [
 
 const RECEIPT_TOTAL_PATTERNS = [
   /grand\s*total/i,
+  /total\s*amount/i,
+  /total\s*payable/i,
+  /amount\s*payable/i,
+  /amount\s*paid/i,
   /amount\s*due/i,
   /balance\s*due/i,
   /net\s*total/i,
@@ -51,12 +55,30 @@ const PAYMENT_METHOD_PATTERNS = [
   { label: 'Bank Transfer', pattern: /\bneft\b|\bimps\b|\brtgs\b/i },
 ];
 
+const BILL_MERCHANT_HINTS = [
+  /amazon\./i,
+  /flipkart/i,
+  /myntra/i,
+  /swiggy/i,
+  /zomato/i,
+  /bigbasket/i,
+  /zepto/i,
+];
+
 const normalizeWhitespace = (value: string) => value.replace(/\s+/g, ' ').trim();
 
 const extractAmounts = (text: string) => {
-  const matches = text.match(/(?:rs\.?|₹|€|£|\$|usd|eur|gbp|inr)?\s*([\d,]+(?:\.\d{1,2})?)/gi) || [];
+  const matches = text.match(/(?:rs\.?|inr|₹|€|£|\$)?\s*\(?\s*[\d]{1,3}(?:,[\d]{2,3})*(?:\.\d{1,2})?\s*\)?/gi) || [];
+
   return matches
-    .map((match) => Number.parseFloat(match.replace(/[^0-9.]/g, '')))
+    .map((match) => {
+      const normalized = match
+        .replace(/rs\.?|inr|₹|€|£|\$/gi, '')
+        .replace(/[()\s]/g, '')
+        .replace(/,/g, '');
+
+      return Number.parseFloat(normalized);
+    })
     .filter((value) => Number.isFinite(value) && value > 0 && value < 100000000);
 };
 
@@ -72,7 +94,12 @@ const extractDate = (lines: string[]) => {
     jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
   };
 
-  for (const line of lines) {
+  const prioritizedLines = [
+    ...lines.filter((line) => /invoice\s*date|order\s*date|bill\s*date|date\s*:/i.test(line)),
+    ...lines,
+  ];
+
+  for (const line of prioritizedLines) {
     for (const pattern of datePatterns) {
       const match = line.match(pattern);
       if (!match) continue;
@@ -105,7 +132,7 @@ const extractTime = (lines: string[]) => {
 
 const extractInvoiceNumber = (lines: string[]) => {
   for (const line of lines) {
-    const match = line.match(/(?:invoice|bill|receipt|txn|ref)(?:\s*no\.?|\s*#|\s*:)?\s*([a-z0-9\-\/]{4,})/i);
+    const match = line.match(/(?:invoice|bill|receipt|txn|ref|order)(?:\s*(?:number|num|no)\.?|\s*#|\s*:)?\s*([a-z0-9][a-z0-9\-\/]{3,})/i);
     if (match) return match[1].toUpperCase();
   }
 
@@ -128,6 +155,55 @@ const extractSectionAmount = (lines: string[], patterns: RegExp[]) => {
   }
 
   return best || undefined;
+};
+
+const extractBestTotalAmount = (lines: string[]) => {
+  const candidates: Array<{ index: number; amount: number }> = [];
+
+  lines.forEach((line, index) => {
+    const normalized = normalizeWhitespace(line).toLowerCase();
+    if (!RECEIPT_TOTAL_PATTERNS.some((pattern) => pattern.test(normalized))) return;
+    if (RECEIPT_SUBTOTAL_PATTERNS.some((pattern) => pattern.test(normalized))) return;
+    if (RECEIPT_TAX_PATTERNS.some((pattern) => pattern.test(normalized))) return;
+
+    // Skip per-line item totals in tabular invoices.
+    if (/\bqty|quantity|unit\s*price|tax\s*type|description\b/i.test(normalized)) return;
+
+    const amounts = extractAmounts(line);
+    if (amounts.length > 0) {
+      candidates.push({ index, amount: Math.max(...amounts) });
+      return;
+    }
+
+    // Some bills split TOTAL and value on the next line.
+    const nextLine = lines[index + 1] || '';
+    const nextAmounts = extractAmounts(nextLine);
+    if (nextAmounts.length > 0) {
+      candidates.push({ index: index + 1, amount: Math.max(...nextAmounts) });
+    }
+  });
+
+  if (candidates.length === 0) return undefined;
+
+  // Totals usually appear near the end. Prefer the last meaningful total line.
+  const lastCandidate = candidates.reduce((latest, current) => (current.index > latest.index ? current : latest));
+  return lastCandidate.amount;
+};
+
+const detectMerchantLine = (lines: string[]) => {
+  const prioritized = lines.find((line) => BILL_MERCHANT_HINTS.some((pattern) => pattern.test(line)));
+  if (prioritized) return prioritized;
+
+  const domainLine = lines.find((line) => /\b[a-z0-9-]+\.(?:in|com|co|org)\b/i.test(line));
+  if (domainLine) return domainLine;
+
+  const merchantCandidates = lines.filter((line) =>
+    line.length > 2
+    && !/^\d/.test(line)
+    && !/date|time|invoice|bill no|gst|tax|tel|phone|www\.|address|sold by|shipping|authorized|signatory/i.test(line),
+  );
+
+  return merchantCandidates[0] ?? '';
 };
 
 const extractItems = (lines: string[]) => {
@@ -293,6 +369,26 @@ function enhanceCanvas(canvas: HTMLCanvasElement) {
   return canvas;
 }
 
+function upscaleCanvasForOcr(canvas: HTMLCanvasElement) {
+  const minShortEdge = 1400;
+  const shortEdge = Math.min(canvas.width, canvas.height);
+  if (shortEdge >= minShortEdge) return canvas;
+
+  const scale = minShortEdge / Math.max(shortEdge, 1);
+  const upscaled = document.createElement('canvas');
+  upscaled.width = Math.max(1, Math.round(canvas.width * scale));
+  upscaled.height = Math.max(1, Math.round(canvas.height * scale));
+  const context = upscaled.getContext('2d');
+  if (!context) return canvas;
+
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, upscaled.width, upscaled.height);
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'high';
+  context.drawImage(canvas, 0, 0, upscaled.width, upscaled.height);
+  return upscaled;
+}
+
 export async function preprocessReceiptFile(file: File) {
   const baseCanvas = file.type === 'application/pdf'
     ? await renderPdfToCanvas(file)
@@ -300,7 +396,8 @@ export async function preprocessReceiptFile(file: File) {
 
   const trimmed = trimCanvas(baseCanvas);
   const enhanced = enhanceCanvas(trimmed);
-  return canvasToBlob(enhanced);
+  const upscaled = upscaleCanvasForOcr(enhanced);
+  return canvasToBlob(upscaled);
 }
 
 export async function parseReceiptText(rawText: string, userId?: string): Promise<ReceiptScannerResult> {
@@ -309,20 +406,15 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
     .map((line) => normalizeWhitespace(line))
     .filter(Boolean);
 
-  const merchantCandidates = lines.filter((line) =>
-    line.length > 2
-    && !/^\d/.test(line)
-    && !/date|time|invoice|bill no|gst|tax|tel|phone|www\.|address/i.test(line),
-  );
-
-  const merchantLine = merchantCandidates[0] ?? '';
+  const merchantLine = detectMerchantLine(lines);
   const normalizedMerchant = documentIntelligenceService.normalizeMerchantName(merchantLine);
   const merchantName = normalizedMerchant
     ? documentIntelligenceService.toTitleCase(normalizedMerchant)
     : merchantLine;
   const subtotal = extractSectionAmount(lines, RECEIPT_SUBTOTAL_PATTERNS);
   const taxAmount = extractSectionAmount(lines, RECEIPT_TAX_PATTERNS);
-  const amount = extractSectionAmount(lines, RECEIPT_TOTAL_PATTERNS)
+  const amount = extractBestTotalAmount(lines)
+    ?? extractSectionAmount(lines, RECEIPT_TOTAL_PATTERNS)
     ?? Math.max(0, ...lines.flatMap((line) => extractAmounts(line)));
   const date = extractDate(lines);
   const time = extractTime(lines);

@@ -1234,16 +1234,18 @@ class SmartExpenseImportService {
 
     await db.transaction(
       'rw',
-      db.transactions,
-      db.accounts,
-      db.friends,
-      db.loans,
-      db.investments,
-      db.importHistories,
-      db.categories,
-      db.groupExpenses,
-      db.goals,
-      db.goalContributions,
+      [
+        db.transactions,
+        db.accounts,
+        db.friends,
+        db.loans,
+        db.investments,
+        db.importHistories,
+        db.categories,
+        db.groupExpenses,
+        db.goals,
+        db.goalContributions,
+      ],
       async () => {
         if (structuredPayload && isStructuredLedgerPayload(structuredPayload)) {
           const companionResult = await this.importStructuredCompanionData({
