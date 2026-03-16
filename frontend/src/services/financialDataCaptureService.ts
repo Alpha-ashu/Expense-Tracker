@@ -364,6 +364,7 @@ async function findDuplicateTransaction(draft: TransactionDraft): Promise<Duplic
 
   const candidates = await db.transactions
     .filter((transaction) => {
+      if (transaction.deletedAt) return false;
       if (transaction.type !== draft.type) return false;
       if (transaction.accountId !== draft.accountId) return false;
       if (Math.abs(Number(transaction.amount) - Number(draft.amount)) > 0.009) return false;
