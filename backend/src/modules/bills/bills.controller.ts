@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { logger } from '../../config/logger';
-import { validateUpload, makeStoragePath } from '../../utils/uploadPolicy';
+import { validateBillUpload, makeStoragePath } from '../../utils/uploadPolicy';
 import { processImage } from '../../utils/imageProcessing';
 import { scanBufferForViruses } from '../../utils/virusScan';
 import { moderateImage } from '../../utils/moderation';
@@ -63,7 +63,22 @@ export const uploadBill = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'File is required' });
     }
 
-    const validated = await validateUpload(file);
+    if (transactionId) {
+      const linkedTransaction = await prisma.transaction.findFirst({
+        where: {
+          id: transactionId,
+          userId,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+
+      if (!linkedTransaction) {
+        return res.status(403).json({ error: 'Unauthorized transaction reference' });
+      }
+    }
+
+    const validated = await validateBillUpload(file);
     let buffer = validated.buffer;
     let contentType = validated.contentType;
     let extension = validated.extension;
@@ -134,6 +149,16 @@ export const uploadBill = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     logger.error('Upload failed', { error: error?.message || error });
+    if (
+      typeof error?.message === 'string'
+      && (
+        error.message.includes('Only PNG, JPG, and PDF files are allowed')
+        || error.message.includes('Unsupported or corrupted file')
+        || error.message.includes('File exceeds')
+      )
+    ) {
+      return res.status(400).json({ error: error.message });
+    }
     return res.status(500).json({ error: error?.message || 'Upload failed' });
   }
 };

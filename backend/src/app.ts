@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
 import { getRedisStatus } from './cache/redis';
+import { rateLimit, authenticatedRateLimit } from './middleware/rateLimit';
 
 const app = express();
 
@@ -56,6 +57,30 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
 app.use(express.json({ limit: '1mb' }));
+
+// Baseline API throttling for abuse protection (IP + optional user identity).
+app.use('/api/v1', rateLimit({
+  windowMs: 60_000,
+  max: Number(process.env.API_RATE_LIMIT || 60),
+  scope: 'api-global',
+  message: 'Too many API requests. Please try again later.',
+}));
+
+// Stricter auth throttling to reduce brute-force risk.
+app.use('/api/v1/auth', rateLimit({
+  windowMs: 60_000,
+  max: Number(process.env.AUTH_RATE_LIMIT || 5),
+  scope: 'api-auth',
+  message: 'Too many authentication attempts. Please wait and try again.',
+}));
+
+// Stricter bill/ocr endpoint throttling to control compute and storage abuse.
+app.use('/api/v1/bills', authenticatedRateLimit({
+  windowMs: 60_000,
+  max: Number(process.env.BILL_UPLOAD_RATE_LIMIT || 10),
+  scope: 'api-bills',
+  message: 'Too many bill processing requests. Please try again later.',
+}));
 
 // Health check
 app.get('/health', (req, res) => {

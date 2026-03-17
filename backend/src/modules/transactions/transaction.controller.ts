@@ -163,12 +163,16 @@ export const getTransaction = async (req: AuthRequest, res: Response) => {
     const userId = getUserId(req);
     const { id } = req.params;
 
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
       include: { account: true },
     });
 
-    if (!transaction || transaction.userId !== userId) {
+    if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
@@ -201,11 +205,15 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
     }
 
     // Verify ownership
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
     });
 
-    if (!transaction || transaction.userId !== userId) {
+    if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
@@ -229,11 +237,15 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
     // Verify ownership
-    const transaction = await prisma.transaction.findUnique({
-      where: { id },
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id,
+        userId,
+        deletedAt: null,
+      },
     });
 
-    if (!transaction || transaction.userId !== userId) {
+    if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 

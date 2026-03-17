@@ -7,8 +7,10 @@ const router = Router();
 
 // Strict rate limiting on auth endpoints — prevents brute-force attacks
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,                   // 10 attempts per window per IP
+  windowMs: 60_000,          // 1 minute
+  max: Number(process.env.AUTH_RATE_LIMIT || 5),
+  scope: 'auth-route',
+  message: 'Too many authentication attempts. Please try again later.',
   keyGenerator: (req) => req.ip || 'unknown',
 });
 

@@ -10,6 +10,13 @@ const getFileTypeFromBuffer = async () => {
 };
 
 export const MAX_UPLOAD_BYTES = Number(process.env.UPLOAD_MAX_BYTES || 10 * 1024 * 1024);
+export const BILL_MAX_UPLOAD_BYTES = Number(process.env.BILL_UPLOAD_MAX_BYTES || 5 * 1024 * 1024);
+
+const BILL_ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'application/pdf',
+]);
 
 const BLOCKED_EXTENSIONS = new Set([
   '.exe',
@@ -155,4 +162,17 @@ export const validateUpload = async (file: Express.Multer.File): Promise<Validat
   }
 
   throw new Error('Unsupported or corrupted file');
+};
+
+export const validateBillUpload = async (file: Express.Multer.File): Promise<ValidatedUpload> => {
+  if (file.size > BILL_MAX_UPLOAD_BYTES) {
+    throw new Error(`File exceeds ${Math.round(BILL_MAX_UPLOAD_BYTES / (1024 * 1024))}MB limit`);
+  }
+
+  const validated = await validateUpload(file);
+  if (!BILL_ALLOWED_MIME_TYPES.has(validated.contentType)) {
+    throw new Error('Only PNG, JPG, and PDF files are allowed for bill uploads');
+  }
+
+  return validated;
 };
