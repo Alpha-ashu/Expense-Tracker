@@ -13,6 +13,8 @@ Open each file in **Supabase SQL Editor** and run them in this order:
 3. **[003_seed_data.sql](migrations/003_seed_data.sql)** - *(Optional)* Adds sample data for testing
 4. **[004_add_missing_columns.sql](migrations/004_add_missing_columns.sql)** - *(Recommended)* Aligns friends/group_expenses with app sync fields
 5. **[007_add_user_pins_table.sql](migrations/007_add_user_pins_table.sql)** - *(Required for PIN cloud sync)* Adds `user_pins` table + RLS
+6. **[010_enforce_rls_core_finance_tables.sql](migrations/010_enforce_rls_core_finance_tables.sql)** - *(Recommended before production)* Forces strict ownership RLS on core finance tables
+7. **[010_verify_rls_core_finance_tables.sql](migrations/010_verify_rls_core_finance_tables.sql)** - Verifies RLS/FORCE RLS and policy coverage on production-critical tables
 
 ### **2. Follow Detailed Instructions:**
 
@@ -96,6 +98,16 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 - Validate setup with: `migrations/007_user_pins_verify.sql`
 - One-shot option (apply + verify): `migrations/007_apply_and_verify_user_pins.sql`
 
+### **010_enforce_rls_core_finance_tables.sql** *(Recommended before production)*
+- Enables + forces RLS on core financial tables
+- Recreates strict per-user ownership policies
+- Targets: `accounts`, `transactions`, `friends`, `group_expenses`, `loans`, `investments`, `goals`
+
+### **010_verify_rls_core_finance_tables.sql**
+- Validates `rowsecurity` and `forcerowsecurity` flags on required tables
+- Lists policy coverage for SELECT/INSERT/UPDATE/DELETE
+- Returns compact pass/fail summary per required table
+
 ---
 
 ## 💻 How to Run Migrations
@@ -131,6 +143,7 @@ After running migrations, verify:
 
 - [ ] All 16 tables appear in **Table Editor**
 - [ ] RLS is enabled (check **Policies** tab for each table)
+- [ ] FORCE RLS is enabled on core finance tables (`accounts`, `transactions`, `friends`, `group_expenses`, `loans`, `investments`, `goals`)
 - [ ] Storage bucket `expense-bills` exists
 - [ ] Test queries work without errors
 - [ ] User signup creates a profile automatically

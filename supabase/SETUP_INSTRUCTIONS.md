@@ -135,6 +135,37 @@ You should see all your tables with `rowsecurity = true`
 
 ---
 
+### **Step 9: Apply Core Finance RLS Hardening (Recommended for Production)**
+
+1. Create a **new query** in SQL Editor
+2. Open the file: [`supabase/migrations/010_enforce_rls_core_finance_tables.sql`](supabase/migrations/010_enforce_rls_core_finance_tables.sql)
+3. **Copy the entire content**
+4. **Paste it** into the SQL Editor
+5. Click **"Run"**
+6. You should see: ✅ **"Success. No rows returned"**
+
+**What this does:**
+- Enables and forces RLS on production-critical finance tables
+- Recreates strict ownership policies for SELECT/INSERT/UPDATE/DELETE
+- Reduces risk of policy drift before production launch
+
+---
+
+### **Step 10: Verify Core Finance RLS Hardening**
+
+1. Create a **new query** in SQL Editor
+2. Open the file: [`supabase/migrations/010_verify_rls_core_finance_tables.sql`](supabase/migrations/010_verify_rls_core_finance_tables.sql)
+3. **Copy the entire content**
+4. **Paste it** into the SQL Editor
+5. Click **"Run"**
+
+Expected result:
+- `rls_enabled = true` and `force_rls_enabled = true` for all required tables
+- At least one policy for each command: SELECT, INSERT, UPDATE, DELETE
+- `verification_passed = true` for every required table in the summary query
+
+---
+
 ## 🔐 Security Features Explained
 
 ### **Row Level Security (RLS)**
