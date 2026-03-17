@@ -57,7 +57,17 @@ cd android
 - Verify Play Store eligibility for SMS permissions (`READ_SMS`, `RECEIVE_SMS`) before publishing.
 - If not eligible, publish `nosmsRelease` flavor.
 
-## 8. Rollback Steps
+## 8. Backend and Data Security Gate (Required)
+- Run critical backend security smoke tests:
+  - `npm --prefix backend run test:security:critical`
+- Confirm the command is green before release (security, transactions, bills-security suites all pass).
+- Apply core finance RLS hardening migration in Supabase SQL Editor:
+  - `supabase/migrations/010_enforce_rls_core_finance_tables.sql`
+- Run post-migration verification query:
+  - `supabase/migrations/010_verify_rls_core_finance_tables.sql`
+- Confirm `verification_passed = true` for all required tables in the verification summary.
+
+## 9. Rollback Steps
 - If a release build fails, run:
 ```powershell
 cd android

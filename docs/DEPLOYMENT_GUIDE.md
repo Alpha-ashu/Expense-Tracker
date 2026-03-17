@@ -92,6 +92,22 @@ npx cap open android
 - [ ] Test all user flows in production
 - [ ] Set up monitoring and analytics
 
+### Backend API and Data Security
+- [ ] Run critical backend security smoke tests:
+  - npm --prefix backend run test:security:critical
+- [ ] Verify test result is green (3 suites passed, no failed tests)
+- [ ] Apply Supabase hardening migration:
+  - supabase/migrations/010_enforce_rls_core_finance_tables.sql
+- [ ] Run Supabase verification query:
+  - supabase/migrations/010_verify_rls_core_finance_tables.sql
+- [ ] Confirm verification_passed = true for all required core finance tables
+- [ ] Confirm API throttling behavior in staging:
+  - /api/v1/auth returns 429 after threshold
+  - /api/v1/bills returns 429 after threshold
+- [ ] Confirm ownership protections in staging:
+  - Cross-user transaction access/update/delete is denied
+  - Bill upload with foreign transactionId is rejected
+
 ### Mobile App
 - [x] Android platform added
 - [x] Capacitor configuration ready
@@ -122,6 +138,8 @@ npx cap open android
 
 ## Next Steps
 1. Complete mobile app signing and upload
-2. Set up production monitoring
-3. Implement user analytics
-4. Plan feature updates and maintenance
+2. Apply and verify Supabase migration 010 before production cutover
+3. Run backend critical security smoke tests as a release gate
+4. Set up production monitoring
+5. Implement user analytics
+6. Plan feature updates and maintenance
