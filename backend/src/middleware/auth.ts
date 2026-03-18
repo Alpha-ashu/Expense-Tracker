@@ -3,9 +3,9 @@ import jwt from 'jsonwebtoken';
 
 export interface AuthRequest extends Request {
   userId?: string;
-  user?: { 
-    id: string; 
-    email: string; 
+  user?: {
+    id: string;
+    email: string;
     role: string;
     isApproved: boolean;
     name?: string;
@@ -21,26 +21,54 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) return res.status(500).json({ error: 'Server misconfiguration' });
-    const decoded = jwt.verify(token, secret) as {
-      userId: string; 
-      email: string; 
-      role: string;
-      isApproved: boolean;
-    };
+    const customSecret = process.env.JWT_SECRET;
+    const supabaseSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    req.userId = decoded.userId;
-    req.user = { 
-      id: decoded.userId, 
-      email: decoded.email,
-      role: decoded.role,
-      isApproved: decoded.isApproved
+    let decoded: any;
+    let isValid = false;
+
+    // Try Supabase JWT first
+    if (supabaseSecret) {
+      try {
+        decoded = jwt.verify(token, supabaseSecret);
+        isValid = true;
+      } catch (err) {
+        // Fall back to custom secret
+      }
+    }
+
+    // Try Custom JWT if Supabase failed
+    if (!isValid && customSecret) {
+      try {
+        decoded = jwt.verify(token, customSecret);
+        isValid = true;
+      } catch (err) {
+        // failed both
+      }
+    }
+
+    if (!isValid || !decoded) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Handle payload from custom JWT ({ userId, email, role }) 
+    // vs Supabase JWT ({ sub, email, user_metadata })
+    const userId = decoded.userId || decoded.sub;
+    const email = decoded.email || decoded.user_metadata?.email || '';
+    const role = decoded.role || decoded.user_role || 'user';
+    const isApproved = decoded.isApproved ?? true; // Default true for supabase users
+
+    req.userId = userId;
+    req.user = {
+      id: userId,
+      email: email,
+      role: role,
+      isApproved: isApproved
     };
 
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token extraction' });
   }
 };
 

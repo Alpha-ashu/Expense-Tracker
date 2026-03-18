@@ -9,8 +9,9 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 let featureInterval: NodeJS.Timeout | null = null;
 let predictionInterval: NodeJS.Timeout | null = null;
 
-const safeJsonParse = <T>(value: string | null, fallback: T): T => {
+const safeJsonParse = <T>(value: string | null | any, fallback: T): T => {
   if (!value) return fallback;
+  if (typeof value !== 'string') return value as T; // Handle cases where pg/prisma might already parse JSON
   try {
     return JSON.parse(value) as T;
   } catch {
@@ -26,73 +27,76 @@ const getWeekdayName = (date: Date) =>
   date.toLocaleDateString('en-US', { weekday: 'long' });
 
 const ensureAITables = async () => {
+  // Use proper PostgreSQL syntax and stay consistent with text/varchar
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS ai_events (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      event_type TEXT NOT NULL,
-      metadata_json TEXT NOT NULL,
-      created_at TEXT NOT NULL
+      id VARCHAR(255) PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      event_type VARCHAR(255) NOT NULL,
+      metadata_json JSONB NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS user_features (
-      user_id TEXT PRIMARY KEY,
-      avg_spend REAL NOT NULL,
-      monthly_income REAL NOT NULL,
-      savings_rate REAL NOT NULL,
-      top_category TEXT NOT NULL,
-      risk_score REAL NOT NULL,
-      peak_day TEXT NOT NULL,
-      feature_data_json TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      user_id VARCHAR(255) PRIMARY KEY,
+      avg_spend DOUBLE PRECISION NOT NULL,
+      monthly_income DOUBLE PRECISION NOT NULL,
+      savings_rate DOUBLE PRECISION NOT NULL,
+      top_category VARCHAR(255) NOT NULL,
+      risk_score DOUBLE PRECISION NOT NULL,
+      peak_day VARCHAR(255) NOT NULL,
+      feature_data_json JSONB NOT NULL,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS ai_insights (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      insight_type TEXT NOT NULL,
-      insight_data_json TEXT NOT NULL,
-      confidence_score REAL NOT NULL,
-      created_at TEXT NOT NULL
+      id VARCHAR(255) PRIMARY KEY,
+      user_id VARCHAR(255) NOT NULL,
+      insight_type VARCHAR(255) NOT NULL,
+      insight_data_json JSONB NOT NULL,
+      confidence_score DOUBLE PRECISION NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS ai_model_runs (
-      id TEXT PRIMARY KEY,
-      run_type TEXT NOT NULL,
-      status TEXT NOT NULL,
-      started_at TEXT NOT NULL,
-      completed_at TEXT,
+      id VARCHAR(255) PRIMARY KEY,
+      run_type VARCHAR(255) NOT NULL,
+      status VARCHAR(255) NOT NULL,
+      started_at TIMESTAMP WITH TIME ZONE NOT NULL,
+      completed_at TIMESTAMP WITH TIME ZONE,
       processed_users INTEGER NOT NULL DEFAULT 0,
       notes TEXT
     )
   `);
 
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_user_id ON ai_events(user_id)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_type ON ai_events(event_type)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_created_at ON ai_events(created_at)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_user_id ON ai_insights(user_id)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_type ON ai_insights(insight_type)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_created_at ON ai_insights(created_at)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_runs_type ON ai_model_runs(run_type)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_runs_started_at ON ai_model_runs(started_at)');
+  // Index creation (PostgreSQL supports index creation with IF NOT EXISTS)
+  try {
+    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_user_id ON ai_events(user_id)');
+    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_type ON ai_events(event_type)');
+    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_user_id ON ai_insights(user_id)');
+    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_type ON ai_insights(insight_type)');
+    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_runs_type ON ai_model_runs(run_type)');
+  } catch (e) {
+    logger.warn('Some AI indices might already exist or failed to create', { error: e });
+  }
 };
 
 const insertModelRun = async (runType: 'feature_engineering' | 'prediction_engine') => {
   const id = randomUUID();
-  const startedAt = new Date().toISOString();
+  const startedAt = new Date();
 
   await prisma.$executeRaw`
     INSERT INTO ai_model_runs (id, run_type, status, started_at, processed_users)
     VALUES (${id}, ${runType}, ${'running'}, ${startedAt}, ${0})
   `;
 
-  return { id, startedAt };
+  return { id, startedAt: startedAt.toISOString() };
 };
 
 const updateModelRun = async (
@@ -103,7 +107,7 @@ const updateModelRun = async (
 ) => {
   await prisma.$executeRaw`
     UPDATE ai_model_runs
-    SET status = ${status}, completed_at = ${new Date().toISOString()}, processed_users = ${processedUsers}, notes = ${notes ?? null}
+    SET status = ${status}, completed_at = ${new Date()}, processed_users = ${processedUsers}, notes = ${notes ?? null}
     WHERE id = ${id}
   `;
 };
@@ -116,7 +120,7 @@ export const recordAIEvent = async (
   await ensureAITables();
   await prisma.$executeRaw`
     INSERT INTO ai_events (id, user_id, event_type, metadata_json, created_at)
-    VALUES (${randomUUID()}, ${userId}, ${eventType}, ${JSON.stringify(metadata)}, ${new Date().toISOString()})
+    VALUES (${randomUUID()}, ${userId}, ${eventType}, ${metadata}, ${new Date()})
   `;
 };
 
@@ -246,18 +250,18 @@ const buildFeatureSnapshot = async (userId: string): Promise<UserFeatureSnapshot
       ${snapshot.topCategory},
       ${snapshot.riskScore},
       ${snapshot.peakDay},
-      ${JSON.stringify(snapshot.featureData)},
-      ${snapshot.updatedAt}
+      ${snapshot.featureData},
+      ${new Date()}
     )
     ON CONFLICT(user_id) DO UPDATE SET
-      avg_spend = excluded.avg_spend,
-      monthly_income = excluded.monthly_income,
-      savings_rate = excluded.savings_rate,
-      top_category = excluded.top_category,
-      risk_score = excluded.risk_score,
-      peak_day = excluded.peak_day,
-      feature_data_json = excluded.feature_data_json,
-      updated_at = excluded.updated_at
+      avg_spend = EXCLUDED.avg_spend,
+      monthly_income = EXCLUDED.monthly_income,
+      savings_rate = EXCLUDED.savings_rate,
+      top_category = EXCLUDED.top_category,
+      risk_score = EXCLUDED.risk_score,
+      peak_day = EXCLUDED.peak_day,
+      feature_data_json = EXCLUDED.feature_data_json,
+      updated_at = EXCLUDED.updated_at
   `;
 
   await recordAIEvent(userId, 'features_refreshed', {
@@ -384,7 +388,7 @@ const buildGoalInsights = async (userId: string, snapshot: UserFeatureSnapshot) 
 };
 
 const insertInsights = async (userId: string, insights: Omit<AIInsightRecord, 'id' | 'userId' | 'createdAt'>[]) => {
-  if (insights.length === 0) return;
+  if (!userId || insights.length === 0) return;
 
   for (const insight of insights) {
     await prisma.$executeRaw`
@@ -393,9 +397,9 @@ const insertInsights = async (userId: string, insights: Omit<AIInsightRecord, 'i
         ${randomUUID()},
         ${userId},
         ${insight.insightType},
-        ${JSON.stringify(insight.insightData)},
+        ${insight.insightData},
         ${toTwoDecimals(insight.confidenceScore)},
-        ${new Date().toISOString()}
+        ${new Date()}
       )
     `;
   }
@@ -405,12 +409,13 @@ const trimOldInsights = async (userId: string) => {
   await prisma.$executeRaw`
     DELETE FROM ai_insights
     WHERE user_id = ${userId}
-      AND created_at < ${new Date(Date.now() - (90 * 24 * 60 * 60 * 1000)).toISOString()}
+      AND created_at < ${new Date(Date.now() - (90 * 24 * 60 * 60 * 1000))}
   `;
 };
 
 const runPredictionsForUser = async (snapshot: UserFeatureSnapshot) => {
   const userId = snapshot.userId;
+  if (!userId) return;
 
   const insights: Omit<AIInsightRecord, 'id' | 'userId' | 'createdAt'>[] = [];
   const totals = (snapshot.featureData.totals ?? {}) as { incomeTotal?: number; expenseTotal?: number };
@@ -510,26 +515,26 @@ const runPredictionsForUser = async (snapshot: UserFeatureSnapshot) => {
 
 const getOrCreateFeatureSnapshot = async (userId: string): Promise<UserFeatureSnapshot> => {
   const rows = await prisma.$queryRaw<Array<{
-    userId: string;
-    avgSpend: number;
-    monthlyIncome: number;
-    savingsRate: number;
-    topCategory: string;
-    riskScore: number;
-    peakDay: string;
-    featureData: string;
-    updatedAt: string;
+    userid: string;
+    avgspend: number;
+    monthlyincome: number;
+    savingsrate: number;
+    topcategory: string;
+    riskscore: number;
+    peakday: string;
+    featuredata: any;
+    updatedat: Date;
   }>>`
     SELECT
-      user_id as userId,
-      avg_spend as avgSpend,
-      monthly_income as monthlyIncome,
-      savings_rate as savingsRate,
-      top_category as topCategory,
-      risk_score as riskScore,
-      peak_day as peakDay,
-      feature_data_json as featureData,
-      updated_at as updatedAt
+      user_id as userid,
+      avg_spend as avgspend,
+      monthly_income as monthlyincome,
+      savings_rate as savingsrate,
+      top_category as topcategory,
+      risk_score as riskscore,
+      peak_day as peakday,
+      feature_data_json as featuredata,
+      updated_at as updatedat
     FROM user_features
     WHERE user_id = ${userId}
     LIMIT 1
@@ -538,15 +543,15 @@ const getOrCreateFeatureSnapshot = async (userId: string): Promise<UserFeatureSn
   const existing = rows[0];
   if (existing) {
     return {
-      userId: existing.userId,
-      avgSpend: Number(existing.avgSpend),
-      monthlyIncome: Number(existing.monthlyIncome),
-      savingsRate: Number(existing.savingsRate),
-      topCategory: existing.topCategory,
-      riskScore: Number(existing.riskScore),
-      peakDay: existing.peakDay,
-      featureData: safeJsonParse<Record<string, unknown>>(existing.featureData, {}),
-      updatedAt: existing.updatedAt,
+      userId: existing.userid,
+      avgSpend: Number(existing.avgspend),
+      monthlyIncome: Number(existing.monthlyincome),
+      savingsRate: Number(existing.savingsrate),
+      topCategory: existing.topcategory,
+      riskScore: Number(existing.riskscore),
+      peakDay: existing.peakday,
+      featureData: safeJsonParse<Record<string, unknown>>(existing.featuredata, {}),
+      updatedAt: existing.updatedat.toISOString(),
     };
   }
 
@@ -555,7 +560,7 @@ const getOrCreateFeatureSnapshot = async (userId: string): Promise<UserFeatureSn
 
 const getProcessableUserIds = async () => {
   const users = await prisma.user.findMany({
-    where: { role: { in: ['user', 'advisor', 'admin'] } },
+    where: { role: { in: ['user', 'advisor', 'admin'] }, isApproved: true },
     select: { id: true },
   });
   return users.map((user) => user.id);
@@ -609,26 +614,26 @@ export const runPredictionEngineForAllUsers = async () => {
 export const getAIOverview = async (): Promise<AIOverview> => {
   await ensureAITables();
 
-  const [usersAnalyzedRow] = await prisma.$queryRaw<Array<{ count: number }>>`
+  const [usersAnalyzedRow] = await prisma.$queryRaw<Array<{ count: string | number }>>`
     SELECT COUNT(*) as count FROM user_features
   `;
 
-  const [insightsRow] = await prisma.$queryRaw<Array<{ count: number }>>`
+  const [insightsRow] = await prisma.$queryRaw<Array<{ count: string | number }>>`
     SELECT COUNT(*) as count FROM ai_insights
   `;
 
-  const [eventsRow] = await prisma.$queryRaw<Array<{ count: number }>>`
+  const [eventsRow] = await prisma.$queryRaw<Array<{ count: string | number }>>`
     SELECT COUNT(*) as count FROM ai_events
   `;
 
-  const [riskRow] = await prisma.$queryRaw<Array<{ count: number }>>`
+  const [riskRow] = await prisma.$queryRaw<Array<{ count: string | number }>>`
     SELECT COUNT(*) as count FROM ai_insights
     WHERE insight_type IN ('overspending_alert', 'unusual_spend_spike', 'goal_risk_prediction')
-      AND created_at >= ${new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString()}
+      AND created_at >= ${new Date(Date.now() - (30 * 24 * 60 * 60 * 1000))}
   `;
 
-  const [lastRun] = await prisma.$queryRaw<Array<{ completedAt: string | null }>>`
-    SELECT completed_at as completedAt
+  const [lastRun] = await prisma.$queryRaw<Array<{ completedat: Date | null }>>`
+    SELECT completed_at as completedat
     FROM ai_model_runs
     WHERE run_type = 'prediction_engine' AND status = 'completed'
     ORDER BY started_at DESC
@@ -638,7 +643,7 @@ export const getAIOverview = async (): Promise<AIOverview> => {
   return {
     usersAnalyzed: Number(usersAnalyzedRow?.count ?? 0),
     activeModels: 5,
-    lastTrainingTime: lastRun?.completedAt ?? null,
+    lastTrainingTime: lastRun?.completedat ? lastRun.completedat.toISOString() : null,
     dataProcessed: Number(eventsRow?.count ?? 0),
     insightsGenerated: Number(insightsRow?.count ?? 0),
     riskAlerts: Number(riskRow?.count ?? 0),
@@ -649,22 +654,22 @@ export const getAIUserIntelligence = async (limit: number): Promise<AIUserIntell
   await ensureAITables();
 
   const rows = await prisma.$queryRaw<Array<{
-    userId: string;
+    userid: string;
     email: string;
     name: string;
-    avgSpend: number;
-    riskScore: number;
-    savingsRate: number;
-    topCategory: string;
+    avgspend: number;
+    riskscore: number;
+    savingsrate: number;
+    topcategory: string;
   }>>`
     SELECT
-      u.id as userId,
+      u.id as userid,
       u.email as email,
       u.name as name,
-      COALESCE(f.avg_spend, 0) as avgSpend,
-      COALESCE(f.risk_score, 0) as riskScore,
-      COALESCE(f.savings_rate, 0) as savingsRate,
-      COALESCE(f.top_category, 'Uncategorized') as topCategory
+      COALESCE(f.avg_spend, 0) as avgspend,
+      COALESCE(f.risk_score, 0) as riskscore,
+      COALESCE(f.savings_rate, 0) as savingsrate,
+      COALESCE(f.top_category, 'Uncategorized') as topcategory
     FROM "User" u
     LEFT JOIN user_features f ON f.user_id = u.id
     ORDER BY f.risk_score DESC, f.avg_spend DESC
@@ -672,14 +677,14 @@ export const getAIUserIntelligence = async (limit: number): Promise<AIUserIntell
   `;
 
   return rows.map((row) => ({
-    userId: row.userId,
+    userId: row.userid,
     email: row.email,
     name: row.name,
-    spendScore: clamp(toTwoDecimals((Number(row.avgSpend) / 1200) * 100), 0, 100),
-    riskScore: toTwoDecimals(Number(row.riskScore)),
-    savingsRate: toTwoDecimals(Number(row.savingsRate)),
-    topCategory: row.topCategory,
-    avgSpend: toTwoDecimals(Number(row.avgSpend)),
+    spendScore: clamp(toTwoDecimals((Number(row.avgspend) / 1200) * 100), 0, 100),
+    riskScore: toTwoDecimals(Number(row.riskscore)),
+    savingsRate: toTwoDecimals(Number(row.savingsrate)),
+    topCategory: row.topcategory,
+    avgSpend: toTwoDecimals(Number(row.avgspend)),
   }));
 };
 
@@ -688,21 +693,21 @@ export const getAIInsightsFeed = async (limit: number) => {
 
   const rows = await prisma.$queryRaw<Array<{
     id: string;
-    userId: string;
-    userEmail: string;
-    insightType: string;
-    insightData: string;
-    confidenceScore: number;
-    createdAt: string;
+    userid: string;
+    useremail: string;
+    insighttype: string;
+    insightdata: any;
+    confidencescore: number;
+    createdat: Date;
   }>>`
     SELECT
       i.id,
-      i.user_id as userId,
-      u.email as userEmail,
-      i.insight_type as insightType,
-      i.insight_data_json as insightData,
-      i.confidence_score as confidenceScore,
-      i.created_at as createdAt
+      i.user_id as userid,
+      u.email as useremail,
+      i.insight_type as insighttype,
+      i.insight_data_json as insightdata,
+      i.confidence_score as confidencescore,
+      i.created_at as createdat
     FROM ai_insights i
     LEFT JOIN "User" u ON u.id = i.user_id
     ORDER BY i.created_at DESC
@@ -711,19 +716,19 @@ export const getAIInsightsFeed = async (limit: number) => {
 
   return rows.map((row) => ({
     id: row.id,
-    userId: row.userId,
-    userEmail: row.userEmail,
-    insightType: row.insightType,
-    insightData: safeJsonParse<Record<string, unknown>>(row.insightData, {}),
-    confidenceScore: Number(row.confidenceScore),
-    createdAt: row.createdAt,
+    userId: row.userid,
+    userEmail: row.useremail,
+    insightType: row.insighttype,
+    insightData: safeJsonParse<Record<string, unknown>>(row.insightdata, {}),
+    confidenceScore: Number(row.confidencescore),
+    createdAt: row.createdat.toISOString(),
   }));
 };
 
 export const getAIPatternAnalytics = async () => {
   await ensureAITables();
 
-  const categoryRows = await prisma.$queryRaw<Array<{ category: string; users: number }>>`
+  const categoryRows = await prisma.$queryRaw<Array<{ category: string; users: string | number }>>`
     SELECT top_category as category, COUNT(*) as users
     FROM user_features
     GROUP BY top_category
@@ -731,23 +736,24 @@ export const getAIPatternAnalytics = async () => {
     LIMIT 8
   `;
 
-  const insightRows = await prisma.$queryRaw<Array<{ insightType: string; total: number }>>`
-    SELECT insight_type as insightType, COUNT(*) as total
+  const insightRows = await prisma.$queryRaw<Array<{ insighttype: string; total: string | number }>>`
+    SELECT insight_type as insighttype, COUNT(*) as total
     FROM ai_insights
-    WHERE created_at >= ${new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)).toISOString()}
+    WHERE created_at >= ${new Date(Date.now() - (30 * 24 * 60 * 60 * 1000))}
     GROUP BY insight_type
     ORDER BY total DESC
   `;
 
+  // PostgreSQL equivalent of strftime('%Y-%m', date) is to_char(date, 'YYYY-MM')
   const monthlyRows = await prisma.$queryRaw<Array<{ month: string; income: number; expense: number }>>`
     SELECT
-      strftime('%Y-%m', date) as month,
+      to_char(date, 'YYYY-MM') as month,
       SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as income,
       SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as expense
     FROM "Transaction"
-    WHERE deletedAt IS NULL
+    WHERE "deletedAt" IS NULL
       AND date >= ${new Date(Date.now() - (180 * 24 * 60 * 60 * 1000))}
-    GROUP BY strftime('%Y-%m', date)
+    GROUP BY to_char(date, 'YYYY-MM')
     ORDER BY month ASC
   `;
 
@@ -757,7 +763,7 @@ export const getAIPatternAnalytics = async () => {
       users: Number(row.users),
     })),
     insightTrends: insightRows.map((row) => ({
-      insightType: row.insightType,
+      insightType: row.insighttype,
       total: Number(row.total),
     })),
     monthlyGrowth: monthlyRows.map((row) => ({
@@ -772,16 +778,16 @@ export const getAIPatternAnalytics = async () => {
 export const getAIAccuracyMonitor = async () => {
   await ensureAITables();
 
-  const [totals] = await prisma.$queryRaw<Array<{ total: number; avgConfidence: number }>>`
-    SELECT COUNT(*) as total, COALESCE(AVG(confidence_score), 0) as avgConfidence
+  const [totals] = await prisma.$queryRaw<Array<{ total: string | number; avgconfidence: number }>>`
+    SELECT COUNT(*) as total, COALESCE(AVG(confidence_score), 0) as avgconfidence
     FROM ai_insights
   `;
 
-  const [highConfidence] = await prisma.$queryRaw<Array<{ total: number }>>`
+  const [highConfidence] = await prisma.$queryRaw<Array<{ total: string | number }>>`
     SELECT COUNT(*) as total FROM ai_insights WHERE confidence_score >= 0.8
   `;
 
-  const [falsePositives] = await prisma.$queryRaw<Array<{ total: number }>>`
+  const [falsePositives] = await prisma.$queryRaw<Array<{ total: string | number }>>`
     SELECT COUNT(*) as total
     FROM ai_events
     WHERE event_type = 'insight_marked_false_positive'
@@ -793,7 +799,7 @@ export const getAIAccuracyMonitor = async () => {
 
   return {
     totalPredictions: totalInsights,
-    averageConfidence: toTwoDecimals(Number(totals?.avgConfidence ?? 0)),
+    averageConfidence: toTwoDecimals(Number(totals?.avgconfidence ?? 0)),
     highConfidenceRate: totalInsights > 0 ? toTwoDecimals((high / totalInsights) * 100) : 0,
     falsePositiveRate: totalInsights > 0 ? toTwoDecimals((falsePositiveCount / totalInsights) * 100) : 0,
     successRate: totalInsights > 0 ? toTwoDecimals(((high - falsePositiveCount) / totalInsights) * 100) : 0,
@@ -804,26 +810,26 @@ export const getAIRawUserData = async (userId: string) => {
   await ensureAITables();
 
   const [featureRow] = await prisma.$queryRaw<Array<{
-    userId: string;
-    avgSpend: number;
-    monthlyIncome: number;
-    savingsRate: number;
-    topCategory: string;
-    riskScore: number;
-    peakDay: string;
-    featureData: string;
-    updatedAt: string;
+    userid: string;
+    avgspend: number;
+    monthlyincome: number;
+    savingsrate: number;
+    topcategory: string;
+    riskscore: number;
+    peakday: string;
+    featuredata: any;
+    updatedat: Date;
   }>>`
     SELECT
-      user_id as userId,
-      avg_spend as avgSpend,
-      monthly_income as monthlyIncome,
-      savings_rate as savingsRate,
-      top_category as topCategory,
-      risk_score as riskScore,
-      peak_day as peakDay,
-      feature_data_json as featureData,
-      updated_at as updatedAt
+      user_id as userid,
+      avg_spend as avgspend,
+      monthly_income as monthlyincome,
+      savings_rate as savingsrate,
+      top_category as topcategory,
+      risk_score as riskscore,
+      peak_day as peakday,
+      feature_data_json as featuredata,
+      updated_at as updatedat
     FROM user_features
     WHERE user_id = ${userId}
     LIMIT 1
@@ -831,17 +837,17 @@ export const getAIRawUserData = async (userId: string) => {
 
   const insightRows = await prisma.$queryRaw<Array<{
     id: string;
-    insightType: string;
-    insightData: string;
-    confidenceScore: number;
-    createdAt: string;
+    insighttype: string;
+    insightdata: any;
+    confidencescore: number;
+    createdat: Date;
   }>>`
     SELECT
       id,
-      insight_type as insightType,
-      insight_data_json as insightData,
-      confidence_score as confidenceScore,
-      created_at as createdAt
+      insight_type as insighttype,
+      insight_data_json as insightdata,
+      confidence_score as confidencescore,
+      created_at as createdat
     FROM ai_insights
     WHERE user_id = ${userId}
     ORDER BY created_at DESC
@@ -850,15 +856,15 @@ export const getAIRawUserData = async (userId: string) => {
 
   const eventRows = await prisma.$queryRaw<Array<{
     id: string;
-    eventType: string;
-    metadata: string;
-    createdAt: string;
+    eventtype: string;
+    metadata: any;
+    createdat: Date;
   }>>`
     SELECT
       id,
-      event_type as eventType,
+      event_type as eventtype,
       metadata_json as metadata,
-      created_at as createdAt
+      created_at as createdat
     FROM ai_events
     WHERE user_id = ${userId}
     ORDER BY created_at DESC
@@ -867,28 +873,28 @@ export const getAIRawUserData = async (userId: string) => {
 
   return {
     features: featureRow ? {
-      userId: featureRow.userId,
-      avgSpend: Number(featureRow.avgSpend),
-      monthlyIncome: Number(featureRow.monthlyIncome),
-      savingsRate: Number(featureRow.savingsRate),
-      topCategory: featureRow.topCategory,
-      riskScore: Number(featureRow.riskScore),
-      peakDay: featureRow.peakDay,
-      featureData: safeJsonParse<Record<string, unknown>>(featureRow.featureData, {}),
-      updatedAt: featureRow.updatedAt,
+      userId: featureRow.userid,
+      avgSpend: Number(featureRow.avgspend),
+      monthlyIncome: Number(featureRow.monthlyincome),
+      savingsRate: Number(featureRow.savingsrate),
+      topCategory: featureRow.topcategory,
+      riskScore: Number(featureRow.riskscore),
+      peakDay: featureRow.peakday,
+      featureData: safeJsonParse<Record<string, unknown>>(featureRow.featuredata, {}),
+      updatedAt: featureRow.updatedat.toISOString(),
     } : null,
     insights: insightRows.map((row) => ({
       id: row.id,
-      insightType: row.insightType,
-      insightData: safeJsonParse<Record<string, unknown>>(row.insightData, {}),
-      confidenceScore: Number(row.confidenceScore),
-      createdAt: row.createdAt,
+      insightType: row.insighttype,
+      insightData: safeJsonParse<Record<string, unknown>>(row.insightdata, {}),
+      confidenceScore: Number(row.confidencescore),
+      createdAt: row.createdat.toISOString(),
     })),
     events: eventRows.map((row) => ({
       id: row.id,
-      eventType: row.eventType,
+      eventType: row.eventtype,
       metadata: safeJsonParse<Record<string, unknown>>(row.metadata, {}),
-      createdAt: row.createdAt,
+      createdAt: row.createdat.toISOString(),
     })),
   };
 };

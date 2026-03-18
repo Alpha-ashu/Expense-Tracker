@@ -4,7 +4,7 @@ const groupMemberSchema = z.object({
   name: z.string().min(1),
   share: z.number().nonnegative(),
   paid: z.boolean().optional(),
-  friendId: z.number().optional(),
+  friendId: z.union([z.string(), z.number()]).optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
   isCurrentUser: z.boolean().optional(),
@@ -21,7 +21,7 @@ const groupItemSchema = z.object({
 export const groupCreateSchema = z.object({
   name: z.string().min(1),
   totalAmount: z.number().nonnegative(),
-  paidBy: z.number().optional(),
+  paidBy: z.union([z.string(), z.number()]).optional(),
   date: z.string().datetime().or(z.string().min(1)),
   members: z.array(groupMemberSchema),
   items: z.array(groupItemSchema).optional(),

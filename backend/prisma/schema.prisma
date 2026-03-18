@@ -1,205 +1,154 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id         String     @id @default(cuid())
-  email      String     @unique
-  name       String
-  password   String
-  role       String     @default("user")   // admin, advisor, user
-  isApproved Boolean    @default(false)    // For advisor requests
-  firstName  String?                     // New fields for profile
-  lastName   String?
-  salary     Float?
-  dateOfBirth DateTime?
-  jobType    String?
-  lastSynced DateTime?
-  syncToken  String?
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-
-  // Relations
-  refreshTokens        RefreshToken[]
-  todos                Todo[]
-  transactions         Transaction[]
-  expenseBills         ExpenseBill[]
-  accounts             Account[]
-  friends              Friend[]
-  categories           Category[]
-  goals                Goal[]
-  goalContributions    GoalContribution[]
-  loans                Loan[]
-  groupExpenses        GroupExpense[]
-  investments          Investment[]
-  importLogs           ImportLog[]
-  settings             UserSettings[]
-  devices              Device[]
-  userPin              UserPin?
-  
-  // Advisor relations
-  bookingsAsAdvisor     BookingRequest[]  @relation("AdvisorBookings")
-  bookingsAsClient      BookingRequest[]  @relation("ClientBookings")
-  sessionsAsAdvisor     AdvisorSession[]  @relation("AdvisorSessions")
-  sessionsAsClient      AdvisorSession[]  @relation("ClientSessions")
-  sentMessages          ChatMessage[]
-  advisorAvailability   AdvisorAvailability[]
-  payments              Payment[] @relation("PaymentClient")
-  advisorPayments       Payment[] @relation("PaymentAdvisor")
-  notifications         Notification[]
-
-  @@index([role])
-  @@index([isApproved])
-}
-
-model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model Todo {
-  id        String   @id @default(cuid())
-  title     String
-  completed Boolean  @default(false)
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-// Financial Models - All linked to User
-
 model Account {
-  id        String   @id @default(cuid())
-  userId    String
-  deviceId  String?  // Device that created this record
-  name      String
-  type      String   @default("bank") // bank, card, cash, wallet
-  provider  String?
-  country   String?
-  balance   Float    @default(0)
-  currency  String   @default("USD")
-  isActive  Boolean  @default(true)
-  syncStatus String  @default("synced") // synced, pending, conflict
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
+  id               String             @id
+  userId           String
+  deviceId         String?
+  name             String
+  type             String             @default("bank")
+  provider         String?
+  country          String?
+  balance          Float              @default(0)
+  currency         String             @default("USD")
+  isActive         Boolean            @default(true)
+  syncStatus       String             @default("synced")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  User             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  GoalContribution GoalContribution[]
+  Transaction      Transaction[]
+  group_expenses   group_expenses[]
 
-  // Relations
-  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions      Transaction[]
-  goalContributions GoalContribution[]
-  paidGroupExpenses GroupExpense[]     @relation("GroupExpensePaidBy")
-
-  @@index([userId])
   @@index([isActive])
   @@index([syncStatus])
+  @@index([userId])
 }
 
-model Transaction {
-  id                   String   @id @default(cuid())
-  userId               String
-  deviceId             String?  // Device that created this record
-  accountId            String
-  type                 String   // expense, income, transfer
-  amount               Float
-  category             String
-  subcategory          String?
-  description          String?
-  merchant             String?
-  date                 DateTime
-  tags                 String? // stored as comma-separated string
-  attachment           String?
-  transferToAccountId  String?
-  transferType         String?  // self-transfer, other-transfer
-  expenseMode          String?
-  groupExpenseId       String?
-  groupName            String?
-  splitType            String?
-  importSource         String?
-  importMetadata       String?
-  originalCategory     String?
-  importedAt           DateTime?
-  synced               Boolean  @default(false)
-  syncStatus           String   @default("synced") // synced, pending, conflict
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  deletedAt            DateTime?
+model AdvisorAvailability {
+  id        String   @id
+  advisorId String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [advisorId], references: [id], onDelete: Cascade)
 
-  // Relations
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account      Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  groupExpense GroupExpense? @relation(fields: [groupExpenseId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([accountId])
-  @@index([date])
-  @@index([category])
-  @@index([groupExpenseId])
-  @@index([syncStatus])
+  @@index([advisorId])
 }
 
-model Friend {
-  id         String   @id @default(cuid())
-  userId     String
-  deviceId   String?
-  name       String
-  email      String?
-  phone      String?
-  avatar     String?
-  notes      String?
-  syncStatus String   @default("synced")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  deletedAt  DateTime?
+model AdvisorSession {
+  id                                  String         @id
+  bookingId                           String         @unique
+  advisorId                           String
+  clientId                            String
+  startTime                           DateTime
+  endTime                             DateTime?
+  sessionType                         String
+  status                              String         @default("scheduled")
+  notes                               String?
+  rating                              Float?
+  feedback                            String?
+  createdAt                           DateTime       @default(now())
+  updatedAt                           DateTime
+  User_AdvisorSession_advisorIdToUser User           @relation("AdvisorSession_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  BookingRequest                      BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  User_AdvisorSession_clientIdToUser  User           @relation("AdvisorSession_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  ChatMessage                         ChatMessage[]
+  Payment                             Payment?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([advisorId])
+  @@index([clientId])
+  @@index([startTime])
+  @@index([status])
+}
 
-  @@index([userId])
-  @@index([syncStatus])
+model BookingRequest {
+  id                                  String          @id
+  clientId                            String
+  advisorId                           String
+  sessionType                         String
+  description                         String?
+  proposedDate                        DateTime
+  proposedTime                        String
+  duration                            Int
+  amount                              Float
+  status                              String          @default("pending")
+  rejectionReason                     String?
+  createdAt                           DateTime        @default(now())
+  updatedAt                           DateTime
+  AdvisorSession                      AdvisorSession?
+  User_BookingRequest_advisorIdToUser User            @relation("BookingRequest_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  User_BookingRequest_clientIdToUser  User            @relation("BookingRequest_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([advisorId])
+  @@index([clientId])
+  @@index([proposedDate])
+  @@index([status])
 }
 
 model Category {
-  id                String   @id
+  id                String    @id
   userId            String
   name              String
   type              String
   color             String
   icon              String
-  createdFromImport Boolean  @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdFromImport Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime
   deletedAt         DateTime?
+  User              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([type])
   @@unique([userId, name, type])
+  @@index([type])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String         @id
+  sessionId      String
+  senderId       String
+  message        String
+  timestamp      DateTime       @default(now())
+  User           User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  AdvisorSession AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+model Device {
+  id         String   @id
+  userId     String
+  deviceId   String   @unique
+  deviceName String?
+  deviceType String?
+  platform   String?
+  appVersion String?
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([isActive])
+  @@index([userId])
 }
 
 model ExpenseBill {
-  id               String   @id @default(cuid())
+  id               String   @id
   userId           String
   transactionId    String?
   originalName     String
@@ -207,46 +156,62 @@ model ExpenseBill {
   size             Int
   storagePath      String
   sha256           String
-  scanStatus       String   @default("pending") // pending, clean, infected, skipped, failed
+  scanStatus       String   @default("pending")
   scanResult       String?
-  moderationStatus String?  // pending, approved, rejected, skipped
+  moderationStatus String?
   createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  updatedAt        DateTime
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([transactionId])
   @@index([sha256])
+  @@index([transactionId])
+  @@index([userId])
+}
+
+model Friend {
+  id         String    @id
+  userId     String
+  deviceId   String?
+  name       String
+  email      String?
+  phone      String?
+  avatar     String?
+  notes      String?
+  syncStatus String    @default("synced")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  deletedAt  DateTime?
+  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([syncStatus])
+  @@index([userId])
 }
 
 model Goal {
-  id            String   @id @default(cuid())
-  userId        String
-  deviceId      String?  // Device that created this record
-  name          String
-  description   String?
-  targetAmount  Float
-  currentAmount Float    @default(0)
-  targetDate    DateTime
-  category      String?
-  isGroupGoal   Boolean  @default(false)
-  syncStatus    String   @default("synced") // synced, pending, conflict
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  deletedAt     DateTime?
+  id               String             @id
+  userId           String
+  deviceId         String?
+  name             String
+  description      String?
+  targetAmount     Float
+  currentAmount    Float              @default(0)
+  targetDate       DateTime
+  category         String?
+  isGroupGoal      Boolean            @default(false)
+  syncStatus       String             @default("synced")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  deletedAt        DateTime?
+  User             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  GoalContribution GoalContribution[]
 
-  // Relations
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contributions GoalContribution[]
-
-  @@index([userId])
-  @@index([targetDate])
   @@index([syncStatus])
+  @@index([targetDate])
+  @@index([userId])
 }
 
 model GoalContribution {
-  id         String   @id @default(cuid())
+  id         String   @id
   userId     String
   goalId     String
   accountId  String
@@ -256,20 +221,354 @@ model GoalContribution {
   status     String?
   notes      String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime
+  Account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  Goal       Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  goal    Goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([goalId])
   @@index([accountId])
   @@index([date])
+  @@index([goalId])
+  @@index([userId])
 }
 
-model GroupExpense {
-  id                   String   @id @default(cuid())
+model ImportLog {
+  id                String   @id
+  userId            String
+  fileName          String
+  fileType          String
+  sourceKind        String
+  totalRecords      Int
+  importedRecords   Int
+  skippedRecords    Int
+  duplicateRecords  Int
+  createdCategories String   @default("[]")
+  createdAccounts   String   @default("[]")
+  createdGoals      String   @default("[]")
+  updatedGoals      String   @default("[]")
+  failedRecords     Int      @default(0)
+  errors            String   @default("[]")
+  metadata          String?
+  createdAt         DateTime @default(now())
+  User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([sourceKind])
+  @@index([userId])
+}
+
+model Investment {
+  id            String    @id
+  userId        String
+  assetType     String
+  assetName     String
+  quantity      Float
+  buyPrice      Float
+  currentPrice  Float
+  totalInvested Float
+  currentValue  Float
+  profitLoss    Float
+  purchaseDate  DateTime
+  lastUpdated   DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  deletedAt     DateTime?
+  User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([assetType])
+  @@index([userId])
+}
+
+model Loan {
+  id                 String        @id
+  userId             String
+  deviceId           String?
+  type               String
+  name               String
+  principalAmount    Float
+  outstandingBalance Float
+  interestRate       Float?
+  emiAmount          Float?
+  dueDate            DateTime?
+  frequency          String?
+  status             String        @default("active")
+  contactPerson      String?
+  syncStatus         String        @default("synced")
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime
+  deletedAt          DateTime?
+  User               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  LoanPayment        LoanPayment[]
+
+  @@index([dueDate])
+  @@index([status])
+  @@index([syncStatus])
+  @@index([userId])
+}
+
+model LoanPayment {
+  id        String   @id
+  loanId    String
+  amount    Float
+  accountId String?
+  date      DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+  Loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([loanId])
+}
+
+model Notification {
+  id        String    @id
+  userId    String
+  title     String
+  message   String
+  type      String    @default("info")
+  category  String?
+  deepLink  String?
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([isRead])
+  @@index([userId])
+}
+
+model Payment {
+  id                           String         @id
+  sessionId                    String         @unique
+  clientId                     String
+  advisorId                    String
+  amount                       Float
+  currency                     String         @default("USD")
+  status                       String         @default("pending")
+  paymentMethod                String?
+  transactionId                String?
+  description                  String?
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime
+  User_Payment_advisorIdToUser User           @relation("Payment_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  User_Payment_clientIdToUser  User           @relation("Payment_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  AdvisorSession               AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([advisorId])
+  @@index([clientId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model RefreshToken {
+  id        String   @id
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SyncQueue {
+  id           String    @id
+  userId       String
+  deviceId     String
+  entityType   String
+  entityId     String
+  operation    String
+  data         String?
+  status       String    @default("pending")
+  errorMessage String?
+  retryCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  processedAt  DateTime?
+
+  @@index([createdAt])
+  @@index([deviceId])
+  @@index([entityType])
+  @@index([status])
+  @@index([userId])
+}
+
+model Todo {
+  id        String   @id
+  title     String
+  completed Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Transaction {
+  id                  String          @id
+  userId              String
+  deviceId            String?
+  accountId           String
+  type                String
+  amount              Float
+  category            String
+  subcategory         String?
+  description         String?
+  merchant            String?
+  date                DateTime
+  tags                String?
+  attachment          String?
+  transferToAccountId String?
+  transferType        String?
+  expenseMode         String?
+  groupExpenseId      String?
+  groupName           String?
+  splitType           String?
+  importSource        String?
+  importMetadata      String?
+  originalCategory    String?
+  importedAt          DateTime?
+  synced              Boolean         @default(false)
+  syncStatus          String          @default("synced")
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime
+  deletedAt           DateTime?
+  Account             Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  group_expenses      group_expenses? @relation(fields: [groupExpenseId], references: [id])
+  User                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([category])
+  @@index([date])
+  @@index([groupExpenseId])
+  @@index([syncStatus])
+  @@index([userId])
+}
+
+model User {
+  id                                            String                @id
+  email                                         String                @unique
+  name                                          String
+  password                                      String
+  role                                          String                @default("user")
+  isApproved                                    Boolean               @default(false)
+  firstName                                     String?
+  lastName                                      String?
+  salary                                        Float?
+  dateOfBirth                                   DateTime?
+  jobType                                       String?
+  lastSynced                                    DateTime?
+  syncToken                                     String?
+  createdAt                                     DateTime              @default(now())
+  updatedAt                                     DateTime
+  avatarId                                      String?
+  city                                          String?
+  country                                       String?
+  gender                                        String?
+  state                                         String?
+  Account                                       Account[]
+  AdvisorAvailability                           AdvisorAvailability[]
+  AdvisorSession_AdvisorSession_advisorIdToUser AdvisorSession[]      @relation("AdvisorSession_advisorIdToUser")
+  AdvisorSession_AdvisorSession_clientIdToUser  AdvisorSession[]      @relation("AdvisorSession_clientIdToUser")
+  BookingRequest_BookingRequest_advisorIdToUser BookingRequest[]      @relation("BookingRequest_advisorIdToUser")
+  BookingRequest_BookingRequest_clientIdToUser  BookingRequest[]      @relation("BookingRequest_clientIdToUser")
+  Category                                      Category[]
+  ChatMessage                                   ChatMessage[]
+  Device                                        Device[]
+  ExpenseBill                                   ExpenseBill[]
+  Friend                                        Friend[]
+  Goal                                          Goal[]
+  GoalContribution                              GoalContribution[]
+  ImportLog                                     ImportLog[]
+  Investment                                    Investment[]
+  Loan                                          Loan[]
+  Notification                                  Notification[]
+  Payment_Payment_advisorIdToUser               Payment[]             @relation("Payment_advisorIdToUser")
+  Payment_Payment_clientIdToUser                Payment[]             @relation("Payment_clientIdToUser")
+  RefreshToken                                  RefreshToken[]
+  Todo                                          Todo[]
+  Transaction                                   Transaction[]
+  UserPin                                       UserPin?
+  UserSettings                                  UserSettings?
+  group_expenses                                group_expenses[]
+
+  @@index([isApproved])
+  @@index([role])
+}
+
+model UserPin {
+  id             String    @id
+  userId         String    @unique
+  pinHash        String
+  expiresAt      DateTime
+  isActive       Boolean   @default(true)
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime
+  User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([isActive])
+  @@index([userId])
+}
+
+model UserSettings {
+  id        String   @id
+  userId    String   @unique
+  theme     String   @default("light")
+  language  String   @default("en")
+  currency  String   @default("USD")
+  timezone  String   @default("UTC")
+  settings  String   @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ai_events {
+  id            String   @id
+  user_id       String
+  event_type    String
+  metadata_json Json
+  created_at    DateTime @default(now())
+
+  @@index([created_at], map: "idx_ai_events_created_at")
+  @@index([event_type], map: "idx_ai_events_type")
+  @@index([user_id], map: "idx_ai_events_user_id")
+}
+
+model ai_insights {
+  id                String   @id
+  user_id           String
+  insight_type      String
+  insight_data_json Json
+  confidence_score  Float
+  created_at        DateTime @default(now())
+
+  @@index([created_at], map: "idx_ai_insights_created_at")
+  @@index([insight_type], map: "idx_ai_insights_type")
+  @@index([user_id], map: "idx_ai_insights_user_id")
+}
+
+model ai_model_runs {
+  id              String    @id
+  run_type        String
+  status          String
+  started_at      DateTime  @default(now())
+  completed_at    DateTime?
+  processed_users Int       @default(0)
+  notes           String?
+
+  @@index([started_at], map: "idx_ai_runs_started_at")
+  @@index([run_type], map: "idx_ai_runs_type")
+}
+
+model group_expenses {
+  id                   String        @id
   userId               String
   deviceId             String?
   name                 String
@@ -288,326 +587,28 @@ model GroupExpense {
   createdByName        String?
   status               String?
   notificationStatus   String?
-  syncStatus           String   @default("synced")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  syncStatus           String        @default("synced")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime
   deletedAt            DateTime?
+  Transaction          Transaction[]
+  Account              Account?      @relation(fields: [paidBy], references: [id])
+  User                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paidByAccount     Account?      @relation("GroupExpensePaidBy", fields: [paidBy], references: [id], onDelete: SetNull)
-  linkedTransaction Transaction[]
-
-  @@index([userId])
+  @@index([date])
   @@index([paidBy])
-  @@index([date])
   @@index([syncStatus])
-}
-
-model Loan {
-  id                  String   @id @default(cuid())
-  userId              String
-  deviceId            String?  // Device that created this record
-  type                String   // borrowed, lent, emi
-  name                String
-  principalAmount     Float
-  outstandingBalance  Float
-  interestRate        Float?
-  emiAmount           Float?
-  dueDate             DateTime?
-  frequency           String?  // monthly, weekly, custom
-  status              String   @default("active") // active, overdue, completed
-  contactPerson       String?
-  syncStatus          String   @default("synced") // synced, pending, conflict
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  deletedAt            DateTime?
-
-  // Relations
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments  LoanPayment[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([dueDate])
-  @@index([syncStatus])
-}
-
-model LoanPayment {
-  id        String   @id @default(cuid())
-  loanId    String
-  amount    Float
-  accountId String?
-  date      DateTime
-  notes     String?
-  createdAt DateTime @default(now())
-
-  // Relations
-  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
-
-  @@index([loanId])
-  @@index([date])
-}
-
-model Investment {
-  id            String   @id @default(cuid())
-  userId        String
-  assetType     String   // stock, crypto, forex, gold, silver, other
-  assetName     String
-  quantity      Float
-  buyPrice      Float
-  currentPrice  Float
-  totalInvested Float
-  currentValue  Float
-  profitLoss    Float
-  purchaseDate  DateTime
-  lastUpdated   DateTime
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  deletedAt     DateTime?
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([assetType])
-}
-
-model ImportLog {
-  id                String   @id @default(cuid())
-  userId            String
-  fileName          String
-  fileType          String
-  sourceKind        String
-  totalRecords      Int
-  importedRecords   Int
-  skippedRecords    Int
-  duplicateRecords  Int
-  createdCategories String   @default("[]")
-  createdAccounts   String   @default("[]")
-  createdGoals      String   @default("[]")
-  updatedGoals      String   @default("[]")
-  failedRecords     Int      @default(0)
-  errors            String   @default("[]")
-  metadata          String?
-  createdAt         DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@index([sourceKind])
-}
-
-model UserSettings {
-  id       String @id @default(cuid())
-  userId   String @unique
-  theme    String @default("light")
-  language String @default("en")
-  currency String @default("USD")
-  timezone String @default("UTC")
-  settings String   @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   @@index([userId])
 }
 
-// Advisor Booking Models
-
-model BookingRequest {
-  id           String   @id @default(cuid())
-  clientId     String
-  advisorId    String
-  sessionType  String          // video, phone, chat, inperson
-  description  String?
-  proposedDate DateTime
-  proposedTime String          // HH:mm format
-  duration     Int             // minutes
-  amount       Float
-  status       String   @default("pending") // pending, accepted, rejected, completed, cancelled
-  rejectionReason String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  client   User            @relation("ClientBookings", fields: [clientId], references: [id], onDelete: Cascade)
-  advisor  User            @relation("AdvisorBookings", fields: [advisorId], references: [id], onDelete: Cascade)
-  session  AdvisorSession?
-
-  @@index([clientId])
-  @@index([advisorId])
-  @@index([status])
-  @@index([proposedDate])
-}
-
-model AdvisorSession {
-  id         String   @id @default(cuid())
-  bookingId  String   @unique
-  advisorId  String
-  clientId   String
-  startTime  DateTime
-  endTime    DateTime?
-  sessionType String        // video, phone, chat, inperson
-  status     String   @default("scheduled") // scheduled, in-progress, completed, cancelled
-  notes      String?
-  rating     Float?        // 1-5 stars
-  feedback   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Relations
-  booking      BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  advisor      User           @relation("AdvisorSessions", fields: [advisorId], references: [id], onDelete: Cascade)
-  client       User           @relation("ClientSessions", fields: [clientId], references: [id], onDelete: Cascade)
-  chatMessages ChatMessage[]
-  payment      Payment?
-
-  @@index([advisorId])
-  @@index([clientId])
-  @@index([status])
-  @@index([startTime])
-}
-
-model ChatMessage {
-  id        String   @id @default(cuid())
-  sessionId String
-  senderId  String
-  message   String
-  timestamp DateTime @default(now())
-
-  // Relations
-  session AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sender  User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([sessionId])
-  @@index([senderId])
-  @@index([timestamp])
-}
-
-model AdvisorAvailability {
-  id        String   @id @default(cuid())
-  advisorId String
-  dayOfWeek Int      // 0 = Sunday, 6 = Saturday
-  startTime String   // HH:mm
-  endTime   String   // HH:mm
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  advisor User @relation(fields: [advisorId], references: [id], onDelete: Cascade)
-
-  @@index([advisorId])
-}
-
-model Payment {
-  id             String   @id @default(cuid())
-  sessionId      String   @unique
-  clientId       String
-  advisorId      String
-  amount         Float
-  currency       String   @default("USD")
-  status         String   @default("pending") // pending, completed, failed, refunded
-  paymentMethod  String?  // stripe, razorpay, bank_transfer
-  transactionId  String?  // External payment gateway ID
-  description    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  session AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  client  User           @relation("PaymentClient", fields: [clientId], references: [id], onDelete: Cascade)
-  advisor User           @relation("PaymentAdvisor", fields: [advisorId], references: [id], onDelete: Cascade)
-
-  @@index([clientId])
-  @@index([advisorId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model Notification {
-  id         String   @id @default(cuid())
-  userId     String
-  title      String
-  message    String
-  type       String   @default("info") // info, warning, error, success
-  category   String?  // booking, payment, session, system
-  deepLink   String?  // URL to navigate to when clicked
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  readAt     DateTime?
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-  @@index([createdAt])
-}
-
-// Device Management Model
-model Device {
-  id           String   @id @default(cuid())
-  userId       String
-  deviceId     String   @unique  // Unique device identifier
-  deviceName   String?           // User-friendly device name
-  deviceType   String?           // mobile, desktop, tablet
-  platform     String?           // ios, android, windows, macos, linux, web
-  appVersion   String?
-  isActive     Boolean  @default(true)
-  lastSeenAt   DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([deviceId])
-  @@index([isActive])
-}
-
-// User PIN Management Model
-model UserPin {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  pinHash      String   // Hashed 6-digit PIN
-  expiresAt    DateTime // PIN expiry (90 days)
-  isActive     Boolean  @default(true)
-  failedAttempts Int    @default(0)
-  lockedUntil  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@index([isActive])
-}
-
-// Sync Queue Model
-model SyncQueue {
-  id           String   @id @default(cuid())
-  userId       String
-  deviceId     String
-  entityType   String   // account, transaction, goal, loan, etc.
-  entityId     String
-  operation    String   // create, update, delete
-  data         String?  // JSON string of entity data
-  status       String   @default("pending") // pending, processing, completed, failed
-  errorMessage String?
-  retryCount   Int      @default(0)
-  createdAt    DateTime @default(now())
-  processedAt  DateTime?
-
-  @@index([userId])
-  @@index([deviceId])
-  @@index([status])
-  @@index([entityType])
-  @@index([createdAt])
+model user_features {
+  user_id           String   @id
+  avg_spend         Float
+  monthly_income    Float
+  savings_rate      Float
+  top_category      String
+  risk_score        Float
+  peak_day          String
+  feature_data_json Json
+  updated_at        DateTime @default(now())
 }

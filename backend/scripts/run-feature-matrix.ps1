@@ -26,7 +26,7 @@ $todoDelete = Invoke-RestMethod -Uri ($base + '/todos/' + $todoId) -Method Delet
 $groupCreate = Invoke-RestMethod -Uri ($base + '/groups') -Method Post -Headers $headers -ContentType 'application/json' -Body (@{
   name = 'QA Matrix Group'
   totalAmount = 2100
-  paidBy = 1
+  paidBy = $accounts.data[0].id
   date = (Get-Date).ToString('o')
   members = @(
     @{ name = 'Admin User'; share = 1050; paid = $true; isCurrentUser = $true },
