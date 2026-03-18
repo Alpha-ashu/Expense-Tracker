@@ -70,6 +70,68 @@ export class AuthService {
     return user;
   }
 
+  async updateProfile(userId: string, data: any): Promise<any> {
+    const { firstName, lastName, gender, country, state, city, monthlyIncome, dateOfBirth, jobType, phone } = data;
+
+    // 1. Update Prisma User table
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        firstName,
+        lastName,
+        name: `${firstName} ${lastName}`.trim(),
+        gender,
+        country,
+        state,
+        city,
+        salary: monthlyIncome ? monthlyIncome * 12 : undefined,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+        jobType,
+      },
+    });
+
+    // 2. Update profiles table (for Supabase sync)
+    try {
+      await (prisma as any).profiles.upsert({
+        where: { id: userId },
+        update: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`.trim(),
+          gender,
+          country,
+          state,
+          city,
+          phone,
+          monthly_income: monthlyIncome,
+          date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          job_type: jobType,
+          updated_at: new Date(),
+        },
+        create: {
+          id: userId,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`.trim(),
+          gender,
+          country,
+          state,
+          city,
+          phone,
+          monthly_income: monthlyIncome,
+          date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          job_type: jobType,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }
+      });
+    } catch (err) {
+      console.warn('Sync to profiles table failed (non-blocking):', err);
+    }
+
+    return user;
+  }
+
   async login(input: LoginInput): Promise<AuthTokens> {
     const user = await prisma.user.findUnique({
       where: { email: input.email },

@@ -66,7 +66,7 @@ function handleAPIError(error: any): never {
     const { status, data } = error.response;
     const message = data?.message || 'An error occurred';
     const code = data?.code || 'UNKNOWN_ERROR';
-    
+
     throw new APIError(code, message, status, data?.details);
   } else if (error.request) {
     // The request was made but no response was received
@@ -179,7 +179,7 @@ class HTTPClient {
         const timeoutError = new APIError(
           'TIMEOUT_ERROR',
           'Request timeout. Please try again.',
-          0        );
+          0);
         if (showErrorToast) {
           toast.error(timeoutError.message);
         }
@@ -249,28 +249,36 @@ export const api = {
         showSuccessToast: true,
         successMessage: 'Login successful',
       }),
-    
+
     register: (data: { name: string; email: string; password: string }) =>
       apiClient.post('/auth/register', data, {
         showSuccessToast: true,
         successMessage: 'Registration successful',
       }),
-    
+
+    getProfile: () => apiClient.get('/auth/profile'),
+
+    updateProfile: (data: any) =>
+      apiClient.put('/auth/profile', data, {
+        showSuccessToast: true,
+        successMessage: 'Profile updated successfully',
+      }),
+
     logout: () =>
       apiClient.post('/auth/logout', undefined, {
         showSuccessToast: true,
         successMessage: 'Logged out successfully',
       }),
-    
+
     refreshToken: (refreshToken: string) =>
       apiClient.post('/auth/refresh', { refreshToken }),
-    
+
     verifyEmail: (token: string) =>
       apiClient.post('/auth/verify-email', { token }),
-    
+
     resetPassword: (email: string) =>
       apiClient.post('/auth/reset-password', { email }),
-    
+
     changePassword: (oldPassword: string, newPassword: string) =>
       apiClient.post('/auth/change-password', { oldPassword, newPassword }),
   },

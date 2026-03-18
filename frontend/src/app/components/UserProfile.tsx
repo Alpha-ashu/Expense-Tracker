@@ -246,74 +246,85 @@ export const UserProfile: React.FC = () => {
       }
     }
 
-    // ── SOURCE 2: Supabase profiles table (authoritative, cloud-synced) ────────
+    // ── SOURCE 2: Supabase profiles / Backend API (authoritative, cloud-synced) ──
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const { api } = await import('@/lib/api');
+      let finalData: any = null;
 
-      if (error) {
-        if (error.code !== 'PGRST116') {
-          console.warn('Supabase profile fetch (non-blocking):', error.code, error.message);
+      // Prefer Backend Data
+      try {
+        const backendRes = await api.auth.getProfile();
+        if (backendRes.success && backendRes.data) {
+          finalData = backendRes.data;
+          console.log('✅ Profile fetched from backend:', finalData);
         }
-        return; // Keep sources 0+1 data
+      } catch (backendError) {
+        console.warn('Backend profile fetch failed, trying Supabase:', backendError);
       }
 
-      const hasRealProfile = data && (
-        data.full_name || data.first_name || data.phone ||
-        data.date_of_birth || data.job_type ||
-        data.monthly_income || data.annual_income
-      );
+      // Fallback/Supplement with Supabase
+      if (!finalData) {
+        const { data: supabaseData, error: supabaseError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-      if (hasRealProfile) {
-        const fullName = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim();
+        if (!supabaseError && supabaseData) {
+          finalData = supabaseData;
+          console.log('✅ Profile fetched from Supabase:', finalData);
+        }
+      }
+
+      if (finalData) {
+        const data = finalData;
+        const fullName = data.name || data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim();
         const nameParts = fullName.split(' ');
-        const firstName = data.first_name || metaFirstName || nameParts[0] || '';
-        const lastName = data.last_name || metaLastName || nameParts.slice(1).join(' ') || '';
-        const monthlyIncomeVal = data.monthly_income
-          ? Number(data.monthly_income)
-          : data.annual_income
-            ? Math.round(Number(data.annual_income) / 12)
-            : 0;
-        const updatedAt = data.updated_at || new Date().toISOString();
-        const resolved = resolveAvatar(data.avatar_url || null, (data as any)?.avatar_id || null);
+        const firstName = data.firstName || data.first_name || metaFirstName || nameParts[0] || '';
+        const lastName = data.lastName || data.last_name || metaLastName || nameParts.slice(1).join(' ') || '';
 
-        setProfileData({
+        const monthlyIncomeVal = data.monthlyIncome || data.monthly_income
+          ? Number(data.monthlyIncome || data.monthly_income)
+          : data.salary || data.annual_income
+            ? Math.round(Number(data.salary || data.annual_income) / 12)
+            : 0;
+
+        const dateOfBirthVal = data.dateOfBirth || data.date_of_birth
+          ? new Date(data.dateOfBirth || data.date_of_birth).toISOString().split('T')[0]
+          : '';
+
+        const fetchedProfile = {
           firstName,
           lastName,
-          gender: ((data as any).gender || '') as ProfileData['gender'],
           email: data.email || user.email || '',
-          mobile: data.phone || '',
-          dateOfBirth: data.date_of_birth || '',
+          mobile: data.mobile || data.phone || '',
+          gender: (data.gender || '').toLowerCase() as any,
+          dateOfBirth: dateOfBirthVal,
           monthlyIncome: monthlyIncomeVal,
-          jobType: (normalizeJobType(data.job_type) || '') as ProfileData['jobType'],
-          country: (data as any).country || '',
-          state: (data as any).state || '',
-          city: (data as any).city || '',
-          profilePhoto: resolved.url,
-          avatarId: resolved.id,
-        });
-        // Keep localStorage in sync
+          jobType: (data.jobType || data.job_type || '').toLowerCase() as any,
+          country: data.country || '',
+          state: data.state || '',
+          city: data.city || '',
+          profilePhoto: resolveAvatarSelection({
+            avatarUrl: data.profilePhoto || data.avatar_url,
+            avatarId: data.avatarId || data.avatar_id
+          }).url,
+          avatarId: data.avatarId || data.avatar_id,
+        };
+
+        setProfileData(fetchedProfile);
+
+        // Update localStorage as a warm cache
+        const lastUpdated = new Date().toISOString();
         localStorage.setItem('user_profile', JSON.stringify({
-          displayName: `${firstName} ${lastName}`.trim(),
-          firstName, lastName,
-          gender: (data as any).gender || '',
-          mobile: data.phone || '',
-          dateOfBirth: data.date_of_birth || '',
-          jobType: data.job_type || '',
-          salary: ((data.annual_income || (monthlyIncomeVal * 12)) || 0).toString(),
-          monthlyIncome: monthlyIncomeVal,
-          country: (data as any).country || '',
-          state: (data as any).state || '',
-          city: (data as any).city || '',
-          profilePhoto: resolved.url,
-          avatarUrl: resolved.url,
-          avatarId: resolved.id,
-          updatedAt,
+          ...fetchedProfile,
+          displayName: fullName,
+          salary: monthlyIncomeVal * 12,
+          avatarUrl: fetchedProfile.profilePhoto,
+          avatarId: fetchedProfile.avatarId,
+          updatedAt: lastUpdated,
         }));
-        localStorage.setItem('profile_updated_at', updatedAt);
+        localStorage.setItem('profile_updated_at', lastUpdated);
       }
     } catch (error) {
       console.warn('Supabase profile fetch failed (non-blocking):', error);
@@ -341,7 +352,8 @@ export const UserProfile: React.FC = () => {
     };
   }, [user]);
 
-  const [isEditingForm, setIsEditingForm] = useState(false);
+  const [isEditingBasic, setIsEditingBasic] = useState(false);
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [tempData, setTempData] = useState<ProfileData>(profileData);
   const [showAvatarGallery, setShowAvatarGallery] = useState(false);
 
@@ -349,16 +361,16 @@ export const UserProfile: React.FC = () => {
   // but only when the edit form is not currently open to avoid overwriting
   // in-progress user edits.
   useEffect(() => {
-    if (!isEditingForm) {
+    if (!isEditingBasic && !isEditingLocation) {
       setTempData(profileData);
     }
   }, [profileData]);
 
   useEffect(() => {
-    if (!isEditingForm) {
+    if (!isEditingBasic && !isEditingLocation) {
       setShowAvatarGallery(false);
     }
-  }, [isEditingForm]);
+  }, [isEditingBasic, isEditingLocation]);
 
   const [verification, setVerification] = useState<VerificationState>({
     type: null,
@@ -369,10 +381,10 @@ export const UserProfile: React.FC = () => {
   const ageValue = calculateAge(tempData.dateOfBirth || profileData.dateOfBirth);
   const ageGroup = getAgeGroup(ageValue);
   const ageGroupLabel = getAgeGroupLabel(ageGroup);
-  const ageSource = isEditingForm ? tempData.dateOfBirth : profileData.dateOfBirth;
+  const ageSource = isEditingBasic ? tempData.dateOfBirth : profileData.dateOfBirth;
   const activeAvatar = resolveAvatarSelection({
-    avatarId: (isEditingForm ? tempData.avatarId : profileData.avatarId) || null,
-    avatarUrl: (isEditingForm ? tempData.profilePhoto : profileData.profilePhoto) || null,
+    avatarId: (isEditingBasic ? tempData.avatarId : profileData.avatarId) || null,
+    avatarUrl: (isEditingBasic ? tempData.profilePhoto : profileData.profilePhoto) || null,
   });
   const activeAvatarUrl = activeAvatar.url;
 
@@ -382,37 +394,48 @@ export const UserProfile: React.FC = () => {
     localStorage.setItem('profile_sync_pending', 'true');
     try {
       const resolvedAvatar = resolveAvatar(tempData.profilePhoto, tempData.avatarId);
-      const baseData = {
-        id: user.id,
-        email: tempData.email,
-        full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
-        phone: tempData.mobile,
-        avatar_url: resolvedAvatar.url,
-        updated_at: new Date().toISOString(),
-      };
 
-      const { error } = await supabase.from('profiles').upsert({
-        ...baseData,
-        date_of_birth: tempData.dateOfBirth || null,
-        monthly_income: tempData.monthlyIncome,
-        job_type: tempData.jobType || null,
-        gender: tempData.gender || null,
-        country: tempData.country || null,
-        state: tempData.state || null,
-        city: tempData.city || null,
+      // 1. Update via Backend API (Updates both User and profiles tables in DB)
+      // This ensures consistency across the hybrid architecture
+      const { api } = await import('@/lib/api');
+      await api.auth.updateProfile({
+        firstName: tempData.firstName,
+        lastName: tempData.lastName,
+        gender: tempData.gender,
+        country: tempData.country,
+        state: tempData.state,
+        city: tempData.city,
+        monthlyIncome: tempData.monthlyIncome,
+        dateOfBirth: tempData.dateOfBirth,
+        jobType: tempData.jobType,
+        mobile: tempData.mobile,
+        avatarId: resolvedAvatar.id,
       });
 
-      if (error) {
-        // Extended columns may not exist — fall back to base columns only
-        console.warn('Extended profile save failed, trying base:', error.message);
-        const { error: baseError } = await supabase.from('profiles').upsert(baseData);
-        if (baseError) throw baseError;
-      }
-
-      localStorage.removeItem('profile_sync_pending');
-
-      // Best-effort: keep auth metadata aligned for cross-device fallback
+      // 2. Best-effort Supabase sync (optional but good for real-time)
       try {
+        const baseData = {
+          id: user.id,
+          email: tempData.email,
+          full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
+          first_name: tempData.firstName,
+          last_name: tempData.lastName,
+          phone: tempData.mobile,
+          avatar_url: resolvedAvatar.url,
+          updated_at: new Date().toISOString(),
+        };
+
+        await supabase.from('profiles').upsert({
+          ...baseData,
+          date_of_birth: tempData.dateOfBirth || null,
+          monthly_income: tempData.monthlyIncome,
+          job_type: tempData.jobType || null,
+          gender: tempData.gender || null,
+          country: tempData.country || null,
+          state: tempData.state || null,
+          city: tempData.city || null,
+        });
+
         await supabase.auth.updateUser({
           data: {
             first_name: tempData.firstName,
@@ -422,12 +445,14 @@ export const UserProfile: React.FC = () => {
             avatar_id: resolvedAvatar.id,
           },
         });
-      } catch (metaError) {
-        console.warn('Auth metadata update failed (non-blocking):', metaError);
+      } catch (syncError) {
+        console.warn('Silent sync error (non-blocking):', syncError);
       }
 
       setProfileData(tempData);
-      setIsEditingForm(false);
+      setIsEditingBasic(false);
+      setIsEditingLocation(false);
+      setIsEditingLocation(false);
       // Save latest profile to localStorage for persistence
       const updatedAt = new Date().toISOString();
       setCurrency(currency); // persist any currency change via AppContext
@@ -451,12 +476,10 @@ export const UserProfile: React.FC = () => {
       }));
       localStorage.setItem('profile_updated_at', updatedAt);
       localStorage.removeItem('profile_sync_pending');
-      // Fetch latest profile from Supabase to guarantee sync
-      try {
-        await fetchProfileData();
-      } catch (fetchError) {
-        // Optionally log or handle fetch error
-      }
+
+      // Fetch latest profile to guarantee sync
+      await fetchProfileData();
+
       toast.success('Profile updated successfully!');
     } catch (error: any) {
       console.error('Failed to save profile:', error);
@@ -649,7 +672,7 @@ export const UserProfile: React.FC = () => {
                   </ul>
                 </div>
                 <button
-                  onClick={() => setIsEditingForm(true)}
+                  onClick={() => setIsEditingBasic(true)}
                   className="shrink-0 mt-1 bg-white text-blue-700 hover:bg-blue-50 font-semibold text-sm px-4 py-2 rounded-xl transition-colors"
                 >
                   Edit Profile
@@ -678,8 +701,8 @@ export const UserProfile: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center gap-2">
               <p className="text-gray-900 font-semibold text-lg">
                 {[
-                  isEditingForm ? tempData.firstName : profileData.firstName,
-                  isEditingForm ? tempData.lastName : profileData.lastName,
+                  isEditingBasic ? tempData.firstName : profileData.firstName,
+                  isEditingBasic ? tempData.lastName : profileData.lastName,
                 ].filter(Boolean).join(' ') || 'User'}
               </p>
               {ageSource && (
@@ -694,7 +717,7 @@ export const UserProfile: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center gap-2">
               <button
                 onClick={() => {
-                  setIsEditingForm(true);
+                  setIsEditingBasic(true);
                   setShowAvatarGallery((prev) => !prev);
                 }}
                 className="inline-flex items-center gap-2 rounded-full border border-blue-200 px-4 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
@@ -723,11 +746,10 @@ export const UserProfile: React.FC = () => {
                         profilePhoto: avatar.url,
                         avatarId: avatar.id,
                       }))}
-                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${
-                        activeAvatar.id === avatar.id
-                          ? 'border-blue-500 ring-2 ring-blue-200'
-                          : 'border-transparent hover:border-gray-300'
-                      }`}
+                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${activeAvatar.id === avatar.id
+                        ? 'border-blue-500 ring-2 ring-blue-200'
+                        : 'border-transparent hover:border-gray-300'
+                        }`}
                       aria-label={`Select avatar ${avatar.label}`}
                       title={avatar.label}
                     >
@@ -754,19 +776,19 @@ export const UserProfile: React.FC = () => {
                 <h3 className="text-lg font-bold text-gray-900">Basic Information</h3>
                 <button
                   onClick={() => {
-                    setIsEditingForm(!isEditingForm);
-                    if (isEditingForm) setTempData(profileData);
+                    setIsEditingBasic(!isEditingBasic);
+                    if (isEditingBasic) setTempData(profileData);
                   }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isEditingForm
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isEditingBasic
                     ? 'bg-red-50 text-red-600 hover:bg-red-100'
                     : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                     }`}
                 >
-                  {isEditingForm ? 'Cancel' : 'Edit'}
+                  {isEditingBasic ? 'Cancel' : 'Edit'}
                 </button>
               </div>
 
-              {!isEditingForm ? (
+              {!isEditingBasic ? (
                 /* View mode — clean horizontal info rows */
                 <div className="divide-y divide-gray-100">
                   <div className="flex items-center justify-between py-3.5">
@@ -938,20 +960,19 @@ export const UserProfile: React.FC = () => {
                 </h3>
                 <button
                   onClick={() => {
-                    setIsEditingForm(!isEditingForm);
-                    if (isEditingForm) setTempData(profileData);
+                    setIsEditingLocation(!isEditingLocation);
+                    if (isEditingLocation) setTempData(profileData);
                   }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    isEditingForm
-                      ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isEditingLocation
+                    ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                    }`}
                 >
-                  {isEditingForm ? 'Cancel' : 'Edit'}
+                  {isEditingLocation ? 'Cancel' : 'Edit'}
                 </button>
               </div>
 
-              {!isEditingForm ? (
+              {!isEditingLocation ? (
                 <div className="divide-y divide-gray-100">
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">

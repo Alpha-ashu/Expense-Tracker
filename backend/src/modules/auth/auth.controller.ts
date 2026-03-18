@@ -16,7 +16,7 @@ export const register = async (req: Request, res: Response) => {
 
     // Validate input
     if (!input.email || !input.name || !input.password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Missing required fields: email, name, password',
         code: 'MISSING_FIELDS'
       });
@@ -24,7 +24,7 @@ export const register = async (req: Request, res: Response) => {
 
     // Validate email format (strict)
     if (!EMAIL_REGEX.test(input.email)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid email format',
         code: 'INVALID_EMAIL'
       });
@@ -32,7 +32,7 @@ export const register = async (req: Request, res: Response) => {
 
     // Validate password length
     if (input.password.length < 8) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Password must be at least 8 characters long',
         code: 'PASSWORD_TOO_SHORT'
       });
@@ -54,11 +54,11 @@ export const register = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('Registration error', { error: error.message });
-    
+
     let statusCode = 400;
     let errorCode = 'REGISTRATION_FAILED';
     let errorMessage = 'Registration failed. Please try again.';
-    
+
     // Handle specific database errors
     if (error.message && error.message.includes('UNIQUE constraint failed')) {
       statusCode = 409;
@@ -73,8 +73,8 @@ export const register = async (req: Request, res: Response) => {
       errorCode = 'DATABASE_ERROR';
       errorMessage = 'Database error occurred. Please try again later.';
     }
-    
-    res.status(statusCode).json({ 
+
+    res.status(statusCode).json({
       success: false,
       error: errorMessage,
       code: errorCode
@@ -89,7 +89,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Validate input
     if (!input.email || !input.password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Missing required fields: email, password',
         code: 'MISSING_FIELDS'
       });
@@ -97,7 +97,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Validate email format (strict)
     if (!EMAIL_REGEX.test(input.email)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Invalid email format',
         code: 'INVALID_EMAIL'
       });
@@ -115,11 +115,11 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     logger.error('Login error', { error: error.message });
-    
+
     let statusCode = 401;
     let errorCode = 'LOGIN_FAILED';
     let errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-    
+
     if (error.message === 'Invalid credentials') {
       errorCode = 'INVALID_CREDENTIALS';
       errorMessage = 'Invalid email or password. Please check your credentials and try again.';
@@ -128,8 +128,8 @@ export const login = async (req: Request, res: Response) => {
       errorCode = 'DATABASE_ERROR';
       errorMessage = 'Database error occurred. Please try again later.';
     }
-    
-    res.status(statusCode).json({ 
+
+    res.status(statusCode).json({
       success: false,
       error: errorMessage,
       code: errorCode
@@ -150,6 +150,15 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        gender: user.gender,
+        country: user.country,
+        state: user.state,
+        city: user.city,
+        salary: user.salary,
+        dateOfBirth: user.dateOfBirth,
+        jobType: user.jobType,
         role: user.role,
         isApproved: user.isApproved,
       }
@@ -157,6 +166,39 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     logger.error('Get profile error', { error: error.message });
     res.status(500).json({ success: false, error: 'Failed to fetch profile' });
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const sanitizedData = sanitize(req.body);
+    const user = await authService.updateProfile(req.userId, sanitizedData);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        gender: user.gender,
+        country: user.country,
+        state: user.state,
+        city: user.city,
+        salary: user.salary,
+        dateOfBirth: user.dateOfBirth,
+        jobType: user.jobType,
+      }
+    });
+  } catch (error: any) {
+    logger.error('Update profile error', { error: error.message });
+    res.status(500).json({ success: false, error: 'Failed to update profile' });
   }
 };
 

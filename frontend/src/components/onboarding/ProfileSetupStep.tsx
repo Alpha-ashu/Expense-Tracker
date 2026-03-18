@@ -6,6 +6,7 @@ interface ProfileSetupStepProps {
   data: {
     displayName: string;
     dateOfBirth: string;
+    gender: string;
     jobType: string;
     salary: string;
     avatarUrl?: string;
@@ -133,11 +134,10 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
                 key={avatar.id}
                 type="button"
                 onClick={() => setPendingAvatarId(avatar.id)}
-                className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${
-                  pendingAvatarId === avatar.id
-                    ? 'border-blue-500 ring-2 ring-blue-200'
-                    : 'border-transparent hover:border-gray-300'
-                }`}
+                className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${pendingAvatarId === avatar.id
+                  ? 'border-blue-500 ring-2 ring-blue-200'
+                  : 'border-transparent hover:border-gray-300'
+                  }`}
                 aria-label={`Select avatar ${avatar.label}`}
                 title={avatar.label}
               >
@@ -151,6 +151,28 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center mb-4">
         <span className="text-sm text-gray-500 block mb-1">Signed in as</span>
         <span className="font-semibold text-gray-800">{data.displayName || 'User'}</span>
+      </div>
+
+      <div>
+        <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+          Gender
+        </label>
+        <select
+          id="gender"
+          value={data.gender || ''}
+          onChange={(e) => onUpdate({ gender: e.target.value })}
+          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.gender ? 'border-red-500' : 'border-gray-300'
+            }`}
+        >
+          <option value="">Select gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="non-binary">Non-binary</option>
+          <option value="prefer-not-to-say">Prefer not to say</option>
+        </select>
+        {errors.gender && (
+          <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+        )}
       </div>
 
       <div>

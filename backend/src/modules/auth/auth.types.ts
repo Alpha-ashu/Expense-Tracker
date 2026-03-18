@@ -2,6 +2,16 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  gender?: string | null;
+  country?: string | null;
+  state?: string | null;
+  city?: string | null;
+  salary?: number | null;
+  monthlyIncome?: number | null;
+  dateOfBirth?: Date | string | null;
+  jobType?: string | null;
   role: string;
   isApproved: boolean;
   createdAt: Date;

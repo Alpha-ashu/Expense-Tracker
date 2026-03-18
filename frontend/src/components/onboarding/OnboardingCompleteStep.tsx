@@ -8,12 +8,15 @@ interface OnboardingCompleteStepProps {
   data: {
     displayName: string;
     dateOfBirth: string;
+    gender: string;
     jobType: string;
     salary: string;
     bankName: string;
     accountHolderName: string;
     currentBalance: string;
     country: string;
+    state: string;
+    city: string;
     language: string;
     avatarUrl?: string;
     avatarId?: string;
@@ -73,11 +76,14 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       displayName: data.displayName,
       firstName,
       lastName,
+      gender: data.gender,
       dateOfBirth: data.dateOfBirth,
       jobType: data.jobType,
       salary: data.salary,
       monthlyIncome: Math.round(parseFloat(data.salary) / 12),
       country: data.country,
+      state: data.state,
+      city: data.city,
       language: data.language,
       profilePhoto: resolvedAvatar.url,
       avatarUrl: resolvedAvatar.url,
@@ -100,53 +106,61 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('user_setup_date', new Date().toISOString());
 
     try {
-      // Step 1: Try to save profile to Supabase (non-blocking — localStorage is the backup)
+      // Step 1: Try to save profile to Supabase & Backend
       setProgress(15);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const nameParts = data.displayName.trim().split(/\s+/);
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.slice(1).join(' ') || '';
-            const profileData = {
-              id: user.id,
-              email: user.email,
-              full_name: data.displayName,
-              first_name: firstName,
-              last_name: lastName,
-              date_of_birth: data.dateOfBirth || null,
-              job_type: data.jobType?.toLowerCase() || null,
-              annual_income: parseFloat(data.salary) || null,
-              monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
-              avatar_url: resolvedAvatar.url,
-              updated_at: new Date().toISOString(),
-            };
+          const profileData = {
+            id: user.id,
+            email: user.email,
+            full_name: data.displayName,
+            first_name: firstName,
+            last_name: lastName,
+            gender: data.gender || null,
+            date_of_birth: data.dateOfBirth || null,
+            job_type: data.jobType?.toLowerCase() || null,
+            annual_income: parseFloat(data.salary) || null,
+            monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
+            country: data.country || null,
+            state: data.state || null,
+            city: data.city || null,
+            avatar_url: resolvedAvatar.url,
+            updated_at: new Date().toISOString(),
+          };
+
+          // Supabase sync
           const { error: profileError } = await supabase
             .from('profiles')
             .upsert(profileData, { onConflict: 'id' });
+
           if (profileError) {
-            console.warn('Full profile save failed, trying base columns:', profileError.message);
-            const baseProfile = {
-              id: user.id,
-              email: user.email,
-              full_name: data.displayName,
-              updated_at: new Date().toISOString(),
-            };
-            const { error: baseError } = await supabase
-              .from('profiles')
-              .upsert(baseProfile, { onConflict: 'id' });
-            if (baseError) {
-              console.warn('Base profile save also failed (localStorage is the backup):', baseError.message);
-            } else {
-              localStorage.removeItem('profile_sync_pending');
-            }
-          } else {
-            localStorage.removeItem('profile_sync_pending');
+            console.warn('Supabase profile save failed:', profileError.message);
           }
+
+          // Backend API sync
+          try {
+            const { api } = await import('@/lib/api');
+            await api.auth.updateProfile({
+              firstName,
+              lastName,
+              gender: data.gender,
+              country: data.country,
+              state: data.state,
+              city: data.city,
+              monthlyIncome: Math.round(parseFloat(data.salary) / 12),
+              dateOfBirth: data.dateOfBirth,
+              jobType: data.jobType,
+              avatarId: resolvedAvatar.id
+            });
+          } catch (apiErr) {
+            console.warn('Backend API sync failed:', apiErr);
+          }
+
+          localStorage.removeItem('profile_sync_pending');
         }
       } catch (supabaseError) {
-        // AbortError / CORS / network timeout — non-critical, localStorage already saved
-        console.warn('Supabase profile save skipped (non-blocking):', supabaseError);
+        console.warn('Profile sync skipped (non-blocking):', supabaseError);
       }
       // Step 2: Create initial account entry in Dexie database (skip if already exists to prevent retry duplication)
       setProgress(35);

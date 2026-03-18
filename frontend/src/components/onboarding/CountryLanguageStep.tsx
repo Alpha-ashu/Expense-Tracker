@@ -4,6 +4,8 @@ import { Globe, Languages } from 'lucide-react';
 interface CountryLanguageStepProps {
     data: {
         country: string;
+        state: string;
+        city: string;
         language: string;
     };
     onUpdate: (data: any) => void;
@@ -94,6 +96,35 @@ export const CountryLanguageStep: React.FC<CountryLanguageStepProps> = ({
                 {errors.country && (
                     <p className="mt-1 text-sm text-red-600">{errors.country}</p>
                 )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                        State / Province
+                    </label>
+                    <input
+                        type="text"
+                        id="state"
+                        value={data.state}
+                        onChange={(e) => onUpdate({ state: e.target.value })}
+                        placeholder="e.g. California"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+                <div>
+                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                        City
+                    </label>
+                    <input
+                        type="text"
+                        id="city"
+                        value={data.city}
+                        onChange={(e) => onUpdate({ city: e.target.value })}
+                        placeholder="e.g. San Francisco"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
             </div>
 
             <div>

@@ -8,12 +8,15 @@ import supabase from '@/utils/supabase/client';
 interface OnboardingData {
   displayName: string;
   dateOfBirth: string;
+  gender: string;
   jobType: string;
   salary: string;
   bankName: string;
   accountHolderName: string;
   currentBalance: string;
   country: string;
+  state: string;
+  city: string;
   language: string;
   avatarUrl: string;
   avatarId?: string;
@@ -25,12 +28,15 @@ export const NewUserOnboarding: React.FC = () => {
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     displayName: '',
     dateOfBirth: '',
+    gender: '',
     jobType: '',
     salary: '',
     bankName: '',
     accountHolderName: '',
     currentBalance: '',
     country: '',
+    state: '',
+    city: '',
     language: '',
     avatarUrl: '',
     avatarId: '',
