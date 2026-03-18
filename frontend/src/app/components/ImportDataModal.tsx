@@ -354,7 +354,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6" aria-busy={isParsing || isImporting}>
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6" aria-busy={isParsing || isImporting ? 'true' : 'false'}>
           {importReport && (
             <div className="space-y-5">
               <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4">
@@ -457,16 +457,12 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                 Supports CSV and JSON. We preview rows first, map categories, preserve extra fields in metadata,
                 and only then import.
               </p>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  openFilePicker();
-                }}
-                className="mt-6 min-h-11 rounded-full bg-black px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
+              <span
+                aria-hidden="true"
+                className="mt-6 inline-block min-h-11 rounded-full bg-black px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900"
               >
                 Choose file
-              </button>
+              </span>
               <p className="mt-3 text-xs text-gray-500">Maximum size: 20MB</p>
             </div>
           )}

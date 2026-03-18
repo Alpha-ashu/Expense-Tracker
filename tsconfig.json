@@ -28,5 +28,6 @@
     }
   },
   "include": ["frontend/src"],
+  "exclude": ["frontend/src/**/*.test.ts", "frontend/src/**/*.test.tsx", "frontend/src/**/*.spec.ts", "frontend/src/**/*.spec.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
