@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { ChevronLeft, Settings, ToggleRight, ToggleLeft, Shield, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Settings, ToggleRight, ToggleLeft, Shield, RefreshCw, Brain, BarChart2, ChevronRight, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Storage key for admin feature settings (shared globally)
@@ -187,7 +187,7 @@ export const AdminFeaturePanel: React.FC = () => {
     }
     return FEATURES;
   });
-  
+
   // Create broadcast channel for real-time sync across tabs/sessions
   const broadcastChannel = React.useMemo(() => {
     try {
@@ -200,7 +200,7 @@ export const AdminFeaturePanel: React.FC = () => {
   // Listen for changes from other tabs/sessions
   useEffect(() => {
     if (!broadcastChannel) return;
-    
+
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'FEATURE_UPDATE') {
         // Feature update received via broadcast
@@ -210,7 +210,7 @@ export const AdminFeaturePanel: React.FC = () => {
         toast.info('Feature settings updated by admin');
       }
     };
-    
+
     broadcastChannel.addEventListener('message', handleMessage);
     return () => broadcastChannel.removeEventListener('message', handleMessage);
   }, [broadcastChannel]);
@@ -234,7 +234,7 @@ export const AdminFeaturePanel: React.FC = () => {
         }
       }
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
@@ -242,7 +242,7 @@ export const AdminFeaturePanel: React.FC = () => {
   // Apply feature visibility based on readiness and user role
   const applyFeatureVisibility = useCallback((featureList: FeatureControl[]) => {
     const newVisibility: Record<string, boolean> = {};
-    
+
     featureList.forEach(feature => {
       // Determine visibility based on readiness
       // - unreleased: only admin
@@ -250,7 +250,7 @@ export const AdminFeaturePanel: React.FC = () => {
       // - released: everyone
       // - deprecated: no one  
       let isVisible = false;
-      
+
       switch (feature.readiness) {
         case 'unreleased':
           isVisible = role === 'admin';
@@ -265,10 +265,10 @@ export const AdminFeaturePanel: React.FC = () => {
           isVisible = false;
           break;
       }
-      
+
       newVisibility[feature.key] = isVisible;
     });
-    
+
     // Apply feature visibility
     setVisibleFeatures({ ...visibleFeatures, ...newVisibility } as any);
   }, [role, setVisibleFeatures, visibleFeatures]);
@@ -304,36 +304,36 @@ export const AdminFeaturePanel: React.FC = () => {
         ? { ...f, readiness: newReadiness, lastUpdated: new Date() }
         : f
     );
-    
+
     setFeatures(updatedFeatures);
-    
+
     // Save to localStorage for persistence
     const settingsToSave = updatedFeatures.reduce((acc, f) => {
       acc[f.key] = { readiness: f.readiness, lastUpdated: f.lastUpdated.toISOString() };
       return acc;
     }, {} as Record<string, { readiness: string; lastUpdated: string }>);
-    
+
     localStorage.setItem(ADMIN_FEATURE_SETTINGS_KEY, JSON.stringify(settingsToSave));
     // Feature settings saved
-    
+
     // Broadcast to other tabs/sessions immediately
     if (broadcastChannel) {
-      broadcastChannel.postMessage({ 
-        type: 'FEATURE_UPDATE', 
+      broadcastChannel.postMessage({
+        type: 'FEATURE_UPDATE',
         features: updatedFeatures,
         timestamp: new Date().toISOString()
       });
       // Feature update broadcasted
     }
-    
+
     // Dispatch custom event for same-tab listeners (like sidebar/menu)
-    window.dispatchEvent(new CustomEvent('adminFeatureUpdate', { 
-      detail: { features: updatedFeatures, key, newReadiness } 
+    window.dispatchEvent(new CustomEvent('adminFeatureUpdate', {
+      detail: { features: updatedFeatures, key, newReadiness }
     }));
-    
+
     // Apply visibility changes immediately
     applyFeatureVisibility(updatedFeatures);
-    
+
     toast.success(`Feature "${key}" updated to "${newReadiness}" - Changes applied to all users!`);
   };
 
@@ -356,9 +356,9 @@ export const AdminFeaturePanel: React.FC = () => {
     <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
       <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
         <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
-          <PageHeader 
-            title="Admin Panel" 
-            subtitle="Feature flags & access control" 
+          <PageHeader
+            title="Admin Panel"
+            subtitle="Feature flags & access control"
             icon={<Shield size={20} className="sm:w-6 sm:h-6" />}
             showBack
             backTo="dashboard"
@@ -375,83 +375,143 @@ export const AdminFeaturePanel: React.FC = () => {
             </p>
           </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {features.map((feature) => (
-            <div
-              key={feature.key}
-              className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{feature.name}</h3>
-                  <p className="text-gray-600 text-sm mt-1">{feature.description}</p>
+          {/* ── Admin Quick Access ─────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* AI Intelligence Dashboard card */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100">
+                  <Brain size={20} className="text-indigo-600" />
                 </div>
-                <Settings size={20} className="text-gray-400" />
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm">AI Intelligence Dashboard</h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 text-indigo-700 mt-0.5">Admin only</span>
+                </div>
               </div>
+              <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+                Spending pattern analytics, user intelligence, risk alerts, AI accuracy monitor, prediction engine controls, and raw AI data viewer.
+              </p>
+              <button
+                id="open-ai-dashboard-btn"
+                onClick={() => setCurrentPage('admin-ai')}
+                className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 active:scale-95 transition-all"
+              >
+                <Activity size={14} />
+                Open AI Dashboard
+                <ChevronRight size={14} />
+              </button>
+            </div>
 
-              {/* Readiness Status */}
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Readiness Status
-                </label>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getReadinessBadgeColor(feature.readiness)}`}>
-                  {feature.readiness.toUpperCase()}
-                </span>
+            {/* Sync Monitor card */}
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100">
+                  <BarChart2 size={20} className="text-violet-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 text-sm">Sync Monitor</h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-100 text-violet-700 mt-0.5">Admin only</span>
+                </div>
               </div>
+              <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+                Monitor offline-first sync health, view the sync queue, inspect event logs, retry failed items, and trigger force-resyncs.
+              </p>
+              <button
+                id="open-sync-monitor-btn"
+                onClick={() => setCurrentPage('sync-monitor')}
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700 active:scale-95 transition-all"
+              >
+                <RefreshCw size={14} />
+                Open Sync Monitor
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
 
-              {/* Status Buttons */}
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {(['unreleased', 'beta', 'released', 'deprecated'] as const).map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => handleToggleFeature(feature.key, status)}
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      feature.readiness === status
+          {/* ── Divider ──────────────────────────────────────────────────────── */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">Feature Flags</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {features.map((feature) => (
+              <div
+                key={feature.key}
+                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{feature.name}</h3>
+                    <p className="text-gray-600 text-sm mt-1">{feature.description}</p>
+                  </div>
+                  <Settings size={20} className="text-gray-400" />
+                </div>
+
+                {/* Readiness Status */}
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                    Readiness Status
+                  </label>
+                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getReadinessBadgeColor(feature.readiness)}`}>
+                    {feature.readiness.toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Status Buttons */}
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  {(['unreleased', 'beta', 'released', 'deprecated'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleToggleFeature(feature.key, status)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${feature.readiness === status
                         ? 'bg-black text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {status === 'unreleased' ? '🔒 Unreleased' : ''}
-                    {status === 'beta' ? '🧪 Beta' : ''}
-                    {status === 'released' ? '✅ Released' : ''}
-                    {status === 'deprecated' ? '⚠️ Deprecated' : ''}
-                  </button>
-                ))}
+                        }`}
+                    >
+                      {status === 'unreleased' ? '🔒 Unreleased' : ''}
+                      {status === 'beta' ? '🧪 Beta' : ''}
+                      {status === 'released' ? '✅ Released' : ''}
+                      {status === 'deprecated' ? '⚠️ Deprecated' : ''}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Last Updated */}
+                <p className="text-xs text-gray-500">
+                  Last updated: {feature.lastUpdated.toLocaleDateString()}
+                </p>
               </div>
+            ))}
+          </div>
 
-              {/* Last Updated */}
-              <p className="text-xs text-gray-500">
-                Last updated: {feature.lastUpdated.toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Feature Readiness Guide */}
-        <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Feature Readiness Guide</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-medium text-gray-900 mb-1">🔒 Unreleased</p>
-              <p className="text-gray-600">Only visible to admin for testing</p>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 mb-1">🧪 Beta</p>
-              <p className="text-gray-600">Visible to admin and advisors for feedback</p>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 mb-1">✅ Released</p>
-              <p className="text-gray-600">Available to all users</p>
-            </div>
-            <div>
-              <p className="font-medium text-gray-900 mb-1">⚠️ Deprecated</p>
-              <p className="text-gray-600">Hidden from all users, scheduled for removal</p>
+          {/* Feature Readiness Guide */}
+          <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">Feature Readiness Guide</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="font-medium text-gray-900 mb-1">🔒 Unreleased</p>
+                <p className="text-gray-600">Only visible to admin for testing</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 mb-1">🧪 Beta</p>
+                <p className="text-gray-600">Visible to admin and advisors for feedback</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 mb-1">✅ Released</p>
+                <p className="text-gray-600">Available to all users</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 mb-1">⚠️ Deprecated</p>
+                <p className="text-gray-600">Hidden from all users, scheduled for removal</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };
