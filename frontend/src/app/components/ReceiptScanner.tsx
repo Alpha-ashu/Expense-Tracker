@@ -1,64 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createWorker } from 'tesseract.js';
-import { Upload, Camera, X, CheckCircle2, AlertCircle, Loader, ScanLine, RefreshCw } from 'lucide-react';
+import { X, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
-import { db } from '@/lib/database';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useReceiptScanner } from '@/hooks/useReceiptScanner';
+import { useTransactionCreation } from '@/hooks/useTransactionCreation';
+import { detectExpenseCategoryFromText, getExpenseCategoryNames } from '@/lib/expenseCategories';
+import { SUPPORTED_RECEIPT_MIME_TYPES } from '@/services/receiptScannerService';
+import type { ReceiptScannerProps } from '@/types/receipt.types';
 import {
-  detectExpenseCategoryFromText,
-  getExpenseCategoryNames,
-  normalizeCategorySelection,
-} from '@/lib/expenseCategories';
-import { cn } from '@/lib/utils';
-import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
-import { documentIntelligenceService } from '@/services/documentIntelligenceService';
-import {
-  parseReceiptText,
-  preprocessReceiptFile,
-  SUPPORTED_RECEIPT_MIME_TYPES,
-} from '@/services/receiptScannerService';
-import { financialDataCaptureService } from '@/services/financialDataCaptureService';
+  FileSelectionView,
+  PreviewView,
+  ResultsView,
+  type ScanFieldUpdater,
+} from '@/app/components/receipt-scanner/ReceiptScannerViews';
 
-const RECEIPT_OCR_ON_DEVICE_ONLY_KEY = 'receipt_scanner_on_device_only';
+export type { ReceiptScanPayload } from '@/types/receipt.types';
 
-/* ─────────────────────────────────────────────────────────────
-   Receipt scan result
-───────────────────────────────────────────────────────────── */
-export interface ReceiptScanResult {
-  merchantName?: string;
-  amount?: number;
-  date?: Date;
-  time?: string;
-  currency?: string;
-  taxAmount?: number;
-  subtotal?: number;
-  paymentMethod?: string;
-  invoiceNumber?: string;
-  category?: string;
-  subcategory?: string;
-  notes?: string;
-  items?: Array<{ name: string; amount: number }>;
-  confidence?: number;
-  rawText?: string;
-}
-
-export interface ReceiptScanPayload extends ReceiptScanResult {
-  accountId: number;
-}
-
-interface ReceiptScannerProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onTransactionCreated?: (transactionId: number) => void;
-  onApplyScan?: (scan: ReceiptScanPayload) => void;
-  expenseMode?: 'individual' | 'group';
-  initialAccountId?: number | null;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   Component
-───────────────────────────────────────────────────────────── */
 export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   isOpen,
   onClose,
@@ -67,241 +25,89 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   expenseMode = 'individual',
   initialAccountId,
 }) => {
-  const { accounts, currency, refreshData, setCurrentPage } = useApp();
+  const { accounts, currency, setCurrentPage } = useApp();
   const { user } = useAuth();
-  const expenseCategoryOptions = getExpenseCategoryNames();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanStatus, setScanStatus] = useState('');
-  const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
-  const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
-  const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY);
-      if (stored == null) return true;
-      return stored === 'true';
-    } catch {
-      return true;
-    }
-  });
+
+  const {
+    selectedFile,
+    previewUrl,
+    isScanning,
+    scanProgress,
+    scanStatus,
+    scanResult,
+    scanDocumentId,
+    onDeviceOnly,
+    setScanResult,
+    selectFile,
+    clearFile,
+    scanReceipt,
+    setOnDeviceOnly,
+  } = useReceiptScanner();
+
+  const { createTransaction } = useTransactionCreation();
+
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
-    initialAccountId ?? accounts[0]?.id ?? null
+    initialAccountId ?? accounts[0]?.id ?? null,
   );
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const expenseCategoryOptions = getExpenseCategoryNames();
   const isFormPrefillMode = !!onApplyScan;
 
   useEffect(() => {
-    if (!isOpen) return;
-    setSelectedAccountId(initialAccountId ?? accounts[0]?.id ?? null);
-  }, [accounts, initialAccountId, isOpen]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY, String(onDeviceOnly));
-    } catch {
-      // Ignore storage write failures.
+    if (isOpen) {
+      setSelectedAccountId(initialAccountId ?? accounts[0]?.id ?? null);
     }
-  }, [onDeviceOnly]);
+  }, [accounts, initialAccountId, isOpen]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
     if (!SUPPORTED_RECEIPT_MIME_TYPES.includes(file.type)) {
       toast.error('Supported files: JPG, PNG, PDF, HEIC, WEBP');
       return;
     }
-    if (file.size > 15 * 1024 * 1024) { toast.error('File size must be under 15 MB'); return; }
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File size must be under 15 MB');
+      return;
     }
-    setSelectedFile(file);
-    setPreviewUrl(file.type.startsWith('image/') ? URL.createObjectURL(file) : '');
-    setScanResult(null);
-    setScanProgress(0);
-    setScanStatus('');
-    setScanDocumentId(null);
+
+    selectFile(file);
   };
 
   const handleScanReceipt = async () => {
-    if (!selectedFile) { toast.error('Please select an image first'); return; }
-    setIsScanning(true);
-    setScanProgress(0);
-    setScanStatus('Preparing receipt…');
-    let documentId = scanDocumentId;
-
-    try {
-      if (!onDeviceOnly) {
-        toast.info('Cloud OCR enhancement is not configured yet. Using on-device OCR for this scan.');
-      }
-
-      documentId = scanDocumentId ?? await documentIntelligenceService.createDocumentRecord({
-        documentType: 'receipt',
-        file: selectedFile,
-        processingStatus: 'processing',
-        accountId: selectedAccountId ?? undefined,
-      });
-      setScanDocumentId(documentId);
-
-      setScanStatus('Improving image quality…');
-      const processedBlob = await preprocessReceiptFile(selectedFile);
-
-      const worker = await createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setScanProgress(Math.round((m.progress ?? 0) * 100));
-            setScanStatus(`Reading text… ${Math.round((m.progress ?? 0) * 100)}%`);
-          } else if (m.status) {
-            setScanStatus(m.status.charAt(0).toUpperCase() + m.status.slice(1) + '…');
-          }
-        },
-      });
-
-      setScanStatus('Running OCR…');
-      let { data } = await worker.recognize(processedBlob);
-
-      if ((data.confidence ?? 0) < 55 || (data.text || '').replace(/\s+/g, '').length < 24) {
-        setScanStatus('Retrying with multilingual OCR…');
-        await worker.terminate();
-
-        const fallbackWorker = await createWorker('eng+spa+fra+deu+hin+chi_sim+jpn+ara', 1, {
-          logger: m => {
-            if (m.status === 'recognizing text') {
-              setScanProgress(Math.round((m.progress ?? 0) * 100));
-            }
-          },
-        });
-
-        const fallbackResult = await fallbackWorker.recognize(processedBlob);
-        data = fallbackResult.data;
-        await fallbackWorker.terminate();
-      } else {
-        await worker.terminate();
-      }
-
-      const rawText = data.text;
-      const result = await parseReceiptText(rawText, user?.id);
-      setScanResult(result);
-
-      await documentIntelligenceService.updateDocumentRecord(documentId, {
-        processingStatus: 'preview',
-        extractedCurrency: result.currency,
-        metadata: {
-          merchantName: result.merchantName || '',
-          invoiceNumber: result.invoiceNumber || '',
-          paymentMethod: result.paymentMethod || '',
-        },
-      });
-
-      if (result.amount && result.amount > 0) {
-        toast.success(`Found total: ${(result.currency || currency)} ${result.amount.toFixed(2)}`);
-      } else {
-        toast.warning('Could not detect total amount. Review the extracted fields before saving.');
-      }
-    } catch (err) {
-      console.error('OCR error:', err);
-      if (documentId) {
-        await documentIntelligenceService.updateDocumentRecord(documentId, {
-          processingStatus: 'failed',
-        });
-      }
-      toast.error('Scan failed. Try a clearer image or enter details manually.');
-    } finally {
-      setIsScanning(false);
-      setScanProgress(100);
+    if (!selectedFile) {
+      toast.error('Please select an image first');
+      return;
     }
+
+    await scanReceipt(selectedAccountId ?? undefined, user?.id);
   };
 
   const handleCreateTransaction = async () => {
     if (!scanResult || !selectedAccountId) {
-      toast.error('Select an account to continue');
+      toast.error('Please select an account to continue');
       return;
     }
-    const amount = scanResult.amount || 0;
-    if (amount <= 0) {
+
+    if (!scanResult.amount || scanResult.amount <= 0) {
       toast.error('Amount must be greater than zero');
       return;
     }
-    const account = accounts.find(a => a.id === selectedAccountId);
-    if (!account) {
-      toast.error('Selected account not found');
-      return;
-    }
-    try {
-      const category = normalizeCategorySelection(scanResult.category || 'Shopping', 'expense');
-      const subcategory = scanResult.subcategory?.trim() || '';
 
-      const savedTransaction = await financialDataCaptureService.saveTransactionDraft({
-        type: 'expense',
-        amount,
-        accountId: selectedAccountId,
-        category,
-        subcategory,
-        description: scanResult.notes || scanResult.merchantName || 'Receipt',
-        merchant: scanResult.merchantName || '',
-        date: scanResult.date || new Date(),
-        importSource: 'receipt-scanner',
-        importMetadata: {
-          Currency: scanResult.currency || currency,
-          'Invoice Number': scanResult.invoiceNumber || '',
-          'Payment Method': scanResult.paymentMethod || '',
-          'OCR Confidence': scanResult.confidence != null ? String(scanResult.confidence) : '',
-        },
-      }, {
-        userId: user?.id,
-        duplicateDecision: 'notify',
-        onDuplicateNotify: () => {
-          toast.warning('Potential duplicate detected. Review transactions before adding again.');
-        },
-      });
-
-      if (!savedTransaction.saved) {
-        return;
-      }
-
-      // Update account balance
-      const newBalance = account.balance - amount;
-      await db.accounts.update(selectedAccountId, { balance: newBalance, updatedAt: new Date() });
-
-      toast.success(`📦 Expense of ${currency} ${amount.toFixed(2)} added to ${account.name}`);
-      await documentIntelligenceService.upsertMerchantProfile({
-        merchantName: scanResult.merchantName || 'Unknown Merchant',
-        normalizedName: documentIntelligenceService.normalizeMerchantName(scanResult.merchantName || 'Unknown Merchant'),
-        suggestedCategory: category,
-        confidenceScore: scanResult.confidence ?? 0.8,
-        userId: user?.id,
-      });
-      await documentIntelligenceService.upsertCategoryPreference({
-        userId: user?.id,
-        merchantKey: scanResult.merchantName,
-        keywordKey: [scanResult.merchantName, scanResult.notes, scanResult.rawText].filter(Boolean).join(' '),
-        category,
-        confidenceScore: scanResult.confidence ?? 0.8,
-      });
-      if (scanDocumentId) {
-        await documentIntelligenceService.updateDocumentRecord(scanDocumentId, {
-          processingStatus: 'completed',
-          linkedTransactionId: savedTransaction.transactionId,
-        });
-      }
-      refreshData();
-      if (savedTransaction.transactionId) {
-        onTransactionCreated?.(savedTransaction.transactionId);
-      }
+    await createTransaction(scanResult, selectedAccountId, scanDocumentId, (transactionId) => {
+      onTransactionCreated?.(transactionId);
       handleClose();
-      // Navigate back to transactions
       setCurrentPage('transactions');
-    } catch (err) {
-      console.error('Failed to save scanned transaction:', err);
-      toast.error('Failed to add transaction. Please try again.');
-    }
+    });
   };
 
   const handleApplyScanToForm = () => {
     if (!scanResult || !selectedAccountId) {
-      toast.error('Select an account to continue');
+      toast.error('Please select an account to continue');
       return;
     }
 
@@ -309,44 +115,50 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       ...scanResult,
       accountId: selectedAccountId,
     });
+
     toast.success(`Receipt applied to ${expenseMode === 'group' ? 'group' : 'individual'} expense form`);
     handleClose();
   };
 
   const handleClose = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
-    setSelectedFile(null);
-    setPreviewUrl('');
-    setScanResult(null);
+    clearFile();
     setSelectedAccountId(accounts[0]?.id ?? null);
-    setScanProgress(0);
-    setScanStatus('');
-    setScanDocumentId(null);
     onClose();
+  };
+
+  const updateScanResultField: ScanFieldUpdater = (field, value) => {
+    if (scanResult) {
+      setScanResult({ ...scanResult, [field]: value });
+    }
+  };
+
+  const handleSubcategoryChange = (value: string) => {
+    if (!scanResult) return;
+
+    const detected = detectExpenseCategoryFromText(
+      [value, scanResult.merchantName, scanResult.rawText].filter(Boolean).join(' '),
+    );
+
+    setScanResult({
+      ...scanResult,
+      subcategory: value,
+      category: detected?.category ?? scanResult.category ?? 'Shopping',
+    });
   };
 
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4"
-      style={{
-        paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
-      }}
-    >
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 backdrop-blur-sm sm:p-4">
       <div className="flex max-h-[88vh] w-full max-w-xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl sm:rounded-3xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black">
               <ScanLine size={17} className="text-white" />
             </div>
             <div>
-              <h2 className="font-display font-bold text-gray-900 text-base">Receipt Scanner</h2>
-              <p className="text-xs text-gray-400">AI-powered OCR — reads any receipt</p>
+              <h2 className="font-display text-base font-bold text-gray-900">Receipt Scanner</h2>
+              <p className="text-xs text-gray-400">AI-powered OCR - reads any receipt</p>
               {isFormPrefillMode && (
                 <p className="mt-1 text-[11px] font-semibold text-gray-500">
                   Filling {expenseMode === 'group' ? 'group expense' : 'individual expense'} form
@@ -354,363 +166,77 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
               )}
             </div>
           </div>
-          <button type="button" onClick={handleClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors" aria-label="Close receipt scanner" title="Close receipt scanner">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-xl transition-colors hover:bg-gray-100"
+            aria-label="Close"
+          >
             <X size={18} className="text-gray-500" />
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-5 space-y-5">
-          {/* ── Step 1: Choose image ── */}
+        <div className="flex-1 space-y-5 overflow-y-auto p-5">
           {!selectedFile && (
-            <div className="space-y-3">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Choose a receipt image</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-                    <Upload size={22} className="text-gray-600" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-gray-800">Upload Image</p>
-                    <p className="text-xs text-gray-400">JPG, PNG, PDF, HEIC, WebP</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-2 p-6 rounded-2xl border-2 border-dashed border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-xl bg-black group-hover:bg-gray-800 flex items-center justify-center transition-colors">
-                    <Camera size={22} className="text-white" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-gray-800">Take Photo</p>
-                    <p className="text-xs text-gray-400">Use camera</p>
-                  </div>
-                </button>
-              </div>
-              <input ref={fileInputRef} type="file" accept="image/*,.pdf,.heic,.heif,.webp" onChange={handleFileSelect} className="hidden" aria-label="Upload receipt" />
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" aria-label="Take photo" />
-
-              <div className="bg-blue-50 rounded-2xl p-4">
-                <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-white/80 px-3 py-2">
-                  <div>
-                    <p className="text-xs font-semibold text-blue-800">On-device OCR only</p>
-                    <p className="text-[11px] text-blue-700">Receipt image processing stays on this device.</p>
-                  </div>
-                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-blue-800">
-                    <input
-                      type="checkbox"
-                      checked={onDeviceOnly}
-                      onChange={(event) => setOnDeviceOnly(event.target.checked)}
-                      className="h-4 w-4 rounded border-blue-300"
-                      aria-label="Use on-device OCR only"
-                      title="Use on-device OCR only"
-                    />
-                    Enabled
-                  </label>
-                </div>
-                <p className="text-xs text-blue-700 font-semibold">💡 Tips for best results</p>
-                <ul className="text-xs text-blue-600 mt-1 space-y-0.5 list-disc list-inside">
-                  <li>Ensure receipt is flat and well-lit</li>
-                  <li>Capture the entire receipt including the total</li>
-                  <li>Avoid blurry or dark images</li>
-                </ul>
-                <p className="mt-2 text-[11px] text-blue-700">
-                  Privacy note: OCR runs in your browser/app runtime. Your receipts are not uploaded for scanning.
-                </p>
-              </div>
-            </div>
+            <FileSelectionView
+              onFileSelect={handleFileSelect}
+              onCameraClick={() => cameraInputRef.current?.click()}
+              onUploadClick={() => fileInputRef.current?.click()}
+              onDeviceOnly={onDeviceOnly}
+              onDeviceOnlyChange={setOnDeviceOnly}
+            />
           )}
 
-          {/* ── Step 2: Preview + Scan ── */}
           {selectedFile && !scanResult && (
-            <div className="space-y-4">
-              <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-                {previewUrl ? (
-                  <img src={previewUrl} alt="Receipt preview" className="w-full max-h-72 object-contain bg-gray-50" />
-                ) : (
-                  <div className="flex min-h-56 flex-col items-center justify-center bg-gray-50 px-6 text-center">
-                    <ScanLine size={28} className="text-gray-400 mb-3" />
-                    <p className="text-sm font-semibold text-gray-700">{selectedFile.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">PDF statement rendering will be optimized before OCR.</p>
-                  </div>
-                )}
-                {isScanning && (
-                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-3">
-                    <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
-                    <p className="text-white font-semibold text-sm">{scanStatus}</p>
-                    <div className="w-48 h-2 bg-white/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-white rounded-full transition-all duration-300"
-                        style={{ width: `${scanProgress}%` }}
-                      />
-                    </div>
-                    <p className="text-white/70 text-xs">{scanProgress}%</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(''); setSelectedFile(null); setScanDocumentId(null); }}
-                  disabled={isScanning}
-                  className="flex-[0.4] flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-40"
-                >
-                  <RefreshCw size={14} /> Change
-                </button>
-                <button
-                  onClick={handleScanReceipt}
-                  disabled={isScanning}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-900 transition-colors disabled:opacity-40 shadow-lg"
-                >
-                  {isScanning
-                    ? <><Loader size={16} className="animate-spin" /> Scanning…</>
-                    : <><ScanLine size={16} /> Scan Receipt</>
-                  }
-                </button>
-              </div>
-            </div>
+            <PreviewView
+              file={selectedFile}
+              previewUrl={previewUrl}
+              isScanning={isScanning}
+              scanProgress={scanProgress}
+              scanStatus={scanStatus}
+              onScan={handleScanReceipt}
+              onChange={clearFile}
+            />
           )}
 
-          {/* ── Step 3: Review results ── */}
           {scanResult && (
-            <div className="space-y-4">
-              {/* Confidence badge */}
-              <div className={cn(
-                'flex items-center gap-3 p-3.5 rounded-2xl',
-                (scanResult.confidence ?? 0) >= 0.8 ? 'bg-emerald-50 border border-emerald-100' : 'bg-amber-50 border border-amber-100'
-              )}>
-                {(scanResult.confidence ?? 0) >= 0.8
-                  ? <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-                  : <AlertCircle size={18} className="text-amber-600 shrink-0" />
-                }
-                <div>
-                  <p className={cn('text-sm font-bold', (scanResult.confidence ?? 0) >= 0.8 ? 'text-emerald-800' : 'text-amber-800')}>
-                    {(scanResult.confidence ?? 0) >= 0.8 ? 'High confidence scan' : 'Please review the extracted data'}
-                  </p>
-                  <p className={cn('text-xs', (scanResult.confidence ?? 0) >= 0.8 ? 'text-emerald-600' : 'text-amber-600')}>
-                    Confidence: {((scanResult.confidence ?? 0) * 100).toFixed(0)}% — edit any field if needed
-                  </p>
-                </div>
-              </div>
-
-              {/* Extracted fields */}
-              <div className="bg-gray-50 rounded-2xl divide-y divide-gray-100 overflow-hidden border border-gray-200">
-                {/* Amount — highlighted */}
-                <div className="p-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                    Total Amount *
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500 text-sm font-bold">{currency}</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={scanResult.amount || ''}
-                      onChange={e => setScanResult({ ...scanResult, amount: parseFloat(e.target.value) || 0 })}
-                      className="flex-1 bg-transparent text-2xl font-display font-bold text-gray-900 focus:outline-none"
-                      placeholder="0.00"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Merchant</label>
-                  <input
-                    type="text"
-                    value={scanResult.merchantName || ''}
-                    onChange={e => setScanResult({ ...scanResult, merchantName: e.target.value })}
-                    className="w-full bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
-                    placeholder="Merchant name"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 divide-x divide-gray-100">
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Currency</label>
-                    <input
-                      type="text"
-                      value={scanResult.currency || currency}
-                      onChange={e => setScanResult({ ...scanResult, currency: e.target.value.toUpperCase() })}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Payment</label>
-                    <input
-                      type="text"
-                      value={scanResult.paymentMethod || ''}
-                      onChange={e => setScanResult({ ...scanResult, paymentMethod: e.target.value })}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                      placeholder="Card, UPI, Cash..."
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 divide-x divide-gray-100">
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Date</label>
-                    <input
-                      type="date"
-                      value={scanResult.date ? toLocalDateKey(scanResult.date) ?? '' : ''}
-                      onChange={e => {
-                        const parsed = parseDateInputValue(e.target.value);
-                        setScanResult({ ...scanResult, date: parsed ?? scanResult.date });
-                      }}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Category</label>
-                    <select
-                      value={scanResult.category || ''}
-                      onChange={e => setScanResult({ ...scanResult, category: normalizeCategorySelection(e.target.value, 'expense') })}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none appearance-none"
-                    >
-                      {expenseCategoryOptions.map(c =>
-                        <option key={c} value={c}>{c}</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 divide-x divide-gray-100">
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Time</label>
-                    <input
-                      type="text"
-                      value={scanResult.time || ''}
-                      onChange={e => setScanResult({ ...scanResult, time: e.target.value })}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                      placeholder="18:45"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Subtotal</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={scanResult.subtotal || ''}
-                      onChange={e => setScanResult({ ...scanResult, subtotal: parseFloat(e.target.value) || undefined })}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tax</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={scanResult.taxAmount || ''}
-                      onChange={e => setScanResult({ ...scanResult, taxAmount: parseFloat(e.target.value) || undefined })}
-                      className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="p-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Invoice Number</label>
-                  <input
-                    type="text"
-                    value={scanResult.invoiceNumber || ''}
-                    onChange={e => setScanResult({ ...scanResult, invoiceNumber: e.target.value })}
-                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    placeholder="Invoice or receipt reference"
-                  />
-                </div>
-
-                <div className="p-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Subcategory</label>
-                  <input
-                    type="text"
-                    value={scanResult.subcategory || ''}
-                    onChange={e => {
-                      const nextSubcategory = e.target.value;
-                      const detected = detectExpenseCategoryFromText(
-                        [nextSubcategory, scanResult.merchantName, scanResult.rawText]
-                          .filter(Boolean)
-                          .join(' '),
-                      );
-
-                      setScanResult({
-                        ...scanResult,
-                        subcategory: nextSubcategory,
-                        category: detected?.category ?? scanResult.category ?? 'Shopping',
-                      });
-                    }}
-                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    placeholder="Groceries, Fuel / Petrol, Netflix, Uber Ride..."
-                  />
-                  <p className="mt-1 text-xs text-gray-400">
-                    Edit this if the scan found the wrong expense type. The main category updates automatically.
-                  </p>
-                </div>
-
-                <div className="p-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Notes</label>
-                  <input
-                    type="text"
-                    value={scanResult.notes || ''}
-                    onChange={e => setScanResult({ ...scanResult, notes: e.target.value })}
-                    className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-                    placeholder="Fuel receipt, hotel bill, office expense..."
-                  />
-                </div>
-
-                {/* Detected items */}
-                {scanResult.items && scanResult.items.length > 0 && (
-                  <div className="p-4">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Detected Items ({scanResult.items.length})</p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {scanResult.items.map((item, i) => (
-                        <div key={i} className="flex justify-between text-xs py-1 border-b border-gray-100 last:border-0">
-                          <span className="text-gray-600 truncate mr-4">{item.name}</span>
-                          <span className="font-semibold text-gray-900 shrink-0">{currency} {item.amount.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Account selector */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-4">
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Charge to Account *</label>
-                <select
-                  value={selectedAccountId || ''}
-                  onChange={e => setSelectedAccountId(parseInt(e.target.value))}
-                  className="w-full text-sm font-semibold text-gray-900 focus:outline-none appearance-none bg-transparent"
-                >
-                  <option value="">Select an account</option>
-                  {accounts.map(a => (
-                    <option key={a.id} value={a.id}>{a.name} ({currency} {a.balance.toFixed(2)})</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setScanResult(null); setPreviewUrl(''); setSelectedFile(null); }}
-                  className="flex-[0.4] flex items-center justify-center gap-1.5 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  <RefreshCw size={13} /> Rescan
-                </button>
-                <button
-                  onClick={isFormPrefillMode ? handleApplyScanToForm : handleCreateTransaction}
-                  disabled={!selectedAccountId || !scanResult.amount}
-                  className="flex-1 py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-900 disabled:opacity-40 transition-colors shadow-lg"
-                >
-                  {isFormPrefillMode
-                    ? `Use in ${expenseMode === 'group' ? 'Group' : 'Individual'} Expense`
-                    : 'Add Transaction'}
-                </button>
-              </div>
-            </div>
+            <ResultsView
+              scanResult={scanResult}
+              accounts={accounts}
+              selectedAccountId={selectedAccountId}
+              currency={currency}
+              expenseCategoryOptions={expenseCategoryOptions}
+              isFormPrefillMode={isFormPrefillMode}
+              expenseMode={expenseMode}
+              onAccountChange={setSelectedAccountId}
+              onFieldChange={updateScanResultField}
+              onSubcategoryChange={handleSubcategoryChange}
+              onRescan={() => {
+                setScanResult(null);
+                clearFile();
+              }}
+              onSubmit={isFormPrefillMode ? handleApplyScanToForm : handleCreateTransaction}
+            />
           )}
         </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.heic,.heif,.webp"
+        onChange={handleFileSelect}
+        className="hidden"
+        aria-label="Upload receipt"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        aria-label="Take photo"
+      />
     </div>
   );
 };

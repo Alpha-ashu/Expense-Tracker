@@ -187,6 +187,20 @@ export const AdminDashboard: React.FC = () => {
             Open Sync Monitor
           </button>
         </div>
+
+        <div className="bg-slate-950 rounded-xl border border-slate-800 p-5 shadow-sm text-slate-100">
+          <h3 className="font-semibold mb-3">AI Intelligence Engine</h3>
+          <p className="text-sm text-slate-300 mb-4">
+            Open the backend AI intelligence dashboard for spending patterns, risk analytics,
+            predictions, model health, and raw AI logs.
+          </p>
+          <button
+            onClick={() => setCurrentPage('admin-ai')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-500 transition-colors"
+          >
+            Open AI Dashboard
+          </button>
+        </div>
       </div>
     </CenteredLayout>
   );

@@ -20,7 +20,10 @@ interface SyncQueueItem {
   localId: number;
   remoteId?: number;
   queuedAt: string;
+  retryCount?: number;
 }
+
+const MAX_SYNC_RETRIES = 10;
 
 const SYNC_QUEUE_STORAGE_KEY = 'finora_sync_queue_v3';
 const CORE_SYNC_TABLES: SyncedTableName[] = [
@@ -61,6 +64,7 @@ const unsupportedRemoteColumns = new Map<SyncedTableName, Set<string>>();
 
 const OPTIONAL_REMOTE_COLUMNS: Partial<Record<SyncedTableName, string[]>> = {
   accounts: ['provider', 'country'],
+  transactions: ['expense_mode', 'group_expense_id', 'group_name', 'split_type', 'import_source', 'import_metadata', 'original_category', 'imported_at'],
 };
 
 const expandTablesForSync = (tables: SyncedTableName[]) => {
@@ -309,18 +313,13 @@ function markUnsupportedColumn(table: SyncedTableName, column: string) {
 }
 
 function buildRemotePayloadForTable(table: SyncedTableName, payload: any) {
-  const optionalColumns = OPTIONAL_REMOTE_COLUMNS[table];
-  if (!optionalColumns || optionalColumns.length === 0) return payload;
-
   const unsupportedColumns = getUnsupportedColumns(table);
   if (unsupportedColumns.size === 0) return payload;
 
   const nextPayload = { ...payload };
 
-  for (const column of optionalColumns) {
-    if (unsupportedColumns.has(column)) {
-      delete nextPayload[column];
-    }
+  for (const column of unsupportedColumns) {
+    delete nextPayload[column];
   }
 
   return nextPayload;
@@ -753,24 +752,24 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
     .select()
     .single();
 
-  // Backward compatibility: if the remote table schema is behind, drop unsupported
-  // optional columns and retry once.
-  const missingColumn = parseMissingColumnName(error);
-  if (missingColumn) {
-    const tableOptionalColumns = OPTIONAL_REMOTE_COLUMNS[table] ?? [];
-    if (tableOptionalColumns.includes(missingColumn) && missingColumn in payload) {
-      markUnsupportedColumn(table, missingColumn);
-      payload = buildRemotePayloadForTable(table, mappedPayload);
+  // Backward compatibility: if the remote table schema is behind, strip the
+  // missing column and retry.  Loop handles cascading missing-column errors.
+  const MAX_COLUMN_RETRIES = 5;
+  for (let colRetry = 0; colRetry < MAX_COLUMN_RETRIES && error; colRetry++) {
+    const missingColumn = parseMissingColumnName(error);
+    if (!missingColumn || !(missingColumn in payload)) break;
 
-      const retry = await supabase
-        .from(table)
-        .upsert(payload, { onConflict: 'user_id,local_id' })
-        .select()
-        .single();
+    markUnsupportedColumn(table, missingColumn);
+    payload = buildRemotePayloadForTable(table, mappedPayload);
 
-      remoteRecord = retry.data;
-      error = retry.error;
-    }
+    const retry = await supabase
+      .from(table)
+      .upsert(payload, { onConflict: 'user_id,local_id' })
+      .select()
+      .single();
+
+    remoteRecord = retry.data;
+    error = retry.error;
   }
 
   if (error) {
@@ -835,6 +834,13 @@ export async function processPendingSyncQueue() {
 
     for (let index = 0; index < queue.length; index += 1) {
       const item = queue[index];
+      const retryCount = item.retryCount ?? 0;
+
+      if (retryCount >= MAX_SYNC_RETRIES) {
+        console.warn(`Dropping ${item.table}:${item.localId} after ${retryCount} failed retries`);
+        completedKeys.push(item.key);
+        continue;
+      }
 
       try {
         const synced = item.operation === 'delete'
@@ -844,7 +850,7 @@ export async function processPendingSyncQueue() {
         if (synced) {
           completedKeys.push(item.key);
         } else {
-          deferredItems.push(item);
+          deferredItems.push({ ...item, retryCount: retryCount + 1 });
         }
       } catch (error) {
         if (isConnectivityError(error)) {
@@ -853,7 +859,7 @@ export async function processPendingSyncQueue() {
         }
 
         console.warn(`Cloud sync failed for ${item.table}:${item.localId}`, error);
-        deferredItems.push(item);
+        deferredItems.push({ ...item, retryCount: retryCount + 1 });
       }
     }
 
@@ -879,7 +885,9 @@ export async function processPendingSyncQueue() {
         }, [])
       );
 
-      scheduleQueueProcessing(500);
+      const maxRetry = Math.max(...deferredItems.map((i) => i.retryCount ?? 0), 1);
+      const backoff = Math.min(500 * 2 ** (maxRetry - 1), 30_000);
+      scheduleQueueProcessing(backoff);
     }
   } finally {
     syncState.processingQueue = false;

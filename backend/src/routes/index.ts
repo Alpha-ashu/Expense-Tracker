@@ -19,6 +19,8 @@ import { friendRoutes } from '../modules/friends/friend.routes';
 import { investmentRoutes } from '../modules/investments/investment.routes';
 import { todoRoutes } from '../modules/todos/todo.routes';
 import { groupRoutes } from '../modules/groups/group.routes';
+import { aiRoutes } from '../modules/ai/ai.routes';
+import { receiptRoutes } from '../modules/receipts/receipt.routes';
 
 const router = Router();
 
@@ -39,6 +41,8 @@ router.use('/friends', friendRoutes);
 router.use('/investments', investmentRoutes);
 router.use('/todos', todoRoutes);
 router.use('/groups', groupRoutes);
+router.use('/ai', aiRoutes);
+router.use('/receipts', receiptRoutes);
 
 // Advisor & Booking routes
 router.use('/bookings', bookingRoutes);

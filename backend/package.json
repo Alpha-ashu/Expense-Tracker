@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest",
+    "test:ai:security": "jest --runInBand tests/integration/ai-security.test.ts",
     "test:security:critical": "jest --runInBand tests/integration/security.test.ts tests/integration/transactions.test.ts tests/integration/bills-security.test.ts",
     "qa:seed-admin": "node ./scripts/seed-admin-feature-data.cjs",
     "qa:matrix": "powershell -ExecutionPolicy Bypass -File ./scripts/run-feature-matrix.ps1",

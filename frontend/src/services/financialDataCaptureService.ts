@@ -14,6 +14,7 @@ import {
   SUPPORTED_RECEIPT_MIME_TYPES,
   type ReceiptScannerResult,
 } from '@/services/receiptScannerService';
+import { receiptParserService } from '@/services/receiptParserService';
 import {
   statementImportService,
   type ImportApplyResult,
@@ -400,7 +401,13 @@ const processReceiptOcrPayload = async (payload: Record<string, unknown>) => {
     throw new Error('Missing receipt OCR payload fields');
   }
 
-  const parsed = await parseReceiptText(rawText, userId);
+  const parsed = await (async () => {
+    try {
+      return await receiptParserService.parseReceipt(rawText, { userId });
+    } catch {
+      return parseReceiptText(rawText, userId);
+    }
+  })();
   const draft = mapReceiptToDraft(parsed, accountId);
   if (!draft) {
     throw new Error('Unable to derive receipt draft from OCR text');
@@ -743,7 +750,13 @@ export const financialDataCaptureService = {
     accountId: number;
     userId?: string;
   }) {
-    const parsed = await parseReceiptText(options.rawText, options.userId);
+    const parsed = await (async () => {
+      try {
+        return await receiptParserService.parseReceipt(options.rawText, { userId: options.userId });
+      } catch {
+        return parseReceiptText(options.rawText, options.userId);
+      }
+    })();
     const draft = mapReceiptToDraft(parsed, options.accountId);
 
     if (!draft) {

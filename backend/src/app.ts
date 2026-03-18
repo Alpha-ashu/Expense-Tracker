@@ -82,6 +82,13 @@ app.use('/api/v1/bills', authenticatedRateLimit({
   message: 'Too many bill processing requests. Please try again later.',
 }));
 
+app.use('/api/v1/receipts', authenticatedRateLimit({
+  windowMs: 60_000,
+  max: Number(process.env.RECEIPT_SCAN_RATE_LIMIT || 8),
+  scope: 'api-receipts',
+  message: 'Too many receipt scan requests. Please try again later.',
+}));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

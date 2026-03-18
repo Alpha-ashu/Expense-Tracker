@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   AlertTriangle,
@@ -51,6 +51,8 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
   onImported,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<SmartImportPreview | null>(null);
   const [rows, setRows] = useState<ImportPreviewRow[]>([]);
@@ -196,31 +198,163 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
 
   const canImportThirdParty = rows.some((row) => row.errors.length === 0 && (!skipDuplicates || !row.duplicate));
 
+  const liveStatusMessage = useMemo(() => {
+    if (isImporting) return 'Import in progress. Please wait.';
+    if (isParsing) return 'Preparing import preview and validating rows.';
+    if (importReport) {
+      return `Import completed. Imported ${importReport.importedCount} records, skipped ${importReport.duplicateCount} duplicates, and failed ${importReport.failedCount}.`;
+    }
+    if (selectedFile && preview?.kind === 'third-party') {
+      return `Preview ready. ${rows.length} rows loaded.`;
+    }
+    if (selectedFile && preview?.kind === 'backup') {
+      return 'Backup file detected. Restoring will replace local data.';
+    }
+    return 'Choose a CSV or JSON file to begin smart import.';
+  }, [importReport, isImporting, isParsing, preview?.kind, rows.length, selectedFile]);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    closeButtonRef.current?.focus();
+
+    const getFocusableElements = () => {
+      if (!modalRef.current) return [];
+
+      return Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute('disabled') && !element.getAttribute('aria-hidden') && element.offsetParent !== null);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== 'Tab') return;
+
+      const focusables = getFocusableElements();
+      if (focusables.length === 0) {
+        event.preventDefault();
+        closeButtonRef.current?.focus();
+        return;
+      }
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const activeElement = document.activeElement as HTMLElement | null;
+      const isInsideModal = activeElement ? modalRef.current?.contains(activeElement) : false;
+
+      if (event.shiftKey) {
+        if (!isInsideModal || activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+        return;
+      }
+
+      if (!isInsideModal || activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
+  const openFilePicker = () => fileInputRef.current?.click();
+
+  const getRowStatusBadge = (row: ImportPreviewRow) => {
+    if (row.errors.length > 0) {
+      return (
+        <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+          <AlertTriangle size={14} />
+          {row.errors.join(', ')}
+        </div>
+      );
+    }
+
+    if (row.duplicate) {
+      return (
+        <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+          <RefreshCcw size={14} />
+          Duplicate
+        </div>
+      );
+    }
+
+    return (
+      <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+        <CheckCircle2 size={14} />
+        {row.accountResolution === 'created' || row.accountResolution === 'payment-method'
+          ? 'Will create account'
+          : row.categoryResolution === 'created'
+            ? 'New category'
+            : row.categoryResolution === 'mapped'
+              ? 'Will map'
+              : row.categoryResolution === 'detected'
+                ? 'Auto-detected'
+                : row.categoryResolution === 'manual'
+                  ? 'Manually set'
+                  : 'Ready'}
+      </div>
+    );
+  };
+
   return (
-    <div className="fixed inset-0 z-[90] bg-black/50 p-4 sm:p-6">
+    <div
+      className="fixed inset-0 z-[300] bg-black/60 p-3 pb-24 sm:p-6 sm:pb-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
       <motion.div
+        ref={modalRef}
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.98 }}
-        className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="smart-import-title"
+        aria-describedby="smart-import-description"
+        className="mx-auto flex h-[calc(100dvh-7.5rem)] sm:h-[min(94vh,980px)] max-w-6xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
       >
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {liveStatusMessage}
+        </div>
+
         <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">Smart Import</h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <h3 id="smart-import-title" className="text-xl font-semibold text-gray-900">Smart Import</h3>
+            <p id="smart-import-description" className="mt-1 text-sm text-gray-600">
               Import CSV or JSON from other expense trackers with preview, mapping, and duplicate checks.
             </p>
           </div>
           <button
+            ref={closeButtonRef}
+            type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 text-gray-500 transition hover:bg-gray-50"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 text-gray-600 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
             aria-label="Close import modal"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6" aria-busy={isParsing || isImporting}>
           {importReport && (
             <div className="space-y-5">
               <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4">
@@ -302,26 +436,43 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
           )}
 
           {!importReport && !selectedFile && !isParsing && (
-            <div className="flex h-full flex-col items-center justify-center rounded-[28px] border border-dashed border-gray-300 bg-gray-50/80 px-6 py-16 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white">
+            <div
+              className="flex h-full min-h-[360px] flex-col items-center justify-center rounded-[28px] border-2 border-dashed border-gray-300 bg-gray-50/90 px-6 py-10 text-center sm:py-16"
+              role="button"
+              tabIndex={0}
+              onClick={openFilePicker}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openFilePicker();
+                }
+              }}
+              aria-label="Upload a CSV or JSON file to start smart import"
+            >
+              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-black text-white shadow-lg">
                 <Upload size={24} />
               </div>
               <h4 className="text-lg font-semibold text-gray-900">Import transactions from another app</h4>
-              <p className="mt-2 max-w-xl text-sm text-gray-500">
+              <p className="mt-2 max-w-xl text-sm text-gray-600">
                 Supports CSV and JSON. We preview rows first, map categories, preserve extra fields in metadata,
                 and only then import.
               </p>
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-6 rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900"
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  openFilePicker();
+                }}
+                className="mt-6 min-h-11 rounded-full bg-black px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/15"
               >
                 Choose file
               </button>
+              <p className="mt-3 text-xs text-gray-500">Maximum size: 20MB</p>
             </div>
           )}
 
           {isParsing && (
-            <div className="flex h-full flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-full flex-col items-center justify-center py-16 text-center" role="status" aria-live="polite">
               <Loader2 size={36} className="animate-spin text-gray-500" />
               <h4 className="mt-4 text-lg font-semibold text-gray-900">Preparing preview</h4>
               <p className="mt-1 text-sm text-gray-500">Parsing rows, matching categories, and checking duplicates.</p>
@@ -412,7 +563,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                     <select
                       value={fallbackAccountId}
                       onChange={(event) => handleFallbackAccountChange(Number(event.target.value))}
-                      className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/5"
+                      className="mt-2 h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/10"
                       aria-label="Select import target account"
                     >
                       {accounts.map((account) => (
@@ -437,11 +588,12 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                       type="checkbox"
                       checked={skipDuplicates}
                       onChange={(event) => setSkipDuplicates(event.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                      className="h-5 w-5 rounded border-gray-300 text-black focus:ring-black"
+                      aria-describedby="duplicate-rule-help"
                     />
                     Skip duplicate rows on import
                   </label>
-                  <div className="mt-3 text-xs text-gray-500">
+                  <div id="duplicate-rule-help" className="mt-3 text-xs text-gray-500">
                     Duplicate rule: same date + amount + description.
                   </div>
                 </div>
@@ -459,21 +611,64 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                 <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                   <div>
                     <h4 className="font-semibold text-gray-900">Import Preview</h4>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-600">
                       Review mappings before import. Showing {visibleRows.length} of {rows.length} rows.
                     </p>
                   </div>
                   <button
+                    type="button"
                     onClick={() => selectedFile && handleFileSelection(selectedFile)}
-                    className="flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    className="flex min-h-10 items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
                   >
                     <RefreshCcw size={14} />
                     Re-scan
                   </button>
                 </div>
 
-                <div className="max-h-[48vh] overflow-auto">
+                <div className="max-h-[48vh] overflow-auto lg:hidden p-3 space-y-3 bg-gray-50/40">
+                  {visibleRows.map((row) => (
+                    <div key={row.id} className="rounded-2xl border border-gray-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{formatAmount(row.amount)}</p>
+                          <p className="text-xs text-gray-600">{formatDate(row.date)} • {row.transactionType}</p>
+                        </div>
+                        {getRowStatusBadge(row)}
+                      </div>
+
+                      <p className="mt-2 text-sm font-medium text-gray-900">{row.description}</p>
+                      <p className="mt-1 text-xs text-gray-600">Account: {row.resolvedAccountName}</p>
+                      {row.merchant && <p className="mt-1 text-xs text-gray-600">Merchant: {row.merchant}</p>}
+
+                      <div className="mt-3">
+                        <label className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">
+                          Category
+                        </label>
+                        <select
+                          value={row.category}
+                          onChange={(event) => handleCategoryChange(row.id, event.target.value)}
+                          className="mt-1 h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/10"
+                          aria-label={`Category for row ${row.rowNumber}`}
+                        >
+                          {(row.transactionType === 'expense' ? expenseCategoryOptions : incomeCategoryOptions)
+                            .concat(row.category)
+                            .filter((value, index, array) => array.indexOf(value) === index)
+                            .map((value) => (
+                              <option key={value} value={value}>
+                                {value}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="max-h-[48vh] overflow-auto hidden lg:block">
                   <table className="min-w-full divide-y divide-gray-100 text-sm">
+                    <caption className="sr-only">
+                      Import preview table with date, amount, account, category, status, and description columns.
+                    </caption>
                     <thead className="sticky top-0 bg-white">
                       <tr className="text-left text-xs uppercase tracking-[0.18em] text-gray-400">
                         <th className="px-4 py-3">Date</th>
@@ -509,7 +704,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                               <select
                                 value={row.category}
                                 onChange={(event) => handleCategoryChange(row.id, event.target.value)}
-                                className="h-11 min-w-[200px] rounded-2xl border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/5"
+                                className="h-11 min-w-[200px] rounded-2xl border border-gray-200 bg-gray-50 px-3 text-sm font-medium text-gray-900 outline-none transition focus:border-black/20 focus:ring-4 focus:ring-black/10"
                                 aria-label={`Category for row ${row.rowNumber}`}
                               >
                                 {(row.transactionType === 'expense' ? expenseCategoryOptions : incomeCategoryOptions)
@@ -526,32 +721,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                               )}
                             </td>
                             <td className="px-4 py-3">
-                              {isError ? (
-                                <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-                                  <AlertTriangle size={14} />
-                                  {row.errors.join(', ')}
-                                </div>
-                              ) : isDuplicate ? (
-                                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
-                                  <RefreshCcw size={14} />
-                                  Duplicate
-                                </div>
-                              ) : (
-                                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                                  <CheckCircle2 size={14} />
-                                  {row.accountResolution === 'created' || row.accountResolution === 'payment-method'
-                                    ? 'Will create account'
-                                    : row.categoryResolution === 'created'
-                                      ? 'New category'
-                                    : row.categoryResolution === 'mapped'
-                                      ? 'Will map'
-                                      : row.categoryResolution === 'detected'
-                                        ? 'Auto-detected'
-                                        : row.categoryResolution === 'manual'
-                                          ? 'Manually set'
-                                          : 'Ready'}
-                                </div>
-                              )}
+                              {getRowStatusBadge(row)}
                             </td>
                             <td className="px-4 py-3 text-gray-600">
                               <div className="max-w-[360px] truncate font-medium text-gray-900">{row.description}</div>
@@ -573,9 +743,9 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
           )}
         </div>
 
-        <div className="border-t border-gray-100 px-5 py-4 sm:px-6">
+        <div className="border-t border-gray-100 px-5 py-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-600">
               {selectedFile ? (
                 <div className="flex items-center gap-2">
                   {selectedFile.name.toLowerCase().endsWith('.csv') ? <FileSpreadsheet size={16} /> : <FileJson size={16} />}
@@ -590,14 +760,16 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
               {importReport ? (
                 <>
                   <button
+                    type="button"
                     onClick={resetImportState}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="min-h-11 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
                   >
                     Import Another File
                   </button>
                   <button
+                    type="button"
                     onClick={onClose}
-                    className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900"
+                    className="min-h-11 rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/20"
                   >
                     Close
                   </button>
@@ -605,13 +777,16 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
               ) : (
                 <>
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    type="button"
+                    onClick={openFilePicker}
+                    className="min-h-11 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/10"
                   >
                     {selectedFile ? 'Change File' : 'Choose File'}
                   </button>
                   <button
+                    type="button"
                     onClick={handleImport}
+                    aria-live="polite"
                     disabled={
                       isParsing ||
                       isImporting ||
@@ -619,7 +794,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                       !preview ||
                       (preview.kind === 'third-party' && !canImportThirdParty)
                     }
-                    className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="min-h-11 rounded-full bg-black px-5 py-2 text-sm font-semibold text-white transition hover:bg-gray-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-black/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isImporting
                       ? 'Importing...'

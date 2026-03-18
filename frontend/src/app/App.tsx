@@ -45,6 +45,7 @@ const VoiceInput = lazy(() => import('@/app/components/VoiceInput').then(m => ({
 const VoiceReview = lazy(() => import('@/app/components/VoiceReview').then(m => ({ default: m.VoiceReview })));
 const AuthCallback = lazy(() => import('@/app/components/AuthCallback').then(m => ({ default: m.AuthCallback })));
 const AdminDashboard = lazy(() => import('@/app/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminAIDashboard = lazy(() => import('@/app/components/AdminAIDashboard').then(m => ({ default: m.AdminAIDashboard })));
 const SyncMonitorDashboard = lazy(() => import('@/app/components/SyncMonitorDashboard').then(m => ({ default: m.SyncMonitorDashboard })));
 const AdvisorWorkspace = lazy(() => import('@/app/components/AdvisorWorkspace').then(m => ({ default: m.AdvisorWorkspace })));
 const AdminFeaturePanel = lazy(() => import('@/app/components/AdminFeaturePanel').then(m => ({ default: m.AdminFeaturePanel })));
@@ -501,6 +502,7 @@ const AppContent: React.FC = () => {
       case 'admin-feature-panel': return <AdminFeaturePanel />;
       case 'advisor-panel': return <AdvisorPanel />;
       case 'admin': return <AdminDashboard />;
+      case 'admin-ai': return <AdminAIDashboard />;
       case 'sync-monitor': return <SyncMonitorDashboard />;
       case 'advisor': return <AdvisorWorkspace />;
       case 'voice-input': return <VoiceInput />;

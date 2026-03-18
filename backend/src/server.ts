@@ -2,6 +2,7 @@ import app from './app';
 import { logger } from './config/logger';
 import { initializeSocket } from './sockets/index';
 import { closeRedis, initRedis } from './cache/redis';
+import { startAIBackgroundJobs, stopAIBackgroundJobs } from './modules/ai/ai.engine';
 
 const PORT = process.env.PORT || 3000;
 
@@ -42,10 +43,12 @@ const server = app.listen(PORT, () => {
 initializeSocket(server);
 
 void initRedis();
+startAIBackgroundJobs();
 
 const shutdown = async (signal: string) => {
   logger.info(`Received ${signal}. Shutting down server...`);
   server.close(async () => {
+    stopAIBackgroundJobs();
     await closeRedis();
     process.exit(0);
   });

@@ -255,9 +255,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 9002,
       host: true,
-      hmr: {
-        port: 9002,
-      },
       proxy: {
         '/api/v1': {
           target: apiProxyTarget,

@@ -23,6 +23,10 @@ const envSchema = z.object({
   FIREBASE_SECRET: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
   SENDGRID_API_KEY: z.string().optional(),
+  RECEIPT_OCR_ENDPOINT: z.string().url().optional(),
+  RECEIPT_OCR_API_KEY: z.string().optional(),
+  RECEIPT_OCR_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
+  RECEIPT_SCAN_RATE_LIMIT: z.coerce.number().int().positive().optional(),
 });
 
 export const env = envSchema.parse(process.env);
