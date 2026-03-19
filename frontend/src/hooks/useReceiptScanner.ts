@@ -19,9 +19,9 @@ export const useReceiptScanner = () => {
   const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY);
-      return stored === null ? true : stored === 'true';
+      return stored === null ? false : stored === 'true'; // CHANGED DEFAULT TO FALSE
     } catch {
-      return true;
+      return false;
     }
   });
 

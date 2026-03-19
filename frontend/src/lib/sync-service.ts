@@ -66,12 +66,13 @@ class SyncService {
     });
   }
 
-  // Sync when app becomes visible
+  // Sync when app becomes visible - disabled to prevent refresh on tab switching
+  // Users can manually sync via UI if needed
   private setupVisibilityListener() {
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.canSync()) {
-        this.syncAll();
-      }
+      // Only log visibility change, don't auto-sync
+      console.log('App visibility changed to:', document.visibilityState);
+      // Removed automatic sync to prevent refreshes on tab switching
     });
   }
 

@@ -1,13 +1,14 @@
+import supabase from '@/utils/supabase/client';
 import type { OCRProgress, ReceiptScanResult } from '@/types/receipt.types';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
 const MAX_LONG_EDGE = 1920;
 const JPEG_QUALITY = 0.86;
 
-const getAuthToken = () =>
-  localStorage.getItem('accessToken')
-  || localStorage.getItem('auth_token')
-  || null;
+const getAuthToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+};
 
 const loadImage = (file: File) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -76,7 +77,7 @@ export class CloudReceiptScanService {
     const formData = new FormData();
     formData.append('file', compressedBlob, `${file.name.replace(/\.[^.]+$/, '') || 'receipt'}.jpg`);
 
-    const token = getAuthToken();
+    const token = await getAuthToken();
     const headers: HeadersInit = {};
     if (token) {
       headers.Authorization = `Bearer ${token}`;
@@ -103,7 +104,7 @@ export class CloudReceiptScanService {
     const date = parseScanDate(payload.date);
     const confidence = typeof payload.confidence === 'number' && Number.isFinite(payload.confidence)
       ? payload.confidence
-      : 0.78;
+      : 0.85;
 
     const rawFields = payload && typeof payload.rawFields === 'object' ? payload.rawFields : payload;
 
@@ -114,6 +115,12 @@ export class CloudReceiptScanService {
       amount,
       currency,
       date,
+      time: typeof payload.time === 'string' ? payload.time : undefined,
+      subtotal: typeof payload.subtotal === 'number' ? payload.subtotal : undefined,
+      taxAmount: typeof payload.taxAmount === 'number' ? payload.taxAmount : undefined,
+      invoiceNumber: typeof payload.invoiceNumber === 'string' ? payload.invoiceNumber : undefined,
+      paymentMethod: typeof payload.paymentMethod === 'string' ? payload.paymentMethod : undefined,
+      items: Array.isArray(payload.items) ? payload.items : undefined,
       confidence: Math.max(0, Math.min(1, confidence)),
       rawText: JSON.stringify(rawFields || {}),
       notes: merchantName ? 'cloud ocr receipt' : 'cloud ocr import',

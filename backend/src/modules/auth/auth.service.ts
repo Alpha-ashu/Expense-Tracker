@@ -104,15 +104,20 @@ export class AuthService {
       }
     }
 
+    // 1. Primary Update: local User table (PostgreSQL public schema)
     try {
-      // 1. Primary Update: local User table (PostgreSQL public schema)
-      console.log('[AuthService] Updating User table...');
+      console.log(`[AuthService] Updating User table for ID: ${userId}, Email: ${email || 'none'}`);
+
+      // Safety: Ensure email is never empty if we are creating a new record
+      // In a hybrid system, we prefer the email from the JWT/Session
+      const activeEmail = email || data.email || `user-${userId.substring(0, 8)}@placeholder.finora.app`;
+
       const user = await prisma.user.upsert({
         where: { id: userId },
         update: {
           firstName,
           lastName,
-          name: `${firstName || ''} ${lastName || ''}`.trim(),
+          name: `${firstName || ''} ${lastName || ''}`.trim() || 'User',
           gender,
           country,
           state,
@@ -124,8 +129,8 @@ export class AuthService {
         } as any,
         create: {
           id: userId,
-          email: email || '',
-          name: `${firstName || ''} ${lastName || ''}`.trim(),
+          email: activeEmail,
+          name: `${firstName || ''} ${lastName || ''}`.trim() || 'User',
           password: 'supabase-managed-account',
           firstName,
           lastName,
@@ -144,18 +149,17 @@ export class AuthService {
 
       // 2. Best-effort Sync: profiles table (often managed by Supabase)
       try {
-        console.log('[AuthService] Syncing to profiles table...');
+        console.log('[AuthService] Syncing to public.profiles table...');
         // We use raw SQL for the profiles table because it might have foreign keys or 
         // schema issues that conflict with Prisma's standard ORM expectations for multi-schema.
-        // It's much safer to use raw SQL for this secondary table.
         await prisma.$executeRaw`
-          INSERT INTO profiles (
+          INSERT INTO public.profiles (
             id, email, first_name, last_name, full_name, gender, 
             country, state, city, phone, monthly_income, annual_income, 
             date_of_birth, job_type, updated_at
           ) VALUES (
-            ${userId}::uuid, ${email || ''}, ${firstName || null}, ${lastName || null}, 
-            ${`${firstName || ''} ${lastName || ''}`.trim()}, ${gender || null},
+            ${userId}::uuid, ${email || null}, ${firstName || null}, ${lastName || null}, 
+            ${(`${firstName || ''} ${lastName || ''}`.trim() || null)}, ${gender || null},
             ${country || null}, ${state || null}, ${city || null}, ${phone || null}, 
             ${decimalMonthlyIncome}, ${decimalAnnualIncome}, 
             ${dob || null}, ${jobType || null}, NOW()

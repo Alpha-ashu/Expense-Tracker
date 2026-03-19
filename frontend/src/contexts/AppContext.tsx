@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
 import type { SyncStats } from '@/lib/offline-sync-engine';
 import { saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
+import { backendSyncService } from '@/lib/backend-sync-service';
 
 interface AppContextType {
   currentPage: string;
@@ -290,7 +291,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const triggerSync = useCallback(() => {
     if (user?.id) {
-      void syncUserDataFromCloud(user.id);
+      // Use backend-first sync instead of immediate frontend refresh
+      void backendSyncService.syncWithBackend().then((success) => {
+        if (success) {
+          // Only refresh local data if backend sync was successful
+          void syncUserDataFromCloud(user.id);
+        }
+      });
     }
   }, [user?.id]);
 

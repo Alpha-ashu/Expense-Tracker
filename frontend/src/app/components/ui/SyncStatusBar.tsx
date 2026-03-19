@@ -9,6 +9,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Cloud, CloudOff, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useSyncStats, OverallSyncStatus } from '@/lib/offline-sync-engine';
+import { useBackendSyncStatus } from '@/lib/backend-sync-service';
 
 interface Config {
   icon: React.ReactNode;
@@ -51,24 +52,34 @@ interface SyncStatusBarProps {
 }
 
 export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ compact = false, className = '' }) => {
-  const stats  = useSyncStats();
-  const config = STATUS_CONFIG[stats.status];
+  const stats = useSyncStats();
+  const backendStatus = useBackendSyncStatus();
+  
+  // Use backend sync status when available, fallback to frontend
+  const actualStatus = backendStatus.syncInProgress ? 'syncing' : 
+                      backendStatus.pendingOperations > 0 ? 'pending' :
+                      !backendStatus.isOnline ? 'offline' : 
+                      stats.status;
+  
+  const config = STATUS_CONFIG[actualStatus];
 
   return (
     <AnimatePresence mode="wait">
       <motion.div
-        key={stats.status}
+        key={actualStatus}
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.15 }}
         title={
-          stats.errorMessage ??
-          (stats.pendingCount > 0
-            ? `${stats.pendingCount} change${stats.pendingCount > 1 ? 's' : ''} pending`
-            : stats.lastSyncedAt
-              ? `Last synced ${stats.lastSyncedAt.toLocaleTimeString()}`
-              : 'Not synced yet')
+          backendStatus.lastBackendSync 
+            ? `Last synced ${backendStatus.lastBackendSync.toLocaleTimeString()}`
+            : stats.errorMessage ??
+              (backendStatus.pendingOperations > 0
+                ? `${backendStatus.pendingOperations} operation${backendStatus.pendingOperations > 1 ? 's' : ''} pending`
+                : stats.lastSyncedAt
+                  ? `Last synced ${stats.lastSyncedAt.toLocaleTimeString()}`
+                  : 'Not synced yet')
         }
         className={[
           'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium select-none',
@@ -80,8 +91,8 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ compact = false, c
         {!compact && (
           <span>
             {config.label}
-            {stats.pendingCount > 0 && stats.status !== 'offline' && (
-              <span className="ml-1 opacity-70">({stats.pendingCount})</span>
+            {backendStatus.pendingOperations > 0 && actualStatus !== 'offline' && (
+              <span className="ml-1 opacity-70">({backendStatus.pendingOperations})</span>
             )}
           </span>
         )}

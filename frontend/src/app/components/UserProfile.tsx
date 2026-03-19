@@ -13,6 +13,7 @@ import { permissionService } from '@/services/permissionService';
 import { backupPINKeys, restorePINKeys, storeMasterKey, verifyPIN, isPINSet } from '@/lib/encryption';
 import { calculateAge, getAgeGroup, getAgeGroupLabel } from '@/lib/avatar';
 import { AVATAR_OPTIONS, DEFAULT_AVATAR, resolveAvatarSelection } from '@/lib/avatar-gallery';
+import { api } from '@/lib/api';
 
 interface ProfileData {
   firstName: string;
@@ -148,6 +149,10 @@ export const UserProfile: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    console.log('[UserProfile] Component mounted, isLoading:', isLoading);
+  }, []);
+
   // States for Delete Account functionality
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -189,7 +194,12 @@ export const UserProfile: React.FC = () => {
     resolveAvatarSelection({ avatarUrl, avatarId });
 
   const fetchProfileData = async () => {
-    if (!user) { setIsLoading(false); return; }
+    console.log('[UserProfile] fetchProfileData called, user:', user?.id);
+    if (!user) {
+      console.log('[UserProfile] No user found, stopping fetch');
+      setIsLoading(false);
+      return;
+    }
 
     // ── SOURCE 0: Supabase auth user_metadata (set during signUp) ────────────
     // When users sign up, first_name/last_name are stored in user_metadata.
@@ -248,18 +258,20 @@ export const UserProfile: React.FC = () => {
 
     // ── SOURCE 2: Supabase profiles / Backend API (authoritative, cloud-synced) ──
     try {
-      const { api } = await import('@/lib/api');
       let finalData: any = null;
 
       // Prefer Backend Data
       try {
+        console.log('[UserProfile] Fetching from backend API...');
         const backendRes = await api.auth.getProfile();
         if (backendRes.success && backendRes.data) {
           finalData = backendRes.data;
-          console.log('✅ Profile fetched from backend:', finalData);
+          console.log('[UserProfile] Received data from backend:', finalData);
+        } else {
+          console.log('[UserProfile] Backend fetch returned no data or success=false:', backendRes);
         }
       } catch (backendError) {
-        console.warn('Backend profile fetch failed, trying Supabase:', backendError);
+        console.warn('[UserProfile] Backend profile fetch failed, trying Supabase fallback:', backendError);
       }
 
       // Fallback/Supplement with Supabase
@@ -386,76 +398,22 @@ export const UserProfile: React.FC = () => {
     avatarId: (isEditingBasic ? tempData.avatarId : profileData.avatarId) || null,
     avatarUrl: (isEditingBasic ? tempData.profilePhoto : profileData.profilePhoto) || null,
   });
-  const activeAvatarUrl = activeAvatar.url;
 
   const handleSaveProfile = async () => {
     if (!user) return;
     setIsLoading(true);
-    localStorage.setItem('profile_sync_pending', 'true');
+    
     try {
       const resolvedAvatar = resolveAvatar(tempData.profilePhoto, tempData.avatarId);
+      const operationId = `profile_update_${Date.now()}`;
 
-      // 1. Update via Backend API (Updates both User and profiles tables in DB)
-      // This ensures consistency across the hybrid architecture
-      const { api } = await import('@/lib/api');
-      await api.auth.updateProfile({
-        firstName: tempData.firstName,
-        lastName: tempData.lastName,
-        gender: tempData.gender,
-        country: tempData.country,
-        state: tempData.state,
-        city: tempData.city,
-        monthlyIncome: tempData.monthlyIncome,
-        dateOfBirth: tempData.dateOfBirth,
-        jobType: tempData.jobType,
-        mobile: tempData.mobile,
-        avatarId: resolvedAvatar.id,
-      });
-
-      // 2. Best-effort Supabase sync (optional but good for real-time)
-      try {
-        const baseData = {
-          id: user.id,
-          email: tempData.email,
-          full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
-          first_name: tempData.firstName,
-          last_name: tempData.lastName,
-          phone: tempData.mobile,
-          avatar_url: resolvedAvatar.url,
-          updated_at: new Date().toISOString(),
-        };
-
-        await supabase.from('profiles').upsert({
-          ...baseData,
-          date_of_birth: tempData.dateOfBirth || null,
-          monthly_income: tempData.monthlyIncome,
-          job_type: tempData.jobType || null,
-          gender: tempData.gender || null,
-          country: tempData.country || null,
-          state: tempData.state || null,
-          city: tempData.city || null,
-        });
-
-        await supabase.auth.updateUser({
-          data: {
-            first_name: tempData.firstName,
-            last_name: tempData.lastName,
-            full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
-            phone: tempData.mobile,
-            avatar_id: resolvedAvatar.id,
-          },
-        });
-      } catch (syncError) {
-        console.warn('Silent sync error (non-blocking):', syncError);
-      }
-
+      // 1. Update local state immediately for responsive UI
       setProfileData(tempData);
       setIsEditingBasic(false);
       setIsEditingLocation(false);
-      setIsEditingLocation(false);
-      // Save latest profile to localStorage for persistence
+
+      // 2. Save to localStorage for persistence
       const updatedAt = new Date().toISOString();
-      setCurrency(currency); // persist any currency change via AppContext
       localStorage.setItem('user_profile', JSON.stringify({
         displayName: `${tempData.firstName} ${tempData.lastName}`.trim(),
         firstName: tempData.firstName,
@@ -475,10 +433,52 @@ export const UserProfile: React.FC = () => {
         updatedAt,
       }));
       localStorage.setItem('profile_updated_at', updatedAt);
-      localStorage.removeItem('profile_sync_pending');
 
-      // Fetch latest profile to guarantee sync
-      await fetchProfileData();
+      // 3. Add to backend sync queue (non-blocking)
+      const { backendSyncService } = await import('@/lib/backend-sync-service');
+      backendSyncService.addPendingOperation(operationId);
+
+      // 4. Update via Backend API (fire-and-forget)
+      const { api } = await import('@/lib/api');
+      api.auth.updateProfile({
+        firstName: tempData.firstName,
+        lastName: tempData.lastName,
+        gender: tempData.gender,
+        country: tempData.country,
+        state: tempData.state,
+        city: tempData.city,
+        monthlyIncome: tempData.monthlyIncome,
+        dateOfBirth: tempData.dateOfBirth,
+        jobType: tempData.jobType,
+        mobile: tempData.mobile,
+        avatarId: resolvedAvatar.id,
+      }).then(() => {
+        backendSyncService.removePendingOperation(operationId);
+        console.log('✅ Profile synced to backend');
+      }).catch((error) => {
+        console.warn('⚠️ Backend sync failed, will retry:', error);
+      });
+
+      // 5. Best-effort Supabase sync (optional, non-blocking)
+      supabase.from('profiles').upsert({
+        id: user.id,
+        email: tempData.email,
+        full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
+        first_name: tempData.firstName,
+        last_name: tempData.lastName,
+        phone: tempData.mobile,
+        avatar_url: resolvedAvatar.url,
+        date_of_birth: tempData.dateOfBirth || null,
+        monthly_income: tempData.monthlyIncome,
+        job_type: tempData.jobType || null,
+        gender: tempData.gender || null,
+        country: tempData.country || null,
+        state: tempData.state || null,
+        city: tempData.city || null,
+        updated_at: new Date().toISOString(),
+      }).catch((syncError) => {
+        console.warn('Silent Supabase sync error (non-blocking):', syncError);
+      });
 
       toast.success('Profile updated successfully!');
     } catch (error: any) {

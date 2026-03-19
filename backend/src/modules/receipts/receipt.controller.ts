@@ -3,6 +3,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { logger } from '../../config/logger';
 import { validateBillUpload } from '../../utils/uploadPolicy';
 import { processImage } from '../../utils/imageProcessing';
+import { scanReceiptWithGemini } from '../ai/ocr.engine';
 
 type JsonMap = Record<string, unknown>;
 
@@ -85,8 +86,15 @@ const normalizeOcrResponse = (raw: JsonMap) => {
   return {
     merchantName,
     amount: total,
+    subtotal: parseNumber(raw.subtotal),
+    taxAmount: parseNumber(raw.taxAmount),
     date,
+    time: firstString(raw.time),
     currency,
+    invoiceNumber: firstString(raw.invoiceNumber),
+    items: Array.isArray(raw.items) ? raw.items : undefined,
+    taxes: Array.isArray(raw.taxes) ? raw.taxes : undefined,
+    paymentMethod: firstString(raw.paymentMethod),
     rawFields: raw,
   };
 };
@@ -122,48 +130,73 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
     }
 
     const processed = await processImage(validated.buffer);
-    const blob = new Blob([new Uint8Array(processed.buffer)], { type: processed.contentType });
-    const formData = new FormData();
-    formData.append('file', blob, `receipt.${processed.extension}`);
+    let raw: JsonMap = {};
+    let source = 'unknown';
 
-    const endpoint = getReceiptOcrEndpoint();
-    const timeout = Number(process.env.RECEIPT_OCR_TIMEOUT_MS || 30000);
-    const controller = new AbortController();
-    const timeoutHandle = setTimeout(() => controller.abort(), timeout);
-
-    const headers: HeadersInit = {};
-    if (process.env.RECEIPT_OCR_API_KEY) {
-      headers['x-api-key'] = process.env.RECEIPT_OCR_API_KEY;
+    // Try Gemini OCR first if API key is present
+    if (process.env.GOOGLE_API_KEY) {
+      try {
+        raw = await scanReceiptWithGemini(processed.buffer, processed.contentType);
+        source = 'gemini-1.5-flash';
+        logger.info('Receipt scan successful via Gemini', { userId, source });
+      } catch (geminiError) {
+        logger.warn('Gemini OCR fallback triggered', { userId, error: geminiError });
+      }
     }
 
-    const upstream = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      headers,
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeoutHandle));
+    // Fallback to legacy OCR if Gemini failed or key missing
+    if (source === 'unknown') {
+      const blob = new Blob([new Uint8Array(processed.buffer)], { type: processed.contentType });
+      const formData = new FormData();
+      formData.append('file', blob, `receipt.${processed.extension}`);
 
-    if (!upstream.ok) {
-      const errorBody = await extractJson(upstream);
-      logger.warn('Receipt OCR upstream failed', {
-        userId,
-        status: upstream.status,
-        error: errorBody,
-      });
+      const endpoint = getReceiptOcrEndpoint();
+      const timeout = Number(process.env.RECEIPT_OCR_TIMEOUT_MS || 30000);
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), timeout);
 
-      return res.status(502).json({
-        error: 'Cloud OCR service failed',
-        details: errorBody,
-      });
+      const headers: HeadersInit = {};
+      if (process.env.RECEIPT_OCR_API_KEY) {
+        headers['x-api-key'] = process.env.RECEIPT_OCR_API_KEY;
+      }
+
+      const upstream = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        headers,
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutHandle));
+
+      if (upstream.ok) {
+        raw = await extractJson(upstream);
+        source = 'cloud-donut';
+      } else {
+        const errorBody = await extractJson(upstream);
+        logger.warn('Receipt OCR upstream failed', {
+          userId,
+          status: upstream.status,
+          error: errorBody,
+        });
+
+        if (!process.env.GOOGLE_API_KEY) {
+          return res.status(502).json({
+            error: 'Cloud OCR service failed and no Gemini fallback available',
+            details: errorBody,
+          });
+        }
+      }
     }
 
-    const raw = await extractJson(upstream);
+    if (source === 'unknown') {
+      return res.status(500).json({ error: 'Failed to process receipt with any available model' });
+    }
+
     const normalized = normalizeOcrResponse(raw);
 
     return res.json({
       ...normalized,
-      source: 'cloud-donut',
-      confidence: typeof raw.confidence === 'number' ? raw.confidence : undefined,
+      source,
+      confidence: typeof raw.confidence === 'number' ? raw.confidence : 0.85,
       requiresConfirmation: true,
     });
   } catch (error: any) {
