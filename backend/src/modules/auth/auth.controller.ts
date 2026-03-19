@@ -140,31 +140,46 @@ export const login = async (req: Request, res: Response) => {
 export const getProfile = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    const user = await authService.getUser(req.userId);
-    res.json({
-      success: true,
-      data: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        gender: user.gender,
-        country: user.country,
-        state: user.state,
-        city: user.city,
-        salary: user.salary,
-        dateOfBirth: user.dateOfBirth,
-        jobType: user.jobType,
-        role: user.role,
-        isApproved: user.isApproved,
+    try {
+      const user = await authService.getUser(req.userId);
+      res.json({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          gender: user.gender,
+          country: user.country,
+          state: user.state,
+          city: user.city,
+          salary: user.salary,
+          dateOfBirth: user.dateOfBirth,
+          jobType: user.jobType,
+          role: user.role,
+          isApproved: user.isApproved,
+        }
+      });
+    } catch (userError: any) {
+      if (userError.message === 'User not found') {
+        // Return 404 but with some context
+        return res.status(404).json({
+          success: false,
+          error: 'User profile not found in database',
+          code: 'USER_NOT_FOUND'
+        });
       }
-    });
+      throw userError;
+    }
   } catch (error: any) {
-    logger.error('Get profile error', { error: error.message });
+    logger.error('Get profile error:', {
+      message: error.message,
+      userId: req.userId
+    });
     res.status(500).json({ success: false, error: 'Failed to fetch profile' });
   }
 };
@@ -172,11 +187,11 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    const sanitizedData = sanitize(req.body);
-    const user = await authService.updateProfile(req.userId, sanitizedData);
+    const sanitizedData = sanitize(req.body as any);
+    const user = await authService.updateProfile(req.userId, sanitizedData, req.user?.email);
 
     res.json({
       success: true,
@@ -197,8 +212,17 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       }
     });
   } catch (error: any) {
-    logger.error('Update profile error', { error: error.message });
-    res.status(500).json({ success: false, error: 'Failed to update profile' });
+    logger.error('Update profile error:', {
+      message: error.message,
+      stack: error.stack,
+      userId: req.userId
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update profile',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 

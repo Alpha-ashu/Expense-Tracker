@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { User, RegisterInput, LoginInput, AuthTokens } from './auth.types';
 import { prisma } from '../../db/prisma';
 import { generateTokens } from '../../utils/auth';
+import { Prisma } from '@prisma/client';
 
 export class AuthService {
   async register(input: RegisterInput & {
@@ -70,66 +71,124 @@ export class AuthService {
     return user;
   }
 
-  async updateProfile(userId: string, data: any): Promise<any> {
+  async updateProfile(userId: string, data: any, email?: string): Promise<any> {
     const { firstName, lastName, gender, country, state, city, monthlyIncome, dateOfBirth, jobType, phone } = data;
 
-    // 1. Update Prisma User table
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        firstName,
-        lastName,
-        name: `${firstName} ${lastName}`.trim(),
-        gender,
-        country,
-        state,
-        city,
-        salary: monthlyIncome ? monthlyIncome * 12 : undefined,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-        jobType,
-      },
-    });
+    console.log(`[AuthService] Processing profile update for userId: ${userId}`);
 
-    // 2. Update profiles table (for Supabase sync)
+    // Standardize income - handle potential float/string/null
+    let decimalMonthlyIncome: Prisma.Decimal | null = null;
+    let decimalAnnualIncome: Prisma.Decimal | null = null;
     try {
-      await (prisma as any).profiles.upsert({
-        where: { id: userId },
-        update: {
-          first_name: firstName,
-          last_name: lastName,
-          full_name: `${firstName} ${lastName}`.trim(),
-          gender,
-          country,
-          state,
-          city,
-          phone,
-          monthly_income: monthlyIncome,
-          date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-          job_type: jobType,
-          updated_at: new Date(),
-        },
-        create: {
-          id: userId,
-          first_name: firstName,
-          last_name: lastName,
-          full_name: `${firstName} ${lastName}`.trim(),
-          gender,
-          country,
-          state,
-          city,
-          phone,
-          monthly_income: monthlyIncome,
-          date_of_birth: dateOfBirth ? new Date(dateOfBirth) : undefined,
-          job_type: jobType,
-          created_at: new Date(),
-          updated_at: new Date(),
+      if (monthlyIncome !== undefined && monthlyIncome !== null) {
+        const incomeNum = Number(monthlyIncome);
+        if (!isNaN(incomeNum)) {
+          decimalMonthlyIncome = new Prisma.Decimal(incomeNum);
+          decimalAnnualIncome = new Prisma.Decimal(incomeNum * 12);
         }
-      });
-    } catch (err) {
-      console.warn('Sync to profiles table failed (non-blocking):', err);
+      }
+    } catch (e) {
+      console.warn('[AuthService] Income conversion error:', e);
     }
 
-    return user;
+    // Standardize DOB
+    let dob: Date | undefined;
+    if (dateOfBirth) {
+      try {
+        const parsedDate = new Date(dateOfBirth);
+        if (!isNaN(parsedDate.getTime())) {
+          dob = parsedDate;
+        }
+      } catch (e) {
+        console.warn('[AuthService] DOB conversion error:', e);
+      }
+    }
+
+    try {
+      // 1. Primary Update: local User table (PostgreSQL public schema)
+      console.log('[AuthService] Updating User table...');
+      const user = await prisma.user.upsert({
+        where: { id: userId },
+        update: {
+          firstName,
+          lastName,
+          name: `${firstName || ''} ${lastName || ''}`.trim(),
+          gender,
+          country,
+          state,
+          city,
+          salary: monthlyIncome ? Number(monthlyIncome) * 12 : undefined,
+          dateOfBirth: dob,
+          jobType,
+          updatedAt: new Date(),
+        } as any,
+        create: {
+          id: userId,
+          email: email || '',
+          name: `${firstName || ''} ${lastName || ''}`.trim(),
+          password: 'supabase-managed-account',
+          firstName,
+          lastName,
+          gender,
+          country,
+          state,
+          city,
+          salary: monthlyIncome ? Number(monthlyIncome) * 12 : 0,
+          dateOfBirth: dob,
+          jobType,
+          updatedAt: new Date(),
+          createdAt: new Date(),
+        } as any
+      });
+      console.log('[AuthService] User table updated successfully');
+
+      // 2. Best-effort Sync: profiles table (often managed by Supabase)
+      try {
+        console.log('[AuthService] Syncing to profiles table...');
+        // We use raw SQL for the profiles table because it might have foreign keys or 
+        // schema issues that conflict with Prisma's standard ORM expectations for multi-schema.
+        // It's much safer to use raw SQL for this secondary table.
+        await prisma.$executeRaw`
+          INSERT INTO profiles (
+            id, email, first_name, last_name, full_name, gender, 
+            country, state, city, phone, monthly_income, annual_income, 
+            date_of_birth, job_type, updated_at
+          ) VALUES (
+            ${userId}::uuid, ${email || ''}, ${firstName || null}, ${lastName || null}, 
+            ${`${firstName || ''} ${lastName || ''}`.trim()}, ${gender || null},
+            ${country || null}, ${state || null}, ${city || null}, ${phone || null}, 
+            ${decimalMonthlyIncome}, ${decimalAnnualIncome}, 
+            ${dob || null}, ${jobType || null}, NOW()
+          )
+          ON CONFLICT (id) DO UPDATE SET
+            first_name = EXCLUDED.first_name,
+            last_name = EXCLUDED.last_name,
+            full_name = EXCLUDED.full_name,
+            gender = EXCLUDED.gender,
+            country = EXCLUDED.country,
+            state = EXCLUDED.state,
+            city = EXCLUDED.city,
+            phone = EXCLUDED.phone,
+            monthly_income = EXCLUDED.monthly_income,
+            annual_income = EXCLUDED.annual_income,
+            date_of_birth = EXCLUDED.date_of_birth,
+            job_type = EXCLUDED.job_type,
+            updated_at = NOW();
+        `;
+        console.log('[AuthService] profiles table synced successfully');
+      } catch (syncError: any) {
+        // Non-blocking error for the profiles table sync
+        console.warn(`[AuthService] Non-blocking profiles sync failed: ${syncError.message}`, {
+          code: syncError.code,
+          meta: syncError.meta
+        });
+      }
+
+      return user;
+    } catch (primaryError: any) {
+      console.error('[AuthService] Critical User update failed:', primaryError);
+      throw primaryError; // This will return 500 to the client correctly
+    }
   }
 
   async login(input: LoginInput): Promise<AuthTokens> {
