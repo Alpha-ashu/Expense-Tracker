@@ -12,19 +12,6 @@ import {
   AIUserIntelligenceDto,
 } from '@/services/adminAIService';
 import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  Legend,
-} from 'recharts';
-import {
   Users,
   Brain,
   AlertTriangle,
@@ -46,7 +33,11 @@ import {
   Sparkles,
   Database,
   CheckCircle2,
+  Settings,
 } from 'lucide-react';
+
+// 🧠 FINORA AI ADMIN DASHBOARD
+// Enhanced with new AI learning metrics and insights
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';

@@ -71,6 +71,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
     }
 
     const recognitionInstance = new SpeechRecognition();
+    // Optimized recognition settings for faster response
     recognitionInstance.continuous = true;
     recognitionInstance.interimResults = true;
     recognitionInstance.lang = "en-US";
@@ -152,61 +153,73 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
 
     if (transcript.trim()) {
       setIsProcessing(true);
-      setTimeout(async () => {
-        if (onTranscript) {
-          onTranscript(transcript.trim());
-        } else {
-          const transactions = parseMultipleTransactions(transcript.trim());
-
-          if (transactions.length === 0) {
-            const parsed = parseVoiceExpense(transcript.trim());
-            if (!parsed.amount) {
-              setIsProcessing(false);
-              toast.error("Could not detect the amount. Please try again.");
-              return;
-            }
-
-            if (parsed.intent === "transfer") {
-              localStorage.setItem("voiceTransferDraft", JSON.stringify({
-                amount: parsed.amount,
-                description: parsed.description,
-              }));
-              setCurrentPage("transfer");
-            } else {
-              localStorage.setItem("voiceTransactionDraft", JSON.stringify({
-                type: parsed.intent,
-                amount: parsed.amount,
-                category: parsed.category,
-                description: parsed.description,
-                date: new Date().toISOString().split("T")[0],
-              }));
-              setCurrentPage("add-transaction");
-            }
-          } else if (transactions.length === 1) {
-            const item = transactions[0];
-            if (item.intent === "transfer") {
-              localStorage.setItem("voiceTransferDraft", JSON.stringify({
-                amount: item.amount,
-                description: item.description,
-              }));
-              setCurrentPage("transfer");
-            } else {
-              localStorage.setItem("voiceTransactionDraft", JSON.stringify({
-                type: item.intent,
-                amount: item.amount,
-                category: item.category,
-                description: item.description,
-                date: new Date().toISOString().split("T")[0],
-              }));
-              setCurrentPage("add-transaction");
-            }
+      
+      // Optimized processing with immediate feedback
+      const processTranscript = async () => {
+        try {
+          if (onTranscript) {
+            onTranscript(transcript.trim());
           } else {
-            localStorage.setItem("voiceBatchDraft", JSON.stringify(transactions));
-            setCurrentPage("voice-review");
+            // Use the optimized parser
+            const transactions = parseMultipleTransactions(transcript.trim());
+
+            if (transactions.length === 0) {
+              const parsed = parseVoiceExpense(transcript.trim());
+              if (!parsed.amount) {
+                setIsProcessing(false);
+                toast.error("Could not detect amount. Please try again.");
+                return;
+              }
+
+              if (parsed.intent === "transfer") {
+                localStorage.setItem("voiceTransferDraft", JSON.stringify({
+                  amount: parsed.amount,
+                  description: parsed.description,
+                }));
+                setCurrentPage("transfer");
+              } else {
+                localStorage.setItem("voiceTransactionDraft", JSON.stringify({
+                  type: parsed.intent,
+                  amount: parsed.amount,
+                  category: parsed.category,
+                  description: parsed.description,
+                  date: new Date().toISOString().split("T")[0],
+                }));
+                setCurrentPage("add-transaction");
+              }
+            } else if (transactions.length === 1) {
+              const item = transactions[0];
+              if (item.intent === "transfer") {
+                localStorage.setItem("voiceTransferDraft", JSON.stringify({
+                  amount: item.amount,
+                  description: item.description,
+                }));
+                setCurrentPage("transfer");
+              } else {
+                localStorage.setItem("voiceTransactionDraft", JSON.stringify({
+                  type: item.intent,
+                  amount: item.amount,
+                  category: item.category,
+                  description: item.description,
+                  date: new Date().toISOString().split("T")[0],
+                }));
+                setCurrentPage("add-transaction");
+              }
+            } else {
+              localStorage.setItem("voiceBatchDraft", JSON.stringify(transactions));
+              setCurrentPage("voice-review");
+            }
           }
+        } catch (error) {
+          console.error('Voice processing error:', error);
+          toast.error("Failed to process voice input. Please try again.");
+        } finally {
+          setIsProcessing(false);
         }
-        setIsProcessing(false);
-      }, 500);
+      };
+      
+      // Reduced timeout for faster response
+      setTimeout(processTranscript, 200);
     }
   };
 

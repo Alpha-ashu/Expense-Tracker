@@ -84,7 +84,16 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       return;
     }
 
-    await scanReceipt(selectedAccountId ?? undefined, user?.id);
+    const result = await scanReceipt(selectedAccountId ?? undefined, user?.id);
+
+    // Show validation mismatch warning if AI detected a discrepancy
+    if (result?.validationResult && !result.validationResult.isValid) {
+      const { calculated, detected } = result.validationResult;
+      toast.warning(
+        `Bill total mismatch: calculated ${result.currency ?? ''} ${calculated.toFixed(2)} vs printed ${result.currency ?? ''} ${detected.toFixed(2)}. Please verify before saving.`,
+        { duration: 8000 },
+      );
+    }
   };
 
   const handleCreateTransaction = async () => {

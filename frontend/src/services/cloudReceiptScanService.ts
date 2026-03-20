@@ -1,5 +1,5 @@
 import supabase from '@/utils/supabase/client';
-import type { OCRProgress, ReceiptScanResult } from '@/types/receipt.types';
+import type { OCRProgress, ReceiptLineItem, ReceiptScanResult, TaxComponent, TotalValidationResult } from '@/types/receipt.types';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
 const MAX_LONG_EDGE = 1920;
@@ -62,6 +62,44 @@ const parseScanDate = (value: unknown): Date | undefined => {
   return parsed;
 };
 
+const parseTaxBreakdown = (raw: unknown): TaxComponent[] | undefined => {
+  if (!Array.isArray(raw)) return undefined;
+  const components = raw
+    .filter((t): t is Record<string, unknown> => t !== null && typeof t === 'object')
+    .map((t) => ({
+      name: typeof t.name === 'string' ? t.name : 'Tax',
+      rate: typeof t.rate === 'number' ? t.rate : undefined,
+      amount: typeof t.amount === 'number' ? t.amount : 0,
+    }))
+    .filter((t) => t.amount > 0);
+  return components.length > 0 ? components : undefined;
+};
+
+const parseItems = (raw: unknown): ReceiptLineItem[] | undefined => {
+  if (!Array.isArray(raw)) return undefined;
+  const items = raw
+    .filter((i): i is Record<string, unknown> => i !== null && typeof i === 'object')
+    .map((i) => ({
+      name: typeof i.name === 'string' ? i.name : 'Item',
+      quantity: typeof i.quantity === 'number' ? i.quantity : undefined,
+      rate: typeof i.rate === 'number' ? i.rate : undefined,
+      amount: typeof i.amount === 'number' ? i.amount : 0,
+    }))
+    .filter((i) => i.name && i.amount > 0);
+  return items.length > 0 ? items : undefined;
+};
+
+const parseValidationResult = (raw: unknown): TotalValidationResult | undefined => {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const v = raw as Record<string, unknown>;
+  if (typeof v.isValid !== 'boolean') return undefined;
+  return {
+    isValid: v.isValid,
+    calculated: typeof v.calculated === 'number' ? v.calculated : 0,
+    detected: typeof v.detected === 'number' ? v.detected : 0,
+  };
+};
+
 export class CloudReceiptScanService {
   async scanReceipt(
     file: File,
@@ -83,7 +121,7 @@ export class CloudReceiptScanService {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    onProgress?.({ status: 'Uploading receipt to secure OCR server…', progress: 35 });
+    onProgress?.({ status: 'Running AI financial intelligence engine…', progress: 35 });
     const response = await fetch(`${API_BASE}/receipts/scan`, {
       method: 'POST',
       headers,
@@ -96,31 +134,48 @@ export class CloudReceiptScanService {
       throw new Error(errorMessage);
     }
 
-    onProgress?.({ status: 'Applying extracted receipt fields…', progress: 85 });
+    onProgress?.({ status: 'Applying global intelligence & tax extraction…', progress: 80 });
 
     const merchantName = typeof payload.merchantName === 'string' ? payload.merchantName : undefined;
     const amount = typeof payload.amount === 'number' && Number.isFinite(payload.amount) ? payload.amount : undefined;
     const currency = typeof payload.currency === 'string' ? payload.currency : 'INR';
     const date = parseScanDate(payload.date);
+    const location = typeof payload.location === 'string' ? payload.location : 'UNKNOWN';
+
     const confidence = typeof payload.confidence === 'number' && Number.isFinite(payload.confidence)
       ? payload.confidence
       : 0.85;
 
+    const taxBreakdown = parseTaxBreakdown(payload.taxBreakdown);
+    const items = parseItems(payload.items);
+    const validationResult = parseValidationResult(payload.validationResult);
+
+    // Auto-generate smart description from top items if not provided by AI
+    const aiDescription = typeof payload.description === 'string' ? payload.description : undefined;
+    const itemsDescription = items && items.length > 0
+      ? items.slice(0, 3).map((i) => `${i.name} ${currency} ${i.amount}`).join(', ')
+      : undefined;
+
     const rawFields = payload && typeof payload.rawFields === 'object' ? payload.rawFields : payload;
 
-    onProgress?.({ status: 'Cloud OCR completed', progress: 100 });
+    onProgress?.({ status: 'Intelligence engine complete', progress: 100 });
 
     return {
       merchantName,
       amount,
       currency,
       date,
+      location,
       time: typeof payload.time === 'string' ? payload.time : undefined,
       subtotal: typeof payload.subtotal === 'number' ? payload.subtotal : undefined,
       taxAmount: typeof payload.taxAmount === 'number' ? payload.taxAmount : undefined,
+      taxBreakdown,
       invoiceNumber: typeof payload.invoiceNumber === 'string' ? payload.invoiceNumber : undefined,
       paymentMethod: typeof payload.paymentMethod === 'string' ? payload.paymentMethod : undefined,
-      items: Array.isArray(payload.items) ? payload.items : undefined,
+      category: typeof payload.category === 'string' ? payload.category : undefined,
+      description: aiDescription ?? itemsDescription,
+      items,
+      validationResult,
       confidence: Math.max(0, Math.min(1, confidence)),
       rawText: JSON.stringify(rawFields || {}),
       notes: merchantName ? 'cloud ocr receipt' : 'cloud ocr import',

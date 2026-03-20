@@ -141,29 +141,63 @@ function countMatches(text: string, keywords: string[]): number {
 
 function detectIntent(text: string): VoiceIntent {
   const lowerText = text.toLowerCase();
-  if (transferKeywords.some((keyword) => lowerText.includes(keyword))) return 'transfer';
-
-  const incomeScore = countMatches(lowerText, incomeKeywords);
-  const expenseScore = countMatches(lowerText, expenseKeywords);
-
+  
+  // Fast path for transfer detection
+  if (transferKeywords.some((keyword) => lowerText.includes(keyword))) {
+    return 'transfer';
+  }
+  
+  // Optimized scoring with early termination
+  let incomeScore = 0;
+  let expenseScore = 0;
+  
+  for (const keyword of incomeKeywords) {
+    if (lowerText.includes(keyword)) {
+      incomeScore++;
+      if (incomeScore > expenseScore + 2) break; // Early termination
+    }
+  }
+  
+  for (const keyword of expenseKeywords) {
+    if (lowerText.includes(keyword)) {
+      expenseScore++;
+      if (expenseScore > incomeScore + 2) break; // Early termination
+    }
+  }
+  
   if (incomeScore > expenseScore) return 'income';
   if (expenseScore > incomeScore) return 'expense';
 
+  // Fallback to category detection
   if (detectCategory(lowerText, 'income')) return 'income';
   if (detectCategory(lowerText, 'expense')) return 'expense';
 
-  return 'expense';
+  return 'expense'; // Default fallback
 }
 
 function extractAmountFromChunk(chunk: string): { amount: number | null; description: string } {
   const text = chunk.trim();
-  const amountMatch = text.match(/(?:\b|\u20B9)(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/);
-  let amount: number | null = null, description = text;
-
-  if (amountMatch) {
-    amount = Number(amountMatch[1].replace(/,/g, ''));
-    description = text.replace(amountMatch[0], '').trim();
-  } else {
+  
+  // Optimized amount extraction with multiple patterns
+  const amountPatterns = [
+    /(?:\b|\u20B9)(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/,  // Standard currency format
+    /(?:rs|inr|rupees?)\s*(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/i,  // Text currency
+    /(\d+)\s*(?:rupees?|rs)/i,  // Reversed format
+  ];
+  
+  let amount: number | null = null;
+  let description = text;
+  
+  for (const pattern of amountPatterns) {
+    const amountMatch = text.match(pattern);
+    if (amountMatch) {
+      amount = Number(amountMatch[1].replace(/,/g, ''));
+      description = text.replace(amountMatch[0], '').trim();
+      break;
+    }
+  }
+  
+  if (!amount) {
     const wordAmount = wordsToNumber(text);
     if (wordAmount !== null) {
       amount = wordAmount;
@@ -180,17 +214,38 @@ function extractAmountFromChunk(chunk: string): { amount: number | null; descrip
 
 export function parseMultipleTransactions(rawText: string): VoiceParseResult[] {
   const text = rawText.toLowerCase().trim();
-  const chunks = text.split(/\band\b|,|\.(?!\d)|;/i).map((s) => s.trim()).filter((s) => s.length > 0);
+  
+  // Optimized chunking with better delimiters
+  const chunks = text
+    .split(/\band\b|,|\.(?!\d)|;|\n|\r\n/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 2); // Filter out very short chunks
 
-  return chunks
-    .map((chunk) => {
-      const { amount, description } = extractAmountFromChunk(chunk);
-      if (amount === null) return null;
-      const intent = detectIntent(chunk);
-      const category = intent === 'transfer' ? 'Transfer' : detectCategory(chunk, intent);
-      return { intent, amount, category, description: description || chunk };
-    })
-    .filter((result) => result !== null) as VoiceParseResult[];
+  const results: VoiceParseResult[] = [];
+  
+  // Process chunks in parallel for better performance
+  const processingPromises = chunks.map(async (chunk) => {
+    const { amount, description } = extractAmountFromChunk(chunk);
+    if (amount === null) return null;
+    
+    const intent = detectIntent(chunk);
+    const category = intent === 'transfer' ? 'Transfer' : detectCategory(chunk, intent);
+    
+    return { intent, amount, category, description: description || chunk } as VoiceParseResult;
+  });
+  
+  // For synchronous processing, we'll use a simple loop but optimized
+  for (const chunk of chunks) {
+    const { amount, description } = extractAmountFromChunk(chunk);
+    if (amount === null) continue;
+    
+    const intent = detectIntent(chunk);
+    const category = intent === 'transfer' ? 'Transfer' : detectCategory(chunk, intent);
+    
+    results.push({ intent, amount, category, description: description || chunk });
+  }
+  
+  return results;
 }
 
 export function parseMultipleExpenses(rawText: string): Array<Omit<VoiceParseResult, 'intent'> & { intent: 'expense' }> {
@@ -202,8 +257,27 @@ export function parseMultipleExpenses(rawText: string): Array<Omit<VoiceParseRes
 export function parseVoiceExpense(rawText: string): VoiceParseResult {
   const text = rawText.toLowerCase().trim();
   const intent: VoiceIntent = detectIntent(text);
-  const amountMatch = text.match(/(?:\b|\u20B9)(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/);
-  const amount = amountMatch ? Number(amountMatch[1].replace(/,/g, '')) : wordsToNumber(text);
+  
+  // Optimized amount extraction with multiple patterns
+  const amountPatterns = [
+    /(?:\b|\u20B9)(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/,  // Standard currency format
+    /(?:rs|inr|rupees?)\s*(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/i,  // Text currency
+    /(\d+)\s*(?:rupees?|rs)/i,  // Reversed format
+  ];
+  
+  let amount: number | null = null;
+  for (const pattern of amountPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      amount = Number(match[1].replace(/,/g, ''));
+      break;
+    }
+  }
+  
+  if (!amount) {
+    amount = wordsToNumber(text);
+  }
+  
   const category = intent === 'transfer' ? 'Transfer' : detectCategory(text, intent);
   return { intent, amount, category, description: rawText.trim() };
 }

@@ -83,18 +83,52 @@ const normalizeOcrResponse = (raw: JsonMap) => {
 
   const currency = firstString(raw.currency, raw.currency_code) || 'INR';
 
+  // --- Normalise tax breakdown (global: CGST/SGST/VAT/Sales Tax/etc.) ---
+  const taxBreakdown = Array.isArray(raw.taxBreakdown)
+    ? (raw.taxBreakdown as Array<{ name: string; rate?: number; amount: number }>)
+        .filter((t) => t?.name && typeof t?.amount === 'number')
+    : Array.isArray(raw.taxes)
+      ? (raw.taxes as Array<{ name: string; rate?: number; amount: number }>)
+      : undefined;
+
+  const taxAmountRaw = parseNumber(raw.taxAmount);
+  const derivedTaxTotal = taxBreakdown && taxBreakdown.length > 0
+    ? Number(taxBreakdown.reduce((s, t) => s + (t.amount || 0), 0).toFixed(2))
+    : undefined;
+  const resolvedTaxAmount = taxAmountRaw ?? derivedTaxTotal;
+
+  // --- Validate total ---
+  const subtotal = parseNumber(raw.subtotal);
+  let validationResult: { isValid: boolean; calculated: number; detected: number } | undefined;
+  if (total !== undefined && resolvedTaxAmount !== undefined) {
+    const itemsSum = Array.isArray(raw.items)
+      ? (raw.items as Array<{ amount?: number }>).reduce((s, i) => s + (parseNumber(i?.amount) ?? 0), 0)
+      : subtotal ?? (total - (resolvedTaxAmount ?? 0));
+    const calculated = Number((itemsSum + (resolvedTaxAmount ?? 0)).toFixed(2));
+    const detected = total;
+    validationResult = {
+      isValid: Math.abs(calculated - detected) < 2.0,
+      calculated,
+      detected,
+    };
+  }
+
   return {
     merchantName,
     amount: total,
-    subtotal: parseNumber(raw.subtotal),
-    taxAmount: parseNumber(raw.taxAmount),
+    subtotal,
+    taxAmount: resolvedTaxAmount,
     date,
     time: firstString(raw.time),
     currency,
+    location: firstString(raw.location) || 'UNKNOWN',
     invoiceNumber: firstString(raw.invoiceNumber),
     items: Array.isArray(raw.items) ? raw.items : undefined,
-    taxes: Array.isArray(raw.taxes) ? raw.taxes : undefined,
+    taxBreakdown,
     paymentMethod: firstString(raw.paymentMethod),
+    category: firstString(raw.category),
+    description: firstString(raw.description),
+    validationResult,
     rawFields: raw,
   };
 };

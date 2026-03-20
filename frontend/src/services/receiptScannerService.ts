@@ -477,9 +477,16 @@ function cloneCanvas(source: HTMLCanvasElement) {
 
 async function renderPdfToCanvas(file: File) {
   const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer, disableFontFace: true }).promise;
+  const pdf = await pdfjsLib.getDocument({ 
+    data: buffer, 
+    disableFontFace: true,
+    disableAutoFetch: true,
+    disableStream: true,
+  }).promise;
+  
+  // Process first page for invoices, optimize for speed
   const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 2 });
+  const viewport = page.getViewport({ scale: 1.5 }); // Reduced scale for faster processing
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
 
@@ -489,7 +496,17 @@ async function renderPdfToCanvas(file: File) {
 
   canvas.width = viewport.width;
   canvas.height = viewport.height;
-  await page.render({ canvasContext: context, viewport }).promise;
+  
+  // Optimize rendering settings for speed
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = 'medium';
+  
+  await page.render({ 
+    canvasContext: context, 
+    viewport,
+    intent: 'display' // Faster than 'print' intent
+  }).promise;
+  
   return canvas;
 }
 
@@ -608,7 +625,7 @@ function enhanceCanvas(canvas: HTMLCanvasElement) {
 }
 
 function upscaleCanvasForOcr(canvas: HTMLCanvasElement) {
-  const minShortEdge = 1400;
+  const minShortEdge = 1200; // Reduced from 1400 for faster processing
   const shortEdge = Math.min(canvas.width, canvas.height);
   if (shortEdge >= minShortEdge) return canvas;
 
@@ -622,22 +639,29 @@ function upscaleCanvasForOcr(canvas: HTMLCanvasElement) {
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, upscaled.width, upscaled.height);
   context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = 'high';
+  context.imageSmoothingQuality = 'medium'; // Reduced quality for speed
   context.drawImage(canvas, 0, 0, upscaled.width, upscaled.height);
   return upscaled;
 }
 
-export async function preprocessReceiptFile(file: File) {
+export async function preprocessReceiptFile(file: File): Promise<Blob> {
+  // Fast path for PDF invoices
+  if (file.type === 'application/pdf') {
+    const canvas = await renderPdfToCanvas(file);
+    const trimmed = trimCanvas(canvas);
+    const enhanced = enhanceCanvas(trimmed);
+    const upscaled = upscaleCanvasForOcr(enhanced);
+    return canvasToBlob(upscaled);
+  }
+  
+  // Optimized image processing
   const variants = await preprocessReceiptFileVariants(file);
   const enhancedVariant = variants.find((variant) => variant.label === 'enhanced');
   return enhancedVariant?.blob || variants[0].blob;
 }
 
 export async function preprocessReceiptFileVariants(file: File): Promise<Array<{ label: string; blob: Blob }>> {
-  const baseCanvas = file.type === 'application/pdf'
-    ? await renderPdfToCanvas(file)
-    : await loadImageToCanvas(file);
-
+  const baseCanvas = await loadImageToCanvas(file);
   const trimmed = trimCanvas(baseCanvas);
 
   // Skip variants derived from tiny trimmed canvases — Tesseract can't handle them
@@ -645,16 +669,15 @@ export async function preprocessReceiptFileVariants(file: File): Promise<Array<{
     return [];
   }
 
-  const cleanVariant = upscaleCanvasForOcr(cloneCanvas(trimmed));
-  const enhancedVariant = upscaleCanvasForOcr(enhanceCanvas(cloneCanvas(trimmed)));
-  const variants = await Promise.all([
-    canvasToBlob(cleanVariant),
-    canvasToBlob(enhancedVariant),
+  // Parallel processing for faster variants generation
+  const [cleanVariant, enhancedVariant] = await Promise.all([
+    canvasToBlob(upscaleCanvasForOcr(cloneCanvas(trimmed))),
+    canvasToBlob(upscaleCanvasForOcr(enhanceCanvas(cloneCanvas(trimmed)))),
   ]);
 
   return [
-    { label: 'clean', blob: variants[0] },
-    { label: 'enhanced', blob: variants[1] },
+    { label: 'clean', blob: cleanVariant },
+    { label: 'enhanced', blob: enhancedVariant },
   ];
 }
 

@@ -1,15 +1,32 @@
 import React from 'react';
-import { Upload, Camera, CheckCircle2, AlertCircle, Loader, ScanLine, RefreshCw } from 'lucide-react';
+import {
+  Upload,
+  Camera,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Loader,
+  ScanLine,
+  RefreshCw,
+  Globe,
+  Receipt,
+  Layers,
+  Sparkles,
+} from 'lucide-react';
 import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 import { normalizeCategorySelection } from '@/lib/expenseCategories';
 import { type Account } from '@/lib/database';
 import { cn } from '@/lib/utils';
-import type { ReceiptScanResult } from '@/types/receipt.types';
+import type { ReceiptScanResult, TaxComponent, TotalValidationResult } from '@/types/receipt.types';
 
 export type ScanFieldUpdater = <K extends keyof ReceiptScanResult>(
   field: K,
   value: ReceiptScanResult[K],
 ) => void;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE SELECTION VIEW
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const FileSelectionView: React.FC<{
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -95,6 +112,10 @@ const PrivacyNotice: React.FC<{
   </div>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PREVIEW VIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const PreviewView: React.FC<{
   file: File;
   previewUrl: string;
@@ -154,6 +175,10 @@ const ScanningOverlay: React.FC<{ progress: number; status: string }> = ({ progr
   </div>
 );
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RESULTS VIEW — full intelligence display
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const ResultsView: React.FC<{
   scanResult: ReceiptScanResult;
   accounts: Account[];
@@ -182,8 +207,31 @@ export const ResultsView: React.FC<{
   onSubmit,
 }) => (
   <div className="space-y-4">
-    <ConfidenceBadge confidence={scanResult.confidence ?? 0} />
+    {/* Confidence + location row */}
+    <div className="flex gap-2">
+      <div className="flex-1">
+        <ConfidenceBadge confidence={scanResult.confidence ?? 0} />
+      </div>
+      {scanResult.location && scanResult.location !== 'UNKNOWN' && (
+        <LocationBadge location={scanResult.location} />
+      )}
+    </div>
 
+    {/* Validation warning */}
+    {scanResult.validationResult && !scanResult.validationResult.isValid && (
+      <ValidationWarning
+        calculated={scanResult.validationResult.calculated}
+        detected={scanResult.validationResult.detected}
+        currency={currency}
+      />
+    )}
+
+    {/* AI-generated smart description */}
+    {scanResult.description && (
+      <SmartDescriptionBadge description={scanResult.description} />
+    )}
+
+    {/* Main editable fields */}
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 divide-y divide-gray-100">
       <AmountField
         amount={scanResult.amount}
@@ -274,11 +322,20 @@ export const ResultsView: React.FC<{
         onChange={(value) => onFieldChange('notes', value)}
         placeholder="Fuel receipt, hotel bill, office expense..."
       />
-
-      {scanResult.items && scanResult.items.length > 0 && (
-        <ItemsList items={scanResult.items} currency={currency} />
-      )}
     </div>
+
+    {/* Tax Breakdown Panel */}
+    {scanResult.taxBreakdown && scanResult.taxBreakdown.length > 0 && (
+      <TaxBreakdownPanel
+        taxes={scanResult.taxBreakdown}
+        currency={scanResult.currency || currency}
+      />
+    )}
+
+    {/* Items Panel */}
+    {scanResult.items && scanResult.items.length > 0 && (
+      <ItemsPanel items={scanResult.items} currency={scanResult.currency || currency} />
+    )}
 
     <AccountSelector
       accounts={accounts}
@@ -296,6 +353,29 @@ export const ResultsView: React.FC<{
     />
   </div>
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INTELLIGENCE BADGES & PANELS
+// ─────────────────────────────────────────────────────────────────────────────
+
+const LOCATION_FLAGS: Record<string, string> = {
+  INDIA: '🇮🇳',
+  USA: '🇺🇸',
+  EU: '🇪🇺',
+  UAE: '🇦🇪',
+  UK: '🇬🇧',
+  AUSTRALIA: '🇦🇺',
+};
+
+const LocationBadge: React.FC<{ location: string }> = ({ location }) => {
+  const flag = LOCATION_FLAGS[location] ?? '🌍';
+  return (
+    <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-purple-100 bg-purple-50 px-3 py-2">
+      <Globe size={13} className="text-purple-500" />
+      <span className="text-xs font-bold text-purple-700">{flag} {location}</span>
+    </div>
+  );
+};
 
 const ConfidenceBadge: React.FC<{ confidence: number }> = ({ confidence }) => {
   const isHighConfidence = confidence >= 0.8;
@@ -317,12 +397,123 @@ const ConfidenceBadge: React.FC<{ confidence: number }> = ({ confidence }) => {
           {isHighConfidence ? 'High confidence scan' : 'Please review the extracted data'}
         </p>
         <p className={cn('text-xs', isHighConfidence ? 'text-emerald-600' : 'text-amber-600')}>
-          Confidence: {(confidence * 100).toFixed(0)}% - edit any field if needed
+          Confidence: {(confidence * 100).toFixed(0)}% — edit any field if needed
         </p>
       </div>
     </div>
   );
 };
+
+const ValidationWarning: React.FC<{
+  calculated: number;
+  detected: number;
+  currency: string;
+}> = ({ calculated, detected, currency }) => (
+  <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-3.5">
+    <AlertTriangle size={18} className="shrink-0 text-red-500 mt-0.5" />
+    <div>
+      <p className="text-sm font-bold text-red-800">Bill total mismatch detected</p>
+      <p className="text-xs text-red-600">
+        Calculated from items + taxes: <strong>{currency} {calculated.toFixed(2)}</strong>
+        {' vs '}
+        printed total: <strong>{currency} {detected.toFixed(2)}</strong>.
+        Please verify the amount before saving.
+      </p>
+    </div>
+  </div>
+);
+
+const SmartDescriptionBadge: React.FC<{ description: string }> = ({ description }) => (
+  <div className="flex items-start gap-2.5 rounded-2xl border border-indigo-100 bg-indigo-50 px-3.5 py-3">
+    <Sparkles size={15} className="mt-0.5 shrink-0 text-indigo-500" />
+    <div>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">AI Summary</p>
+      <p className="text-sm font-medium text-indigo-800">{description}</p>
+    </div>
+  </div>
+);
+
+// ─── Tax Breakdown ────────────────────────────────────────────────────────────
+
+const TaxBreakdownPanel: React.FC<{
+  taxes: TaxComponent[];
+  currency: string;
+}> = ({ taxes, currency }) => {
+  const totalTax = taxes.reduce((s, t) => s + t.amount, 0);
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-orange-100 bg-orange-50">
+      <div className="flex items-center gap-2 border-b border-orange-100 px-4 py-3">
+        <Layers size={14} className="text-orange-500" />
+        <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600">
+          Tax Breakdown
+        </p>
+      </div>
+      <div className="divide-y divide-orange-100">
+        {taxes.map((tax, idx) => (
+          <div key={idx} className="flex items-center justify-between px-4 py-2.5">
+            <div>
+              <span className="text-sm font-semibold text-gray-800">{tax.name}</span>
+              {tax.rate !== undefined && (
+                <span className="ml-1.5 text-xs text-gray-400">@{tax.rate}%</span>
+              )}
+            </div>
+            <span className="text-sm font-bold text-orange-700">
+              {currency} {tax.amount.toFixed(2)}
+            </span>
+          </div>
+        ))}
+        <div className="flex items-center justify-between bg-orange-100/60 px-4 py-2.5">
+          <span className="text-xs font-bold uppercase tracking-wider text-orange-700">Total Tax</span>
+          <span className="text-sm font-bold text-orange-800">
+            {currency} {totalTax.toFixed(2)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Items Panel ──────────────────────────────────────────────────────────────
+
+const ItemsPanel: React.FC<{
+  items: ReceiptScanResult['items'];
+  currency: string;
+}> = ({ items, currency }) => {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
+        <Receipt size={14} className="text-gray-500" />
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+          Detected Items ({items.length})
+        </p>
+      </div>
+      <div className="max-h-44 divide-y divide-gray-50 overflow-y-auto">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex items-center justify-between px-4 py-2.5">
+            <div className="min-w-0 flex-1 mr-3">
+              <p className="truncate text-sm font-medium text-gray-800">{item.name}</p>
+              {item.quantity !== undefined && item.rate !== undefined && (
+                <p className="text-[11px] text-gray-400">
+                  {item.quantity} × {currency} {item.rate.toFixed(2)}
+                </p>
+              )}
+            </div>
+            <span className="shrink-0 text-sm font-bold text-gray-900">
+              {currency} {item.amount.toFixed(2)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FORM FIELD PRIMITIVES
+// ─────────────────────────────────────────────────────────────────────────────
 
 const AmountField: React.FC<{
   amount?: number;
@@ -437,26 +628,9 @@ const SelectField: React.FC<{
   </div>
 );
 
-const ItemsList: React.FC<{
-  items: Array<{ name: string; amount: number }>;
-  currency: string;
-}> = ({ items, currency }) => (
-  <div className="p-4">
-    <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-      Detected Items ({items.length})
-    </p>
-    <div className="max-h-32 space-y-1 overflow-y-auto">
-      {items.map((item, index) => (
-        <div key={index} className="flex justify-between border-b border-gray-100 py-1 text-xs last:border-0">
-          <span className="mr-4 truncate text-gray-600">{item.name}</span>
-          <span className="shrink-0 font-semibold text-gray-900">
-            {currency} {item.amount.toFixed(2)}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+// ─────────────────────────────────────────────────────────────────────────────
+// ACCOUNT SELECTOR & ACTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 
 const AccountSelector: React.FC<{
   accounts: Account[];
