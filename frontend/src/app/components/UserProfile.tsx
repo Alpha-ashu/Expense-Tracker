@@ -693,7 +693,7 @@ export const UserProfile: React.FC = () => {
               className="relative"
             >
               <img
-                src={activeAvatarUrl}
+                src={activeAvatar.url}
                 alt="Avatar"
                 className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover shadow-lg"
               />

@@ -28,12 +28,14 @@ router.get(
 router.delete(
   '/availability/:id',
   requireRole('advisor'),
+  requireApproved,
   AdvisorController.deleteAvailability
 );
 
 router.get(
   '/me/sessions',
   requireRole('advisor'),
+  requireApproved,
   AdvisorController.getSessions
 );
 

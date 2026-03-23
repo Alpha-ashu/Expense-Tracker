@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Account {
-  id               String             @id
+  id               String             @id @default(uuid())
   userId           String
   deviceId         String?
   name             String
@@ -20,12 +20,12 @@ model Account {
   isActive         Boolean            @default(true)
   syncStatus       String             @default("synced")
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime           @updatedAt
   deletedAt        DateTime?
-  User             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  GoalContribution GoalContribution[]
-  Transaction      Transaction[]
-  group_expenses   group_expenses[]
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalContributions GoalContribution[]
+  transactions     Transaction[]
+  groupExpenses    GroupExpense[]
 
   @@index([isActive])
   @@index([syncStatus])
@@ -33,21 +33,21 @@ model Account {
 }
 
 model AdvisorAvailability {
-  id        String   @id
+  id        String   @id @default(uuid())
   advisorId String
   dayOfWeek Int
   startTime String
   endTime   String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime
-  User      User     @relation(fields: [advisorId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  advisor   User     @relation(fields: [advisorId], references: [id], onDelete: Cascade)
 
   @@index([advisorId])
 }
 
 model AdvisorSession {
-  id                                  String         @id
+  id                                  String         @id @default(uuid())
   bookingId                           String         @unique
   advisorId                           String
   clientId                            String
@@ -59,12 +59,12 @@ model AdvisorSession {
   rating                              Float?
   feedback                            String?
   createdAt                           DateTime       @default(now())
-  updatedAt                           DateTime
-  User_AdvisorSession_advisorIdToUser User           @relation("AdvisorSession_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
-  BookingRequest                      BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  User_AdvisorSession_clientIdToUser  User           @relation("AdvisorSession_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
-  ChatMessage                         ChatMessage[]
-  Payment                             Payment?
+  updatedAt                           DateTime       @updatedAt
+  advisor                             User           @relation("AdvisorSession_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  booking                             BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  client                              User           @relation("AdvisorSession_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  chatMessages                        ChatMessage[]
+  payment                             Payment?
 
   @@index([advisorId])
   @@index([clientId])
@@ -73,7 +73,7 @@ model AdvisorSession {
 }
 
 model BookingRequest {
-  id                                  String          @id
+  id                                  String          @id @default(uuid())
   clientId                            String
   advisorId                           String
   sessionType                         String
@@ -85,10 +85,10 @@ model BookingRequest {
   status                              String          @default("pending")
   rejectionReason                     String?
   createdAt                           DateTime        @default(now())
-  updatedAt                           DateTime
-  AdvisorSession                      AdvisorSession?
-  User_BookingRequest_advisorIdToUser User            @relation("BookingRequest_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
-  User_BookingRequest_clientIdToUser  User            @relation("BookingRequest_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  updatedAt                           DateTime        @updatedAt
+  session                             AdvisorSession?
+  advisor                             User            @relation("BookingRequest_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  client                              User            @relation("BookingRequest_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([advisorId])
   @@index([clientId])
@@ -97,7 +97,7 @@ model BookingRequest {
 }
 
 model Category {
-  id                String    @id
+  id                String    @id @default(uuid())
   userId            String
   name              String
   type              String
@@ -105,9 +105,9 @@ model Category {
   icon              String
   createdFromImport Boolean   @default(false)
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
-  User              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, name, type])
   @@index([type])
@@ -115,13 +115,13 @@ model Category {
 }
 
 model ChatMessage {
-  id             String         @id
+  id             String         @id @default(uuid())
   sessionId      String
   senderId       String
   message        String
   timestamp      DateTime       @default(now())
-  User           User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  AdvisorSession AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender         User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  session        AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([senderId])
   @@index([sessionId])
@@ -129,7 +129,7 @@ model ChatMessage {
 }
 
 model Device {
-  id         String   @id
+  id         String   @id @default(uuid())
   userId     String
   deviceId   String   @unique
   deviceName String?
@@ -140,8 +140,8 @@ model Device {
   isTrusted  Boolean  @default(false)
   lastSeenAt DateTime @default(now())
   createdAt  DateTime @default(now())
-  updatedAt  DateTime
-  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([deviceId])
   @@index([isActive])
@@ -149,7 +149,7 @@ model Device {
 }
 
 model ExpenseBill {
-  id               String   @id
+  id               String   @id @default(uuid())
   userId           String
   transactionId    String?
   originalName     String
@@ -161,8 +161,8 @@ model ExpenseBill {
   scanResult       String?
   moderationStatus String?
   createdAt        DateTime @default(now())
-  updatedAt        DateTime
-  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([sha256])
   @@index([transactionId])
@@ -170,7 +170,7 @@ model ExpenseBill {
 }
 
 model Friend {
-  id         String    @id
+  id         String    @id @default(uuid())
   userId     String
   deviceId   String?
   name       String
@@ -180,16 +180,16 @@ model Friend {
   notes      String?
   syncStatus String    @default("synced")
   createdAt  DateTime  @default(now())
-  updatedAt  DateTime
+  updatedAt  DateTime  @updatedAt
   deletedAt  DateTime?
-  User       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([syncStatus])
   @@index([userId])
 }
 
 model Goal {
-  id               String             @id
+  id               String             @id @default(uuid())
   userId           String
   deviceId         String?
   name             String
@@ -201,10 +201,10 @@ model Goal {
   isGroupGoal      Boolean            @default(false)
   syncStatus       String             @default("synced")
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime           @updatedAt
   deletedAt        DateTime?
-  User             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  GoalContribution GoalContribution[]
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalContributions GoalContribution[]
 
   @@index([syncStatus])
   @@index([targetDate])
@@ -212,7 +212,7 @@ model Goal {
 }
 
 model GoalContribution {
-  id         String   @id
+  id         String   @id @default(uuid())
   userId     String
   goalId     String
   accountId  String
@@ -222,10 +222,10 @@ model GoalContribution {
   status     String?
   notes      String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime
-  Account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  Goal       Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  User       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt  DateTime @updatedAt
+  account    Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  goal       Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
   @@index([date])
@@ -234,7 +234,7 @@ model GoalContribution {
 }
 
 model ImportLog {
-  id                String   @id
+  id                String   @id @default(uuid())
   userId            String
   fileName          String
   fileType          String
@@ -251,7 +251,7 @@ model ImportLog {
   errors            String   @default("[]")
   metadata          String?
   createdAt         DateTime @default(now())
-  User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([sourceKind])
@@ -259,7 +259,7 @@ model ImportLog {
 }
 
 model Investment {
-  id            String    @id
+  id            String    @id @default(uuid())
   userId        String
   assetType     String
   assetName     String
@@ -272,16 +272,16 @@ model Investment {
   purchaseDate  DateTime
   lastUpdated   DateTime
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
-  User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([assetType])
   @@index([userId])
 }
 
 model Loan {
-  id                 String        @id
+  id                 String        @id @default(uuid())
   userId             String
   deviceId           String?
   type               String
@@ -296,10 +296,10 @@ model Loan {
   contactPerson      String?
   syncStatus         String        @default("synced")
   createdAt          DateTime      @default(now())
-  updatedAt          DateTime
+  updatedAt          DateTime      @updatedAt
   deletedAt          DateTime?
-  User               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  LoanPayment        LoanPayment[]
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments           LoanPayment[]
 
   @@index([dueDate])
   @@index([status])
@@ -308,21 +308,21 @@ model Loan {
 }
 
 model LoanPayment {
-  id        String   @id
+  id        String   @id @default(uuid())
   loanId    String
   amount    Float
   accountId String?
   date      DateTime
   notes     String?
   createdAt DateTime @default(now())
-  Loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
 
   @@index([date])
   @@index([loanId])
 }
 
 model Notification {
-  id        String    @id
+  id        String    @id @default(uuid())
   userId    String
   title     String
   message   String
@@ -332,7 +332,7 @@ model Notification {
   isRead    Boolean   @default(false)
   createdAt DateTime  @default(now())
   readAt    DateTime?
-  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([isRead])
@@ -340,7 +340,7 @@ model Notification {
 }
 
 model Payment {
-  id                           String         @id
+  id                           String         @id @default(uuid())
   sessionId                    String         @unique
   clientId                     String
   advisorId                    String
@@ -351,10 +351,10 @@ model Payment {
   transactionId                String?
   description                  String?
   createdAt                    DateTime       @default(now())
-  updatedAt                    DateTime
-  User_Payment_advisorIdToUser User           @relation("Payment_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
-  User_Payment_clientIdToUser  User           @relation("Payment_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
-  AdvisorSession               AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  updatedAt                    DateTime       @updatedAt
+  advisor                      User           @relation("Payment_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  client                       User           @relation("Payment_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  session                      AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([advisorId])
   @@index([clientId])
@@ -363,18 +363,18 @@ model Payment {
 }
 
 model RefreshToken {
-  id        String   @id
+  id        String   @id @default(uuid())
   token     String   @unique
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model SyncQueue {
-  id           String    @id
+  id           String    @id @default(uuid())
   userId       String
   deviceId     String
   entityType   String
@@ -395,19 +395,19 @@ model SyncQueue {
 }
 
 model Todo {
-  id        String   @id
+  id        String   @id @default(uuid())
   title     String
   completed Boolean  @default(false)
   userId    String
   createdAt DateTime @default(now())
-  updatedAt DateTime
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Transaction {
-  id                  String          @id
+  id                  String          @id @default(uuid())
   userId              String
   deviceId            String?
   accountId           String
@@ -435,11 +435,11 @@ model Transaction {
   synced              Boolean         @default(false)
   syncStatus          String          @default("synced")
   createdAt           DateTime        @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime        @updatedAt
   deletedAt           DateTime?
-  Account             Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  group_expenses      group_expenses? @relation(fields: [groupExpenseId], references: [id])
-  User                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account             Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  groupExpense        GroupExpense?   @relation(fields: [groupExpenseId], references: [id])
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
   @@index([category])
@@ -450,7 +450,7 @@ model Transaction {
 }
 
 model User {
-  id                                            String                @id
+  id                                            String                @id @default(uuid())
   email                                         String                @unique
   name                                          String
   password                                      String
@@ -465,46 +465,46 @@ model User {
   lastSynced                                    DateTime?
   syncToken                                     String?
   createdAt                                     DateTime              @default(now())
-  updatedAt                                     DateTime
+  updatedAt                                     DateTime              @updatedAt
   avatarId                                      String?
   city                                          String?
   country                                       String?
   gender                                        String?
   state                                         String?
-  Account                                       Account[]
-  AdvisorAvailability                           AdvisorAvailability[]
-  AdvisorSession_AdvisorSession_advisorIdToUser AdvisorSession[]      @relation("AdvisorSession_advisorIdToUser")
-  AdvisorSession_AdvisorSession_clientIdToUser  AdvisorSession[]      @relation("AdvisorSession_clientIdToUser")
-  BookingRequest_BookingRequest_advisorIdToUser BookingRequest[]      @relation("BookingRequest_advisorIdToUser")
-  BookingRequest_BookingRequest_clientIdToUser  BookingRequest[]      @relation("BookingRequest_clientIdToUser")
-  Category                                      Category[]
-  ChatMessage                                   ChatMessage[]
-  Device                                        Device[]
-  ExpenseBill                                   ExpenseBill[]
-  Friend                                        Friend[]
-  Goal                                          Goal[]
-  GoalContribution                              GoalContribution[]
-  ImportLog                                     ImportLog[]
-  Investment                                    Investment[]
-  Loan                                          Loan[]
-  Notification                                  Notification[]
-  Payment_Payment_advisorIdToUser               Payment[]             @relation("Payment_advisorIdToUser")
-  Payment_Payment_clientIdToUser                Payment[]             @relation("Payment_clientIdToUser")
-  RefreshToken                                  RefreshToken[]
-  Todo                                          Todo[]
-  Transaction                                   Transaction[]
-  UserPin                                       UserPin?
-  UserSettings                                  UserSettings?
-  OtpCode                                       OtpCode[]
-  AiScan                                        AiScan[]
-  group_expenses                                group_expenses[]
+  accounts                                      Account[]
+  advisorAvailability                           AdvisorAvailability[]
+  sessionsAsAdvisor                             AdvisorSession[]      @relation("AdvisorSession_advisorIdToUser")
+  sessionsAsClient                              AdvisorSession[]      @relation("AdvisorSession_clientIdToUser")
+  bookingsAsAdvisor                             BookingRequest[]      @relation("BookingRequest_advisorIdToUser")
+  bookingsAsClient                              BookingRequest[]      @relation("BookingRequest_clientIdToUser")
+  categories                                    Category[]
+  chatMessages                                  ChatMessage[]
+  devices                                       Device[]
+  expenseBills                                  ExpenseBill[]
+  friends                                       Friend[]
+  goals                                         Goal[]
+  goalContributions                             GoalContribution[]
+  importLogs                                    ImportLog[]
+  investments                                   Investment[]
+  loans                                         Loan[]
+  notifications                                 Notification[]
+  paymentsAsAdvisor                             Payment[]             @relation("Payment_advisorIdToUser")
+  paymentsAsClient                              Payment[]             @relation("Payment_clientIdToUser")
+  refreshTokens                                 RefreshToken[]
+  todos                                         Todo[]
+  transactions                                  Transaction[]
+  userPin                                       UserPin?
+  userSettings                                  UserSettings?
+  otpCodes                                      OtpCode[]
+  aiScans                                       AiScan[]
+  groupExpenses                                 GroupExpense[]
 
   @@index([isApproved])
   @@index([role])
 }
 
 model UserPin {
-  id             String    @id
+  id             String    @id @default(uuid())
   userId         String    @unique
   pinHash        String
   expiresAt      DateTime
@@ -512,8 +512,8 @@ model UserPin {
   failedAttempts Int       @default(0)
   lockedUntil    DateTime?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime
-  User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@index([isActive])
@@ -521,7 +521,7 @@ model UserPin {
 }
 
 model UserSettings {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String   @unique
   theme     String   @default("light")
   language  String   @default("en")
@@ -529,28 +529,28 @@ model UserSettings {
   timezone  String   @default("UTC")
   settings  String   @default("{}")
   createdAt DateTime @default(now())
-  updatedAt DateTime
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model OtpCode {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   code      String
   expiresAt DateTime
   attempts  Int      @default(0)
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
 
 model AiScan {
-  id             String   @id
+  id             String   @id @default(uuid())
   userId         String
   billId         String?
   transactionId  String?
@@ -561,7 +561,7 @@ model AiScan {
   status         String   @default("completed")
   errorMessage   String?
   createdAt      DateTime @default(now())
-  User           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([billId])
@@ -606,8 +606,8 @@ model ai_model_runs {
   @@index([run_type], map: "idx_ai_runs_type")
 }
 
-model group_expenses {
-  id                   String        @id
+model GroupExpense {
+  id                   String        @id @default(uuid())
   userId               String
   deviceId             String?
   name                 String
@@ -628,16 +628,17 @@ model group_expenses {
   notificationStatus   String?
   syncStatus           String        @default("synced")
   createdAt            DateTime      @default(now())
-  updatedAt            DateTime
+  updatedAt            DateTime      @updatedAt
   deletedAt            DateTime?
-  Transaction          Transaction[]
-  Account              Account?      @relation(fields: [paidBy], references: [id])
-  User                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         Transaction[]
+  paidByAccount        Account?      @relation(fields: [paidBy], references: [id])
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([date])
   @@index([paidBy])
   @@index([syncStatus])
   @@index([userId])
+  @@map("group_expenses")
 }
 
 model user_features {

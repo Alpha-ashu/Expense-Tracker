@@ -27,9 +27,10 @@ export class AuthService {
       // Hash password
       const hashedPassword = await bcrypt.hash(input.password, 10);
 
-      // Determine role and approval status
-      const role = input.role || 'user';
-      const isApproved = role === 'user'; // Users are auto-approved, advisors need admin approval
+      // Never trust a raw role value from the client. Users may request advisor
+      // onboarding, but privileged roles must still be granted by the backend.
+      const role = input.role === 'advisor' ? 'advisor' : 'user';
+      const isApproved = role === 'user'; // Advisors require explicit admin approval
 
 
       // Create user with profile information

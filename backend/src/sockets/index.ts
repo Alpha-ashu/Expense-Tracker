@@ -1,25 +1,47 @@
+import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
 import { Server, Socket } from 'socket.io';
-import { createServer } from 'http';
-import { authMiddleware } from '../middleware/auth';
 import { prisma } from '../db/prisma';
 
 interface AuthenticatedSocket extends Socket {
   userId: string;
+  userRole: string;
   deviceId: string;
 }
 
+interface SocketUserIdentity {
+  id: string;
+  role: string;
+}
+
+const BOOKING_STATUS_UPDATES = new Set(['accepted', 'rejected']);
+const PAYMENT_STATUS_UPDATES = new Set(['completed', 'failed', 'refunded']);
+const PAYMENT_TRANSITIONS: Record<string, string[]> = {
+  pending: ['completed', 'failed'],
+  processing: ['completed', 'failed'],
+  completed: ['refunded'],
+  failed: [],
+  refunded: [],
+};
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = (supabaseUrl && supabaseServiceKey)
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
+
 export class SocketManager {
   private io: Server;
-  private connectedUsers = new Map<string, Set<string>>(); // userId -> Set of socketIds
-  private userDevices = new Map<string, Set<string>>(); // userId -> Set of deviceIds
+  private connectedUsers = new Map<string, Set<string>>();
+  private userDevices = new Map<string, Set<string>>();
 
   constructor(httpServer: any) {
     this.io = new Server(httpServer, {
       cors: {
-        origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-        methods: ["GET", "POST"],
-        credentials: true
-      }
+        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
     });
 
     this.setupMiddleware();
@@ -27,7 +49,6 @@ export class SocketManager {
   }
 
   private setupMiddleware() {
-    // Socket authentication middleware
     this.io.use(async (socket, next) => {
       const authSocket = socket as AuthenticatedSocket;
       try {
@@ -36,18 +57,16 @@ export class SocketManager {
           return next(new Error('Authentication error: No token provided'));
         }
 
-        // Verify token and get user info
         const user = await this.verifyToken(token);
         if (!user) {
           return next(new Error('Authentication error: Invalid token'));
         }
 
         authSocket.userId = user.id;
+        authSocket.userRole = user.role;
         authSocket.deviceId = authSocket.handshake.auth.deviceId || 'unknown';
 
-        // Track connected users and devices
         this.trackUserConnection(user.id, authSocket.id, authSocket.deviceId);
-        
         next();
       } catch (error) {
         console.error('Socket authentication error:', error);
@@ -56,20 +75,57 @@ export class SocketManager {
     });
   }
 
-  private async verifyToken(token: string) {
-    // This should integrate with your existing auth system
-    // For now, we'll use a simple verification
-    try {
-      // In a real implementation, this would verify JWT tokens
-      // and check against your user database
-      const user = await prisma.user.findFirst({
-        where: { 
-          refreshTokens: {
-            some: { token }
+  private async verifyToken(token: string): Promise<SocketUserIdentity | null> {
+    const customSecret = process.env.JWT_SECRET || '';
+
+    if (customSecret) {
+      try {
+        const decoded = jwt.verify(token, customSecret) as jwt.JwtPayload;
+        const userId = typeof decoded === 'object' ? decoded.userId || decoded.sub : null;
+
+        if (typeof userId === 'string' && userId.length > 0) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, role: true, status: true },
+          });
+
+          if (dbUser?.status === 'suspended') {
+            return null;
           }
+
+          return {
+            id: userId,
+            role: dbUser?.role || (typeof decoded.role === 'string' ? decoded.role : 'user'),
+          };
         }
+      } catch (error) {
+        // Fall through to Supabase validation.
+      }
+    }
+
+    if (!supabase) {
+      return null;
+    }
+
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      if (error || !user) {
+        return null;
+      }
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { id: true, role: true, status: true },
       });
-      return user;
+
+      if (dbUser?.status === 'suspended') {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        role: dbUser?.role || (typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : 'user'),
+      };
     } catch (error) {
       console.error('Token verification error:', error);
       return null;
@@ -77,157 +133,150 @@ export class SocketManager {
   }
 
   private trackUserConnection(userId: string, socketId: string, deviceId: string) {
-    // Track user connections
     if (!this.connectedUsers.has(userId)) {
       this.connectedUsers.set(userId, new Set());
     }
     this.connectedUsers.get(userId)!.add(socketId);
 
-    // Track device connections
     if (!this.userDevices.has(userId)) {
       this.userDevices.set(userId, new Set());
     }
     this.userDevices.get(userId)!.add(deviceId);
-
-    // User connected
   }
 
   private setupEventHandlers() {
     this.io.on('connection', (socket) => {
       const authSocket = socket as AuthenticatedSocket;
       const userId = authSocket.userId;
+      const userRole = authSocket.userRole;
       const deviceId = authSocket.deviceId;
 
-      // Socket connected
-
-      // Join user-specific room
       authSocket.join(`user:${userId}`);
-      
-      // Join device-specific room
       authSocket.join(`device:${deviceId}`);
 
-      // Handle sync requests
       authSocket.on('sync_request', async (data) => {
         try {
           const { lastSyncedAt, entityTypes } = data;
-          
-          // Get latest data for the user
           const syncData = await this.getSyncData(userId, lastSyncedAt, entityTypes);
-          
+
           authSocket.emit('sync_response', {
             success: true,
             data: syncData,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
         } catch (error) {
           console.error('Sync request error:', error);
           authSocket.emit('sync_response', {
             success: false,
             error: 'Sync failed',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
         }
       });
 
-      // Handle transaction updates
       authSocket.on('transaction_update', async (data) => {
         try {
           const { transaction } = data;
-          
-          // Validate and save transaction
           const savedTransaction = await this.saveTransaction(userId, transaction);
-          
-          // Broadcast to all user devices
+
           this.broadcastToUserDevices(userId, 'transaction_updated', {
             transaction: savedTransaction,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           authSocket.emit('transaction_saved', {
             success: true,
-            transaction: savedTransaction
+            transaction: savedTransaction,
           });
         } catch (error) {
           console.error('Transaction update error:', error);
           authSocket.emit('transaction_saved', {
             success: false,
-            error: 'Failed to save transaction'
+            error: 'Failed to save transaction',
           });
         }
       });
 
-      // Handle account updates
       authSocket.on('account_update', async (data) => {
         try {
           const { account } = data;
-          
           const savedAccount = await this.saveAccount(userId, account);
-          
+
           this.broadcastToUserDevices(userId, 'account_updated', {
             account: savedAccount,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           authSocket.emit('account_saved', {
             success: true,
-            account: savedAccount
+            account: savedAccount,
           });
         } catch (error) {
           console.error('Account update error:', error);
           authSocket.emit('account_saved', {
             success: false,
-            error: 'Failed to save account'
+            error: 'Failed to save account',
           });
         }
       });
 
-      // Handle goal updates
       authSocket.on('goal_update', async (data) => {
         try {
           const { goal } = data;
-          
           const savedGoal = await this.saveGoal(userId, goal);
-          
+
           this.broadcastToUserDevices(userId, 'goal_updated', {
             goal: savedGoal,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           authSocket.emit('goal_saved', {
             success: true,
-            goal: savedGoal
+            goal: savedGoal,
           });
         } catch (error) {
           console.error('Goal update error:', error);
           authSocket.emit('goal_saved', {
             success: false,
-            error: 'Failed to save goal'
+            error: 'Failed to save goal',
           });
         }
       });
 
-      // Handle booking notifications
       authSocket.on('booking_request', async (data) => {
         try {
-          const { bookingId, message } = data;
-          
-          // Get booking details
-          const booking = await prisma.bookingRequest.findUnique({
-            where: { id: bookingId },
-            include: {
-              client: { select: { name: true, email: true } }
-            }
-          });
-
-          if (!booking) {
-            socket.emit('booking_notification', {
+          const { bookingId, message } = data ?? {};
+          if (!bookingId || typeof bookingId !== 'string') {
+            authSocket.emit('booking_notification', {
               success: false,
-              error: 'Booking not found'
+              error: 'Booking ID is required',
             });
             return;
           }
 
-          // Send notification to advisor
+          const booking = await prisma.bookingRequest.findUnique({
+            where: { id: bookingId },
+            include: {
+              client: { select: { name: true, email: true } },
+            },
+          });
+
+          if (!booking) {
+            authSocket.emit('booking_notification', {
+              success: false,
+              error: 'Booking not found',
+            });
+            return;
+          }
+
+          if (booking.clientId !== userId && userRole !== 'admin') {
+            authSocket.emit('booking_notification', {
+              success: false,
+              error: 'Access denied',
+            });
+            return;
+          }
+
           this.io.to(`user:${booking.advisorId}`).emit('booking_notification', {
             type: 'new_booking',
             booking: {
@@ -237,184 +286,386 @@ export class SocketManager {
               sessionType: booking.sessionType,
               proposedDate: booking.proposedDate,
               amount: booking.amount,
-              message: message
+              message: typeof message === 'string' ? message : undefined,
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
-          socket.emit('booking_notification', {
+          authSocket.emit('booking_notification', {
             success: true,
-            message: 'Booking request sent'
+            message: 'Booking request sent',
           });
         } catch (error) {
           console.error('Booking request error:', error);
-          socket.emit('booking_notification', {
+          authSocket.emit('booking_notification', {
             success: false,
-            error: 'Failed to send booking request'
+            error: 'Failed to send booking request',
           });
         }
       });
 
-      // Handle booking status updates
-      socket.on('booking_status_update', async (data) => {
+      authSocket.on('booking_status_update', async (data) => {
         try {
-          const { bookingId, status, rejectionReason } = data;
-          
-          const updatedBooking = await prisma.bookingRequest.update({
+          const { bookingId, status, rejectionReason } = data ?? {};
+          if (!bookingId || typeof bookingId !== 'string') {
+            authSocket.emit('booking_status_updated', {
+              success: false,
+              error: 'Booking ID is required',
+            });
+            return;
+          }
+
+          if (typeof status !== 'string' || !BOOKING_STATUS_UPDATES.has(status)) {
+            authSocket.emit('booking_status_updated', {
+              success: false,
+              error: 'Invalid booking status',
+            });
+            return;
+          }
+
+          const booking = await prisma.bookingRequest.findUnique({
             where: { id: bookingId },
-            data: { status, rejectionReason },
             include: {
-              client: { select: { name: true } },
-              advisor: { select: { name: true } }
-            }
+              advisor: { select: { name: true } },
+            },
           });
 
-          // Notify client about status change
+          if (!booking) {
+            authSocket.emit('booking_status_updated', {
+              success: false,
+              error: 'Booking not found',
+            });
+            return;
+          }
+
+          if (booking.advisorId !== userId && userRole !== 'admin') {
+            authSocket.emit('booking_status_updated', {
+              success: false,
+              error: 'Access denied',
+            });
+            return;
+          }
+
+          const updatedBooking = await prisma.bookingRequest.update({
+            where: { id: bookingId },
+            data: {
+              status,
+              rejectionReason: status === 'rejected' && typeof rejectionReason === 'string'
+                ? rejectionReason.trim() || null
+                : null,
+            },
+            include: {
+              client: { select: { name: true } },
+              advisor: { select: { name: true } },
+            },
+          });
+
+          let sessionId: string | undefined;
+          if (status === 'accepted') {
+            const sessionEnd = new Date(updatedBooking.proposedDate);
+            sessionEnd.setMinutes(sessionEnd.getMinutes() + updatedBooking.duration);
+
+            const session = await prisma.advisorSession.upsert({
+              where: { bookingId: updatedBooking.id },
+              update: {
+                advisorId: updatedBooking.advisorId,
+                clientId: updatedBooking.clientId,
+                startTime: updatedBooking.proposedDate,
+                endTime: sessionEnd,
+                sessionType: updatedBooking.sessionType,
+                status: 'scheduled',
+              },
+              create: {
+                bookingId: updatedBooking.id,
+                advisorId: updatedBooking.advisorId,
+                clientId: updatedBooking.clientId,
+                startTime: updatedBooking.proposedDate,
+                endTime: sessionEnd,
+                sessionType: updatedBooking.sessionType,
+                status: 'scheduled',
+              },
+            });
+            sessionId = session.id;
+          }
+
+          await prisma.notification.create({
+            data: {
+              userId: updatedBooking.clientId,
+              title: status === 'accepted' ? 'Booking Accepted' : 'Booking Rejected',
+              message: status === 'accepted'
+                ? 'Your advisor has accepted your booking request'
+                : `Your advisor rejected your booking request${updatedBooking.rejectionReason ? `: ${updatedBooking.rejectionReason}` : ''}`,
+              category: 'booking',
+              deepLink: sessionId ? `/sessions/${sessionId}` : '/bookings',
+            },
+          });
+
           this.io.to(`user:${updatedBooking.clientId}`).emit('booking_status_changed', {
             booking: {
               id: updatedBooking.id,
               status: updatedBooking.status,
               rejectionReason: updatedBooking.rejectionReason,
-              advisorName: updatedBooking.advisor.name
+              advisorName: updatedBooking.advisor.name,
+              sessionId,
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
-          socket.emit('booking_status_updated', {
+          authSocket.emit('booking_status_updated', {
             success: true,
-            booking: updatedBooking
+            booking: {
+              ...updatedBooking,
+              sessionId,
+            },
           });
         } catch (error) {
           console.error('Booking status update error:', error);
-          socket.emit('booking_status_updated', {
+          authSocket.emit('booking_status_updated', {
             success: false,
-            error: 'Failed to update booking status'
+            error: 'Failed to update booking status',
           });
         }
       });
 
-      // Handle payment notifications
-      socket.on('payment_status_update', async (data) => {
+      authSocket.on('payment_status_update', async (data) => {
         try {
-          const { paymentId, status } = data;
-          
-          const payment = await prisma.payment.findUnique({
-            where: { id: paymentId },
-            include: {
-              client: { select: { name: true } },
-              advisor: { select: { name: true } }
-            }
-          });
-
-          if (!payment) {
-            socket.emit('payment_notification', {
+          const { paymentId, status } = data ?? {};
+          if (!paymentId || typeof paymentId !== 'string') {
+            authSocket.emit('payment_status_updated', {
               success: false,
-              error: 'Payment not found'
+              error: 'Payment ID is required',
             });
             return;
           }
 
-          // Notify client about payment status
-          this.io.to(`user:${payment.clientId}`).emit('payment_status_changed', {
-            payment: {
-              id: payment.id,
-              status: status,
-              amount: payment.amount,
-              advisorName: payment.advisor.name
+          if (typeof status !== 'string' || !PAYMENT_STATUS_UPDATES.has(status)) {
+            authSocket.emit('payment_status_updated', {
+              success: false,
+              error: 'Invalid payment status',
+            });
+            return;
+          }
+
+          const payment = await prisma.payment.findUnique({
+            where: { id: paymentId },
+            include: {
+              client: { select: { name: true } },
+              advisor: { select: { name: true } },
             },
-            timestamp: new Date().toISOString()
           });
 
-          // Notify advisor about payment
-          this.io.to(`user:${payment.advisorId}`).emit('payment_received', {
+          if (!payment) {
+            authSocket.emit('payment_status_updated', {
+              success: false,
+              error: 'Payment not found',
+            });
+            return;
+          }
+
+          const actorCanUpdate = status === 'refunded'
+            ? payment.advisorId === userId || userRole === 'admin'
+            : payment.clientId === userId || userRole === 'admin';
+
+          if (!actorCanUpdate) {
+            authSocket.emit('payment_status_updated', {
+              success: false,
+              error: 'Access denied',
+            });
+            return;
+          }
+
+          if (payment.status !== status) {
+            const allowedTransitions = PAYMENT_TRANSITIONS[payment.status] || [];
+            if (!allowedTransitions.includes(status)) {
+              authSocket.emit('payment_status_updated', {
+                success: false,
+                error: 'Invalid payment state transition',
+              });
+              return;
+            }
+          }
+
+          const updatedPayment = payment.status === status
+            ? payment
+            : await prisma.payment.update({
+              where: { id: paymentId },
+              data: { status },
+              include: {
+                client: { select: { name: true } },
+                advisor: { select: { name: true } },
+              },
+            });
+
+          if (status === 'completed') {
+            await prisma.notification.create({
+              data: {
+                userId: updatedPayment.advisorId,
+                title: 'Payment Received',
+                message: `You received a payment of ${updatedPayment.amount} ${updatedPayment.currency}`,
+                category: 'payment',
+                deepLink: `/payments/${updatedPayment.id}`,
+              },
+            });
+          } else if (status === 'failed') {
+            await prisma.notification.create({
+              data: {
+                userId: updatedPayment.clientId,
+                title: 'Payment Failed',
+                message: `Your payment of ${updatedPayment.amount} ${updatedPayment.currency} failed. Please try again.`,
+                category: 'payment',
+                deepLink: `/sessions/${updatedPayment.sessionId}`,
+              },
+            });
+          } else if (status === 'refunded') {
+            await prisma.notification.createMany({
+              data: [
+                {
+                  userId: updatedPayment.clientId,
+                  title: 'Payment Refunded',
+                  message: `Your payment of ${updatedPayment.amount} ${updatedPayment.currency} has been refunded`,
+                  category: 'payment',
+                },
+                {
+                  userId: updatedPayment.advisorId,
+                  title: 'Payment Refunded',
+                  message: `A payment of ${updatedPayment.amount} ${updatedPayment.currency} was refunded`,
+                  category: 'payment',
+                },
+              ],
+            });
+          }
+
+          this.io.to(`user:${updatedPayment.clientId}`).emit('payment_status_changed', {
             payment: {
-              id: payment.id,
-              status: status,
-              amount: payment.amount,
-              clientName: payment.client.name
+              id: updatedPayment.id,
+              status: updatedPayment.status,
+              amount: updatedPayment.amount,
+              advisorName: updatedPayment.advisor.name,
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
-          socket.emit('payment_status_updated', {
+          this.io.to(`user:${updatedPayment.advisorId}`).emit('payment_received', {
+            payment: {
+              id: updatedPayment.id,
+              status: updatedPayment.status,
+              amount: updatedPayment.amount,
+              clientName: updatedPayment.client.name,
+            },
+            timestamp: new Date().toISOString(),
+          });
+
+          authSocket.emit('payment_status_updated', {
             success: true,
-            payment
+            payment: updatedPayment,
           });
         } catch (error) {
           console.error('Payment status update error:', error);
-          socket.emit('payment_status_updated', {
+          authSocket.emit('payment_status_updated', {
             success: false,
-            error: 'Failed to update payment status'
+            error: 'Failed to update payment status',
           });
         }
       });
 
-      // Handle chat messages
-      socket.on('chat_message', async (data) => {
+      authSocket.on('chat_message', async (data) => {
         try {
-          const { sessionId, message } = data;
-          
+          const { sessionId, message } = data ?? {};
+          const trimmedMessage = typeof message === 'string' ? message.trim() : '';
+
+          if (!sessionId || typeof sessionId !== 'string' || !trimmedMessage) {
+            authSocket.emit('message_sent', {
+              success: false,
+              error: 'Session ID and message are required',
+            });
+            return;
+          }
+
+          const session = await prisma.advisorSession.findUnique({
+            where: { id: sessionId },
+            include: {
+              client: { select: { name: true } },
+              advisor: { select: { name: true } },
+            },
+          });
+
+          if (!session) {
+            authSocket.emit('message_sent', {
+              success: false,
+              error: 'Session not found',
+            });
+            return;
+          }
+
+          if (
+            session.clientId !== userId
+            && session.advisorId !== userId
+            && userRole !== 'admin'
+          ) {
+            authSocket.emit('message_sent', {
+              success: false,
+              error: 'Access denied',
+            });
+            return;
+          }
+
           const chatMessage = await prisma.chatMessage.create({
             data: {
               sessionId,
               senderId: userId,
-              message
+              message: trimmedMessage,
             },
             include: {
               session: {
                 include: {
                   client: { select: { name: true } },
-                  advisor: { select: { name: true } }
-                }
-              }
-            }
+                  advisor: { select: { name: true } },
+                },
+              },
+            },
           });
 
-          // Send message to session participants
-          const session = chatMessage.session;
           this.io.to(`user:${session.clientId}`).emit('new_message', {
             message: chatMessage,
-            timestamp: new Date().toISOString()
-          });
-          
-          this.io.to(`user:${session.advisorId}`).emit('new_message', {
-            message: chatMessage,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
-          socket.emit('message_sent', {
+          this.io.to(`user:${session.advisorId}`).emit('new_message', {
+            message: chatMessage,
+            timestamp: new Date().toISOString(),
+          });
+
+          authSocket.emit('message_sent', {
             success: true,
-            message: chatMessage
+            message: chatMessage,
           });
         } catch (error) {
           console.error('Chat message error:', error);
-          socket.emit('message_sent', {
+          authSocket.emit('message_sent', {
             success: false,
-            error: 'Failed to send message'
+            error: 'Failed to send message',
           });
         }
       });
 
-      // Handle disconnect
-      socket.on('disconnect', () => {
+      authSocket.on('disconnect', () => {
         this.handleDisconnect(userId, socket.id, deviceId);
       });
 
-      // Handle error
-      socket.on('error', (error) => {
+      authSocket.on('error', (error) => {
         console.error('Socket error:', error);
       });
     });
   }
 
   private async getSyncData(userId: string, lastSyncedAt?: string, entityTypes?: string[]) {
-    const whereClause = lastSyncedAt 
+    const whereClause = lastSyncedAt
       ? {
-          userId,
-          updatedAt: {
-            gt: new Date(lastSyncedAt),
-          },
-        }
+        userId,
+        updatedAt: {
+          gt: new Date(lastSyncedAt),
+        },
+      }
       : { userId };
 
     const data: any = {};
@@ -452,45 +703,86 @@ export class SocketManager {
     return data;
   }
 
+  private sanitizeMutablePayload(payload: any) {
+    const {
+      id,
+      userId,
+      createdAt,
+      updatedAt,
+      deletedAt,
+      ...rest
+    } = payload || {};
+
+    return { id, rest };
+  }
+
   private async saveTransaction(userId: string, transaction: any) {
-    if (transaction.id) {
-      // Update existing
-      return await prisma.transaction.update({
-        where: { id: transaction.id, userId },
-        data: { ...transaction, updatedAt: new Date() }
-      });
-    } else {
-      // Create new
-      return await prisma.transaction.create({
-        data: { ...transaction, userId, createdAt: new Date(), updatedAt: new Date() }
+    const { id, rest } = this.sanitizeMutablePayload(transaction);
+
+    if (id) {
+      return prisma.transaction.update({
+        where: { id, userId },
+        data: {
+          ...rest,
+          updatedAt: new Date(),
+        },
       });
     }
+
+    return prisma.transaction.create({
+      data: {
+        ...rest,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
   }
 
   private async saveAccount(userId: string, account: any) {
-    if (account.id) {
-      return await prisma.account.update({
-        where: { id: account.id, userId },
-        data: { ...account, updatedAt: new Date() }
-      });
-    } else {
-      return await prisma.account.create({
-        data: { ...account, userId, createdAt: new Date(), updatedAt: new Date() }
+    const { id, rest } = this.sanitizeMutablePayload(account);
+
+    if (id) {
+      return prisma.account.update({
+        where: { id, userId },
+        data: {
+          ...rest,
+          updatedAt: new Date(),
+        },
       });
     }
+
+    return prisma.account.create({
+      data: {
+        ...rest,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
   }
 
   private async saveGoal(userId: string, goal: any) {
-    if (goal.id) {
-      return await prisma.goal.update({
-        where: { id: goal.id, userId },
-        data: { ...goal, updatedAt: new Date() }
-      });
-    } else {
-      return await prisma.goal.create({
-        data: { ...goal, userId, createdAt: new Date(), updatedAt: new Date() }
+    const { id, rest } = this.sanitizeMutablePayload(goal);
+
+    if (id) {
+      return prisma.goal.update({
+        where: { id, userId },
+        data: {
+          ...rest,
+          updatedAt: new Date(),
+        },
       });
     }
+
+    return prisma.goal.create({
+      data: {
+        ...rest,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
   }
 
   private broadcastToUserDevices(userId: string, event: string, data: any) {
@@ -498,7 +790,6 @@ export class SocketManager {
   }
 
   private handleDisconnect(userId: string, socketId: string, deviceId: string) {
-    // Remove from connected users
     const userSockets = this.connectedUsers.get(userId);
     if (userSockets) {
       userSockets.delete(socketId);
@@ -507,11 +798,8 @@ export class SocketManager {
         this.userDevices.delete(userId);
       }
     }
-
-    // Socket disconnected
   }
 
-  // Public methods for external use
   public notifyUser(userId: string, event: string, data: any) {
     this.io.to(`user:${userId}`).emit(event, data);
   }
@@ -529,7 +817,6 @@ export class SocketManager {
   }
 }
 
-// Export singleton
 let socketManager: SocketManager | null = null;
 
 export function initializeSocket(httpServer: any) {

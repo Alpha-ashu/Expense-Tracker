@@ -35,6 +35,19 @@ import {
   CheckCircle2,
   Settings,
 } from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 // 🧠 FINORA AI ADMIN DASHBOARD
 // Enhanced with new AI learning metrics and insights

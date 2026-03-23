@@ -63,7 +63,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
         select: {
           id: true, type: true, amount: true, category: true,
           description: true, merchant: true, date: true,
-          Account: { select: { name: true } },
+          account: { select: { name: true } },
         },
       }),
     ]);

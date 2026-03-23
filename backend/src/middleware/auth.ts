@@ -50,13 +50,21 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
           isApproved: decoded.isApproved ?? true
         };
 
-        // Check user status (suspended accounts are blocked)
-        const dbUser = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { status: true },
-        });
-        if (dbUser?.status === 'suspended') {
-          return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+        // Best-effort status check. A verified JWT should not be downgraded to an
+        // auth failure purely because the database is temporarily unavailable.
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { status: true },
+          });
+          if (dbUser?.status === 'suspended') {
+            return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+          }
+        } catch (dbError) {
+          logger.warn('Auth status lookup failed after JWT verification, continuing with token claims.', {
+            userId,
+            error: dbError instanceof Error ? dbError.message : String(dbError),
+          });
         }
 
         return next();
@@ -66,23 +74,27 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     }
 
     // 2. Try Supabase verification (handles ES256, HS256, etc.)
-    if (supabase) {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
-      
-      if (user && !error) {
-        req.userId = user.id;
-        req.user = {
-          id: user.id,
-          email: user.email || '',
-          role: (user.app_metadata?.role as string) || 'user',
-          isApproved: true,
-          name: user.user_metadata?.full_name
-        };
-        return next();
-      } else {
-        if (error) {
+    if (supabase && process.env.NODE_ENV !== 'test') {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (user && !error) {
+          req.userId = user.id;
+          req.user = {
+            id: user.id,
+            email: user.email || '',
+            role: (user.app_metadata?.role as string) || 'user',
+            isApproved: true,
+            name: user.user_metadata?.full_name
+          };
+          return next();
+        } else if (error) {
           logger.warn(`Supabase Auth rejection: ${error.message}`);
         }
+      } catch (supabaseError) {
+        logger.warn('Supabase auth lookup failed, continuing to final auth rejection.', {
+          error: supabaseError instanceof Error ? supabaseError.message : String(supabaseError),
+        });
       }
     }
 

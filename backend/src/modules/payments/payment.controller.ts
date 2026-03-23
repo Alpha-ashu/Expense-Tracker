@@ -2,6 +2,171 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 
+const ALLOWED_PAYMENT_METHODS = new Set([
+  'bank_transfer',
+  'cash',
+  'credit_card',
+  'debit_card',
+  'paypal',
+  'razorpay',
+  'stripe',
+  'upi',
+]);
+
+const PAYMENT_TRANSITIONS: Record<string, string[]> = {
+  pending: ['completed', 'failed'],
+  processing: ['completed', 'failed'],
+  completed: ['refunded'],
+  failed: [],
+  refunded: [],
+};
+
+const isAdmin = (req: AuthRequest) => req.user?.role === 'admin';
+
+const normalizePaymentMethod = (paymentMethod: unknown) => {
+  if (typeof paymentMethod !== 'string') return null;
+  const normalized = paymentMethod.trim().toLowerCase();
+  return ALLOWED_PAYMENT_METHODS.has(normalized) ? normalized : null;
+};
+
+const canTransitionPayment = (currentStatus: string, nextStatus: string) =>
+  PAYMENT_TRANSITIONS[currentStatus]?.includes(nextStatus) ?? false;
+
+const requireWebhookSecret = (req: AuthRequest | any) => {
+  const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return {
+      ok: false as const,
+      status: 503,
+      error: 'Payment webhook secret is not configured',
+    };
+  }
+
+  const headerValue = req.headers?.['x-payment-webhook-secret'] ?? req.headers?.['x-webhook-secret'];
+  const providedSecret = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+
+  if (providedSecret !== webhookSecret) {
+    return {
+      ok: false as const,
+      status: 401,
+      error: 'Invalid webhook signature',
+    };
+  }
+
+  return { ok: true as const };
+};
+
+const loadPayment = async (paymentId: string) =>
+  prisma.payment.findUnique({
+    where: { id: paymentId },
+  });
+
+const markPaymentCompleted = async (paymentId: string, transactionId?: string) => {
+  const payment = await loadPayment(paymentId);
+  if (!payment) {
+    throw new Error('PAYMENT_NOT_FOUND');
+  }
+
+  if (payment.status === 'completed') {
+    return payment;
+  }
+
+  if (!canTransitionPayment(payment.status, 'completed')) {
+    throw new Error('INVALID_PAYMENT_STATE');
+  }
+
+  const updated = await prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      status: 'completed',
+      transactionId: transactionId || payment.transactionId,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: payment.advisorId,
+      title: 'Payment Received',
+      message: `You received a payment of ${payment.amount} ${payment.currency}`,
+      category: 'payment',
+      deepLink: `/payments/${paymentId}`,
+    },
+  });
+
+  return updated;
+};
+
+const markPaymentFailed = async (paymentId: string, reason?: string) => {
+  const payment = await loadPayment(paymentId);
+  if (!payment) {
+    throw new Error('PAYMENT_NOT_FOUND');
+  }
+
+  if (payment.status === 'failed') {
+    return payment;
+  }
+
+  if (!canTransitionPayment(payment.status, 'failed')) {
+    throw new Error('INVALID_PAYMENT_STATE');
+  }
+
+  const updated = await prisma.payment.update({
+    where: { id: paymentId },
+    data: { status: 'failed' },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: payment.clientId,
+      title: 'Payment Failed',
+      message: `Your payment of ${payment.amount} ${payment.currency} failed${reason ? `: ${reason}` : ''}. Please try again.`,
+      category: 'payment',
+      deepLink: `/sessions/${payment.sessionId}`,
+    },
+  });
+
+  return updated;
+};
+
+const markPaymentRefunded = async (paymentId: string, reason?: string) => {
+  const payment = await loadPayment(paymentId);
+  if (!payment) {
+    throw new Error('PAYMENT_NOT_FOUND');
+  }
+
+  if (payment.status === 'refunded') {
+    return payment;
+  }
+
+  if (!canTransitionPayment(payment.status, 'refunded')) {
+    throw new Error('INVALID_PAYMENT_STATE');
+  }
+
+  const updated = await prisma.payment.update({
+    where: { id: paymentId },
+    data: { status: 'refunded' },
+  });
+
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: payment.clientId,
+        title: 'Payment Refunded',
+        message: `Your payment of ${payment.amount} ${payment.currency} has been refunded${reason ? `: ${reason}` : ''}`,
+        category: 'payment',
+      },
+      {
+        userId: payment.advisorId,
+        title: 'Payment Refunded',
+        message: `A payment of ${payment.amount} ${payment.currency} was refunded${reason ? `: ${reason}` : ''}`,
+        category: 'payment',
+      },
+    ],
+  });
+
+  return updated;
+};
+
 // Get payments for user
 export const getPayments = async (req: AuthRequest, res: Response) => {
   try {
@@ -64,8 +229,7 @@ export const getPayment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    // Verify user is involved
-    if (payment.clientId !== userId && payment.advisorId !== userId) {
+    if (payment.clientId !== userId && payment.advisorId !== userId && !isAdmin(req)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -79,10 +243,13 @@ export const getPayment = async (req: AuthRequest, res: Response) => {
 export const initiatePayment = async (req: AuthRequest, res: Response) => {
   try {
     const clientId = getUserId(req);
-    const { sessionId, paymentMethod, description } = req.body;
+    const { sessionId, description } = req.body;
+    const paymentMethod = normalizePaymentMethod(req.body.paymentMethod);
 
     if (!sessionId || !paymentMethod) {
-      return res.status(400).json({ error: 'Missing required fields: sessionId, paymentMethod' });
+      return res.status(400).json({
+        error: 'Missing or invalid fields: sessionId, paymentMethod',
+      });
     }
 
     const session = await prisma.advisorSession.findUnique({
@@ -93,7 +260,6 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Check if payment already exists
     const existingPayment = await prisma.payment.findUnique({
       where: { sessionId },
     });
@@ -102,7 +268,6 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Payment already initiated for this session' });
     }
 
-    // Get booking for amount
     const booking = await prisma.bookingRequest.findUnique({
       where: { id: session.bookingId },
     });
@@ -111,7 +276,6 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    // Create payment record
     const payment = await prisma.payment.create({
       data: {
         sessionId,
@@ -121,19 +285,13 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
         currency: 'USD',
         status: 'pending',
         paymentMethod,
-        description: description || `Payment for ${session.sessionType} session`,
+        description: typeof description === 'string' && description.trim()
+          ? description.trim()
+          : `Payment for ${session.sessionType} session`,
       },
     });
 
-    // TODO: Integrate with Stripe/Razorpay
-    // For now, return payment intent
-
-    res.status(201).json({
-      payment,
-      // TODO: Add payment gateway integration response
-      // stripe_client_secret: "...",
-      // razorpay_order_id: "...",
-    });
+    res.status(201).json({ payment });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to initiate payment' });
   }
@@ -142,42 +300,31 @@ export const initiatePayment = async (req: AuthRequest, res: Response) => {
 // Confirm payment completion (called by webhook or frontend)
 export const completePayment = async (req: AuthRequest, res: Response) => {
   try {
+    const actorId = getUserId(req);
     const { paymentId, transactionId } = req.body;
 
     if (!paymentId) {
       return res.status(400).json({ error: 'Missing paymentId' });
     }
 
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-
+    const payment = await loadPayment(paymentId);
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    // Update payment to completed
-    const updated = await prisma.payment.update({
-      where: { id: paymentId },
-      data: {
-        status: 'completed',
-        transactionId: transactionId || payment.transactionId,
-      },
-    });
+    if (payment.clientId !== actorId && !isAdmin(req)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
-    // Notify advisor about payment completion
-    await prisma.notification.create({
-      data: {
-        userId: payment.advisorId,
-        title: 'Payment Received',
-        message: `You received a payment of ${payment.amount} ${payment.currency}`,
-        category: 'payment',
-        deepLink: `/payments/${paymentId}`,
-      },
-    });
-
+    const updated = await markPaymentCompleted(paymentId, transactionId);
     res.json(updated);
   } catch (error: any) {
+    if (error.message === 'INVALID_PAYMENT_STATE') {
+      return res.status(400).json({ error: 'Invalid payment state transition' });
+    }
+    if (error.message === 'PAYMENT_NOT_FOUND') {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     res.status(500).json({ error: error.message || 'Failed to complete payment' });
   }
 };
@@ -185,39 +332,31 @@ export const completePayment = async (req: AuthRequest, res: Response) => {
 // Handle payment failure
 export const failPayment = async (req: AuthRequest, res: Response) => {
   try {
+    const actorId = getUserId(req);
     const { paymentId, reason } = req.body;
 
     if (!paymentId) {
       return res.status(400).json({ error: 'Missing paymentId' });
     }
 
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-
+    const payment = await loadPayment(paymentId);
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    // Update payment to failed
-    const updated = await prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: 'failed' },
-    });
+    if (payment.clientId !== actorId && !isAdmin(req)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
-    // Notify client
-    await prisma.notification.create({
-      data: {
-        userId: payment.clientId,
-        title: 'Payment Failed',
-        message: `Your payment of ${payment.amount} ${payment.currency} failed${reason ? ': ' + reason : ''}. Please try again.`,
-        category: 'payment',
-        deepLink: `/sessions/${payment.sessionId}`,
-      },
-    });
-
+    const updated = await markPaymentFailed(paymentId, typeof reason === 'string' ? reason : undefined);
     res.json(updated);
   } catch (error: any) {
+    if (error.message === 'INVALID_PAYMENT_STATE') {
+      return res.status(400).json({ error: 'Invalid payment state transition' });
+    }
+    if (error.message === 'PAYMENT_NOT_FOUND') {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     res.status(500).json({ error: error.message || 'Failed to handle payment failure' });
   }
 };
@@ -225,72 +364,67 @@ export const failPayment = async (req: AuthRequest, res: Response) => {
 // Refund payment
 export const refundPayment = async (req: AuthRequest, res: Response) => {
   try {
+    const actorId = getUserId(req);
     const { paymentId, reason } = req.body;
 
     if (!paymentId) {
       return res.status(400).json({ error: 'Missing paymentId' });
     }
 
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-
+    const payment = await loadPayment(paymentId);
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    if (payment.status !== 'completed') {
-      return res.status(400).json({ error: 'Can only refund completed payments' });
+    if (payment.advisorId !== actorId && !isAdmin(req)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
-    // TODO: Integrate with payment gateway for actual refund processing
-    // For now, just update the status
-
-    const updated = await prisma.payment.update({
-      where: { id: paymentId },
-      data: { status: 'refunded' },
-    });
-
-    // Notify both parties
-    await prisma.notification.create({
-      data: {
-        userId: payment.clientId,
-        title: 'Payment Refunded',
-        message: `Your payment of ${payment.amount} ${payment.currency} has been refunded${reason ? ': ' + reason : ''}`,
-        category: 'payment',
-      },
-    });
-
-    await prisma.notification.create({
-      data: {
-        userId: payment.advisorId,
-        title: 'Payment Refunded',
-        message: `A payment of ${payment.amount} ${payment.currency} was refunded${reason ? ': ' + reason : ''}`,
-        category: 'payment',
-      },
-    });
-
+    const updated = await markPaymentRefunded(paymentId, typeof reason === 'string' ? reason : undefined);
     res.json(updated);
   } catch (error: any) {
+    if (error.message === 'INVALID_PAYMENT_STATE') {
+      return res.status(400).json({ error: 'Can only refund completed payments' });
+    }
+    if (error.message === 'PAYMENT_NOT_FOUND') {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     res.status(500).json({ error: error.message || 'Failed to refund payment' });
   }
 };
 
 // Webhook handler for payment gateway
-export const handleWebhook = async (req: any, res: Response) => {
+export const handleWebhook = async (req: AuthRequest | any, res: Response) => {
   try {
-    const { type, paymentId, transactionId, status } = req.body;
-
-    // Webhook received
-
-    if (status === 'success') {
-      await completePayment({ body: { paymentId, transactionId } } as any, res);
-    } else if (status === 'failed') {
-      await failPayment({ body: { paymentId, reason: 'Payment processing failed' } } as any, res);
-    } else {
-      res.status(400).json({ error: 'Unknown webhook status' });
+    const webhookCheck = requireWebhookSecret(req);
+    if (!webhookCheck.ok) {
+      return res.status(webhookCheck.status).json({ error: webhookCheck.error });
     }
+
+    const { paymentId, transactionId, status } = req.body;
+
+    if (!paymentId || typeof status !== 'string') {
+      return res.status(400).json({ error: 'Missing paymentId or status' });
+    }
+
+    if (status === 'success' || status === 'completed') {
+      const updated = await markPaymentCompleted(paymentId, transactionId);
+      return res.json({ success: true, payment: updated });
+    }
+
+    if (status === 'failed') {
+      const updated = await markPaymentFailed(paymentId, 'Payment processing failed');
+      return res.json({ success: true, payment: updated });
+    }
+
+    res.status(400).json({ error: 'Unknown webhook status' });
   } catch (error: any) {
+    if (error.message === 'INVALID_PAYMENT_STATE') {
+      return res.status(400).json({ error: 'Invalid payment state transition' });
+    }
+    if (error.message === 'PAYMENT_NOT_FOUND') {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     console.error('Webhook error:', error);
     res.status(500).json({ error: error.message || 'Webhook processing failed' });
   }

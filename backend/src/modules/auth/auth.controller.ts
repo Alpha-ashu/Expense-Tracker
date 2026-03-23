@@ -70,7 +70,14 @@ export const register = async (req: Request, res: Response) => {
       statusCode = 409;
       errorCode = 'EMAIL_EXISTS';
       errorMessage = 'This email is already registered. Please use a different email or try signing in.';
-    } else if (error.message && error.message.includes('database')) {
+    } else if (
+      error.message
+      && (
+        error.message.includes('database')
+        || error.message.includes('Can\'t reach database')
+        || error.message.includes('Error validating datasource')
+      )
+    ) {
       statusCode = 500;
       errorCode = 'DATABASE_ERROR';
       errorMessage = 'Database error occurred. Please try again later.';
@@ -139,7 +146,14 @@ export const login = async (req: Request, res: Response) => {
     if (error.message === 'Invalid credentials') {
       errorCode = 'INVALID_CREDENTIALS';
       errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-    } else if (error.message && error.message.includes('database')) {
+    } else if (
+      error.message
+      && (
+        error.message.includes('database')
+        || error.message.includes('Can\'t reach database')
+        || error.message.includes('Error validating datasource')
+      )
+    ) {
       statusCode = 500;
       errorCode = 'DATABASE_ERROR';
       errorMessage = 'Database error occurred. Please try again later.';

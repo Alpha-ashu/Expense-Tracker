@@ -34,6 +34,10 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
   // Initialize voice processor
   const [voiceProcessor] = useState(() => createVoiceAIProcessor(userId));
 
+  const isVoiceExpenseResult = (
+    data: ExpenseData | VoiceExpenseResult,
+  ): data is VoiceExpenseResult => 'description' in data;
+
   useEffect(() => {
     return () => {
       // Cleanup
@@ -153,21 +157,19 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
       description: 'Expense',
     };
 
-    if ('merchant' in extractedData) {
-      // OCR result
-      formData = {
-        amount: extractedData.amount || 0,
-        category: extractedData.category || 'Others',
-        description: extractedData.merchant || 'Expense from receipt',
-        merchant: extractedData.merchant,
-        date: extractedData.date || new Date().toISOString().split('T')[0],
-      };
-    } else {
-      // Voice result
+    if (isVoiceExpenseResult(extractedData)) {
       formData = {
         amount: extractedData.amount || 0,
         category: extractedData.category || 'Others',
         description: extractedData.description,
+        merchant: extractedData.merchant,
+        date: extractedData.date || new Date().toISOString().split('T')[0],
+      };
+    } else {
+      formData = {
+        amount: extractedData.amount || 0,
+        category: extractedData.category || 'Others',
+        description: extractedData.merchant || 'Expense from receipt',
         merchant: extractedData.merchant,
         date: extractedData.date || new Date().toISOString().split('T')[0],
       };
@@ -334,10 +336,9 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Description</span>
                   <span className="font-semibold text-right max-w-[200px] truncate">
-                    {'merchant' in extractedData 
-                      ? (extractedData as ExpenseData).merchant || (extractedData as ExpenseData).rawText?.substring(0, 50) + '...'
-                      : (extractedData as VoiceExpenseResult).description
-                    }
+                    {isVoiceExpenseResult(extractedData)
+                      ? extractedData.description
+                      : extractedData.merchant || `${extractedData.rawText?.substring(0, 50) || 'Expense from receipt'}...`}
                   </span>
                 </div>
                 
