@@ -159,11 +159,8 @@ class HybridAIService {
 
   private async processOfflineVoice(audioFile: File): Promise<VoiceExpenseResult[]> {
     console.log('📱 Processing voice offline...');
-    
-    // Future: Integrate Vosk for offline speech recognition
-    // For now, return empty array
-    console.log('⚠️ Offline voice processing not yet implemented');
-    return [];
+
+    return this.voiceProcessor.processVoiceInput(audioFile);
   }
 
   // 🌐 ONLINE PROCESSING METHODS

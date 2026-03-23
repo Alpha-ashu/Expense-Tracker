@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Fingerprint, Shield } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
 import { isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
-import supabase from '@/utils/supabase/client';
+import { pinService } from '@/services/pinService';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
@@ -10,98 +10,6 @@ import { Capacitor } from '@capacitor/core';
 interface PINAuthProps {
   onAuthenticated: (encryptionKey: string) => void;
 }
-
-const USER_PINS_UNAVAILABLE_KEY = 'supabase_user_pins_unavailable';
-const USER_PINS_ENABLED = (import.meta.env.VITE_SUPABASE_USER_PINS_ENABLED ?? 'false').toLowerCase() === 'true';
-
-let userPinsUnavailableInMemory = false;
-let userPinsUnavailableLogged = false;
-const remotePinLookupCache = new Map<string, Promise<{ pinHash: string | null; tableUnavailable: boolean }>>();
-
-const isUserPinsTableMissingError = (error: any) => {
-  const errorText = [
-    error?.code,
-    error?.message,
-    error?.details,
-    error?.hint,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  return error?.status === 404 ||
-    error?.code === 'PGRST205' ||
-    errorText.includes('user_pins') ||
-    errorText.includes('relation') ||
-    errorText.includes('not found');
-};
-
-const isUserPinsTableUnavailable = () => {
-  if (!USER_PINS_ENABLED) return true;
-
-  if (userPinsUnavailableInMemory) return true;
-
-  try {
-    userPinsUnavailableInMemory = sessionStorage.getItem(USER_PINS_UNAVAILABLE_KEY) === 'true';
-  } catch {
-    userPinsUnavailableInMemory = false;
-  }
-
-  return userPinsUnavailableInMemory;
-};
-
-const markUserPinsTableUnavailable = () => {
-  userPinsUnavailableInMemory = true;
-
-  try {
-    sessionStorage.setItem(USER_PINS_UNAVAILABLE_KEY, 'true');
-  } catch {
-    // Ignore storage failures and keep the in-memory flag.
-  }
-
-  if (!userPinsUnavailableLogged) {
-    if (USER_PINS_ENABLED) {
-      console.info('ℹ️ user_pins table unavailable — using local PIN only.');
-    } else {
-      console.info('ℹ️ user_pins sync disabled — using local PIN only. Set VITE_SUPABASE_USER_PINS_ENABLED=true to enable remote PIN sync.');
-    }
-    userPinsUnavailableLogged = true;
-  }
-};
-
-const loadRemotePinHash = async (userId: string) => {
-  if (isUserPinsTableUnavailable()) {
-    return { pinHash: null, tableUnavailable: true };
-  }
-
-  const cachedLookup = remotePinLookupCache.get(userId);
-  if (cachedLookup) {
-    return cachedLookup;
-  }
-
-  const lookupPromise = (async () => {
-    const { data, error } = await supabase
-      .from('user_pins')
-      .select('pin_hash')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      if (isUserPinsTableMissingError(error)) {
-        markUserPinsTableUnavailable();
-        return { pinHash: null, tableUnavailable: true };
-      }
-
-      console.warn('PIN lookup from Supabase failed; continuing with local PIN only.', error);
-      return { pinHash: null, tableUnavailable: false };
-    }
-
-    return { pinHash: data?.pin_hash ?? null, tableUnavailable: false };
-  })();
-
-  remotePinLookupCache.set(userId, lookupPromise);
-  return lookupPromise;
-};
 
 export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [pin, setPin] = useState('');
@@ -115,49 +23,29 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     let isMounted = true;
 
     const initPin = async () => {
-      // If PIN is already set locally, just prompt for verification
-      if (isPINSet()) {
-        if (isMounted) setIsCreating(false);
-      } else {
-        // Cache was cleared OR this is a brand new user/device.
-        // Attempt to fetch existing PIN from Supabase `user_pins`
-        setIsLoading(true);
-        try {
-          if (isUserPinsTableUnavailable()) {
-            if (isMounted) {
-              setIsCreating(true);
-              setIsLoading(false);
-            }
-            return;
-          }
+      setIsLoading(true);
+      try {
+        const status = await pinService.getStatus();
+        const hasServerPin = status.success;
 
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.id) {
-            const { pinHash, tableUnavailable } = await loadRemotePinHash(session.user.id);
-
-            if (tableUnavailable) {
-              if (isMounted) {
-                setIsCreating(true);
-                setIsLoading(false);
-              }
-              return;
-            }
-
-            if (pinHash && isMounted) {
-              const [hash, salt] = pinHash.split('|');
-              if (hash && salt) {
-                restorePINKeys({ hash, salt });
-                setIsCreating(false);
-                setIsLoading(false);
-                return;
-              }
+        if (hasServerPin && !isPINSet()) {
+          const keyBackupResult = await pinService.getKeyBackup();
+          if (keyBackupResult.success && keyBackupResult.backup) {
+            const [hash, salt] = keyBackupResult.backup.split('|');
+            if (hash && salt) {
+              restorePINKeys({ hash, salt });
             }
           }
-        } catch (error: any) {
-          console.error('Failed to restore PIN from backend:', error);
         }
+
         if (isMounted) {
-          setIsCreating(true);
+          setIsCreating(!hasServerPin);
+          setIsLoading(false);
+        }
+      } catch (error: any) {
+        console.error('Failed to initialize PIN auth:', error);
+        if (isMounted) {
+          setIsCreating(!isPINSet());
           setIsLoading(false);
         }
       }
@@ -215,33 +103,21 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           return;
         }
 
-        // Store PIN and generate encryption key
+        const createResult = await pinService.createPin(pin);
+        if (!createResult.success) {
+          toast.error(createResult.message || 'Failed to create PIN');
+          setIsLoading(false);
+          return;
+        }
+
         const key = storeMasterKey(pin);
 
-        // Backup to Supabase so it survives cache clear
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.id && !isUserPinsTableUnavailable()) {
-            const backup = backupPINKeys();
-            if (backup.hash && backup.salt) {
-              const pinHashValue = `${backup.hash}|${backup.salt}`;
-              const { error: backupError } = await supabase.from('user_pins').upsert({
-                user_id: session.user.id,
-                pin_hash: pinHashValue,
-                expires_at: new Date('2099-01-01').toISOString(), // Required NOT NULL column
-              });
-
-              if (backupError) {
-                if (isUserPinsTableMissingError(backupError)) {
-                  markUserPinsTableUnavailable();
-                } else {
-                  console.warn('PIN backup to Supabase failed (working locally).', backupError);
-                }
-              }
-            }
+        const backup = backupPINKeys();
+        if (backup.hash && backup.salt) {
+          const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
+          if (!backupResult.success) {
+            console.warn('PIN key backup refresh failed after PIN creation:', backupResult.message);
           }
-        } catch (e) {
-          console.warn("PIN backup to server failed (working locally)", e);
         }
 
         // Store in Capacitor Preferences for native platforms
@@ -262,9 +138,40 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           return;
         }
 
-        const result = verifyPIN(pin);
+        const verifyResult = await pinService.verifyPin({ pin });
+        if (!verifyResult.success) {
+          toast.error(verifyResult.message || 'Invalid PIN');
+          setPin('');
+          setIsLoading(false);
+          return;
+        }
 
-        if (result.isValid && result.key) {
+        if (!isPINSet()) {
+          const keyBackupResult = await pinService.getKeyBackup();
+          if (keyBackupResult.success && keyBackupResult.backup) {
+            const [hash, salt] = keyBackupResult.backup.split('|');
+            if (hash && salt) {
+              restorePINKeys({ hash, salt });
+            }
+          }
+        }
+
+        const localResult = verifyPIN(pin);
+        const key = localResult.isValid && localResult.key
+          ? localResult.key
+          : storeMasterKey(pin);
+
+        if (!localResult.isValid) {
+          const backup = backupPINKeys();
+          if (backup.hash && backup.salt) {
+            const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
+            if (!backupResult.success) {
+              console.warn('PIN key backup refresh failed after fallback key creation:', backupResult.message);
+            }
+          }
+        }
+
+        if (key) {
           // Store in Capacitor Preferences for native platforms
           if (Capacitor.isNativePlatform()) {
             await Preferences.set({
@@ -274,11 +181,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           }
 
           toast.success('Authentication successful');
-          onAuthenticated(result.key);
-        } else {
-          toast.error('Invalid PIN');
-          setPin('');
-          setIsLoading(false);
+          onAuthenticated(key);
         }
       }
     } catch (error) {
@@ -397,8 +300,8 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Your data is secure</p>
                 <p className="text-blue-700">
-                  All your financial data is encrypted and stored locally on your device.
-                  Your PIN is never sent to any server.
+                  Financial data stays encrypted on this device, and the server only stores
+                  PIN verification data plus encrypted recovery metadata for your devices.
                 </p>
               </div>
             </div>

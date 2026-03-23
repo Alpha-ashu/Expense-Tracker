@@ -29,6 +29,7 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
+const ALLOW_TEST_ROLE_FALLBACK = process.env.NODE_ENV === 'test';
 
 export class SocketManager {
   private io: Server;
@@ -83,11 +84,11 @@ export class SocketManager {
         const decoded = jwt.verify(token, customSecret) as jwt.JwtPayload;
         const userId = typeof decoded === 'object' ? decoded.userId || decoded.sub : null;
 
-        if (typeof userId === 'string' && userId.length > 0) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, role: true, status: true },
-          });
+      if (typeof userId === 'string' && userId.length > 0) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, role: true, status: true },
+        });
 
           if (dbUser?.status === 'suspended') {
             return null;
@@ -95,7 +96,7 @@ export class SocketManager {
 
           return {
             id: userId,
-            role: dbUser?.role || (typeof decoded.role === 'string' ? decoded.role : 'user'),
+            role: dbUser?.role || (ALLOW_TEST_ROLE_FALLBACK && typeof decoded.role === 'string' ? decoded.role : 'user'),
           };
         }
       } catch (error) {
@@ -124,7 +125,7 @@ export class SocketManager {
 
       return {
         id: user.id,
-        role: dbUser?.role || (typeof user.app_metadata?.role === 'string' ? user.app_metadata.role : 'user'),
+        role: dbUser?.role || 'user',
       };
     } catch (error) {
       console.error('Token verification error:', error);

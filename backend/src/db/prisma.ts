@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 // ts-node-dev runs from the backend/ directory, so .env is in the cwd
 config();
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './prisma-client';
 
 const prisma = new PrismaClient();
 

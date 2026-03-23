@@ -1,4 +1,5 @@
 import { finoraAI } from './finoraIntelligenceEngine';
+import { parseMultipleTransactions, parseVoiceExpense } from '@/lib/voiceExpenseParser';
 
 export interface VoiceExpenseResult {
   amount?: number;
@@ -166,27 +167,71 @@ class VoiceAIProcessor {
   }
 
   private async processAudioFile(audioFile: File): Promise<VoiceExpenseResult[]> {
-    // Future implementation with Vosk or similar offline speech recognition
-    console.log('📁 Processing audio file (offline recognition coming soon)');
-    
-    // For now, return empty array
-    // TODO: Integrate Vosk for offline processing
-    return [];
+    console.log('📁 Processing voice file input...');
+
+    const isTranscriptLike = audioFile.type.startsWith('text/')
+      || /json/i.test(audioFile.type)
+      || /\.(txt|json|md)$/i.test(audioFile.name);
+
+    if (!isTranscriptLike) {
+      throw new Error('Offline audio transcription is not available yet. Use live voice input or upload a transcript file.');
+    }
+
+    const rawContent = await audioFile.text();
+    if (!rawContent.trim()) return [];
+
+    let transcript = rawContent.trim();
+    if (/json/i.test(audioFile.type) || /\.json$/i.test(audioFile.name)) {
+      try {
+        const parsed = JSON.parse(rawContent) as { transcript?: string; transcripts?: string[] };
+        if (typeof parsed.transcript === 'string' && parsed.transcript.trim()) {
+          transcript = parsed.transcript.trim();
+        } else if (Array.isArray(parsed.transcripts) && parsed.transcripts.length > 0) {
+          transcript = parsed.transcripts.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).join(' ').trim();
+        }
+      } catch {
+        // Fall back to treating the uploaded file as raw transcript text.
+      }
+    }
+
+    return this.parseVoiceExpenses(transcript);
   }
 
   // 🧠 VOICE EXPENSE PARSING - This is the important layer!
   private async parseVoiceExpenses(transcript: string): Promise<VoiceExpenseResult[]> {
     console.log(`🧠 Parsing voice expenses: "${transcript}"`);
-    
+
+    const parsedTransactions = parseMultipleTransactions(transcript);
+    const baseResults = parsedTransactions.length > 0
+      ? parsedTransactions
+      : (() => {
+        const single = parseVoiceExpense(transcript);
+        return single.amount ? [single] : [];
+      })();
+
     const results: VoiceExpenseResult[] = [];
-    
-    // Split into multiple expense chunks
-    const expenseChunks = this.splitIntoExpenseChunks(transcript);
-    
-    for (const chunk of expenseChunks) {
-      const expense = await this.parseSingleExpense(chunk);
-      if (expense) {
-        results.push(expense);
+
+    for (const parsedEntry of baseResults) {
+      const description = parsedEntry.description || transcript;
+      const result: VoiceExpenseResult = {
+        amount: parsedEntry.amount ?? undefined,
+        category: parsedEntry.category ?? undefined,
+        description,
+        confidence: 0.58,
+        merchant: this.extractMerchant(description),
+        date: this.extractDate(description),
+      };
+
+      const aiResult = await finoraAI.extractExpenseData(description, 'voice', this.userId);
+      result.category = result.category || aiResult.category;
+      result.confidence = Math.max(result.confidence, aiResult.confidence);
+
+      if (!result.amount && aiResult.amount) result.amount = aiResult.amount;
+      if (!result.merchant && aiResult.merchant) result.merchant = aiResult.merchant;
+      if (!result.date && aiResult.date) result.date = aiResult.date;
+
+      if (result.amount) {
+        results.push(result);
       }
     }
 

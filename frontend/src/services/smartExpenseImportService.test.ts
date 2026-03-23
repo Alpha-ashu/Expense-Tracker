@@ -76,4 +76,39 @@ describe('SmartExpenseImportService Integration Test', () => {
             expect(salaryRow.description).toBe('Salary - Monthly salary');
         }
     });
+
+    it('normalizes locale-formatted amounts, spreadsheet dates, and in-file duplicates', async () => {
+        const payload = JSON.stringify([
+            {
+                date: 45292,
+                amount: '1.234,56',
+                description: 'Flight to Delhi',
+                merchant: 'Air India',
+                category: 'Travel',
+                account: 'ICICI Savings'
+            },
+            {
+                date: 45292,
+                amount: '1.234,56',
+                description: 'Flight to Delhi',
+                merchant: 'Air India',
+                category: 'Travel',
+                account: 'ICICI Savings'
+            }
+        ]);
+
+        const file = new File([payload], 'localized-import.json', { type: 'application/json' });
+
+        // @ts-ignore
+        const preview = await smartExpenseImportService.analyzeFile(file, { defaultAccountId: 1 });
+
+        expect(preview.kind).toBe('third-party');
+        if (preview.kind === 'third-party') {
+            expect(preview.rows).toHaveLength(2);
+            expect(preview.rows[0]?.amount).toBe(1234.56);
+            expect(preview.rows[0]?.date).toBeInstanceOf(Date);
+            expect(preview.rows[0]?.duplicate).toBe(false);
+            expect(preview.rows[1]?.duplicate).toBe(true);
+        }
+    });
 });

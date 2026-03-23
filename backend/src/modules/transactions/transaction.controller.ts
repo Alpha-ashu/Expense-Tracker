@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { createHash } from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../db/prisma-client';
 import { cacheDeleteByPrefix } from '../../cache/redis';
 import { eventBus } from '../../utils/eventBus';
 

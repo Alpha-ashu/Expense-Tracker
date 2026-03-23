@@ -96,6 +96,58 @@ router.get('/status', async (req: AuthRequest, res: Response) => {
 });
 
 /**
+ * GET /api/v1/pin/key-backup
+ * Get the encrypted device-key backup for the authenticated user
+ */
+router.get('/key-backup', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await pinService.getPinKeyBackup(req.user?.id || '');
+    res.json(result);
+  } catch (error) {
+    console.error('Get PIN key backup error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/v1/pin/key-backup
+ * Save the encrypted device-key backup for the authenticated user
+ */
+router.post('/key-backup', async (req: AuthRequest, res: Response) => {
+  try {
+    const { backup } = req.body;
+
+    if (!backup || typeof backup !== 'string') {
+      return res.status(400).json({ error: 'PIN key backup is required' });
+    }
+
+    const result = await pinService.savePinKeyBackup({
+      userId: req.user?.id || '',
+      backup,
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Save PIN key backup error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/v1/pin/key-backup
+ * Delete the encrypted device-key backup for the authenticated user
+ */
+router.delete('/key-backup', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await pinService.clearPinKeyBackup(req.user?.id || '');
+    res.json(result);
+  } catch (error) {
+    console.error('Delete PIN key backup error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * GET /api/v1/pin/expiring-soon
  * Check if PIN is expiring soon (within 7 days)
  */

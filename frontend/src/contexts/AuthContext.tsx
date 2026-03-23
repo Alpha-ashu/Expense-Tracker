@@ -27,15 +27,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const parseEmailList = (value?: string) => {
-  return (value || '')
-    .split(',')
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-};
-
-const advisorEmails = parseEmailList(import.meta.env.VITE_ADVISOR_EMAILS);
-
 type LocalProfile = {
   displayName?: string;
   firstName?: string;
@@ -115,37 +106,11 @@ const hasLocalProfileData = (profile: LocalProfile | null): boolean => {
 };
 
 /**
- * Resolve user role with strict admin email validation.
- * Admin role is ONLY granted to the specific admin email.
- * Unauthenticated users always get 'user' role — auth gate handles access control.
+ * Start from a non-privileged role locally. Profile-based permissions are
+ * fetched separately so admin/advisor capabilities come from backend-backed
+ * profile data instead of client-visible auth metadata.
  */
-const resolveUserRole = (user: User | null): UserRole => {
-  if (!user) {
-    return 'user'; // No role escalation for unauthenticated users
-  }
-
-  const email = (user.email || '').toLowerCase().trim();
-  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
-    .split(',')
-    .map((e: string) => e.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (adminEmails.includes(email)) {
-    return 'admin';
-  }
-
-  if (advisorEmails.includes(email)) {
-    return 'advisor';
-  }
-
-  // Check user metadata as fallback (but NOT for admin - always email-based)
-  const metadataRole = user.user_metadata?.role;
-  if (metadataRole === 'advisor') {
-    return 'advisor';
-  }
-
-  return 'user';
-};
+const resolveUserRole = (_user: User | null): UserRole => 'user';
 
 /** Clear all user data from the local IndexedDB to ensure data isolation between accounts */
 const clearLocalUserData = async () => {
@@ -437,13 +402,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
-        setRole(resolveUserRole(session?.user ?? null));
+        const provisionalRole = resolveUserRole(session?.user ?? null);
+        setRole(provisionalRole);
         if (session?.user?.id) {
           activeSyncUserId.current = session.user.id;
           setDataSyncing(true);
           setDataSyncError(null);
           void (async () => {
             try {
+              const permissions = await permissionService.fetchUserPermissions(session.user.id, provisionalRole);
+              if (activeSyncUserId.current === session.user.id) {
+                setRole(permissions.role);
+              }
               await syncFromSupabase(session.user);
               if (activeSyncUserId.current === session.user.id) {
                 setDataReady(true);
@@ -480,8 +450,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSession(session);
         const nextUser = session?.user ?? null;
         setUser(nextUser);
-        const userRole = resolveUserRole(nextUser);
-        setRole(userRole);
+        const provisionalRole = resolveUserRole(nextUser);
+        setRole(provisionalRole);
 
         try {
           if (nextUser?.id) {
@@ -516,8 +486,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               // Run cloud sync + permissions in background to avoid blocking initial render
               void (async () => {
                 try {
+                  const permissions = await permissionService.fetchUserPermissions(nextUser.id, provisionalRole);
+                  if (activeSyncUserId.current === nextUser.id) {
+                    setRole(permissions.role);
+                  }
                   await syncFromSupabase(nextUser);
-                  await permissionService.fetchUserPermissions(nextUser.id, userRole);
                   if (activeSyncUserId.current === nextUser.id) {
                     setDataReady(true);
                   }
@@ -600,8 +573,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setDataSyncError(null);
 
     try {
+      const permissions = await permissionService.fetchUserPermissions(targetUserId, resolveUserRole(user));
+      setRole(permissions.role);
       await syncFromSupabase(user);
-      await permissionService.fetchUserPermissions(targetUserId, resolveUserRole(user));
       if (activeSyncUserId.current === targetUserId) {
         setDataReady(true);
       }

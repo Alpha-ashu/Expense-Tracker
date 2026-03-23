@@ -13,16 +13,20 @@ router.use(authMiddleware);
  */
 router.post('/pull', async (req: AuthRequest, res: Response) => {
   try {
-    const { userId, deviceId, lastSyncedAt, entityTypes } = req.body;
+    const { deviceId, lastSyncedAt, entityTypes } = req.body;
+    const userId = req.user?.id;
 
     // Basic validation
-    if (!userId || !deviceId) {
-      return res.status(400).json({ error: 'User ID and Device ID are required' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Authenticated user is required' });
     }
 
-    // Verify user matches authenticated user
-    if (userId !== req.user?.id) {
-      return res.status(403).json({ error: 'Unauthorized: User mismatch' });
+    if (!deviceId) {
+      return res.status(400).json({ error: 'Device ID is required' });
+    }
+
+    if (lastSyncedAt && Number.isNaN(Date.parse(String(lastSyncedAt)))) {
+      return res.status(400).json({ error: 'lastSyncedAt must be a valid timestamp' });
     }
 
     const result = await syncService.pullData({
@@ -45,16 +49,16 @@ router.post('/pull', async (req: AuthRequest, res: Response) => {
  */
 router.post('/push', async (req: AuthRequest, res: Response) => {
   try {
-    const { userId, deviceId, entities } = req.body;
+    const { deviceId, entities } = req.body;
+    const userId = req.user?.id;
 
     // Basic validation
-    if (!userId || !deviceId || !entities || !Array.isArray(entities)) {
-      return res.status(400).json({ error: 'User ID, Device ID, and entities array are required' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Authenticated user is required' });
     }
 
-    // Verify user matches authenticated user
-    if (userId !== req.user?.id) {
-      return res.status(403).json({ error: 'Unauthorized: User mismatch' });
+    if (!deviceId || !entities || !Array.isArray(entities)) {
+      return res.status(400).json({ error: 'Device ID and entities array are required' });
     }
 
     const result = await syncService.pushData({
@@ -76,16 +80,16 @@ router.post('/push', async (req: AuthRequest, res: Response) => {
  */
 router.post('/register-device', async (req: AuthRequest, res: Response) => {
   try {
-    const { userId, deviceId, deviceName, deviceType, platform, appVersion } = req.body;
+    const { deviceId, deviceName, deviceType, platform, appVersion } = req.body;
+    const userId = req.user?.id;
 
     // Basic validation
-    if (!userId || !deviceId) {
-      return res.status(400).json({ error: 'User ID and Device ID are required' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Authenticated user is required' });
     }
 
-    // Verify user matches authenticated user
-    if (userId !== req.user?.id) {
-      return res.status(403).json({ error: 'Unauthorized: User mismatch' });
+    if (!deviceId) {
+      return res.status(400).json({ error: 'Device ID is required' });
     }
 
     const device = await syncService.registerDevice(userId, {

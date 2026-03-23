@@ -4,6 +4,7 @@ export interface PinStatus {
   expiresAt?: string;
   attemptsRemaining?: number;
   lockedUntil?: string;
+  backup?: string;
 }
 
 export interface PinVerifyRequest {
@@ -12,312 +13,230 @@ export interface PinVerifyRequest {
 }
 
 class PinService {
-  private readonly API_URL = import.meta.env.VITE_API_URL || '/api/v1';
-  private readonly PIN_STORAGE_KEY = 'user_pin_hash';
+  private readonly API_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
   private readonly PIN_SETUP_KEY = 'pin_setup_completed';
+  private readonly PIN_CREATED_KEY = 'pin_created';
+  private readonly PIN_EXPIRES_KEY = 'pin_expires_at';
+  private readonly PIN_VERIFIED_KEY = 'pin_verified';
+  private readonly PIN_VERIFIED_AT_KEY = 'pin_verified_at';
+
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('auth_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    };
+  }
+
+  private async parseResponse(response: Response): Promise<PinStatus> {
+    let payload: any = null;
+
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    const message =
+      payload?.message ||
+      payload?.error ||
+      (response.ok ? 'Request completed successfully' : `HTTP ${response.status}: ${response.statusText}`);
+
+    return {
+      success: Boolean(payload?.success ?? response.ok),
+      message,
+      expiresAt: payload?.expiresAt,
+      attemptsRemaining: payload?.attemptsRemaining,
+      lockedUntil: payload?.lockedUntil,
+      backup: payload?.backup,
+    };
+  }
+
+  private async get(path: string): Promise<PinStatus> {
+    if (!localStorage.getItem('auth_token')) {
+      return {
+        success: false,
+        message: 'Session expired. Please sign in again.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.API_URL}/pin/${path}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      return await this.parseResponse(response);
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error while contacting PIN service',
+      };
+    }
+  }
+
+  private persistPinState(result: PinStatus, markSetup = false): void {
+    if (!result.success) {
+      return;
+    }
+
+    if (markSetup) {
+      localStorage.setItem(this.PIN_SETUP_KEY, 'true');
+      localStorage.setItem(this.PIN_CREATED_KEY, 'true');
+    }
+
+    if (result.expiresAt) {
+      localStorage.setItem(this.PIN_EXPIRES_KEY, result.expiresAt);
+    }
+  }
+
+  private async post(path: string, body: object): Promise<PinStatus> {
+    if (!localStorage.getItem('auth_token')) {
+      return {
+        success: false,
+        message: 'Session expired. Please sign in again.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.API_URL}/pin/${path}`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(body),
+      });
+
+      return await this.parseResponse(response);
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error while contacting PIN service',
+      };
+    }
+  }
+
+  private async delete(path: string): Promise<PinStatus> {
+    if (!localStorage.getItem('auth_token')) {
+      return {
+        success: false,
+        message: 'Session expired. Please sign in again.',
+      };
+    }
+
+    try {
+      const response = await fetch(`${this.API_URL}/pin/${path}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+      });
+
+      return await this.parseResponse(response);
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Network error while contacting PIN service',
+      };
+    }
+  }
 
   /**
    * Create a new PIN for the user
    */
   async createPin(pin: string): Promise<PinStatus> {
-    try {
-      // Check if backend is available
-      const isBackendAvailable = await this.checkBackendAvailability();
-      
-      if (isBackendAvailable) {
-        const response = await fetch(`${this.API_URL}/api/v1/pin/create`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-          body: JSON.stringify({ pin }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // Mark PIN as setup completed
-          localStorage.setItem(this.PIN_SETUP_KEY, 'true');
-          return data;
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-      } else {
-        // Fallback: Store PIN locally (for development/offline scenarios)
-        console.warn('Backend not available, using local PIN storage');
-        const pinHash = await this.hashPin(pin);
-        localStorage.setItem(this.PIN_STORAGE_KEY, pinHash);
-        localStorage.setItem(this.PIN_SETUP_KEY, 'true');
-        
-        return {
-          success: true,
-          message: 'PIN created successfully (local storage)',
-        };
-      }
-    } catch (error) {
-      console.error('Create PIN error:', error);
-      
-      // Fallback to local storage if network fails
-      try {
-        const pinHash = await this.hashPin(pin);
-        localStorage.setItem(this.PIN_STORAGE_KEY, pinHash);
-        localStorage.setItem(this.PIN_SETUP_KEY, 'true');
-        
-        return {
-          success: true,
-          message: 'PIN created successfully (local storage - network fallback)',
-        };
-      } catch (fallbackError) {
-        return {
-          success: false,
-          message: `Failed to create PIN: ${error.message}`,
-        };
-      }
-    }
+    const result = await this.post('create', { pin });
+    this.persistPinState(result, true);
+    return result;
   }
 
   /**
    * Verify a PIN
    */
   async verifyPin(request: PinVerifyRequest): Promise<PinStatus> {
-    try {
-      // Check if backend is available
-      const isBackendAvailable = await this.checkBackendAvailability();
-      
-      if (isBackendAvailable) {
-        const response = await fetch(`${this.API_URL}/api/v1/pin/verify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-          body: JSON.stringify(request),
-        });
+    const result = await this.post('verify', request);
 
-        if (response.ok) {
-          const result: PinStatus = await response.json();
-          
-          if (result.success) {
-            localStorage.setItem('pin_created', 'true');
-            localStorage.setItem('pin_expires_at', result.expiresAt || '');
-          }
-          
-          return result;
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-      } else {
-        // Fallback: Verify PIN locally
-        console.warn('Backend not available, using local PIN verification');
-        const storedPinHash = localStorage.getItem(this.PIN_STORAGE_KEY);
-        
-        if (!storedPinHash) {
-          return {
-            success: false,
-            message: 'No PIN found. Please create a PIN first.',
-          };
-        }
-        
-        const inputPinHash = await this.hashPin(request.pin);
-        const isValid = storedPinHash === inputPinHash;
-        
-        if (isValid) {
-          localStorage.setItem('pin_verified', 'true');
-          localStorage.setItem('pin_verified_at', new Date().toISOString());
-          
-          return {
-            success: true,
-            message: 'PIN verified successfully (local storage)',
-          };
-        } else {
-          return {
-            success: false,
-            message: 'Invalid PIN',
-            attemptsRemaining: 3,
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Verify PIN error:', error);
-      
-      // Fallback to local verification if network fails
-      try {
-        const storedPinHash = localStorage.getItem(this.PIN_STORAGE_KEY);
-        
-        if (!storedPinHash) {
-          return {
-            success: false,
-            message: 'No PIN found. Please create a PIN first.',
-          };
-        }
-        
-        const inputPinHash = await this.hashPin(request.pin);
-        const isValid = storedPinHash === inputPinHash;
-        
-        if (isValid) {
-          localStorage.setItem('pin_verified', 'true');
-          localStorage.setItem('pin_verified_at', new Date().toISOString());
-          
-          return {
-            success: true,
-            message: 'PIN verified successfully (local storage fallback)',
-          };
-        } else {
-          return {
-            success: false,
-            message: 'Invalid PIN',
-            attemptsRemaining: 3,
-          };
-        }
-      } catch (fallbackError) {
-        return {
-          success: false,
-          message: `Failed to verify PIN: ${error.message}`,
-        };
-      }
+    if (result.success) {
+      this.persistPinState(result, true);
+      localStorage.setItem(this.PIN_VERIFIED_KEY, 'true');
+      localStorage.setItem(this.PIN_VERIFIED_AT_KEY, new Date().toISOString());
+    } else {
+      this.clearPinVerification();
     }
+
+    return result;
   }
 
   /**
    * Update an existing PIN
    */
   async updatePin(currentPin: string, newPin: string): Promise<PinStatus> {
-    try {
-      // Check if backend is available
-      const isBackendAvailable = await this.checkBackendAvailability();
-      
-      if (isBackendAvailable) {
-        const response = await fetch(`${this.API_URL}/api/v1/pin/update`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          },
-          body: JSON.stringify({ currentPin, newPin }),
-        });
-
-        if (response.ok) {
-          const result: PinStatus = await response.json();
-          return result;
-        } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-      } else {
-        // Fallback: Update PIN locally
-        console.warn('Backend not available, using local PIN update');
-        
-        // Verify current PIN first
-        const storedPinHash = localStorage.getItem(this.PIN_STORAGE_KEY);
-        if (!storedPinHash) {
-          return {
-            success: false,
-            message: 'No PIN found. Please create a PIN first.',
-          };
-        }
-        
-        const currentPinHash = await this.hashPin(currentPin);
-        if (storedPinHash !== currentPinHash) {
-          return {
-            success: false,
-            message: 'Current PIN is incorrect',
-          };
-        }
-        
-        // Update to new PIN
-        const newPinHash = await this.hashPin(newPin);
-        localStorage.setItem(this.PIN_STORAGE_KEY, newPinHash);
-        
-        return {
-          success: true,
-          message: 'PIN updated successfully (local storage)',
-        };
-      }
-    } catch (error) {
-      console.error('Update PIN error:', error);
-      return {
-        success: false,
-        message: `Failed to update PIN: ${error.message}`,
-      };
+    const result = await this.post('update', { currentPin, newPin });
+    if (result.success) {
+      this.persistPinState(result, true);
+      this.clearPinVerification();
     }
+    return result;
+  }
+
+  async getStatus(): Promise<PinStatus> {
+    const result = await this.get('status');
+    this.persistPinState(result, result.success);
+    return result;
+  }
+
+  async getKeyBackup(): Promise<PinStatus> {
+    return this.get('key-backup');
+  }
+
+  async saveKeyBackup(backup: string): Promise<PinStatus> {
+    return this.post('key-backup', { backup });
+  }
+
+  async clearKeyBackup(): Promise<PinStatus> {
+    return this.delete('key-backup');
   }
 
   /**
    * Validate PIN format
    */
   validatePinFormat(pin: string): boolean {
-    // PIN should be 4-6 digits
-    return /^\d{4,6}$/.test(pin);
+    return /^\d{6}$/.test(pin);
   }
 
   /**
    * Generate a random PIN
    */
   generateRandomPin(): string {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   /**
    * Clear all PIN data
    */
   clearPinData(): void {
-    localStorage.removeItem(this.PIN_STORAGE_KEY);
     localStorage.removeItem(this.PIN_SETUP_KEY);
-    localStorage.removeItem('pin_created');
-    localStorage.removeItem('pin_expires_at');
-    localStorage.removeItem('pin_verified');
-    localStorage.removeItem('pin_verified_at');
-  }
-
-  /**
-   * Check if backend is available
-   */
-  private async checkBackendAvailability(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.API_URL}/api/health`, {
-        method: 'GET',
-        mode: 'no-cors',
-        signal: AbortSignal.timeout(3000), // 3 second timeout
-      });
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
-   * Simple PIN hashing for local storage
-   */
-  private async hashPin(pin: string): Promise<string> {
-    // Simple hash for local storage (not as secure as bcrypt but sufficient for local fallback)
-    let hash = 0;
-    for (let i = 0; i < pin.length; i++) {
-      const char = pin.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return btoa(hash.toString()).replace(/[^a-zA-Z0-9]/g, '');
+    localStorage.removeItem(this.PIN_CREATED_KEY);
+    localStorage.removeItem(this.PIN_EXPIRES_KEY);
+    this.clearPinVerification();
   }
 
   /**
    * Check if user has a PIN
    */
   hasPin(): boolean {
-    return localStorage.getItem(this.PIN_STORAGE_KEY) !== null;
+    return localStorage.getItem(this.PIN_SETUP_KEY) === 'true' || localStorage.getItem(this.PIN_CREATED_KEY) === 'true';
   }
 
   /**
    * Check if PIN is verified
    */
   isPinVerified(): boolean {
-    return localStorage.getItem('pin_verified') === 'true';
+    return localStorage.getItem(this.PIN_VERIFIED_KEY) === 'true';
   }
 
   /**
    * Clear PIN verification status
    */
   clearPinVerification(): void {
-    localStorage.removeItem('pin_verified');
-    localStorage.removeItem('pin_verified_at');
+    localStorage.removeItem(this.PIN_VERIFIED_KEY);
+    localStorage.removeItem(this.PIN_VERIFIED_AT_KEY);
   }
 }
 

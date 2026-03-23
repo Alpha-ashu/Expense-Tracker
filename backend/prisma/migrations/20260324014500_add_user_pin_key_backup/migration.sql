@@ -1,0 +1,2 @@
+ALTER TABLE "UserPin"
+ADD COLUMN "keyBackup" TEXT;

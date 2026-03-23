@@ -3,13 +3,37 @@
  * Covers: RBAC, Admin-only, Advisor Approval, Booking Flow
  */
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { app } from '../../src/app';
+import { pinService } from '../../src/modules/pin/pin.service';
 
 const API = '/api/v1';
 
 const getAuthHeaders = (token = 'mock-access-token') => ({
   Authorization: `Bearer ${token}`,
 });
+
+const getSignedAuthHeaders = (userId = 'pin-test-user') => {
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = 'test-jwt-secret';
+  }
+
+  const token = jwt.sign(
+    {
+      userId,
+      id: userId,
+      email: `${userId}@test.com`,
+      role: 'user',
+      isApproved: true,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' },
+  );
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+};
 
 // ═══════════════════════════════════════════
 // ADMIN MODULE - RBAC Tests
@@ -288,6 +312,77 @@ describe('PIN MODULE', () => {
         .set(getAuthHeaders())
         .send({ pin: '' });
       expect([400, 401]).toContain(res.status);
+    });
+  });
+
+  describe('GET /pin/key-backup', () => {
+    it('should return 401 without auth', async () => {
+      const res = await request(app).get(`${API}/pin/key-backup`);
+      expect(res.status).toBe(401);
+    });
+
+    it('should return the backend-managed key backup for the authenticated user', async () => {
+      const spy = jest
+        .spyOn(pinService, 'getPinKeyBackup')
+        .mockResolvedValueOnce({ success: true, message: 'ok', backup: 'hash|salt' });
+
+      const res = await request(app)
+        .get(`${API}/pin/key-backup`)
+        .set(getSignedAuthHeaders());
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.backup).toBe('hash|salt');
+      expect(spy).toHaveBeenCalledWith('pin-test-user');
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('POST /pin/key-backup', () => {
+    it('should reject missing backup payload', async () => {
+      const res = await request(app)
+        .post(`${API}/pin/key-backup`)
+        .set(getSignedAuthHeaders())
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('PIN key backup is required');
+    });
+
+    it('should save the backend-managed key backup for the authenticated user', async () => {
+      const spy = jest
+        .spyOn(pinService, 'savePinKeyBackup')
+        .mockResolvedValueOnce({ success: true, message: 'saved' });
+
+      const res = await request(app)
+        .post(`${API}/pin/key-backup`)
+        .set(getSignedAuthHeaders())
+        .send({ backup: 'hash|salt' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(spy).toHaveBeenCalledWith({ userId: 'pin-test-user', backup: 'hash|salt' });
+
+      spy.mockRestore();
+    });
+  });
+
+  describe('DELETE /pin/key-backup', () => {
+    it('should clear the backend-managed key backup for the authenticated user', async () => {
+      const spy = jest
+        .spyOn(pinService, 'clearPinKeyBackup')
+        .mockResolvedValueOnce({ success: true, message: 'cleared' });
+
+      const res = await request(app)
+        .delete(`${API}/pin/key-backup`)
+        .set(getSignedAuthHeaders());
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(spy).toHaveBeenCalledWith('pin-test-user');
+
+      spy.mockRestore();
     });
   });
 });

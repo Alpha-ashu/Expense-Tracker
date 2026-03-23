@@ -10,10 +10,11 @@ import { motion } from 'framer-motion';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { permissionService } from '@/services/permissionService';
-import { backupPINKeys, restorePINKeys, storeMasterKey, verifyPIN, isPINSet } from '@/lib/encryption';
+import { backupPINKeys, restorePINKeys, storeMasterKey } from '@/lib/encryption';
 import { calculateAge, getAgeGroup, getAgeGroupLabel } from '@/lib/avatar';
 import { AVATAR_OPTIONS, DEFAULT_AVATAR, resolveAvatarSelection } from '@/lib/avatar-gallery';
 import { api } from '@/lib/api';
+import { pinService } from '@/services/pinService';
 
 interface ProfileData {
   firstName: string;
@@ -490,64 +491,53 @@ export const UserProfile: React.FC = () => {
   };
 
   // ── Change PIN ────────────────────────────────────────────────────────────
-  const [pinChangeStep, setPinChangeStep] = useState<'idle' | 'otp-sent' | 'verify-otp' | 'set-new-pin'>('idle');
-  const [pinOtp, setPinOtp] = useState('');
+  const [pinChangeStep, setPinChangeStep] = useState<'idle' | 'set-new-pin'>('idle');
+  const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmNewPin, setConfirmNewPin] = useState('');
   const [showNewPin, setShowNewPin] = useState(false);
   const [isPinLoading, setIsPinLoading] = useState(false);
 
-  const handleRequestPinChangeOtp = async () => {
-    if (!user?.email) { toast.error('No email associated with account'); return; }
-    setIsPinLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: user.email,
-        options: { shouldCreateUser: false },
-      });
-      if (error) throw error;
-      setPinChangeStep('otp-sent');
-      toast.success(`OTP sent to ${user.email}`);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send OTP');
-    } finally {
-      setIsPinLoading(false);
-    }
-  };
-
-  const handleVerifyPinOtp = async () => {
-    if (!user?.email || pinOtp.length < 6) { toast.error('Enter the 6-digit OTP'); return; }
-    setIsPinLoading(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: user.email,
-        token: pinOtp,
-        type: 'magiclink',
-      });
-      if (error) throw error;
-      setPinChangeStep('set-new-pin');
-      setPinOtp('');
-      toast.success('Email verified! Set your new PIN.');
-    } catch (err: any) {
-      toast.error('Invalid or expired OTP. Try again.');
-    } finally {
-      setIsPinLoading(false);
-    }
-  };
-
-  const handleSetNewPin = () => {
-    if (newPin.length !== 6) { toast.error('PIN must be 6 digits'); return; }
+  const handleSetNewPin = async () => {
+    if (currentPin.length !== 6) { toast.error('Current PIN must be 6 digits'); return; }
+    if (newPin.length !== 6) { toast.error('New PIN must be 6 digits'); return; }
     if (newPin !== confirmNewPin) { toast.error('PINs do not match'); setConfirmNewPin(''); return; }
-    storeMasterKey(newPin);
-    toast.success('PIN changed successfully!');
-    setPinChangeStep('idle');
-    setNewPin('');
-    setConfirmNewPin('');
+
+    setIsPinLoading(true);
+    try {
+      const result = await pinService.updatePin(currentPin, newPin);
+      if (!result.success) {
+        toast.error(result.message || 'Failed to update PIN');
+        return;
+      }
+
+      storeMasterKey(newPin);
+      const pinBackup = backupPINKeys();
+      if (pinBackup.hash && pinBackup.salt) {
+        const backupResult = await pinService.saveKeyBackup(`${pinBackup.hash}|${pinBackup.salt}`);
+        if (!backupResult.success) {
+          console.warn('PIN key backup refresh failed after PIN change:', backupResult.message);
+        }
+      }
+
+      localStorage.setItem('pin_created_at', new Date().toISOString());
+      if (result.expiresAt) {
+        localStorage.setItem('pin_expiry', result.expiresAt);
+      }
+
+      toast.success('PIN changed successfully!');
+      setPinChangeStep('idle');
+      setCurrentPin('');
+      setNewPin('');
+      setConfirmNewPin('');
+    } finally {
+      setIsPinLoading(false);
+    }
   };
 
   const resetPinFlow = () => {
     setPinChangeStep('idle');
-    setPinOtp('');
+    setCurrentPin('');
     setNewPin('');
     setConfirmNewPin('');
   };
@@ -1341,39 +1331,15 @@ export const UserProfile: React.FC = () => {
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
                     <div>
                       <p className="font-semibold text-gray-900">Change Secure PIN</p>
-                      <p className="text-sm text-gray-500 mt-0.5">Update your 6-digit access PIN</p>
+                      <p className="text-sm text-gray-500 mt-0.5">Use your current PIN to update your 6-digit access PIN</p>
                     </div>
                     <Button
-                      onClick={handleRequestPinChangeOtp}
+                      onClick={() => setPinChangeStep('set-new-pin')}
                       disabled={isPinLoading}
                       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6"
                     >
-                      {isPinLoading ? 'Sending...' : 'Change PIN'}
+                      {isPinLoading ? 'Updating...' : 'Change PIN'}
                     </Button>
-                  </div>
-                ) : pinChangeStep === 'otp-sent' || pinChangeStep === 'verify-otp' ? (
-                  <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-blue-900">Verify Email</p>
-                      <button onClick={resetPinFlow} className="text-xs text-blue-600 hover:underline">Cancel</button>
-                    </div>
-                    <p className="text-sm text-blue-700">Enter the 6-digit OTP sent to your email to continue.</p>
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        placeholder="Enter 6-digit OTP"
-                        value={pinOtp}
-                        onChange={(e) => setPinOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center font-mono text-lg tracking-widest"
-                      />
-                      <Button
-                        onClick={handleVerifyPinOtp}
-                        disabled={isPinLoading || pinOtp.length !== 6}
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
-                      >
-                        {isPinLoading ? 'Verifying...' : 'Verify'}
-                      </Button>
-                    </div>
                   </div>
                 ) : (
                   <div className="p-4 bg-green-50 rounded-xl border border-green-100 space-y-4">
@@ -1383,6 +1349,16 @@ export const UserProfile: React.FC = () => {
                     </div>
 
                     <div className="space-y-3">
+                      <div className="relative">
+                        <input
+                          type={showNewPin ? 'text' : 'password'}
+                          placeholder="Enter current 6-digit PIN"
+                          value={currentPin}
+                          onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          className="w-full px-4 py-2.5 rounded-xl border border-green-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none text-center font-mono text-lg tracking-widest"
+                        />
+                      </div>
+
                       <div className="relative">
                         <input
                           type={showNewPin ? 'text' : 'password'}
@@ -1411,9 +1387,9 @@ export const UserProfile: React.FC = () => {
                       <Button
                         onClick={handleSetNewPin}
                         className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl py-3 mt-2"
-                        disabled={newPin.length !== 6 || newPin !== confirmNewPin}
+                        disabled={isPinLoading || currentPin.length !== 6 || newPin.length !== 6 || newPin !== confirmNewPin}
                       >
-                        Update Secure PIN
+                        {isPinLoading ? 'Updating Secure PIN...' : 'Update Secure PIN'}
                       </Button>
                     </div>
                   </div>

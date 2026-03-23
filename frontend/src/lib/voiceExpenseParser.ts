@@ -84,8 +84,25 @@ const incomeCategoryRules: Array<{ keywords: string[]; category: string }> = [
 ];
 
 const transferKeywords = ['transfer', 'moved', 'send', 'sent', 'to savings', 'to wallet', 'to bank', 'from savings', 'from bank', 'shifted', 'switch', 'swap', 'move money', 'fund transfer', 'between accounts', 'between account', 'moving', 'switch account', 'from account', 'to account'];
-const incomeKeywords = ['salary', 'received', 'got', 'income', 'refund', 'reimbursement', 'cashback', 'gst', 'tax return', 'claim', 'bonus', 'interest', 'dividend', 'borrowed', 'credited', 'loan received', 'gift received', 'paid', 'deposited', 'earned', 'commission', 'tip', 'received from', 'got paid', 'credited to', 'incoming', 'payment received', 'money received', 'credit', 'payout', 'given', 'awarded'];
+const incomeKeywords = ['salary', 'received', 'got', 'income', 'refund', 'reimbursement', 'cashback', 'gst', 'tax return', 'claim', 'bonus', 'interest', 'dividend', 'borrowed', 'credited', 'loan received', 'gift received', 'deposited', 'earned', 'commission', 'tip', 'received from', 'got paid', 'credited to', 'incoming', 'payment received', 'money received', 'credit', 'payout', 'awarded'];
 const expenseKeywords = ['spent', 'spend', 'bought', 'buy', 'paid', 'pay', 'purchase', 'petrol', 'fuel', 'food', 'grocery', 'rent', 'movie', 'mobile', 'bill', 'charge', 'fee', 'ordered', 'purchased', 'subscription', 'membership', 'enrolled', 'registered', 'paid for', 'spent on', 'expense', 'cost', 'buying', 'shopping', 'payment', 'debited', 'debit', 'withdrew'];
+const strongTransferPatterns = [
+  /\btransfer(?:red)?\b/i,
+  /\bfund transfer\b/i,
+  /\bbetween accounts?\b/i,
+  /\bmoved?\b.*\b(?:to|from)\b/i,
+  /\bsent\b.*\b(?:to|from)\b/i,
+  /\b(?:to|from)\s+(?:savings|wallet|bank|account)\b/i,
+];
+const strongIncomePatterns = [
+  /\b(?:salary|refund|reimbursement|cashback|bonus|interest|dividend|payout)\b/i,
+  /\b(?:received|credited|earned|got paid|payment received|money received|received from|credited to)\b/i,
+];
+const strongExpensePatterns = [
+  /\b(?:spent|paid|bought|purchased|ordered|debited|withdrew|payment|bill|rent|subscription|charge|fee)\b/i,
+  /\b(?:paid for|paid to|spent on|bought from)\b/i,
+  /\bpaid salary\b/i,
+];
 
 const numberWords: Record<string, number> = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
@@ -94,6 +111,12 @@ const numberWords: Record<string, number> = {
 };
 
 const decimalWords: Record<string, number> = { half: 0.5, quarter: 0.25 };
+
+const numericAmountPatterns = [
+  /(?:rs|inr|rupees?|₹)\s*(\d[\d,]*(?:\.\d+)?)/gi,
+  /(\d[\d,]*(?:\.\d+)?)\s*(?:rupees?|rs|inr)\b/gi,
+  /\b(?:spent|spend|paid|pay|cost|price|amount|received|got|earned|credited|debited|transfer(?:red)?|sent|bought|buy|refund(?:ed)?|cashback|salary)\s+(?:for|of|inr|rs|rupees?)?\s*(\d[\d,]*(?:\.\d+)?)/gi,
+];
 
 function wordsToNumber(text: string): number | null {
   const tokens = text.replace(/[^a-z\s-]/g, ' ').replace(/-/g, ' ').split(/\s+/).filter(Boolean);
@@ -142,28 +165,20 @@ function countMatches(text: string, keywords: string[]): number {
 function detectIntent(text: string): VoiceIntent {
   const lowerText = text.toLowerCase();
   
-  // Fast path for transfer detection
-  if (transferKeywords.some((keyword) => lowerText.includes(keyword))) {
+  if (strongTransferPatterns.some((pattern) => pattern.test(lowerText)) || transferKeywords.some((keyword) => lowerText.includes(keyword))) {
     return 'transfer';
   }
   
-  // Optimized scoring with early termination
-  let incomeScore = 0;
-  let expenseScore = 0;
-  
-  for (const keyword of incomeKeywords) {
-    if (lowerText.includes(keyword)) {
-      incomeScore++;
-      if (incomeScore > expenseScore + 2) break; // Early termination
-    }
-  }
-  
-  for (const keyword of expenseKeywords) {
-    if (lowerText.includes(keyword)) {
-      expenseScore++;
-      if (expenseScore > incomeScore + 2) break; // Early termination
-    }
-  }
+  let incomeScore = countMatches(lowerText, incomeKeywords);
+  let expenseScore = countMatches(lowerText, expenseKeywords);
+
+  if (strongIncomePatterns.some((pattern) => pattern.test(lowerText))) incomeScore += 2;
+  if (strongExpensePatterns.some((pattern) => pattern.test(lowerText))) expenseScore += 2;
+
+  if (/\bpaid salary\b/i.test(lowerText)) expenseScore += 3;
+  if (/\b(?:salary|refund|reimbursement|cashback)\s+(?:received|credited)\b/i.test(lowerText)) incomeScore += 3;
+  if (/\b(?:received from|payment received|money received|credited to)\b/i.test(lowerText)) incomeScore += 2;
+  if (/\b(?:paid to|paid for|spent on|bought from)\b/i.test(lowerText)) expenseScore += 2;
   
   if (incomeScore > expenseScore) return 'income';
   if (expenseScore > incomeScore) return 'expense';
@@ -175,28 +190,69 @@ function detectIntent(text: string): VoiceIntent {
   return 'expense'; // Default fallback
 }
 
-function extractAmountFromChunk(chunk: string): { amount: number | null; description: string } {
-  const text = chunk.trim();
-  
-  // Optimized amount extraction with multiple patterns
-  const amountPatterns = [
-    /(?:\b|\u20B9)(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/,  // Standard currency format
-    /(?:rs|inr|rupees?)\s*(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/i,  // Text currency
-    /(\d+)\s*(?:rupees?|rs)/i,  // Reversed format
-  ];
-  
-  let amount: number | null = null;
-  let description = text;
-  
-  for (const pattern of amountPatterns) {
-    const amountMatch = text.match(pattern);
-    if (amountMatch) {
-      amount = Number(amountMatch[1].replace(/,/g, ''));
-      description = text.replace(amountMatch[0], '').trim();
-      break;
+function extractNumericAmount(text: string): { amount: number | null; matchedText: string | null } {
+  const candidates: Array<{ amount: number; matchedText: string; score: number }> = [];
+
+  for (const pattern of numericAmountPatterns) {
+    pattern.lastIndex = 0;
+    for (const match of text.matchAll(pattern)) {
+      const amount = Number(match[1]?.replace(/,/g, ''));
+      if (!Number.isFinite(amount)) continue;
+      candidates.push({
+        amount,
+        matchedText: match[0],
+        score: 3 + Math.min(1, amount / 100000),
+      });
     }
   }
-  
+
+  for (const match of text.matchAll(/\b\d[\d,]*(?:\.\d+)?\b/g)) {
+    const rawValue = match[0];
+    const amount = Number(rawValue.replace(/,/g, ''));
+    if (!Number.isFinite(amount)) continue;
+
+    const start = match.index ?? 0;
+    const end = start + rawValue.length;
+    const before = text[start - 1] ?? '';
+    const after = text[end] ?? '';
+    if (before === '/' || before === '-' || after === '/' || after === '-') continue;
+
+    const context = text.slice(Math.max(0, start - 18), Math.min(text.length, end + 18)).toLowerCase();
+    let score = amount >= 100 ? 1.4 : 1;
+    if (/(rs|inr|₹|rupees?|spent|paid|received|credited|debited|salary|refund|cashback|transfer|bought|cost)/i.test(context)) {
+      score += 1.3;
+    }
+    if (amount >= 1900 && amount <= 2100 && /\b\d{4}\b/.test(rawValue)) score -= 1.5;
+
+    candidates.push({
+      amount,
+      matchedText: rawValue,
+      score,
+    });
+  }
+
+  if (candidates.length === 0) return { amount: null, matchedText: null };
+
+  const bestCandidate = candidates.sort((left, right) => {
+    if (right.score !== left.score) return right.score - left.score;
+    return right.amount - left.amount;
+  })[0];
+
+  return bestCandidate
+    ? { amount: bestCandidate.amount, matchedText: bestCandidate.matchedText }
+    : { amount: null, matchedText: null };
+}
+
+function extractAmountFromChunk(chunk: string): { amount: number | null; description: string } {
+  const text = chunk.trim();
+  const numericMatch = extractNumericAmount(text);
+  let amount: number | null = numericMatch.amount;
+  let description = text;
+
+  if (numericMatch.matchedText) {
+    description = text.replace(numericMatch.matchedText, '').trim();
+  }
+
   if (!amount) {
     const wordAmount = wordsToNumber(text);
     if (wordAmount !== null) {
@@ -209,42 +265,55 @@ function extractAmountFromChunk(chunk: string): { amount: number | null; descrip
     }
   }
 
-  return { amount, description };
+  return {
+    amount,
+    description: description.replace(/^(?:for|on|at|to|from|of|towards)\s+/i, '').trim(),
+  };
+}
+
+function splitTransactionChunks(rawText: string): string[] {
+  const fragments = rawText
+    .toLowerCase()
+    .trim()
+    .split(/\b(?:and|also|plus|then|next)\b|,|;|\n|\r\n|\.(?!\d)/i)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 2);
+
+  const chunks: string[] = [];
+  let pending = '';
+
+  for (const fragment of fragments) {
+    const combined = pending ? `${pending} ${fragment}`.trim() : fragment;
+    const { amount } = extractAmountFromChunk(combined);
+    if (amount !== null) {
+      chunks.push(combined);
+      pending = '';
+      continue;
+    }
+
+    pending = combined;
+  }
+
+  if (pending) {
+    chunks.push(pending);
+  }
+
+  return chunks;
 }
 
 export function parseMultipleTransactions(rawText: string): VoiceParseResult[] {
-  const text = rawText.toLowerCase().trim();
-  
-  // Optimized chunking with better delimiters
-  const chunks = text
-    .split(/\band\b|,|\.(?!\d)|;|\n|\r\n/i)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 2); // Filter out very short chunks
-
   const results: VoiceParseResult[] = [];
-  
-  // Process chunks in parallel for better performance
-  const processingPromises = chunks.map(async (chunk) => {
-    const { amount, description } = extractAmountFromChunk(chunk);
-    if (amount === null) return null;
-    
-    const intent = detectIntent(chunk);
-    const category = intent === 'transfer' ? 'Transfer' : detectCategory(chunk, intent);
-    
-    return { intent, amount, category, description: description || chunk } as VoiceParseResult;
-  });
-  
-  // For synchronous processing, we'll use a simple loop but optimized
-  for (const chunk of chunks) {
+
+  for (const chunk of splitTransactionChunks(rawText)) {
     const { amount, description } = extractAmountFromChunk(chunk);
     if (amount === null) continue;
-    
+
     const intent = detectIntent(chunk);
     const category = intent === 'transfer' ? 'Transfer' : detectCategory(chunk, intent);
-    
+
     results.push({ intent, amount, category, description: description || chunk });
   }
-  
+
   return results;
 }
 
@@ -257,27 +326,12 @@ export function parseMultipleExpenses(rawText: string): Array<Omit<VoiceParseRes
 export function parseVoiceExpense(rawText: string): VoiceParseResult {
   const text = rawText.toLowerCase().trim();
   const intent: VoiceIntent = detectIntent(text);
-  
-  // Optimized amount extraction with multiple patterns
-  const amountPatterns = [
-    /(?:\b|\u20B9)(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/,  // Standard currency format
-    /(?:rs|inr|rupees?)\s*(\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?/i,  // Text currency
-    /(\d+)\s*(?:rupees?|rs)/i,  // Reversed format
-  ];
-  
-  let amount: number | null = null;
-  for (const pattern of amountPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      amount = Number(match[1].replace(/,/g, ''));
-      break;
-    }
-  }
-  
+  let amount = extractNumericAmount(text).amount;
+
   if (!amount) {
     amount = wordsToNumber(text);
   }
-  
+
   const category = intent === 'transfer' ? 'Transfer' : detectCategory(text, intent);
   return { intent, amount, category, description: rawText.trim() };
 }

@@ -382,6 +382,65 @@ const getFieldValueByFuzzyKey = (
   return best?.value;
 };
 
+const normalizeLocaleNumberString = (value: string) => {
+  let cleaned = value.replace(/[^\d.,()\-]/g, '').replace(/\s+/g, '');
+  if (!cleaned) return '';
+
+  cleaned = cleaned.replace(/[()]/g, '');
+
+  if (cleaned.includes('.') && cleaned.includes(',')) {
+    if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else {
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (cleaned.includes(',')) {
+    const parts = cleaned.split(',');
+    const lastPart = parts[parts.length - 1] ?? '';
+    cleaned = (parts.length > 1 && lastPart.length === 3)
+      ? cleaned.replace(/,/g, '')
+      : cleaned.replace(',', '.');
+  } else if (cleaned.includes('.')) {
+    const parts = cleaned.split('.');
+    const lastPart = parts[parts.length - 1] ?? '';
+    if (parts.length > 1 && lastPart.length === 3) {
+      cleaned = cleaned.replace(/\./g, '');
+    } else if (parts.length > 2) {
+      const decimalPart = parts.pop() ?? '';
+      cleaned = `${parts.join('')}.${decimalPart}`;
+    }
+  }
+
+  return cleaned.replace(/(?!^)-/g, '');
+};
+
+const buildValidDate = (year: number, month: number, day: number) => {
+  const candidate = new Date(year, month - 1, day);
+  if (
+    Number.isNaN(candidate.getTime())
+    || candidate.getFullYear() !== year
+    || candidate.getMonth() !== month - 1
+    || candidate.getDate() !== day
+  ) {
+    return null;
+  }
+  return candidate;
+};
+
+const parseExcelSerialDate = (value: number) => {
+  if (!Number.isFinite(value) || value < 20000 || value > 80000) return null;
+
+  const excelEpoch = Date.UTC(1899, 11, 30);
+  const candidate = new Date(excelEpoch + (value * 24 * 60 * 60 * 1000));
+  if (Number.isNaN(candidate.getTime())) return null;
+
+  return new Date(
+    candidate.getUTCFullYear(),
+    candidate.getUTCMonth(),
+    candidate.getUTCDate(),
+  );
+};
+
 const parseAmountValue = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value !== 'string') return null;
@@ -389,13 +448,10 @@ const parseAmountValue = (value: unknown): number | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  const negative = trimmed.startsWith('(') && trimmed.endsWith(')');
-  const cleaned = trimmed
-    .replace(/[()]/g, '')
-    .replace(/[^\d.,-]/g, '')
-    .replace(/,(?=\d{3}\b)/g, '');
+  const negative = (trimmed.startsWith('(') && trimmed.endsWith(')')) || /^-/.test(trimmed);
+  const normalized = normalizeLocaleNumberString(trimmed);
+  if (!normalized) return null;
 
-  const normalized = cleaned.includes('.') ? cleaned : cleaned.replace(',', '.');
   const parsed = Number.parseFloat(normalized);
   if (!Number.isFinite(parsed)) return null;
   return negative ? -parsed : parsed;
@@ -407,7 +463,10 @@ const parseDateValue = (value: unknown): Date | null => {
   }
 
   if (typeof value === 'number' && Number.isFinite(value)) {
-    const candidate = new Date(value > 1e12 ? value : value * 1000);
+    const excelDate = parseExcelSerialDate(value);
+    if (excelDate) return excelDate;
+
+    const candidate = new Date(value > 1e12 ? value : value > 1e9 ? value * 1000 : value);
     return Number.isNaN(candidate.getTime()) ? null : candidate;
   }
 
@@ -415,20 +474,23 @@ const parseDateValue = (value: unknown): Date | null => {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
+  if (/^\d{5}(?:\.\d+)?$/.test(trimmed)) {
+    const excelDate = parseExcelSerialDate(Number(trimmed));
+    if (excelDate) return excelDate;
+  }
+
   if (/^\d{4}[/-]\d{1,2}[/-]\d{1,2}/.test(trimmed)) {
     const [year, month, day] = trimmed.split(/[T\s]/)[0].split(/[/-]/).map((part) => Number(part));
-    const candidate = new Date(year, month - 1, day);
-    return Number.isNaN(candidate.getTime()) ? null : candidate;
+    return buildValidDate(year, month, day);
   }
 
   if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(trimmed)) {
     const [first, second, third] = trimmed.split(/[/-]/).map((part) => Number(part));
     const year = third < 100 ? 2000 + third : third;
-    const dayFirst = first > 12 || second <= 12;
+    const dayFirst = first > 12 || (first <= 12 && second <= 12);
     const day = dayFirst ? first : second;
     const month = dayFirst ? second : first;
-    const candidate = new Date(year, month - 1, day);
-    return Number.isNaN(candidate.getTime()) ? null : candidate;
+    return buildValidDate(year, month, day);
   }
 
   const candidate = new Date(trimmed);
@@ -776,6 +838,26 @@ const extractJsonRecords = (payload: unknown): Array<Record<string, unknown>> =>
 const buildDescription = (baseDescription: string, merchant: string, category: string) => {
   const primary = baseDescription.trim() || merchant.trim() || category.trim() || 'Imported expense';
   return primary.replace(/\s+/g, ' ').slice(0, 160);
+};
+
+const buildPreviewDescription = (input: {
+  baseDescription: string;
+  rawCategory: string;
+  transactionType: ImportTransactionType;
+}) => {
+  const normalizedDescription = input.baseDescription.trim().replace(/\s+/g, ' ');
+  const normalizedCategory = input.rawCategory.trim();
+
+  if (
+    input.transactionType === 'income'
+    && normalizedDescription
+    && normalizedCategory
+    && !normalizeText(normalizedDescription).startsWith(normalizeText(normalizedCategory))
+  ) {
+    return `${titleCase(normalizedCategory)} - ${normalizedDescription}`.slice(0, 160);
+  }
+
+  return normalizedDescription.slice(0, 160);
 };
 
 const resolveImportedAmount = (
@@ -1653,7 +1735,11 @@ class SmartExpenseImportService {
       if (!date) rowErrors.push('Invalid date');
       if (amount == null || !Number.isFinite(amount)) rowErrors.push('Invalid amount');
 
-      const fallbackDescription = description;
+      const fallbackDescription = buildPreviewDescription({
+        baseDescription: description,
+        rawCategory: rawCategory || categoryResult.category,
+        transactionType,
+      });
       const normalizedExtId = normalizeExternalId(externalId);
       const duplicateKeyByAccountId = buildDuplicateKey(
         date,

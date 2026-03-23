@@ -328,7 +328,7 @@ export const PAGINATION = {
 
 export const VALIDATION = {
   PASSWORD_MIN_LENGTH: 8,
-  PIN_LENGTH: 4,
+  PIN_LENGTH: 6,
   MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
   ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'image/jpeg', 'image/png'],

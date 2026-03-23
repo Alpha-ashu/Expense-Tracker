@@ -196,7 +196,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           'Authorization': `Bearer ${data.accessToken}`,
         },
         body: JSON.stringify({
-          userId: data.user.id,
           ...deviceInfo,
         }),
       });
@@ -254,7 +253,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           'Authorization': `Bearer ${data.accessToken}`,
         },
         body: JSON.stringify({
-          userId: data.user.id,
           ...deviceInfo,
         }),
       });

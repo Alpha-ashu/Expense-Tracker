@@ -47,6 +47,11 @@ const BANK_KEYWORDS = [
   'transfer', 'neft', 'rtgs', 'imps', 'upi', 'transaction', 'passbook'
 ];
 
+const HEADER_LINE_PATTERN = /^(period|statement|account|a\/c|customer\s*id|opening\s*balance|closing\s*balance|balance\s*(?:brought|carried)\s*forward)\b/i;
+const TRANSACTION_TABLE_HEADER_PATTERN = /\b(date|value\s*date)\b.*\b(description|particulars|narration|remarks)\b.*\b(debit|credit|withdrawal|deposit|amount|balance)\b/i;
+const DATE_PREFIX_PATTERN = /^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2,4}[/-]\d{1,2}[/-]\d{1,2})\s+(.+)$/i;
+const AMOUNT_TOKEN_PATTERN = /₹?\s*[\d,]+(?:\.\d{2})?/gi;
+
 const TRANSACTION_DESCRIPTION_PATTERNS = {
   atm: /atm|cash\s*withdrawal/i,
   transfer: /transfer|neft|rtgs|imps|upi/i,
@@ -61,6 +66,14 @@ const TRANSACTION_DESCRIPTION_PATTERNS = {
 
 function normalizeAmount(amount: string): number {
   return parseFloat(amount.replace(/[,\s₹]/g, ''));
+}
+
+function normalizeStatementLine(line: string): string {
+  return line.replace(/\s+/g, ' ').trim();
+}
+
+function isStatementHeaderLine(line: string): boolean {
+  return HEADER_LINE_PATTERN.test(line) || TRANSACTION_TABLE_HEADER_PATTERN.test(line);
 }
 
 function detectTransactionType(description: string, amount: number, creditDebit?: string): 'credit' | 'debit' {
@@ -135,19 +148,62 @@ function extractBalances(lines: string[]): { opening?: number; closing?: number 
   const balances: { opening?: number; closing?: number } = {};
   
   for (const line of lines) {
-    const openingMatch = line.match(/(?:opening|opening\s*balance|ob)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i);
+    const openingMatch = line.match(/(?:opening|opening\s*balance|ob|balance\s*brought\s*forward)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i);
     if (openingMatch) {
       balances.opening = normalizeAmount(openingMatch[1]);
       continue;
     }
     
-    const closingMatch = line.match(/(?:closing|closing\s*balance|cb)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i);
+    const closingMatch = line.match(/(?:closing|closing\s*balance|cb|balance\s*carried\s*forward)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i);
     if (closingMatch) {
       balances.closing = normalizeAmount(closingMatch[1]);
     }
   }
   
   return balances;
+}
+
+function extractTrailingAmountBlock(text: string) {
+  return text.match(/((?:₹?\s*[\d,]+(?:\.\d{2})?\s*){1,3})$/i);
+}
+
+function parseTrailingAmountColumns(
+  values: number[],
+  description: string,
+): { amount: number; type: 'credit' | 'debit'; balance?: number } | null {
+  if (values.length === 0) return null;
+
+  if (values.length >= 3) {
+    const [debit, credit, balance] = values.slice(-3);
+    if (debit > 0 && credit === 0) {
+      return { amount: debit, type: 'debit', balance };
+    }
+    if (credit > 0 && debit === 0) {
+      return { amount: credit, type: 'credit', balance };
+    }
+
+    const inferredType = detectTransactionType(description, Math.max(debit, credit));
+    return {
+      amount: inferredType === 'credit' ? Math.max(credit, debit) : Math.max(debit, credit),
+      type: inferredType,
+      balance,
+    };
+  }
+
+  if (values.length === 2) {
+    const [amount, balance] = values;
+    return {
+      amount,
+      type: detectTransactionType(description, amount),
+      balance,
+    };
+  }
+
+  const [amount] = values;
+  return {
+    amount,
+    type: detectTransactionType(description, amount),
+  };
 }
 
 function extractTransactions(lines: string[]): Array<{
@@ -166,36 +222,96 @@ function extractTransactions(lines: string[]): Array<{
     balance?: number;
     category?: string;
   }> = [];
-  
-  for (const line of lines) {
-    for (const pattern of BANK_STATEMENT_PATTERNS.transaction) {
-      const match = line.match(pattern);
-      if (match) {
-        const [, date, description, amount, creditDebit] = match;
-        const normalizedAmount = normalizeAmount(amount);
-        const type = detectTransactionType(description.trim(), normalizedAmount, creditDebit);
-        const category = categorizeTransaction(description.trim());
-        
-        transactions.push({
-          date: date.trim(),
-          description: description.trim(),
-          amount: normalizedAmount,
-          type,
-          category,
-        });
-        break;
+
+  for (const rawLine of lines) {
+    const line = normalizeStatementLine(rawLine);
+    if (!line || isStatementHeaderLine(line)) continue;
+
+    let match = line.match(/^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2,4}[/-]\d{1,2}[/-]\d{1,2})\s+(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)\s*(?:₹?\s*([\d,]+(?:\.\d{2})?))?$/i);
+    let date = '';
+    let description = '';
+    let amount = '';
+    let creditDebit = '';
+    let balance = '';
+
+    if (match) {
+      [, date, description, amount, creditDebit, balance = ''] = match;
+    } else {
+      const datedLineMatch = line.match(DATE_PREFIX_PATTERN);
+      if (datedLineMatch) {
+        const [, parsedDate, remainder] = datedLineMatch;
+        const amountBlock = extractTrailingAmountBlock(remainder);
+
+        if (amountBlock && typeof amountBlock.index === 'number') {
+          const trailingValues = (amountBlock[1].match(AMOUNT_TOKEN_PATTERN) || [])
+            .map((token) => normalizeAmount(token))
+            .filter((value) => Number.isFinite(value));
+          const parsedDescription = remainder
+            .slice(0, amountBlock.index)
+            .replace(/\b(?:cr|dr)\b/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          const parsedColumns = parseTrailingAmountColumns(trailingValues, parsedDescription);
+
+          if (parsedDescription && parsedColumns) {
+            transactions.push({
+              date: parsedDate.trim(),
+              description: parsedDescription,
+              amount: parsedColumns.amount,
+              type: parsedColumns.type,
+              balance: parsedColumns.balance,
+              category: categorizeTransaction(parsedDescription),
+            });
+            continue;
+          }
+        }
       }
+
+      match = line.match(/^(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)\s*(?:₹?\s*([\d,]+(?:\.\d{2})?))?$/i);
+      if (!match) continue;
+
+      [, description, amount, creditDebit, balance = ''] = match;
+      if (!/[a-z]/i.test(description)) continue;
+      if (isStatementHeaderLine(description)) continue;
     }
+
+    const normalizedAmount = normalizeAmount(amount);
+    const cleanedDescription = description.trim();
+    const type = detectTransactionType(cleanedDescription, normalizedAmount, creditDebit);
+    const category = categorizeTransaction(cleanedDescription);
+    const normalizedBalance = balance ? normalizeAmount(balance) : undefined;
+
+    transactions.push({
+      date: date.trim(),
+      description: cleanedDescription,
+      amount: normalizedAmount,
+      type,
+      balance: normalizedBalance,
+      category,
+    });
   }
-  
+
   return transactions;
 }
 
 function isBankStatement(text: string): boolean {
-  const keywords = BANK_KEYWORDS.filter(keyword => 
-    text.toLowerCase().includes(keyword.toLowerCase())
-  );
-  return keywords.length >= 3;
+  const normalizedText = text.toLowerCase();
+  const lines = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+
+  const keywordHits = BANK_KEYWORDS.filter(keyword =>
+    normalizedText.includes(keyword.toLowerCase())
+  ).length;
+  const transactionLineCount = extractTransactions(lines).length;
+  const balances = extractBalances(lines);
+  const metadataSignals = Number(Boolean(extractAccountNumber(lines)))
+    + Number(Boolean(extractStatementPeriod(lines)))
+    + Number(balances.opening !== undefined)
+    + Number(balances.closing !== undefined);
+
+  return keywordHits >= 3 || transactionLineCount >= 2 || (transactionLineCount >= 1 && metadataSignals >= 1);
 }
 
 export async function parseBankStatement(rawText: string): Promise<BankStatementResult> {

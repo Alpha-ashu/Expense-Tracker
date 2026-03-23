@@ -414,14 +414,16 @@ const extractItems = (lines: string[], totalAmount?: number) => {
     }
 
     if (reachedSummary) continue;
+    if (isMetadataLine(line)) continue;
     if (RECEIPT_TOTAL_PATTERNS.some((pattern) => pattern.test(line))) continue;
     if (RECEIPT_SUBTOTAL_PATTERNS.some((pattern) => pattern.test(line))) continue;
     if (RECEIPT_TAX_PATTERNS.some((pattern) => pattern.test(line))) continue;
     if (/invoice|receipt|gstin|fssai|phone|mobile|thank\s*you|visit\s*again|www\.|qty|quantity|item\s*code|particulars|rate|amount/i.test(line)) continue;
 
     const amounts = extractAmounts(line, { allowLooseIntegers: true });
-    if (amounts.length !== 1) continue;
-    if (totalAmount && amounts[0] > totalAmount) continue;
+    if (amounts.length === 0 || amounts.length > 4) continue;
+    const itemAmount = amounts[amounts.length - 1];
+    if (totalAmount && itemAmount > totalAmount) continue;
 
     const rawName = line.replace(/(?:rs\.?|₹|€|£|\$|usd|eur|gbp|inr)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ');
     const name = normalizeItemName(rawName);
@@ -431,7 +433,7 @@ const extractItems = (lines: string[], totalAmount?: number) => {
     if (tokens.length > 0 && (shortTokens / tokens.length) > 0.5) continue;
     if (/invoice|receipt|gstin|fssai|phone|mobile|thank\s*you|www\.|qty|quantity|item\s*code/i.test(name)) continue;
     if (isLikelyGarbageItemName(name)) continue;
-    items.push({ name, amount: amounts[0] });
+    items.push({ name, amount: itemAmount });
   }
 
   return items.slice(0, 12);

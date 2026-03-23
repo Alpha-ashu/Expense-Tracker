@@ -24,6 +24,7 @@ export interface PinResponse {
   expiresAt?: string;
   attemptsRemaining?: number;
   lockedUntil?: string;
+  backup?: string;
 }
 
 class PinService {
@@ -372,6 +373,97 @@ class PinService {
     } catch (error) {
       console.error('Get PIN days remaining error:', error);
       return 0;
+    }
+  }
+
+  async savePinKeyBackup(request: { userId: string; backup: string }): Promise<PinResponse> {
+    const { userId, backup } = request;
+
+    if (!backup || typeof backup !== 'string') {
+      return {
+        success: false,
+        message: 'PIN key backup is required',
+      };
+    }
+
+    try {
+      const updated = await prisma.userPin.updateMany({
+        where: { userId },
+        data: { keyBackup: backup },
+      });
+
+      if (updated.count === 0) {
+        return {
+          success: false,
+          message: 'PIN not set for this user',
+        };
+      }
+
+      return {
+        success: true,
+        message: 'PIN key backup saved successfully',
+      };
+    } catch (error) {
+      console.error('Save PIN key backup error:', error);
+      return {
+        success: false,
+        message: 'Failed to save PIN key backup',
+      };
+    }
+  }
+
+  async getPinKeyBackup(userId: string): Promise<PinResponse> {
+    try {
+      const userPin = await prisma.userPin.findUnique({
+        where: { userId },
+        select: { keyBackup: true },
+      });
+
+      if (!userPin?.keyBackup) {
+        return {
+          success: false,
+          message: 'No PIN key backup found',
+        };
+      }
+
+      return {
+        success: true,
+        message: 'PIN key backup loaded successfully',
+        backup: userPin.keyBackup,
+      };
+    } catch (error) {
+      console.error('Get PIN key backup error:', error);
+      return {
+        success: false,
+        message: 'Failed to load PIN key backup',
+      };
+    }
+  }
+
+  async clearPinKeyBackup(userId: string): Promise<PinResponse> {
+    try {
+      const updated = await prisma.userPin.updateMany({
+        where: { userId },
+        data: { keyBackup: null },
+      });
+
+      if (updated.count === 0) {
+        return {
+          success: false,
+          message: 'PIN not set for this user',
+        };
+      }
+
+      return {
+        success: true,
+        message: 'PIN key backup cleared successfully',
+      };
+    } catch (error) {
+      console.error('Clear PIN key backup error:', error);
+      return {
+        success: false,
+        message: 'Failed to clear PIN key backup',
+      };
     }
   }
 }

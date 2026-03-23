@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('./generated/prisma');
 
 // Override DATABASE_URL with correct credentials from docker-compose
 const prisma = new PrismaClient({

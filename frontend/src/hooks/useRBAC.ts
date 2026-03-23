@@ -3,64 +3,57 @@
  * Custom hooks for role-based access control in components
  */
 
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  hasFeatureAccess,
-  canPerformAction,
-  isAdminRole,
-  isAdvisorRole,
-  isUserRole,
-} from '@/lib/rbac';
+import { usePermissions } from './usePermissions';
 
 /**
  * Hook to check feature access
  */
 export const useFeatureAccess = (feature: string): boolean => {
-  const { role } = useAuth();
-  return hasFeatureAccess(role, feature);
+  const { hasFeatureAccess } = usePermissions();
+  return hasFeatureAccess(feature);
 };
 
 /**
  * Hook to check action permission
  */
 export const useActionPermission = (action: string): boolean => {
-  const { role } = useAuth();
-  return canPerformAction(role, action);
+  const { canPerformAction } = usePermissions();
+  return canPerformAction(action);
 };
 
 /**
  * Hook to check if user is admin
  */
 export const useIsAdmin = (): boolean => {
-  const { role } = useAuth();
-  return isAdminRole(role);
+  const { isAdmin } = usePermissions();
+  return isAdmin;
 };
 
 /**
  * Hook to check if user is advisor
  */
 export const useIsAdvisor = (): boolean => {
-  const { role } = useAuth();
-  return isAdvisorRole(role);
+  const { isAdvisor } = usePermissions();
+  return isAdvisor;
 };
 
 /**
  * Hook to check if user is regular user
  */
 export const useIsUser = (): boolean => {
-  const { role } = useAuth();
-  return isUserRole(role);
+  const { isUser } = usePermissions();
+  return isUser;
 };
 
 /**
  * Hook to check multiple feature access
  */
 export const useMultipleFeatureAccess = (features: string[]): Record<string, boolean> => {
-  const { role } = useAuth();
+  const { hasFeatureAccess } = usePermissions();
   
   const access: Record<string, boolean> = {};
   features.forEach((feature) => {
-    access[feature] = hasFeatureAccess(role, feature);
+    access[feature] = hasFeatureAccess(feature);
   });
   
   return access;
@@ -71,7 +64,10 @@ export const useMultipleFeatureAccess = (features: string[]): Record<string, boo
  * Returns true only if user has exactly the specified role
  */
 export const useRequireRole = (requiredRole: string | string[]): boolean => {
-  const { role } = useAuth();
+  const { role } = usePermissions();
+  if (!role) {
+    return false;
+  }
   
   if (Array.isArray(requiredRole)) {
     return requiredRole.includes(role);

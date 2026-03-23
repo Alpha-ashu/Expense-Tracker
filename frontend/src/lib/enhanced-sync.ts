@@ -76,7 +76,6 @@ class EnhancedSyncService {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify({
-          userId,
           ...deviceInfo,
         }),
       });
@@ -107,7 +106,6 @@ class EnhancedSyncService {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify({
-          userId,
           deviceId: this.deviceId,
           lastSyncedAt: this.lastSyncAt,
         }),
@@ -152,7 +150,6 @@ class EnhancedSyncService {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify({
-          userId,
           deviceId: this.deviceId,
           entities: this.syncQueue,
         }),

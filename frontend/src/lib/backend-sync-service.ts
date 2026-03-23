@@ -103,7 +103,6 @@ class BackendSyncService {
           'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
         },
         body: JSON.stringify({
-          userId: user.id,
           deviceId: this.getDeviceId(),
           lastSyncedAt: this.lastSyncTime?.toISOString(),
         }),

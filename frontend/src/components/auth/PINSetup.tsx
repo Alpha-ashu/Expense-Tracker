@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Shield, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { storeMasterKey, hashPIN, isPINSet } from '@/lib/encryption';
+import { backupPINKeys, isPINSet, restorePINKeys, storeMasterKey, verifyPIN } from '@/lib/encryption';
+import { pinService } from '@/services/pinService';
 
 interface PINSetupProps {
   onComplete: (pin: string) => void;
@@ -13,7 +14,6 @@ interface PINSetupProps {
 export const PINSetup: React.FC<PINSetupProps> = ({
   onComplete,
   onBack,
-  isExistingUser = false,
   existingPinRequired = false,
 }) => {
   const [step, setStep] = useState<'create' | 'confirm' | 'enter'>('create');
@@ -94,15 +94,45 @@ export const PINSetup: React.FC<PINSetupProps> = ({
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-      // Store the PIN securely
-      const key = storeMasterKey(step === 'enter' ? pin : confirmPin);
+      const candidatePin = step === 'enter' ? pin : confirmPin;
+      const result = step === 'enter'
+        ? await pinService.verifyPin({ pin: candidatePin })
+        : await pinService.createPin(candidatePin);
+
+      if (!result.success) {
+        setError(result.message || 'PIN request failed. Please try again.');
+        return;
+      }
+
+      if (step === 'enter' && !isPINSet()) {
+        const keyBackupResult = await pinService.getKeyBackup();
+        if (keyBackupResult.success && keyBackupResult.backup) {
+          const [hash, salt] = keyBackupResult.backup.split('|');
+          if (hash && salt) {
+            restorePINKeys({ hash, salt });
+          }
+        }
+      }
+
+      const localResult = verifyPIN(candidatePin);
+      if (!localResult.isValid) {
+        storeMasterKey(candidatePin);
+      }
+
+      const backup = backupPINKeys();
+      if (backup.hash && backup.salt) {
+        const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
+        if (!backupResult.success) {
+          console.warn('PIN key backup refresh failed during setup:', backupResult.message);
+        }
+      }
 
       // Store PIN metadata
       localStorage.setItem('pin_created_at', new Date().toISOString());
       localStorage.setItem('pin_expiry', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()); // 90 days
 
       toast.success(step === 'enter' ? 'PIN verified successfully!' : 'PIN created successfully!');
-      onComplete(step === 'enter' ? pin : confirmPin);
+      onComplete(candidatePin);
     } catch (err) {
       setError('Failed to save PIN. Please try again.');
     } finally {
@@ -248,10 +278,10 @@ export const PINSetup: React.FC<PINSetupProps> = ({
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-1">Your PIN is secure</p>
                 <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• PIN is encrypted and stored locally only</li>
+                  <li>• Financial data stays encrypted on this device</li>
                   <li>• Used for app unlock and sensitive actions</li>
                   <li>• Valid for 90 days, same across all devices</li>
-                  <li>• Never shared with servers</li>
+                  <li>• Server stores PIN verification data and encrypted recovery metadata only</li>
                 </ul>
               </div>
             </div>

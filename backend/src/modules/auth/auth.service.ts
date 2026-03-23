@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { User, RegisterInput, LoginInput, AuthTokens } from './auth.types';
 import { prisma } from '../../db/prisma';
 import { generateTokens } from '../../utils/auth';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../db/prisma-client';
 
 export class AuthService {
   async register(input: RegisterInput & {

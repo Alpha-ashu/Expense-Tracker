@@ -92,6 +92,14 @@ describe('parseReceiptText', () => {
     expect(result.time).toBe('09:18 PM');
   });
 
+  it('extracts tabular item rows that include quantity and rate columns', async () => {
+    const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.caravanMenuRestaurant, 'user-7b');
+
+    expect(result.items?.length).toBeGreaterThan(0);
+    expect(result.items?.[0]?.name).toBe('SPICY MANGOLA');
+    expect(result.items?.[0]?.amount).toBe(438);
+  });
+
   it('extracts date with dot separators', async () => {
     const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.dotSeparatorDate, 'user-8');
 

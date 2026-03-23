@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../db/prisma-client';
 
 /**
  * GET /api/v1/dashboard/summary

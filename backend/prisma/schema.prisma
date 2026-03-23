@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -507,6 +508,7 @@ model UserPin {
   id             String    @id @default(uuid())
   userId         String    @unique
   pinHash        String
+  keyBackup      String?
   expiresAt      DateTime
   isActive       Boolean   @default(true)
   failedAttempts Int       @default(0)

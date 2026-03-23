@@ -6,6 +6,37 @@
 import { UserRole } from '@/lib/featureFlags';
 import supabase from '@/utils/supabase/client';
 
+const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+
+const normalizeUserRole = (value: unknown): UserRole => {
+  if (value === 'admin' || value === 'advisor' || value === 'user') {
+    return value;
+  }
+  return 'user';
+};
+
+const resolveEffectiveRole = (role: UserRole, isApproved?: boolean): UserRole => {
+  if (role === 'advisor' && isApproved === false) {
+    return 'user';
+  }
+
+  return role;
+};
+
+const getAuthToken = async (): Promise<string | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return session.access_token;
+  }
+
+  return (
+    localStorage.getItem('auth_token')
+    || localStorage.getItem('accessToken')
+    || localStorage.getItem('token')
+    || localStorage.getItem('authToken')
+  );
+};
+
 export interface UserPermissions {
   role: UserRole;
   allowedFeatures: string[];
@@ -47,17 +78,53 @@ class PermissionService {
   }
 
   /**
-   * Fetch user permissions — resolved directly from the profiles table.
-   * No Edge Function required; eliminates the CORS/500 error from the
-   * missing `get-user-permissions` function.
+   * Fetch user permissions from the backend-authenticated profile endpoint.
+   * Falls back to the caller-provided role only when the backend cannot be read.
    */
   async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<UserPermissions> {
-    // Role is reliably resolved by AuthContext using email and user_metadata
-    const role: UserRole = fallbackRole || 'user';
+    const role = await this.resolveUserRole(userId, fallbackRole);
     const permissions = this.getDefaultPermissions(role);
     this.permissions = permissions;
     this.notifyListeners();
-    return Promise.resolve(permissions);
+    return permissions;
+  }
+
+  private async resolveUserRole(userId: string, fallbackRole?: UserRole): Promise<UserRole> {
+    const safeFallback = normalizeUserRole(fallbackRole);
+
+    try {
+      const token = await getAuthToken();
+      if (!token) {
+        console.warn('No auth token available for permission lookup, using fallback permissions.', { userId });
+        return safeFallback;
+      }
+
+      const response = await fetch(`${API_BASE}/auth/profile`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const payload = await response.json().catch(() => ({} as {
+        success?: boolean;
+        data?: { role?: unknown; isApproved?: boolean };
+        error?: string;
+      }));
+      if (!response.ok || payload.success === false) {
+        console.warn(
+          'Failed to load backend profile role, using fallback permissions:',
+          payload.error || response.statusText || `HTTP ${response.status}`,
+        );
+        return safeFallback;
+      }
+
+      const backendRole = normalizeUserRole(payload.data?.role ?? safeFallback);
+      return resolveEffectiveRole(backendRole, payload.data?.isApproved);
+    } catch (error) {
+      console.warn('Unexpected backend role lookup failure, using fallback permissions:', error);
+      return safeFallback;
+    }
   }
 
   /**

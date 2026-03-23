@@ -22,6 +22,57 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = (supabaseUrl && supabaseServiceKey) 
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
+const AUTH_STATUS_LOOKUP_TIMEOUT_MS = Number(process.env.AUTH_STATUS_LOOKUP_TIMEOUT_MS || 250);
+const STATUS_LOOKUP_TIMEOUT = Symbol('auth-status-timeout');
+const ALLOW_TEST_ROLE_FALLBACK = process.env.NODE_ENV === 'test';
+
+interface UserAuthSnapshot {
+  email: string;
+  role: string;
+  isApproved: boolean;
+  name: string;
+  status: string;
+}
+
+const getUserAuthSnapshot = async (userId: string): Promise<UserAuthSnapshot | null> => {
+  if (process.env.NODE_ENV === 'test' || AUTH_STATUS_LOOKUP_TIMEOUT_MS <= 0) {
+    return null;
+  }
+
+  try {
+    const result = await Promise.race([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          email: true,
+          role: true,
+          isApproved: true,
+          name: true,
+          status: true,
+        },
+      }),
+      new Promise<typeof STATUS_LOOKUP_TIMEOUT>((resolve) => {
+        setTimeout(() => resolve(STATUS_LOOKUP_TIMEOUT), AUTH_STATUS_LOOKUP_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (result === STATUS_LOOKUP_TIMEOUT) {
+      logger.warn('Auth status lookup timed out after JWT verification, continuing with token claims.', {
+        userId,
+        timeoutMs: AUTH_STATUS_LOOKUP_TIMEOUT_MS,
+      });
+      return null;
+    }
+
+    return result ?? null;
+  } catch (error) {
+    logger.warn('Auth user lookup failed after JWT verification, continuing with token claims.', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+};
 
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -40,32 +91,30 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     if (customSecret) {
       try {
         decoded = jwt.verify(token, customSecret);
-        
-        const userId = decoded.userId || decoded.sub;
+
+        const userId = typeof decoded === 'object'
+          ? (typeof decoded.userId === 'string' ? decoded.userId : decoded.sub)
+          : null;
+
+        if (typeof userId !== 'string' || userId.length === 0) {
+          throw new Error('Invalid JWT subject');
+        }
+
+        const authSnapshot = await getUserAuthSnapshot(userId);
+        if (authSnapshot?.status === 'suspended') {
+          return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+        }
+
         req.userId = userId;
         req.user = {
           id: userId,
-          email: decoded.email || '',
-          role: decoded.role || 'user',
-          isApproved: decoded.isApproved ?? true
+          email: authSnapshot?.email || (typeof decoded.email === 'string' ? decoded.email : ''),
+          role: authSnapshot?.role || (ALLOW_TEST_ROLE_FALLBACK && typeof decoded.role === 'string' ? decoded.role : 'user'),
+          isApproved: authSnapshot?.isApproved ?? (ALLOW_TEST_ROLE_FALLBACK
+            ? (typeof decoded.isApproved === 'boolean' ? decoded.isApproved : true)
+            : false),
+          name: authSnapshot?.name || (typeof decoded.name === 'string' ? decoded.name : undefined),
         };
-
-        // Best-effort status check. A verified JWT should not be downgraded to an
-        // auth failure purely because the database is temporarily unavailable.
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { status: true },
-          });
-          if (dbUser?.status === 'suspended') {
-            return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
-          }
-        } catch (dbError) {
-          logger.warn('Auth status lookup failed after JWT verification, continuing with token claims.', {
-            userId,
-            error: dbError instanceof Error ? dbError.message : String(dbError),
-          });
-        }
 
         return next();
       } catch (err) {
@@ -79,13 +128,18 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
         const { data: { user }, error } = await supabase.auth.getUser(token);
         
         if (user && !error) {
+          const authSnapshot = await getUserAuthSnapshot(user.id);
+          if (authSnapshot?.status === 'suspended') {
+            return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+          }
+
           req.userId = user.id;
           req.user = {
             id: user.id,
-            email: user.email || '',
-            role: (user.app_metadata?.role as string) || 'user',
-            isApproved: true,
-            name: user.user_metadata?.full_name
+            email: authSnapshot?.email || user.email || '',
+            role: authSnapshot?.role || 'user',
+            isApproved: authSnapshot?.isApproved ?? false,
+            name: authSnapshot?.name || user.user_metadata?.full_name,
           };
           return next();
         } else if (error) {
