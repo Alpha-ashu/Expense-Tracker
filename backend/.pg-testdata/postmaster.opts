@@ -1,1 +1,1 @@
-C:/Program Files/PostgreSQL/13/bin/postgres.exe "-D" ".pg-testdata" "-p" "5434"
+C:/Program Files/PostgreSQL/13/bin/postgres.exe "-D" "K:\Project\Anitgravity\Expense Tracker\backend\.pg-testdata" "-p" "5434"
