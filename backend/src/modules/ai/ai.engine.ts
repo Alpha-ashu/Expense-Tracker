@@ -26,64 +26,66 @@ const toTwoDecimals = (value: number) => Number(value.toFixed(2));
 const getWeekdayName = (date: Date) =>
   date.toLocaleDateString('en-US', { weekday: 'long' });
 
+let aiTablesReady = false;
+
 const ensureAITables = async () => {
-  // Use proper PostgreSQL syntax and stay consistent with text/varchar
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS ai_events (
-      id VARCHAR(255) PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      event_type VARCHAR(255) NOT NULL,
-      metadata_json JSONB NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS user_features (
-      user_id VARCHAR(255) PRIMARY KEY,
-      avg_spend DOUBLE PRECISION NOT NULL,
-      monthly_income DOUBLE PRECISION NOT NULL,
-      savings_rate DOUBLE PRECISION NOT NULL,
-      top_category VARCHAR(255) NOT NULL,
-      risk_score DOUBLE PRECISION NOT NULL,
-      peak_day VARCHAR(255) NOT NULL,
-      feature_data_json JSONB NOT NULL,
-      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS ai_insights (
-      id VARCHAR(255) PRIMARY KEY,
-      user_id VARCHAR(255) NOT NULL,
-      insight_type VARCHAR(255) NOT NULL,
-      insight_data_json JSONB NOT NULL,
-      confidence_score DOUBLE PRECISION NOT NULL,
-      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS ai_model_runs (
-      id VARCHAR(255) PRIMARY KEY,
-      run_type VARCHAR(255) NOT NULL,
-      status VARCHAR(255) NOT NULL,
-      started_at TIMESTAMP WITH TIME ZONE NOT NULL,
-      completed_at TIMESTAMP WITH TIME ZONE,
-      processed_users INTEGER NOT NULL DEFAULT 0,
-      notes TEXT
-    )
-  `);
-
-  // Index creation (PostgreSQL supports index creation with IF NOT EXISTS)
+  if (aiTablesReady) return;
   try {
-    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_user_id ON ai_events(user_id)');
-    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_events_type ON ai_events(event_type)');
-    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_user_id ON ai_insights(user_id)');
-    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_insights_type ON ai_insights(insight_type)');
-    await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_ai_runs_type ON ai_model_runs(run_type)');
-  } catch (e) {
-    logger.warn('Some AI indices might already exist or failed to create', { error: e });
+    // We cannot rely on Prisma migrations for Supabase cross-schema tables,
+    // so we must create them explicitly if they don't exist.
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS user_features (
+        user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+        avg_spend NUMERIC DEFAULT 0,
+        monthly_income NUMERIC DEFAULT 0,
+        savings_rate NUMERIC DEFAULT 0,
+        top_category VARCHAR(100),
+        risk_score NUMERIC DEFAULT 0,
+        peak_day VARCHAR(20),
+        feature_data_json JSONB,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS ai_insights (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+        insight_type VARCHAR(50) NOT NULL,
+        insight_data_json JSONB NOT NULL,
+        confidence NUMERIC(4,2) NOT NULL DEFAULT 0.0,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE (user_id, insight_type)
+      );
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS ai_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+        event_type VARCHAR(100) NOT NULL,
+        metadata_json JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS ai_model_runs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        run_type VARCHAR(50) NOT NULL,
+        started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        completed_at TIMESTAMP WITH TIME ZONE,
+        status VARCHAR(20) DEFAULT 'running',
+        processed_users INTEGER DEFAULT 0,
+        notes TEXT
+      );
+    `);
+    
+    aiTablesReady = true;
+    logger.info('AI tables verified via DDL execution');
+  } catch (error) {
+    logger.error('Failed to create AI tables in DB:', { error });
   }
 };
 
@@ -91,10 +93,10 @@ const insertModelRun = async (runType: 'feature_engineering' | 'prediction_engin
   const id = randomUUID();
   const startedAt = new Date();
 
-  await prisma.$executeRaw`
+  await prisma.$executeRawUnsafe(`
     INSERT INTO ai_model_runs (id, run_type, status, started_at, processed_users)
-    VALUES (${id}, ${runType}, ${'running'}, ${startedAt}, ${0})
-  `;
+    VALUES ('${id}', '${runType}', 'running', '${startedAt.toISOString()}', 0)
+  `);
 
   return { id, startedAt: startedAt.toISOString() };
 };
@@ -105,11 +107,15 @@ const updateModelRun = async (
   processedUsers: number,
   notes?: string,
 ) => {
-  await prisma.$executeRaw`
+  const notesSql = notes ? `'${notes.replace(/'/g, "''")}'` : 'NULL';
+  await prisma.$executeRawUnsafe(`
     UPDATE ai_model_runs
-    SET status = ${status}, completed_at = ${new Date()}, processed_users = ${processedUsers}, notes = ${notes ?? null}
-    WHERE id = ${id}
-  `;
+    SET status = '${status}',
+        completed_at = '${new Date().toISOString()}',
+        processed_users = ${processedUsers},
+        notes = ${notesSql}
+    WHERE id = '${id}'
+  `);
 };
 
 export const recordAIEvent = async (

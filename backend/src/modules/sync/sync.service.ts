@@ -1,6 +1,9 @@
 import { prisma } from '../../db/prisma';
 import bcrypt from 'bcryptjs';
+import { createHash, randomUUID } from 'crypto';
 import { generateDeviceId } from '../../utils/device';
+import { audit } from '../../utils/auditLogger';
+import { eventBus } from '../../utils/eventBus';
 
 export interface DeviceInfo {
   deviceId: string;
@@ -77,8 +80,14 @@ class SyncService {
         // Create new device
         const newDevice = await prisma.device.create({
           data: {
+            id: randomUUID(),
             userId,
-            ...deviceInfo,
+            deviceId: deviceInfo.deviceId,
+            updatedAt: new Date(),
+            ...(deviceInfo.deviceName ? { deviceName: deviceInfo.deviceName } : {}),
+            ...(deviceInfo.deviceType ? { deviceType: deviceInfo.deviceType } : {}),
+            ...(deviceInfo.platform ? { platform: deviceInfo.platform } : {}),
+            ...(deviceInfo.appVersion ? { appVersion: deviceInfo.appVersion } : {}),
             isActive: true,
             lastSeenAt: new Date(),
           },
@@ -166,6 +175,7 @@ class SyncService {
         },
       };
     } catch (error) {
+      audit({ event: 'sync.pull', userId: request.userId, meta: { success: false, error: String(error) } });
       console.error('Pull sync failed:', error);
       return {
         success: false,
@@ -207,12 +217,18 @@ class SyncService {
         },
       });
 
+      eventBus.emit({
+        type: 'SYNC_COMPLETED',
+        payload: { userId, deviceId, entityCount: entities.length },
+      });
+
       return {
         success: conflicts.length === 0 && errors.length === 0,
         conflicts: conflicts.length > 0 ? conflicts : undefined,
         errors: errors.length > 0 ? errors : undefined,
       };
     } catch (error) {
+      audit({ event: 'sync.push', userId: request.userId, meta: { success: false, error: String(error) } });
       console.error('Push sync failed:', error);
       return {
         success: false,
@@ -344,12 +360,25 @@ class SyncService {
         },
       });
     } else if (operation === 'create') {
+      // Generate dedup hash to prevent duplicate transactions from multi-device sync
+      const amount = data?.amount ?? 0;
+      const dateStr = data?.date ? new Date(data.date).toISOString().slice(0, 10) : '';
+      const desc = data?.description ?? '';
+      const dedupHash = createHash('sha256').update(`${userId}:${amount}:${dateStr}:${desc}`).digest('hex');
+
+      const existingDup = await prisma.transaction.findUnique({ where: { dedupHash } });
+      if (existingDup) {
+        // Duplicate from another device — skip silently
+        return;
+      }
+
       await prisma.transaction.create({
         data: {
           ...data,
           id: entityId,
           userId,
           deviceId,
+          dedupHash,
           syncStatus: 'synced',
           createdAt: localTimestamp,
           updatedAt: localTimestamp,
@@ -361,19 +390,32 @@ class SyncService {
       });
 
       if (!existing) {
+        const amount = data?.amount ?? 0;
+        const dateStr = data?.date ? new Date(data.date).toISOString().slice(0, 10) : '';
+        const desc = data?.description ?? '';
+        const dedupHash = createHash('sha256').update(`${userId}:${amount}:${dateStr}:${desc}`).digest('hex');
+
+        const existingDup = await prisma.transaction.findUnique({ where: { dedupHash } });
+        if (existingDup) {
+          return;
+        }
+
         await prisma.transaction.create({
           data: {
             ...data,
             id: entityId,
             userId,
             deviceId,
+            dedupHash,
             syncStatus: 'synced',
             createdAt: localTimestamp,
             updatedAt: localTimestamp,
           },
         });
       } else {
-        if (existing.updatedAt > localTimestamp) {
+        const localVersion = typeof data?.version === 'number' ? data.version : 0;
+        if (localVersion <= existing.version) {
+          // Server version is same or newer — conflict
           conflicts.push({
             entityType: 'transactions',
             entityId,
@@ -385,6 +427,7 @@ class SyncService {
             where: { id: entityId },
             data: {
               ...data,
+              version: localVersion,
               deviceId,
               syncStatus: 'synced',
               updatedAt: localTimestamp,

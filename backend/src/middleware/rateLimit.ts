@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { audit } from '../utils/auditLogger';
+import { getRedisClient } from '../cache/redis';
 
 type RateLimitOptions = {
   windowMs: number;
@@ -11,40 +13,83 @@ type RateLimitOptions = {
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
+// Periodic cleanup of expired buckets to prevent memory leaks.
+const CLEANUP_INTERVAL_MS = 5 * 60_000; // 5 min
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+}, CLEANUP_INTERVAL_MS).unref();
+
+/** Try Redis INCR with TTL; returns null when Redis is unavailable. */
+async function redisIncrement(key: string, windowMs: number): Promise<{ count: number; resetAt: number } | null> {
+  const redis = getRedisClient();
+  if (!redis) return null;
+
+  try {
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.pexpire(key, windowMs);
+    }
+    const pttl = await redis.pttl(key);
+    const resetAt = Date.now() + Math.max(pttl, 0);
+    return { count, resetAt };
+  } catch {
+    return null; // fall back to in-memory
+  }
+}
+
 export const rateLimit = ({ windowMs, max, scope = 'global', keyGenerator, message }: RateLimitOptions) =>
-  (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction) => {
     // Skip rate limiting in test environment
     if (process.env.NODE_ENV === 'test') {
       return next();
     }
 
     const rawKey = keyGenerator?.(req) || req.ip || 'anonymous';
-    const key = `${scope}:${rawKey}`;
+    const key = `rl:${scope}:${rawKey}`;
     const now = Date.now();
 
-    const bucket = buckets.get(key);
-    if (!bucket || bucket.resetAt <= now) {
-      const resetAt = now + windowMs;
-      buckets.set(key, { count: 1, resetAt });
-      res.setHeader('X-RateLimit-Limit', String(max));
-      res.setHeader('X-RateLimit-Remaining', String(Math.max(0, max - 1)));
-      res.setHeader('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)));
-      return next();
+    // Try Redis first (persistent across restarts / instances)
+    let count: number;
+    let resetAt: number;
+    const redisResult = await redisIncrement(key, windowMs);
+
+    if (redisResult) {
+      count = redisResult.count;
+      resetAt = redisResult.resetAt;
+    } else {
+      // In-memory fallback
+      const bucket = buckets.get(key);
+      if (!bucket || bucket.resetAt <= now) {
+        resetAt = now + windowMs;
+        buckets.set(key, { count: 1, resetAt });
+        count = 1;
+      } else {
+        bucket.count += 1;
+        count = bucket.count;
+        resetAt = bucket.resetAt;
+      }
     }
 
-    if (bucket.count >= max) {
-      const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
+    res.setHeader('X-RateLimit-Limit', String(max));
+    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, max - count)));
+    res.setHeader('X-RateLimit-Reset', String(Math.ceil(resetAt / 1000)));
+
+    if (count > max) {
+      const retryAfter = Math.ceil((resetAt - now) / 1000);
       res.setHeader('Retry-After', retryAfter.toString());
-      res.setHeader('X-RateLimit-Limit', String(max));
       res.setHeader('X-RateLimit-Remaining', '0');
-      res.setHeader('X-RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
+      audit({
+        event: 'security.rate_limit_hit',
+        ip: req.ip || undefined,
+        action: `${req.method} ${req.path}`,
+        meta: { scope, key: rawKey, limit: max },
+      });
       return res.status(429).json({ error: message || 'Too many requests. Please try again later.' });
     }
 
-    bucket.count += 1;
-    res.setHeader('X-RateLimit-Limit', String(max));
-    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, max - bucket.count)));
-    res.setHeader('X-RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
     return next();
   };
 

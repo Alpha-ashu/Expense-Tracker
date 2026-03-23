@@ -1,12 +1,21 @@
 import { Response } from 'express';
+import { createHash } from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { Prisma } from '@prisma/client';
 import { cacheDeleteByPrefix } from '../../cache/redis';
+import { eventBus } from '../../utils/eventBus';
 
 interface HttpLikeError {
   statusCode?: number;
   message?: string;
+}
+
+/** SHA-256 dedup hash: userId + amount + date(YYYY-MM-DD) + description */
+function generateDedupHash(userId: string, amount: number, date: Date, description?: string): string {
+  const dateStr = date.toISOString().slice(0, 10);
+  const payload = `${userId}:${amount}:${dateStr}:${description ?? ''}`;
+  return createHash('sha256').update(payload).digest('hex');
 }
 
 export const getTransactions = async (req: AuthRequest, res: Response) => {
@@ -73,6 +82,16 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     const numericAmount = Number(amount);
+    const txDate = new Date(date);
+    const dedupHash = generateDedupHash(userId, numericAmount, txDate, description);
+
+    // Check for duplicate transaction
+    const existingDup = await prisma.transaction.findUnique({
+      where: { dedupHash },
+    });
+    if (existingDup) {
+      return res.status(409).json({ error: 'Duplicate transaction detected', existingId: existingDup.id });
+    }
 
     // Wrap all balance updates + transaction creation in an atomic DB transaction
     const transaction = await prisma.$transaction(async (tx) => {
@@ -133,10 +152,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
           subcategory,
           description,
           merchant,
-          date: new Date(date),
+          date: txDate,
           tags: tags || [],
           transferToAccountId,
           transferType,
+          dedupHash,
           synced: true,
         },
         include: { account: true },
@@ -144,6 +164,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     });
 
     await cacheDeleteByPrefix('transactions:');
+
+    eventBus.emit({
+      type: 'TRANSACTION_CREATED',
+      payload: { userId, transactionId: transaction.id, accountId, amount: numericAmount, category },
+    });
 
     res.status(201).json(transaction);
   } catch (error: unknown) {
@@ -219,11 +244,16 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
 
     const updated = await prisma.transaction.update({
       where: { id },
-      data: updates,
+      data: {
+        ...updates,
+        version: { increment: 1 },
+      },
       include: { account: true },
     });
 
     await cacheDeleteByPrefix('transactions:');
+
+    eventBus.emit({ type: 'TRANSACTION_UPDATED', payload: { userId, transactionId: id } });
 
     res.json({ success: true, data: updated });
   } catch (error) {
@@ -256,6 +286,8 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
     });
 
     await cacheDeleteByPrefix('transactions:');
+
+    eventBus.emit({ type: 'TRANSACTION_DELETED', payload: { userId, transactionId: id, accountId: transaction.accountId } });
 
     res.json({ success: true, message: 'Transaction deleted' });
   } catch (error) {

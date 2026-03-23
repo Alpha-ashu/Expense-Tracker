@@ -238,14 +238,29 @@ async function predictCategory(input: {
   };
 }
 
-function detectCurrency(text: string) {
-  if (/₹|inr|rs\.?/i.test(text)) return 'INR';
-  if (/\$|usd/i.test(text)) return 'USD';
-  if (/€|eur/i.test(text)) return 'EUR';
-  if (/£|gbp/i.test(text)) return 'GBP';
-  if (/aed/i.test(text)) return 'AED';
-  if (/jpy|¥/i.test(text)) return 'JPY';
-  return 'INR';
+function detectCurrency(text: string, defaultCurrency: string = 'INR') {
+  const t = text.toLowerCase();
+  
+  // Strong exact string matches win first to prevent hallucination overrides
+  if (t.includes('inr') || t.includes('rs.') || t.includes('₹')) return 'INR';
+  if (t.includes('usd') || t.includes('$')) return 'USD';
+  if (t.includes('eur') || t.includes('€')) return 'EUR';
+  if (t.includes('gbp') || t.includes('£')) return 'GBP';
+  if (t.includes('aed')) return 'AED';
+  
+  // OCR often hallucinates ¥ interchangeably with ₹, or Y for ₹.
+  // ONLY use JPY if it explicitly says "JPY". 
+  if (t.includes('jpy')) return 'JPY';
+  
+  // If the OCR hallucinates "¥" but it's an Indian receipt (has gst/fssai), ignore ¥.
+  if (t.includes('¥')) {
+    if (t.match(/gst|fssai|tin|india|delhi|mumbai|bengaluru|bangalore/i)) {
+      return 'INR';
+    }
+    return 'JPY'; 
+  }
+
+  return defaultCurrency;
 }
 
 function detectBankName(text: string) {

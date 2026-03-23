@@ -16,14 +16,8 @@ export const useReceiptScanner = () => {
   const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
   const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
 
-  const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY);
-      return stored === null ? false : stored === 'true'; // CHANGED DEFAULT TO FALSE
-    } catch {
-      return false;
-    }
-  });
+  // FORCE to false for now so user doesn't accidentally bypass cloud pipeline
+  const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(false);
 
   const ocrService = useRef(new EnhancedReceiptScannerService());
   const documentService = useRef(new DocumentManagementService());
@@ -79,31 +73,23 @@ export const useReceiptScanner = () => {
       documentId = await documentService.current.createDocumentRecord(selectedFile, accountId);
       setScanDocumentId(documentId);
 
-      let result: ReceiptScanResult;
+      let result: ReceiptScanResult | null = null;
 
-      if (!onDeviceOnly && selectedFile.type.startsWith('image/')) {
-        try {
-          result = await cloudOcrService.current.scanReceipt(selectedFile, (progress) => {
-            setScanProgress(progress.progress);
-            setScanStatus(progress.status);
-          });
-        } catch (cloudError) {
-          console.warn('Cloud OCR scan failed, falling back to on-device OCR:', cloudError);
-          toast.warning('Cloud scan failed. Switched to on-device OCR for this receipt.');
-          result = await ocrService.current.scanAndParseReceipt(selectedFile, userId, (status, progress) => {
-            setScanProgress(progress);
-            setScanStatus(status);
-          });
-        }
-      } else {
-        if (!onDeviceOnly && !selectedFile.type.startsWith('image/')) {
-          toast.info('Cloud scan currently supports image files. Using on-device OCR for this file.');
-        }
-
-        result = await ocrService.current.scanAndParseReceipt(selectedFile, userId, (status, progress) => {
-          setScanProgress(progress);
-          setScanStatus(status);
+      try {
+        result = await cloudOcrService.current.scanReceipt(selectedFile, (progress) => {
+          setScanProgress(progress.progress);
+          setScanStatus(progress.status);
         });
+      } catch (cloudError: any) {
+        const errMsg = cloudError?.message || '';
+        toast.error('Cloud OCR Error: ' + (errMsg || 'AI limit reached. Please wait and try again.'), { duration: 5000 });
+        setScanStatus('Failed: ' + errMsg);
+        setIsScanning(false);
+        return null;
+      }
+      
+      if (!result) {
+        return null;
       }
 
       await documentService.current.updateDocumentStatus(documentId, 'preview', {

@@ -14,7 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
-import { normalizeCategorySelection } from '@/lib/expenseCategories';
+import { normalizeCategorySelection, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 import { type Account } from '@/lib/database';
 import { cn } from '@/lib/utils';
 import type { ReceiptScanResult, TaxComponent, TotalValidationResult } from '@/types/receipt.types';
@@ -300,21 +300,12 @@ export const ResultsView: React.FC<{
         placeholder="Invoice or receipt reference"
       />
 
-      <div className="p-4">
-        <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
-          Subcategory
-        </label>
-        <input
-          type="text"
-          value={scanResult.subcategory || ''}
-          onChange={(event) => onSubcategoryChange(event.target.value)}
-          className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
-          placeholder="Groceries, Fuel / Petrol, Netflix, Uber Ride..."
-        />
-        <p className="mt-1 text-xs text-gray-400">
-          Edit this if the scan found the wrong expense type. The main category updates automatically.
-        </p>
-      </div>
+      {/* Subcategory — smart dropdown based on selected category */}
+      <SubcategoryField
+        category={scanResult.category || ''}
+        value={scanResult.subcategory || ''}
+        onChange={onSubcategoryChange}
+      />
 
       <TextField
         label="Notes"
@@ -627,6 +618,71 @@ const SelectField: React.FC<{
     </select>
   </div>
 );
+
+const SubcategoryField: React.FC<{
+  category: string;
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ category, value, onChange }) => {
+  const subcategories = getSubcategoriesForCategory(category);
+  const isCustom = value !== '' && !subcategories.includes(value) && value !== '__custom__';
+  const [showCustomInput, setShowCustomInput] = React.useState(isCustom);
+
+  const handleSelectChange = (selected: string) => {
+    if (selected === '__custom__') {
+      setShowCustomInput(true);
+      onChange('');
+    } else {
+      setShowCustomInput(false);
+      onChange(selected);
+    }
+  };
+
+  return (
+    <div className="p-4">
+      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+        Subcategory
+      </label>
+      {subcategories.length > 0 ? (
+        <>
+          <select
+            value={showCustomInput ? '__custom__' : (value || '')}
+            onChange={(e) => handleSelectChange(e.target.value)}
+            className="w-full appearance-none bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+            aria-label="Subcategory"
+          >
+            <option value="">— Select subcategory —</option>
+            {subcategories.map((sub) => (
+              <option key={sub} value={sub}>{sub}</option>
+            ))}
+            <option value="__custom__">Other (type custom)...</option>
+          </select>
+          {showCustomInput && (
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="mt-2 w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none border-t border-gray-100 pt-2"
+              placeholder="Type custom subcategory..."
+              autoFocus
+            />
+          )}
+        </>
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
+          placeholder="e.g. Restaurant, Groceries, Uber Ride..."
+        />
+      )}
+      <p className="mt-1 text-xs text-gray-400">
+        Specific expense type — updates automatically with AI or choose from list.
+      </p>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ACCOUNT SELECTOR & ACTIONS

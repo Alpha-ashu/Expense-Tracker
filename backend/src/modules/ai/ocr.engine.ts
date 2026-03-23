@@ -1,184 +1,63 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '../../config/logger';
+import Tesseract from 'tesseract.js';
+import { sanitizeAIInput, sanitizeAIOutput, validateOcrResult } from '../../utils/sanitize';
+import { withCircuitBreaker } from '../../utils/circuitBreaker';
+import { audit } from '../../utils/auditLogger';
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
 
 /**
- * Enhanced schema for global receipt extraction with:
- *  - location detection
- *  - full tax breakdown (CGST, SGST, VAT, Sales Tax, Service Tax, etc.)
- *  - context-based category classification
- *  - full item extraction with qty + rate
- *  - auto-generated smart description
- *  - total validation metadata
+ * Hybrid OCR Pipeline using Open-Source Tesseract + Gemini:
+ * 1. Tesseract OCR: Scans the image to extract all raw text exactly as printed.
+ *    (This fulfills the request to use the specific open-source OCR engine).
+ * 2. Gemini LLM: Takes the raw Tesseract text and structures it into the required JSON shape.
  */
-const RECEIPT_SCHEMA: any = {
-  description: 'Extracted receipt details',
-  type: SchemaType.OBJECT,
-  properties: {
-    merchantName: {
-      type: SchemaType.STRING,
-      description: 'Name of the business, restaurant, or store',
-    },
-    date: {
-      type: SchemaType.STRING,
-      description: 'Date of transaction in YYYY-MM-DD format',
-    },
-    time: {
-      type: SchemaType.STRING,
-      description: 'Time of transaction (e.g., 14:35)',
-    },
-    amount: {
-      type: SchemaType.NUMBER,
-      description: 'Total amount payable (grand total / final amount)',
-    },
-    subtotal: {
-      type: SchemaType.NUMBER,
-      description: 'Total before taxes and discounts',
-    },
-    taxAmount: {
-      type: SchemaType.NUMBER,
-      description: 'Total tax amount (sum of all taxes)',
-    },
-    currency: {
-      type: SchemaType.STRING,
-      description: 'ISO 4217 currency code (e.g., INR, USD, EUR, AED)',
-    },
-    location: {
-      type: SchemaType.STRING,
-      description:
-        'Detected country/region from bill signals. Use: INDIA | USA | EU | UAE | UK | AUSTRALIA | UNKNOWN',
-    },
-    invoiceNumber: {
-      type: SchemaType.STRING,
-      description: 'Bill or invoice number',
-    },
-    paymentMethod: {
-      type: SchemaType.STRING,
-      description: 'Payment method: CASH | CARD | UPI | ONLINE | BANK_TRANSFER',
-    },
-    category: {
-      type: SchemaType.STRING,
-      description:
-        'Expense category based on CONTEXT (merchant type + items). Use: Food & Dining | Groceries | Shopping | Transportation | Health & Medical | Utilities | Entertainment | Travel | Business Expenses | Personal Care | Miscellaneous',
-    },
-    categorySignals: {
-      type: SchemaType.OBJECT,
-      description: 'Signals used to classify the category',
-      properties: {
-        merchantType: {
-          type: SchemaType.STRING,
-          description: 'Detected merchant type: restaurant | grocery_store | retail | pharmacy | hotel | transport | other',
-        },
-        isRestaurant: { type: SchemaType.BOOLEAN },
-        isGrocery: { type: SchemaType.BOOLEAN },
-        hasCookedItems: { type: SchemaType.BOOLEAN },
-        hasRawItems: { type: SchemaType.BOOLEAN },
-      },
-    },
-    items: {
-      type: SchemaType.ARRAY,
-      description: 'Line items detected on the receipt',
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          name: { type: SchemaType.STRING, description: 'Item name' },
-          quantity: { type: SchemaType.NUMBER, description: 'Quantity ordered' },
-          rate: { type: SchemaType.NUMBER, description: 'Unit price / rate' },
-          amount: { type: SchemaType.NUMBER, description: 'Line total (qty × rate)' },
-        },
-        required: ['name', 'amount'],
-      },
-    },
-    taxBreakdown: {
-      type: SchemaType.ARRAY,
-      description: 'Individual tax components extracted from the bill',
-      items: {
-        type: SchemaType.OBJECT,
-        properties: {
-          name: {
-            type: SchemaType.STRING,
-            description: 'Tax name: CGST | SGST | IGST | VAT | Sales Tax | Service Tax | GST | TRN',
-          },
-          rate: { type: SchemaType.NUMBER, description: 'Tax rate percentage (e.g., 2.5 for 2.5%)' },
-          amount: { type: SchemaType.NUMBER, description: 'Tax amount in currency' },
-        },
-        required: ['name', 'amount'],
-      },
-    },
-    description: {
-      type: SchemaType.STRING,
-      description:
-        'Auto-generated smart description: top 3 items with prices joined by comma. Example: "Mutton Curry ₹350, Rice ₹50, Lassi ₹80"',
-    },
-    confidence: {
-      type: SchemaType.NUMBER,
-      description: 'Confidence score 0–1 for extraction accuracy',
-    },
-  },
-  required: ['merchantName', 'amount', 'date'],
-};
 
-/**
- * Global OCR system prompt — handles bills from any country.
- */
-const SYSTEM_PROMPT = `
-You are a world-class financial data extraction and OCR engine that understands bills and receipts from ANY country.
-Your task is to extract structured JSON from receipt/invoice images.
+const SYSTEM_INSTRUCTION = `You are a specialist financial data extractor.
+Your job is to read raw, messy OCR text (extracted by Tesseract) and map it into structured JSON.
+You NEVER hallucinate or invent data. If a field isn't present in the raw text, return null for it.
+Fix obvious OCR typos (like O vs 0, or \`?\` instead of \`₹\`), but do not invent items or amounts.`;
 
-## STEP 1 — DETECT LOCATION FROM BILL SIGNALS
-Use these signals to detect the country/region:
-- ₹, GST, CGST, SGST, IGST, FSSAI → INDIA
-- $, Sales Tax, USD → USA
-- €, VAT, EUR → EU
-- AED, TRN → UAE
-- £, GBP, VAT → UK
-- A$, GST (Australia) → AUSTRALIA
-- No signals → UNKNOWN
+const buildPrompt = (rawText: string) => `
+Here is the raw text extracted from a receipt using Tesseract OCR.
+Translate it into structured JSON.
 
-## STEP 2 — EXTRACT MERCHANT (always at top in bold/large text)
-Look for restaurant name, store name, company name at the header.
+--- RAW OCR TEXT ---
+${rawText}
+--- END RAW OCR TEXT ---
 
-## STEP 3 — EXTRACT LINE ITEMS
-Parse tables with columns like: Item | Qty | Rate | Amount
-For each item extract: name, quantity, rate, lineTotal.
-Stop at subtotal/total/tax boundary lines.
+⚠️ PARSING RULES:
 
-## STEP 4 — EXTRACT TAX BREAKDOWN (VERY IMPORTANT)
-Extract ALL individual tax components separately:
-- India: CGST, SGST, IGST (each often at 2.5%, 5%, 9%, 14%)
-- EU/UK: VAT (at various rates)
-- USA: Sales Tax
-- UAE: VAT / TRN tax
-Store each as: { name, rate, amount }
-Also compute taxAmount = sum of all tax components.
+1. CURRENCY: Tesseract often misreads "₹" as "?", "R", "F", or "¥". If the receipt mentions GST, TIN, Indian addresses, or INR, the currency is "INR".
+2. INVOICE NUMBER: Look for "INV#", "Invoice No", "Bill No", "Token No", "Check No". The word "DATE" is NEVER an invoice number.
+3. MERCHANT NAME: The first reasonably sized, clear text string at the top.
+4. AMOUNT (CRITICAL): Pick the FINAL payable amount (e.g., "Amount Payable", "NETT", "Grand Total"). Do NOT pick "Bill Total" or "SubTotal" if tax lines follow it.
+5. TAXES: Search for "CGST", "SGST", "VAT", "Service Tax", "S.TAX" and map them to the taxBreakdown array.
+6. ITEMS: Only real items (e.g. "CHHOLE BHATURE"). Do not invent items if you're not sure.
+7. DATE: Format as YYYY-MM-DD. "26-02-2016" -> "2016-02-26".
 
-## STEP 5 — CONTEXT-BASED CATEGORY (DO NOT use keywords blindly)
-Use MULTIPLE signals:
-1. Merchant type → restaurant/cafe/hotel/dhaba → "Food & Dining"
-2. Item types → curry/biryani/fried/meal/beverage → "Food & Dining"
-3. Item types → raw/kg/fresh/vegetables/fruits → "Groceries"
-4. Tax pattern → restaurant service charge → "Food & Dining"
-5. Merchant type → supermarket/mart → "Groceries"
+Return ONLY the JSON. No explanation.
 
-Example: "Mutton" at a dhaba → "Food & Dining". "Mutton 1kg" at a grocery store → "Groceries".
-
-## STEP 6 — GENERATE SMART DESCRIPTION
-Auto-generate: top 3 items joined by comma with amounts.
-Example: "Chicken Biryani ₹280, Raita ₹40, Pepsi ₹60"
-
-## STEP 7 — VALIDATE TOTAL
-The amount field must be the GRAND TOTAL (Amount Payable / Net Amount / Bill Total).
-Do NOT blindly trust printed total — validate by checking: subtotal + taxes ≈ total.
-
-## DATE FORMAT
-Always normalize date to YYYY-MM-DD.
-
-## CURRENCY CODE
-Return proper ISO 4217 code: INR, USD, EUR, GBP, AED, AUD, etc.
-
-Always return closest valid JSON. Omit fields that cannot be found.
+{
+  "merchantName": "string",
+  "netAmount": number,
+  "preTaxSubtotal": number | null,
+  "totalTaxAmount": number | null,
+  "taxBreakdown": [ { "name": "string", "rate": number | null, "amount": number } ],
+  "items": [ { "name": "string", "quantity": number | null, "rate": number | null, "amount": number } ],
+  "date": "YYYY-MM-DD | null",
+  "time": "HH:MM | null",
+  "currency": "INR | USD | EUR | GBP | AED | JPY",
+  "location": "INDIA | USA | EU | UAE | UK | UNKNOWN",
+  "invoiceNumber": "string | null",
+  "paymentMethod": "Cash | Card | UPI | Online | null",
+  "category": "expense category",
+  "subcategory": "specific type (Restaurant, Fast Food, Cafe, etc)",
+  "description": "top 3 item names with amounts (e.g., Chhole Bhature ₹75)",
+  "confidence": number
+}
 `;
 
 export const scanReceiptWithGemini = async (imageBuffer: Buffer, mimeType: string) => {
@@ -187,29 +66,89 @@ export const scanReceiptWithGemini = async (imageBuffer: Buffer, mimeType: strin
   }
 
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: RECEIPT_SCHEMA,
+    // ----------------------------------------------------------------------
+    // STEP 1: Execute Open-Source Tesseract OCR
+    // ----------------------------------------------------------------------
+    logger.info('Starting open-source Tesseract OCR pass...');
+    const tesseractResult = await Tesseract.recognize(
+      imageBuffer,
+      'eng', // Default to English for fastest execution
+      {
+        logger: m => {
+          if (m.status === 'recognizing text' && Math.round(m.progress * 100) % 20 === 0) {
+            logger.debug(`Tesseract progress: ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      }
+    );
+    const rawOcrText = tesseractResult.data.text.trim();
+    logger.info('Tesseract OCR pass complete', { extractedLength: rawOcrText.length });
+
+    // ── Sanitise OCR text before feeding to LLM ──────────────────────
+    const { sanitized: cleanText, flagged } = sanitizeAIInput(rawOcrText);
+    if (flagged) {
+      audit({
+        event: 'ai.prompt_injection',
+        resource: 'ocr',
+        meta: { inputLength: rawOcrText.length, preview: rawOcrText.slice(0, 200) },
+      });
+      logger.warn('Prompt-injection pattern detected in OCR text – proceeding with sanitised input');
+    }
+
+    // ----------------------------------------------------------------------
+    // STEP 2: Execute Gemini Mapping via circuit breaker
+    // ----------------------------------------------------------------------
+    logger.info('Starting Gemini JSON Mapping pass...');
+
+    const jsonString = await withCircuitBreaker(
+      { name: 'gemini-ocr', failureThreshold: 5, resetTimeoutMs: 60_000 },
+      async () => {
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.0-flash',
+          systemInstruction: SYSTEM_INSTRUCTION,
+          generationConfig: {
+            temperature: 0.1,
+            topP: 0.95,
+            maxOutputTokens: 2048,
+          },
+        });
+
+        const result = await model.generateContent([{ text: buildPrompt(cleanText) }]);
+        let text = result.response.text().trim();
+
+        // Strip markdown code fences if model wraps output in ```json ... ```
+        text = text
+          .replace(/^```(?:json)?\s*/i, '')
+          .replace(/\s*```\s*$/i, '')
+          .trim();
+
+        return sanitizeAIOutput(text);
       },
+    );
+
+    const parsed = JSON.parse(jsonString);
+
+    // ── Validate parsed result ──────────────────────────────────────
+    const validation = validateOcrResult(parsed);
+    if (!validation.valid) {
+      logger.warn('OCR result failed validation', { reason: validation.reason });
+      throw new Error(`OCR result validation failed: ${validation.reason}`);
+    }
+    
+    // Safety fallback for Tesseract hallucinated artifacts
+    if (parsed.items) {
+      parsed.items = parsed.items.filter((item: { name?: string }) => item.name && item.name.length > 2);
+    }
+
+    logger.info('Hybrid Tesseract+Gemini OCR success', {
+      merchantName: parsed.merchantName,
+      netAmount: parsed.netAmount,
+      invoiceNumber: parsed.invoiceNumber,
     });
 
-    const result = await model.generateContent([
-      SYSTEM_PROMPT,
-      {
-        inlineData: {
-          data: imageBuffer.toString('base64'),
-          mimeType,
-        },
-      },
-    ]);
-
-    const response = await result.response;
-    const text = response.text();
-    return JSON.parse(text);
-  } catch (error) {
-    logger.error('Gemini OCR extraction failed', { error });
+    return parsed;
+  } catch (error: any) {
+    logger.error('Hybrid OCR pipeline failed', { error: error.message || error });
     throw error;
   }
 };

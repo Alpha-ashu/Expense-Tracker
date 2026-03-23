@@ -5,8 +5,16 @@ import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
 import { getRedisStatus } from './cache/redis';
 import { rateLimit, authenticatedRateLimit } from './middleware/rateLimit';
+import { getCircuitBreakerStatus } from './utils/circuitBreaker';
+
+import { logger } from './config/logger';
 
 const app = express();
+
+app.use((req, res, next) => {
+  logger.info(`[REQ] ${req.method} ${req.path}`);
+  next();
+});
 
 // Disable X-Powered-By header to prevent server fingerprinting
 app.disable('x-powered-by');
@@ -89,6 +97,14 @@ app.use('/api/v1/receipts', authenticatedRateLimit({
   message: 'Too many receipt scan requests. Please try again later.',
 }));
 
+// Sync endpoint throttling (higher limit, user-scoped).
+app.use('/api/v1/sync', authenticatedRateLimit({
+  windowMs: 60_000,
+  max: Number(process.env.SYNC_RATE_LIMIT || 100),
+  scope: 'api-sync',
+  message: 'Too many sync requests. Please try again later.',
+}));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({
@@ -96,6 +112,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     services: {
       redis: getRedisStatus(),
+      circuitBreakers: getCircuitBreakerStatus(),
     },
   });
 });

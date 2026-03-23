@@ -1,9 +1,15 @@
 import { Response } from 'express';
+import { randomUUID } from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { logger } from '../../config/logger';
 import { validateBillUpload } from '../../utils/uploadPolicy';
 import { processImage } from '../../utils/imageProcessing';
 import { scanReceiptWithGemini } from '../ai/ocr.engine';
+import { incrementAIUsage } from '../../utils/aiUsageTracker';
+import { withCircuitBreaker } from '../../utils/circuitBreaker';
+import { audit } from '../../utils/auditLogger';
+import { prisma } from '../../db/prisma';
+import { eventBus } from '../../utils/eventBus';
 
 type JsonMap = Record<string, unknown>;
 
@@ -62,15 +68,24 @@ const firstString = (...values: unknown[]) => {
 };
 
 const normalizeOcrResponse = (raw: JsonMap) => {
-  const total = parseNumber(raw.total)
+  // Priority: NETT/NET wins over generic 'amount' (which could be pre-tax subtotal)
+  const total = parseNumber(raw.netAmount)
+    ?? parseNumber(raw.nett)
+    ?? parseNumber(raw.net)
+    ?? parseNumber(raw.net_amount)
+    ?? parseNumber(raw.nett_amount)
+    ?? parseNumber(raw.amount_payable)
+    ?? parseNumber(raw.total_payable)
+    ?? parseNumber(raw.grand_total)
+    ?? parseNumber(raw.total)
     ?? parseNumber(raw.total_amount)
     ?? parseNumber(raw.amount)
-    ?? parseNumber(raw.grand_total)
     ?? parseNumber(raw.food_total);
 
   const merchantName = firstString(
     raw.vendor,
     raw.merchant,
+    raw.merchantName,
     raw.merchant_name,
     raw.store_name,
     raw.nm,
@@ -91,14 +106,14 @@ const normalizeOcrResponse = (raw: JsonMap) => {
       ? (raw.taxes as Array<{ name: string; rate?: number; amount: number }>)
       : undefined;
 
-  const taxAmountRaw = parseNumber(raw.taxAmount);
+  const taxAmountRaw = parseNumber(raw.totalTaxAmount) ?? parseNumber(raw.taxAmount);
   const derivedTaxTotal = taxBreakdown && taxBreakdown.length > 0
     ? Number(taxBreakdown.reduce((s, t) => s + (t.amount || 0), 0).toFixed(2))
     : undefined;
   const resolvedTaxAmount = taxAmountRaw ?? derivedTaxTotal;
 
   // --- Validate total ---
-  const subtotal = parseNumber(raw.subtotal);
+  const subtotal = parseNumber(raw.preTaxSubtotal) ?? parseNumber(raw.subtotal);
   let validationResult: { isValid: boolean; calculated: number; detected: number } | undefined;
   if (total !== undefined && resolvedTaxAmount !== undefined) {
     const itemsSum = Array.isArray(raw.items)
@@ -127,6 +142,7 @@ const normalizeOcrResponse = (raw: JsonMap) => {
     taxBreakdown,
     paymentMethod: firstString(raw.paymentMethod),
     category: firstString(raw.category),
+    subcategory: firstString(raw.subcategory),
     description: firstString(raw.description),
     validationResult,
     rawFields: raw,
@@ -158,6 +174,17 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Receipt image file is required' });
     }
 
+    // ── AI quota enforcement ────────────────────────────────────────
+    const quota = await incrementAIUsage(userId);
+    if (!quota.allowed) {
+      audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
+      return res.status(429).json({
+        error: 'Daily AI scan limit reached. Please try again tomorrow.',
+        limit: quota.limit,
+        remaining: 0,
+      });
+    }
+
     const validated = await validateBillUpload(file);
     if (validated.kind !== 'image') {
       return res.status(400).json({ error: 'Cloud OCR supports image files only' });
@@ -167,57 +194,71 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
     let raw: JsonMap = {};
     let source = 'unknown';
 
+    audit({ event: 'ai.ocr_request', userId, meta: { fileSize: file.size, contentType: validated.contentType } });
+
     // Try Gemini OCR first if API key is present
     if (process.env.GOOGLE_API_KEY) {
       try {
         raw = await scanReceiptWithGemini(processed.buffer, processed.contentType);
         source = 'gemini-1.5-flash';
+        audit({ event: 'ai.ocr_success', userId, meta: { source } });
         logger.info('Receipt scan successful via Gemini', { userId, source });
-      } catch (geminiError) {
-        logger.warn('Gemini OCR fallback triggered', { userId, error: geminiError });
+      } catch (geminiError: unknown) {
+        const errObj = geminiError as { status?: number; message?: string };
+        if (errObj?.status === 429) {
+          logger.warn('Gemini OCR rate limit reached', { userId });
+          return res.status(429).json({ error: 'AI rate limit reached. Please wait a minute before scanning again.' });
+        }
+        if (errObj?.message?.includes('Circuit breaker OPEN')) {
+          audit({ event: 'security.circuit_open', userId, meta: { circuit: 'gemini-ocr' } });
+        }
+        audit({ event: 'ai.ocr_failure', userId, meta: { error: errObj?.message, source: 'gemini' } });
+        logger.warn('Gemini OCR fallback triggered', { userId, error: errObj?.message || geminiError });
       }
     }
 
-    // Fallback to legacy OCR if Gemini failed or key missing
+    // Fallback to legacy OCR via circuit breaker
     if (source === 'unknown') {
-      const blob = new Blob([new Uint8Array(processed.buffer)], { type: processed.contentType });
-      const formData = new FormData();
-      formData.append('file', blob, `receipt.${processed.extension}`);
+      try {
+        raw = await withCircuitBreaker(
+          { name: 'cloud-donut', failureThreshold: 3, resetTimeoutMs: 120_000 },
+          async () => {
+            const blob = new Blob([new Uint8Array(processed.buffer)], { type: processed.contentType });
+            const formData = new FormData();
+            formData.append('file', blob, `receipt.${processed.extension}`);
 
-      const endpoint = getReceiptOcrEndpoint();
-      const timeout = Number(process.env.RECEIPT_OCR_TIMEOUT_MS || 30000);
-      const controller = new AbortController();
-      const timeoutHandle = setTimeout(() => controller.abort(), timeout);
+            const endpoint = getReceiptOcrEndpoint();
+            const timeout = Number(process.env.RECEIPT_OCR_TIMEOUT_MS || 30000);
+            const controller = new AbortController();
+            const timeoutHandle = setTimeout(() => controller.abort(), timeout);
 
-      const headers: HeadersInit = {};
-      if (process.env.RECEIPT_OCR_API_KEY) {
-        headers['x-api-key'] = process.env.RECEIPT_OCR_API_KEY;
-      }
+            const headers: HeadersInit = {};
+            if (process.env.RECEIPT_OCR_API_KEY) {
+              headers['x-api-key'] = process.env.RECEIPT_OCR_API_KEY;
+            }
 
-      const upstream = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-        headers,
-        signal: controller.signal,
-      }).finally(() => clearTimeout(timeoutHandle));
+            const upstream = await fetch(endpoint, {
+              method: 'POST',
+              body: formData,
+              headers,
+              signal: controller.signal,
+            }).finally(() => clearTimeout(timeoutHandle));
 
-      if (upstream.ok) {
-        raw = await extractJson(upstream);
+            if (!upstream.ok) {
+              const errorBody = await extractJson(upstream);
+              logger.warn('Receipt OCR upstream failed', { userId, status: upstream.status, error: errorBody });
+              throw new Error(`Upstream OCR returned ${upstream.status}`);
+            }
+
+            return extractJson(upstream);
+          },
+        );
         source = 'cloud-donut';
-      } else {
-        const errorBody = await extractJson(upstream);
-        logger.warn('Receipt OCR upstream failed', {
-          userId,
-          status: upstream.status,
-          error: errorBody,
-        });
-
-        if (!process.env.GOOGLE_API_KEY) {
-          return res.status(502).json({
-            error: 'Cloud OCR service failed and no Gemini fallback available',
-            details: errorBody,
-          });
-        }
+        audit({ event: 'ai.ocr_success', userId, meta: { source } });
+      } catch (donutError: unknown) {
+        const errMsg = donutError instanceof Error ? donutError.message : String(donutError);
+        audit({ event: 'ai.ocr_failure', userId, meta: { error: errMsg, source: 'cloud-donut' } });
+        logger.warn('Cloud Donut OCR fallback failed', { userId, error: errMsg });
       }
     }
 
@@ -226,20 +267,43 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
     }
 
     const normalized = normalizeOcrResponse(raw);
+    const confidence = typeof raw.confidence === 'number' ? raw.confidence : 0.85;
+
+    // Persist AI scan result for audit trail
+    const startTime = Date.now();
+    const aiScan = await prisma.aiScan.create({
+      data: {
+        id: randomUUID(),
+        userId,
+        extractedJson: JSON.stringify(normalized),
+        confidence,
+        provider: source,
+        processingMs: Date.now() - startTime,
+        status: 'completed',
+      },
+    });
+
+    eventBus.emit({
+      type: 'AI_SCAN_COMPLETED',
+      payload: { userId, billId: aiScan.id, success: true },
+    });
 
     return res.json({
       ...normalized,
       source,
-      confidence: typeof raw.confidence === 'number' ? raw.confidence : 0.85,
+      scanId: aiScan.id,
+      confidence,
       requiresConfirmation: true,
+      quota: { remaining: quota.remaining, limit: quota.limit },
     });
-  } catch (error: any) {
-    if (error?.name === 'AbortError') {
+  } catch (error: unknown) {
+    const errObj = error as { name?: string; message?: string };
+    if (errObj?.name === 'AbortError') {
       return res.status(504).json({ error: 'Cloud OCR timeout' });
     }
 
     logger.error('Receipt cloud scan failed', {
-      error: error?.message || error,
+      error: errObj?.message || error,
     });
 
     return res.status(500).json({ error: 'Failed to scan receipt' });

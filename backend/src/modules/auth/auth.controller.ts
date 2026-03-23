@@ -4,6 +4,8 @@ import { RegisterInput, LoginInput } from './auth.types';
 import { AuthRequest } from '../../middleware/auth';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
+import { generateOtp, verifyOtp } from './otp.service';
+import { checkDeviceTrust, trustDevice, revokeDeviceTrust, listUserDevices } from './device.service';
 
 const authService = new AuthService();
 
@@ -108,10 +110,24 @@ export const login = async (req: Request, res: Response) => {
       password: input.password,
     });
 
+    // Check device trust if deviceId provided
+    const deviceId = req.body.deviceId as string | undefined;
+    let deviceCheck: Awaited<ReturnType<typeof checkDeviceTrust>> | null = null;
+    if (deviceId && tokens.user?.id) {
+      deviceCheck = await checkDeviceTrust(tokens.user.id, deviceId);
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
-      data: tokens
+      data: {
+        ...tokens,
+        device: deviceCheck ? {
+          isKnown: deviceCheck.isKnown,
+          isTrusted: deviceCheck.isTrusted,
+          requiresOtp: deviceCheck.requiresOtp,
+        } : undefined,
+      },
     });
   } catch (error: any) {
     logger.error('Login error', { error: error.message });
@@ -226,3 +242,77 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// ── OTP Endpoints ───────────────────────────────────────────────────
+
+export const sendOtp = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+    const result = await generateOtp(req.userId);
+    const status = result.success ? 200 : 429;
+    res.status(status).json({ success: result.success, message: result.message, expiresAt: result.expiresAt });
+  } catch (error) {
+    logger.error('Send OTP error', { error });
+    res.status(500).json({ success: false, error: 'Failed to send OTP' });
+  }
+};
+
+export const verifyOtpEndpoint = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+    const { code, deviceId, deviceName, platform, appVersion } = req.body;
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ success: false, error: 'OTP code is required' });
+    }
+
+    const result = await verifyOtp(req.userId, code);
+    if (!result.success) {
+      return res.status(400).json({ success: false, message: result.message });
+    }
+
+    // If deviceId provided, trust the device after successful OTP
+    if (deviceId && typeof deviceId === 'string') {
+      await trustDevice(req.userId, deviceId, { deviceName, platform, appVersion });
+    }
+
+    res.json({ success: true, message: result.message });
+  } catch (error) {
+    logger.error('Verify OTP error', { error });
+    res.status(500).json({ success: false, error: 'Failed to verify OTP' });
+  }
+};
+
+// ── Device Management Endpoints ─────────────────────────────────────
+
+export const getDevices = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+    const devices = await listUserDevices(req.userId);
+    res.json({ success: true, data: devices });
+  } catch (error) {
+    logger.error('List devices error', { error });
+    res.status(500).json({ success: false, error: 'Failed to list devices' });
+  }
+};
+
+export const revokeDevice = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' });
+    }
+    const { deviceId } = req.params;
+    if (!deviceId) {
+      return res.status(400).json({ success: false, error: 'Device ID required' });
+    }
+    await revokeDeviceTrust(req.userId, deviceId);
+    res.json({ success: true, message: 'Device trust revoked' });
+  } catch (error) {
+    logger.error('Revoke device error', { error });
+    res.status(500).json({ success: false, error: 'Failed to revoke device' });
+  }
+};

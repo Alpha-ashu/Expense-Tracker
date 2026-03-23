@@ -137,6 +137,7 @@ model Device {
   platform   String?
   appVersion String?
   isActive   Boolean  @default(true)
+  isTrusted  Boolean  @default(false)
   lastSeenAt DateTime @default(now())
   createdAt  DateTime @default(now())
   updatedAt  DateTime
@@ -429,6 +430,8 @@ model Transaction {
   importMetadata      String?
   originalCategory    String?
   importedAt          DateTime?
+  dedupHash           String?         @unique
+  version             Int             @default(1)
   synced              Boolean         @default(false)
   syncStatus          String          @default("synced")
   createdAt           DateTime        @default(now())
@@ -452,6 +455,7 @@ model User {
   name                                          String
   password                                      String
   role                                          String                @default("user")
+  status                                        String                @default("verified")
   isApproved                                    Boolean               @default(false)
   firstName                                     String?
   lastName                                      String?
@@ -491,6 +495,8 @@ model User {
   Transaction                                   Transaction[]
   UserPin                                       UserPin?
   UserSettings                                  UserSettings?
+  OtpCode                                       OtpCode[]
+  AiScan                                        AiScan[]
   group_expenses                                group_expenses[]
 
   @@index([isApproved])
@@ -527,6 +533,39 @@ model UserSettings {
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model OtpCode {
+  id        String   @id
+  userId    String
+  code      String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AiScan {
+  id             String   @id
+  userId         String
+  billId         String?
+  transactionId  String?
+  extractedJson  String
+  confidence     Float
+  provider       String   @default("gemini")
+  processingMs   Int?
+  status         String   @default("completed")
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+  User           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([billId])
+  @@index([createdAt])
 }
 
 model ai_events {

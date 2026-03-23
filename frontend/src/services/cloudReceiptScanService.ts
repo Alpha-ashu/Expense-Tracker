@@ -7,7 +7,18 @@ const JPEG_QUALITY = 0.86;
 
 const getAuthToken = async () => {
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || null;
+  if (session?.access_token) return session.access_token;
+  
+  // Fallback to custom JWT stored in localStorage
+  const token = localStorage.getItem('accessToken') || 
+                localStorage.getItem('token') || 
+                localStorage.getItem('auth_token') || 
+                localStorage.getItem('authToken');
+                
+  if (!token) {
+    console.warn('[ReceiptScanner] No auth token found in localStorage among keys: accessToken, token, auth_token, authToken');
+  }
+  return token || null;
 };
 
 const loadImage = (file: File) =>
@@ -121,12 +132,16 @@ export class CloudReceiptScanService {
       headers.Authorization = `Bearer ${token}`;
     }
 
+    const finalUrl = `${API_BASE}/receipts/scan`;
+    console.log(`[ReceiptScanner] Sending fetch to: ${finalUrl}. Token present: ${!!token}`);
+    
     onProgress?.({ status: 'Running AI financial intelligence engine…', progress: 35 });
-    const response = await fetch(`${API_BASE}/receipts/scan`, {
+    const response = await fetch(finalUrl, {
       method: 'POST',
       headers,
       body: formData,
     });
+    console.log(`[ReceiptScanner] Received response status: ${response.status}`);
 
     const payload = await response.json().catch(() => ({} as Record<string, unknown>));
     if (!response.ok) {
@@ -173,12 +188,13 @@ export class CloudReceiptScanService {
       invoiceNumber: typeof payload.invoiceNumber === 'string' ? payload.invoiceNumber : undefined,
       paymentMethod: typeof payload.paymentMethod === 'string' ? payload.paymentMethod : undefined,
       category: typeof payload.category === 'string' ? payload.category : undefined,
+      subcategory: typeof payload.subcategory === 'string' && payload.subcategory.trim() ? payload.subcategory.trim() : undefined,
       description: aiDescription ?? itemsDescription,
       items,
       validationResult,
       confidence: Math.max(0, Math.min(1, confidence)),
       rawText: JSON.stringify(rawFields || {}),
-      notes: merchantName ? 'cloud ocr receipt' : 'cloud ocr import',
+      notes: typeof payload.category === 'string' ? `${payload.category.toLowerCase()} receipt` : 'cloud ocr receipt',
     };
   }
 }

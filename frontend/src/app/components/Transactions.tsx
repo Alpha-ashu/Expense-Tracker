@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
-import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet, Receipt, Layers } from 'lucide-react';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
@@ -68,6 +68,28 @@ export const Transactions: React.FC = () => {
       if (transaction.type === 'income') income += transaction.amount;
     }
     return { expenses, income, netFlow: income - expenses };
+  }, [timeFilteredTransactions]);
+
+  // Tax summary — extracted from transactions that have taxAmount stored in description metadata
+  const taxStats = useMemo(() => {
+    let totalTax = 0;
+    const byCategory: Record<string, number> = {};
+    for (const tx of timeFilteredTransactions) {
+      if (tx.type !== 'expense') continue;
+      // taxAmount is stored in the transaction description as JSON metadata when added via scanner
+      // We parse it from the notes pattern: "tax:<amount>"
+      const taxMatch = tx.description?.match(/\btax:([\d.]+)\b/);
+      if (taxMatch) {
+        const tax = parseFloat(taxMatch[1]);
+        if (!isNaN(tax) && tax > 0) {
+          totalTax += tax;
+          const cat = tx.category || 'Other';
+          byCategory[cat] = (byCategory[cat] ?? 0) + tax;
+        }
+      }
+    }
+    const topCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    return { totalTax, topCategories, hasTaxData: totalTax > 0 };
   }, [timeFilteredTransactions]);
 
   const currencyFormatter = useMemo(() => (
@@ -198,6 +220,56 @@ export const Transactions: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Tax Summary Card */}
+      {taxStats.hasTaxData ? (
+        <div className="rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-orange-100 rounded-xl">
+              <Layers size={16} className="text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-orange-900">Tax Tracker</h3>
+              <p className="text-xs text-orange-600">Taxes paid from scanned bills ({getPeriodLabel(timePeriod)})</p>
+            </div>
+            <div className="ml-auto text-right">
+              <p className="text-xl font-bold text-orange-800">{formatCurrency(taxStats.totalTax)}</p>
+              <p className="text-xs text-orange-500">Total tax paid</p>
+            </div>
+          </div>
+          {taxStats.topCategories.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {taxStats.topCategories.map(([cat, amt]) => (
+                <div key={cat} className="rounded-xl bg-white/60 border border-orange-100 px-3 py-2">
+                  <p className="text-xs font-semibold text-orange-700 truncate">{cat}</p>
+                  <p className="text-sm font-bold text-orange-900">{formatCurrency(amt)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-orange-500 mt-3">
+            💡 Taxes are tracked automatically when you scan bills with the bill scanner.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+          <div className="p-2.5 bg-orange-100 rounded-xl shrink-0">
+            <Receipt size={18} className="text-orange-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-orange-800">Tax Tracker</h3>
+            <p className="text-xs text-orange-600 mt-0.5">
+              Scan bills to automatically track GST, VAT, and other taxes paid per category.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowScanModal(true)}
+            className="shrink-0 flex items-center gap-1.5 rounded-xl bg-orange-500 px-3 py-2 text-xs font-bold text-white hover:bg-orange-600 transition-colors"
+          >
+            <Camera size={13} /> Scan Bill
+          </button>
+        </div>
+      )}
 
       {/* Filters & Search */}
       <div className="flex flex-col gap-3 sm:gap-4">

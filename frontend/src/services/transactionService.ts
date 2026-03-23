@@ -29,6 +29,17 @@ export class TransactionService {
       throw new Error('Amount must be greater than zero');
     }
 
+    // Build smart description: AI-generated > notes > merchant name
+    const baseDescription = scanResult.description?.trim()
+      || scanResult.notes?.trim()
+      || scanResult.merchantName
+      || 'Receipt';
+
+    // Embed tax amount in description for Tax Tracker reads (format: tax:<amount>)
+    const taxSuffix = scanResult.taxAmount && scanResult.taxAmount > 0
+      ? ` tax:${scanResult.taxAmount.toFixed(2)}`
+      : '';
+
     const savedTransaction = await financialDataCaptureService.saveTransactionDraft(
       {
         type: 'expense',
@@ -36,7 +47,7 @@ export class TransactionService {
         accountId,
         category: scanResult.category || 'Shopping',
         subcategory: scanResult.subcategory?.trim() || '',
-        description: scanResult.notes || scanResult.merchantName || 'Receipt',
+        description: `${baseDescription}${taxSuffix}`,
         merchant: scanResult.merchantName || '',
         date: scanResult.date || new Date(),
         importSource: 'receipt-scanner',
@@ -45,6 +56,9 @@ export class TransactionService {
           'Invoice Number': scanResult.invoiceNumber || '',
           'Payment Method': scanResult.paymentMethod || '',
           'OCR Confidence': scanResult.confidence?.toString() || '',
+          'Tax Amount': scanResult.taxAmount?.toFixed(2) || '',
+          'Subtotal': scanResult.subtotal?.toFixed(2) || '',
+          'Location': scanResult.location || '',
         },
       },
       {

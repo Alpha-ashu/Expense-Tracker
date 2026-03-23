@@ -143,14 +143,16 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const handleSubcategoryChange = (value: string) => {
     if (!scanResult) return;
-
-    const detected = detectExpenseCategoryFromText(
-      [value, scanResult.merchantName, scanResult.rawText].filter(Boolean).join(' '),
-    );
+    // Only use the subcategory text itself for category detection — NOT the merchant name
+    // to avoid the merchant name bleeding into the subcategory field
+    const detected = value.trim().length >= 3
+      ? detectExpenseCategoryFromText(value)
+      : null;
 
     setScanResult({
       ...scanResult,
       subcategory: value,
+      // Only update category if we confidently detected one from the subcategory text
       category: detected?.category ?? scanResult.category ?? 'Shopping',
     });
   };

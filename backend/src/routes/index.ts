@@ -21,6 +21,7 @@ import { todoRoutes } from '../modules/todos/todo.routes';
 import { groupRoutes } from '../modules/groups/group.routes';
 import { aiRoutes } from '../modules/ai/ai.routes';
 import { receiptRoutes } from '../modules/receipts/receipt.routes';
+import { dashboardRoutes } from '../modules/dashboard/dashboard.routes';
 
 const router = Router();
 
@@ -57,6 +58,9 @@ router.use('/notifications', notificationRoutes);
 
 // Secure bill uploads
 router.use('/bills', billsRoutes);
+
+// Dashboard aggregation
+router.use('/dashboard', dashboardRoutes);
 
 // Admin routes (requires admin role)
 router.use('/admin', adminRoutes);

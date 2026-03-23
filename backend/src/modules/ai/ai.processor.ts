@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { logger } from '../../config/logger';
 import { prisma } from '../../db/prisma';
+import { sanitizeAIInput } from '../../utils/sanitize';
+import { incrementAIUsage } from '../../utils/aiUsageTracker';
+import { audit } from '../../utils/auditLogger';
 
 // 🔥 BACKEND AI EXTRACTION LOGIC
 // Simplified version of Finora AI for backend processing
@@ -117,7 +120,21 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Image data is required' });
     }
 
-    console.log('🔍 Processing OCR request for user:', userId);
+    // ── AI quota enforcement ────────────────────────────────────
+    const quota = await incrementAIUsage(userId);
+    if (!quota.allowed) {
+      audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
+      return res.status(429).json({ error: 'Daily AI limit reached. Try again tomorrow.', limit: quota.limit });
+    }
+
+    // ── Sanitise input ──────────────────────────────────────────
+    const { sanitized: cleanData, flagged } = sanitizeAIInput(imageData);
+    if (flagged) {
+      audit({ event: 'ai.prompt_injection', userId, resource: 'ocr', meta: { inputLength: imageData.length } });
+      logger.warn('Prompt injection detected in OCR input', { userId });
+    }
+
+    audit({ event: 'ai.ocr_request', userId, meta: { source } });
     const startTime = performance.now();
 
     // Store raw AI data (privacy-first)
@@ -127,7 +144,7 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
     });
 
     // 🧠 Backend AI extraction logic (simplified version of Finora AI)
-    const extractedData = await extractExpenseDataBackend(imageData, 'ocr');
+    const extractedData = await extractExpenseDataBackend(cleanData, 'ocr');
     
     const processingTime = performance.now() - startTime;
     console.log(`⚡ OCR processing completed in ${processingTime.toFixed(2)}ms`);
@@ -160,19 +177,33 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Transcript or audio data is required' });
     }
 
-    console.log('🎤 Processing voice request for user:', userId);
-    const startTime = performance.now();
+    // ── AI quota enforcement ────────────────────────────────────
+    const quota = await incrementAIUsage(userId);
+    if (!quota.allowed) {
+      audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
+      return res.status(429).json({ error: 'Daily AI limit reached. Try again tomorrow.', limit: quota.limit });
+    }
 
     const voiceData = transcript || audioData;
 
+    // ── Sanitise input ──────────────────────────────────────────
+    const { sanitized: cleanData, flagged } = sanitizeAIInput(voiceData);
+    if (flagged) {
+      audit({ event: 'ai.prompt_injection', userId, resource: 'voice', meta: { inputLength: voiceData.length } });
+      logger.warn('Prompt injection detected in voice input', { userId });
+    }
+
+    audit({ event: 'ai.voice_request', userId });
+    const startTime = performance.now();
+
     // Store raw AI data (privacy-first)
-    const rawInputId = await storeAIData(userId, 'voice', voiceData, {
+    const rawInputId = await storeAIData(userId, 'voice', cleanData, {
       timestamp: new Date().toISOString(),
       hasAudio: !!audioData,
     });
 
     // 🧠 Backend AI extraction logic
-    const extractedData = await extractExpenseDataBackend(voiceData, 'voice');
+    const extractedData = await extractExpenseDataBackend(cleanData, 'voice');
     
     const processingTime = performance.now() - startTime;
     console.log(`⚡ Voice processing completed in ${processingTime.toFixed(2)}ms`);

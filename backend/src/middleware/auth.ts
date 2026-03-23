@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { logger } from '../config/logger';
+import { createClient } from '@supabase/supabase-js';
+import { audit } from '../utils/auditLogger';
+import { prisma } from '../db/prisma';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -13,62 +17,92 @@ export interface AuthRequest extends Request {
   file?: Express.Multer.File;
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1];
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabase = (supabaseUrl && supabaseServiceKey) 
+  ? createClient(supabaseUrl, supabaseServiceKey)
+  : null;
 
-    if (!token) {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+    if (!token || token === authHeader) {
+      logger.warn('Auth check failed: No token provided in headers.');
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const customSecret = process.env.JWT_SECRET;
-    const supabaseSecret = process.env.SUPABASE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-
+    const customSecret = process.env.JWT_SECRET || '';
     let decoded: any;
-    let isValid = false;
 
-    // Try Supabase JWT first
-    if (supabaseSecret) {
-      try {
-        decoded = jwt.verify(token, supabaseSecret);
-        isValid = true;
-      } catch (err) {
-        // Fall back to custom secret
-      }
-    }
-
-    // Try Custom JWT if Supabase failed
-    if (!isValid && customSecret) {
+    // 1. Try Custom JWT first (fast, local)
+    if (customSecret) {
       try {
         decoded = jwt.verify(token, customSecret);
-        isValid = true;
+        
+        const userId = decoded.userId || decoded.sub;
+        req.userId = userId;
+        req.user = {
+          id: userId,
+          email: decoded.email || '',
+          role: decoded.role || 'user',
+          isApproved: decoded.isApproved ?? true
+        };
+
+        // Check user status (suspended accounts are blocked)
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { status: true },
+        });
+        if (dbUser?.status === 'suspended') {
+          return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+        }
+
+        return next();
       } catch (err) {
-        // failed both
+        // Fall back to Supabase
       }
     }
 
-    if (!isValid || !decoded) {
-      return res.status(401).json({ error: 'Invalid token' });
+    // 2. Try Supabase verification (handles ES256, HS256, etc.)
+    if (supabase) {
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      
+      if (user && !error) {
+        req.userId = user.id;
+        req.user = {
+          id: user.id,
+          email: user.email || '',
+          role: (user.app_metadata?.role as string) || 'user',
+          isApproved: true,
+          name: user.user_metadata?.full_name
+        };
+        return next();
+      } else {
+        if (error) {
+          logger.warn(`Supabase Auth rejection: ${error.message}`);
+        }
+      }
     }
 
-    // Handle payload from custom JWT ({ userId, email, role }) 
-    // vs Supabase JWT ({ sub, email, user_metadata })
-    const userId = decoded.userId || decoded.sub;
-    const email = decoded.email || decoded.user_metadata?.email || '';
-    const role = decoded.role || decoded.user_role || 'user';
-    const isApproved = decoded.isApproved ?? true; // Default true for supabase users
-
-    req.userId = userId;
-    req.user = {
-      id: userId,
-      email: email,
-      role: role,
-      isApproved: isApproved
-    };
-
-    next();
+    audit({
+      event: 'auth.login_failed',
+      ip: req.ip || undefined,
+      action: `${req.method} ${req.path}`,
+      meta: { reason: 'invalid_token' },
+    });
+    logger.info(`Final Auth result: 401 Unauthorized for token starting ${token.substring(0, 10)}...`);
+    return res.status(401).json({ error: 'Invalid or expired session' });
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid token extraction' });
+    audit({
+      event: 'auth.login_failed',
+      ip: req.ip || undefined,
+      action: `${req.method} ${req.path}`,
+      meta: { reason: 'auth_error' },
+    });
+    logger.error('Critical Auth middleware error:', error);
+    return res.status(401).json({ error: 'Authentication failed' });
   }
 };
 

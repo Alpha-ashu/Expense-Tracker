@@ -734,6 +734,9 @@ export const AddTransaction: React.FC = () => {
       ? toDateInputValue(scan.date)
       : formData.date;
 
+    // Use AI-generated description if form description is empty
+    const nextDescription = scan.description?.trim() || scan.notes?.trim() || '';
+
     setFormData((prev) => ({
       ...prev,
       type: 'expense',
@@ -742,7 +745,7 @@ export const AddTransaction: React.FC = () => {
       category: nextCategory,
       subcategory: nextSubcategory,
       merchant: scan.merchantName?.trim() || prev.merchant,
-      description: prev.description || '',
+      description: prev.description || nextDescription,
       date: nextDate,
     }));
     setAmountStr(scan.amount ? String(scan.amount) : amountStr);
@@ -750,6 +753,7 @@ export const AddTransaction: React.FC = () => {
     setManualExpenseCategory(false);
     setShowCategoryPicker(false);
     setShowScanner(false);
+    toast.success('Bill scanned — review and edit the auto-filled fields before saving.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
