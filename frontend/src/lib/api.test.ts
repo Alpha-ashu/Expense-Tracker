@@ -1,0 +1,115 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { getSession } = vi.hoisted(() => ({
+  getSession: vi.fn(),
+}));
+
+const { toastError, toastSuccess } = vi.hoisted(() => ({
+  toastError: vi.fn(),
+  toastSuccess: vi.fn(),
+}));
+
+vi.mock('@/utils/supabase/client', () => ({
+  default: {
+    auth: {
+      getSession,
+    },
+  },
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: toastError,
+    success: toastSuccess,
+  },
+}));
+
+import { api, TokenManager } from './api';
+
+describe('api auth token resolution', () => {
+  beforeEach(() => {
+    getSession.mockReset();
+    toastError.mockReset();
+    toastSuccess.mockReset();
+    vi.unstubAllGlobals();
+    localStorage.clear();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('uses the Supabase session token for authenticated requests', async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'session-token',
+        },
+      },
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: { id: 'user-1' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.auth.getProfile();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/profile', expect.objectContaining({
+      method: 'GET',
+      headers: expect.objectContaining({
+        Authorization: 'Bearer session-token',
+      }),
+    }));
+  });
+
+  it('falls back to auth_token when no Supabase session token exists', async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: null,
+      },
+    });
+    localStorage.setItem('auth_token', 'legacy-jwt');
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, data: { id: 'user-1' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.auth.getProfile();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/profile', expect.objectContaining({
+      method: 'GET',
+      headers: expect.objectContaining({
+        Authorization: 'Bearer legacy-jwt',
+      }),
+    }));
+  });
+
+  it('does not redirect to login on a background 401 when a Supabase session is active', async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'session-token',
+        },
+      },
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({
+        code: 'HTTP_401',
+        message: 'Unauthorized',
+      }),
+    }));
+
+    await expect(api.auth.updateProfile({ firstName: 'Test' })).rejects.toMatchObject({
+      status: 401,
+      message: 'Unauthorized',
+    });
+
+    expect(window.location.pathname).toBe('/');
+    expect(TokenManager.getAccessToken()).toBeNull();
+  });
+});

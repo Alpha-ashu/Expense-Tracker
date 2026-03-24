@@ -407,33 +407,42 @@ export const UserProfile: React.FC = () => {
     try {
       const resolvedAvatar = resolveAvatar(tempData.profilePhoto, tempData.avatarId);
       const operationId = `profile_update_${Date.now()}`;
+      const updatedAt = new Date().toISOString();
+      const nextProfileData: ProfileData = {
+        ...tempData,
+        email: user.email || tempData.email,
+        profilePhoto: resolvedAvatar.url,
+        avatarId: resolvedAvatar.id,
+      };
 
       // 1. Update local state immediately for responsive UI
-      setProfileData(tempData);
+      setProfileData(nextProfileData);
+      setTempData(nextProfileData);
       setIsEditingBasic(false);
       setIsEditingLocation(false);
 
       // 2. Save to localStorage for persistence
-      const updatedAt = new Date().toISOString();
       localStorage.setItem('user_profile', JSON.stringify({
-        displayName: `${tempData.firstName} ${tempData.lastName}`.trim(),
-        firstName: tempData.firstName,
-        lastName: tempData.lastName,
-        gender: tempData.gender,
-        mobile: tempData.mobile,
-        dateOfBirth: tempData.dateOfBirth,
-        jobType: tempData.jobType,
-        salary: (tempData.monthlyIncome || 0) * 12,
-        monthlyIncome: tempData.monthlyIncome || 0,
-        country: tempData.country,
-        state: tempData.state,
-        city: tempData.city,
+        displayName: `${nextProfileData.firstName} ${nextProfileData.lastName}`.trim(),
+        firstName: nextProfileData.firstName,
+        lastName: nextProfileData.lastName,
+        gender: nextProfileData.gender,
+        email: nextProfileData.email,
+        mobile: nextProfileData.mobile,
+        dateOfBirth: nextProfileData.dateOfBirth,
+        jobType: nextProfileData.jobType,
+        salary: (nextProfileData.monthlyIncome || 0) * 12,
+        monthlyIncome: nextProfileData.monthlyIncome || 0,
+        country: nextProfileData.country,
+        state: nextProfileData.state,
+        city: nextProfileData.city,
         profilePhoto: resolvedAvatar.url,
         avatarUrl: resolvedAvatar.url,
         avatarId: resolvedAvatar.id,
         updatedAt,
       }));
       localStorage.setItem('profile_updated_at', updatedAt);
+      localStorage.setItem('profile_sync_pending', 'true');
 
       // 3. Add to backend sync queue (non-blocking)
       const { backendSyncService } = await import('@/lib/backend-sync-service');
@@ -442,19 +451,20 @@ export const UserProfile: React.FC = () => {
       // 4. Update via Backend API (fire-and-forget)
       const { api } = await import('@/lib/api');
       api.auth.updateProfile({
-        firstName: tempData.firstName,
-        lastName: tempData.lastName,
-        gender: tempData.gender,
-        country: tempData.country,
-        state: tempData.state,
-        city: tempData.city,
-        monthlyIncome: tempData.monthlyIncome,
-        dateOfBirth: tempData.dateOfBirth,
-        jobType: tempData.jobType,
-        mobile: tempData.mobile,
+        firstName: nextProfileData.firstName,
+        lastName: nextProfileData.lastName,
+        gender: nextProfileData.gender,
+        country: nextProfileData.country,
+        state: nextProfileData.state,
+        city: nextProfileData.city,
+        monthlyIncome: nextProfileData.monthlyIncome,
+        dateOfBirth: nextProfileData.dateOfBirth,
+        jobType: nextProfileData.jobType,
+        mobile: nextProfileData.mobile,
         avatarId: resolvedAvatar.id,
       }).then(() => {
         backendSyncService.removePendingOperation(operationId);
+        localStorage.removeItem('profile_sync_pending');
         console.log('✅ Profile synced to backend');
       }).catch((error) => {
         console.warn('⚠️ Backend sync failed, will retry:', error);
@@ -463,19 +473,19 @@ export const UserProfile: React.FC = () => {
       // 5. Best-effort Supabase sync (optional, non-blocking)
       supabase.from('profiles').upsert({
         id: user.id,
-        email: tempData.email,
-        full_name: `${tempData.firstName} ${tempData.lastName}`.trim(),
-        first_name: tempData.firstName,
-        last_name: tempData.lastName,
-        phone: tempData.mobile,
+        email: nextProfileData.email,
+        full_name: `${nextProfileData.firstName} ${nextProfileData.lastName}`.trim(),
+        first_name: nextProfileData.firstName,
+        last_name: nextProfileData.lastName,
+        phone: nextProfileData.mobile,
         avatar_url: resolvedAvatar.url,
-        date_of_birth: tempData.dateOfBirth || null,
-        monthly_income: tempData.monthlyIncome,
-        job_type: tempData.jobType || null,
-        gender: tempData.gender || null,
-        country: tempData.country || null,
-        state: tempData.state || null,
-        city: tempData.city || null,
+        date_of_birth: nextProfileData.dateOfBirth || null,
+        monthly_income: nextProfileData.monthlyIncome,
+        job_type: nextProfileData.jobType || null,
+        gender: nextProfileData.gender || null,
+        country: nextProfileData.country || null,
+        state: nextProfileData.state || null,
+        city: nextProfileData.city || null,
         updated_at: new Date().toISOString(),
       }).catch((syncError) => {
         console.warn('Silent Supabase sync error (non-blocking):', syncError);

@@ -4,6 +4,7 @@
  */
 
 import { toast } from 'sonner';
+import supabase from '@/utils/supabase/client';
 import type { ApiResponse, ApiError } from '@/types';
 
 // ==================== Configuration ====================
@@ -15,30 +16,63 @@ const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 export const TokenManager = {
   getAccessToken: (): string | null => {
-    return localStorage.getItem('accessToken');
+    return (
+      localStorage.getItem('accessToken')
+      || localStorage.getItem('auth_token')
+      || localStorage.getItem('token')
+      || localStorage.getItem('authToken')
+    );
   },
 
   setAccessToken: (token: string): void => {
     localStorage.setItem('accessToken', token);
+    localStorage.setItem('auth_token', token);
   },
 
   getRefreshToken: (): string | null => {
-    return localStorage.getItem('refreshToken');
+    return localStorage.getItem('refreshToken') || localStorage.getItem('refresh_token');
   },
 
   setRefreshToken: (token: string): void => {
     localStorage.setItem('refreshToken', token);
+    localStorage.setItem('refresh_token', token);
   },
 
   clearTokens: (): void => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
   },
 
   setTokens: (accessToken: string, refreshToken: string): void => {
     TokenManager.setAccessToken(accessToken);
     TokenManager.setRefreshToken(refreshToken);
   },
+};
+
+const resolveAuthToken = async (): Promise<string | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      return session.access_token;
+    }
+  } catch {
+    // Fall back to locally stored tokens.
+  }
+
+  return TokenManager.getAccessToken();
+};
+
+const hasActiveSupabaseSession = async (): Promise<boolean> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return Boolean(session?.access_token);
+  } catch {
+    return false;
+  }
 };
 
 // ==================== Error Handler ====================
@@ -122,7 +156,7 @@ class HTTPClient {
     } = { ...this.defaultConfig, ...config };
 
     // Add auth token if available
-    const token = TokenManager.getAccessToken();
+    const token = await resolveAuthToken();
     const headers = {
       ...this.defaultConfig.headers,
       ...fetchConfig.headers,
@@ -157,7 +191,10 @@ class HTTPClient {
         // Handle 401 Unauthorized
         if (response.status === 401) {
           TokenManager.clearTokens();
-          window.location.href = '/login';
+          const hasSupabaseSession = await hasActiveSupabaseSession();
+          if (!hasSupabaseSession && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
 
         throw new APIError(error.code, error.message, response.status, error.details);
