@@ -73,7 +73,22 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, data: any, email?: string): Promise<any> {
-    const { firstName, lastName, gender, country, state, city, monthlyIncome, dateOfBirth, jobType, phone } = data;
+    const {
+      firstName,
+      lastName,
+      gender,
+      country,
+      state,
+      city,
+      monthlyIncome,
+      dateOfBirth,
+      jobType,
+      phone,
+      mobile,
+      avatarId,
+      avatarUrl,
+    } = data;
+    const resolvedPhone = phone ?? mobile ?? null;
 
     console.log(`[AuthService] Processing profile update for userId: ${userId}`);
 
@@ -126,6 +141,7 @@ export class AuthService {
           salary: monthlyIncome ? Number(monthlyIncome) * 12 : undefined,
           dateOfBirth: dob,
           jobType,
+          avatarId: avatarId || undefined,
           updatedAt: new Date(),
         } as any,
         create: {
@@ -142,6 +158,7 @@ export class AuthService {
           salary: monthlyIncome ? Number(monthlyIncome) * 12 : 0,
           dateOfBirth: dob,
           jobType,
+          avatarId: avatarId || null,
           updatedAt: new Date(),
           createdAt: new Date(),
         } as any
@@ -156,12 +173,12 @@ export class AuthService {
         await prisma.$executeRaw`
           INSERT INTO public.profiles (
             id, email, first_name, last_name, full_name, gender, 
-            country, state, city, phone, monthly_income, annual_income, 
+            country, state, city, phone, avatar_url, avatar_id, monthly_income, annual_income, 
             date_of_birth, job_type, updated_at
           ) VALUES (
             ${userId}::uuid, ${email || null}, ${firstName || null}, ${lastName || null}, 
             ${(`${firstName || ''} ${lastName || ''}`.trim() || null)}, ${gender || null},
-            ${country || null}, ${state || null}, ${city || null}, ${phone || null}, 
+            ${country || null}, ${state || null}, ${city || null}, ${resolvedPhone}, ${avatarUrl || null}, ${avatarId || null},
             ${decimalMonthlyIncome}, ${decimalAnnualIncome}, 
             ${dob || null}, ${jobType || null}, NOW()
           )
@@ -174,6 +191,8 @@ export class AuthService {
             state = EXCLUDED.state,
             city = EXCLUDED.city,
             phone = EXCLUDED.phone,
+            avatar_url = EXCLUDED.avatar_url,
+            avatar_id = EXCLUDED.avatar_id,
             monthly_income = EXCLUDED.monthly_income,
             annual_income = EXCLUDED.annual_income,
             date_of_birth = EXCLUDED.date_of_birth,

@@ -6,11 +6,78 @@ import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
 import { generateOtp, verifyOtp } from './otp.service';
 import { checkDeviceTrust, trustDevice, revokeDeviceTrust, listUserDevices } from './device.service';
+import { prisma } from '../../db/prisma';
 
 const authService = new AuthService();
 
 // Strict email regex: local@domain.tld, no SQL/XSS chars
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+const toIsoDateOnly = (value?: Date | string | null): string => {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+};
+
+const toNumber = (value: unknown, fallback = 0): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const buildProfilePayload = (
+  userId: string,
+  authUser?: AuthRequest['user'],
+  userRecord?: any | null,
+  profileRecord?: any | null,
+) => {
+  const fallbackName = authUser?.name || '';
+  const fallbackNameParts = fallbackName.trim().split(/\s+/).filter(Boolean);
+
+  const firstName =
+    userRecord?.firstName ||
+    profileRecord?.first_name ||
+    fallbackNameParts[0] ||
+    '';
+  const lastName =
+    userRecord?.lastName ||
+    profileRecord?.last_name ||
+    fallbackNameParts.slice(1).join(' ') ||
+    '';
+  const monthlyIncome = profileRecord?.monthly_income != null
+    ? toNumber(profileRecord.monthly_income, 0)
+    : (userRecord?.salary != null ? Math.round(toNumber(userRecord.salary, 0) / 12) : 0);
+
+  return {
+    id: userId,
+    email: userRecord?.email || profileRecord?.email || authUser?.email || '',
+    name:
+      userRecord?.name ||
+      profileRecord?.full_name ||
+      `${firstName} ${lastName}`.trim() ||
+      fallbackName,
+    firstName,
+    lastName,
+    gender: userRecord?.gender || profileRecord?.gender || '',
+    country: userRecord?.country || profileRecord?.country || '',
+    state: userRecord?.state || profileRecord?.state || '',
+    city: userRecord?.city || profileRecord?.city || '',
+    salary:
+      userRecord?.salary != null
+        ? toNumber(userRecord.salary, 0)
+        : (profileRecord?.annual_income != null
+          ? toNumber(profileRecord.annual_income, monthlyIncome * 12)
+          : monthlyIncome * 12),
+    monthlyIncome,
+    dateOfBirth: toIsoDateOnly(userRecord?.dateOfBirth || profileRecord?.date_of_birth),
+    jobType: userRecord?.jobType || profileRecord?.job_type || '',
+    role: userRecord?.role || authUser?.role || 'user',
+    isApproved: userRecord?.isApproved ?? authUser?.isApproved ?? false,
+    mobile: profileRecord?.phone || '',
+    phone: profileRecord?.phone || '',
+    avatarId: userRecord?.avatarId || profileRecord?.avatar_id || null,
+    avatarUrl: profileRecord?.avatar_url || null,
+  };
+};
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -173,44 +240,43 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    try {
-      const user = await authService.getUser(req.userId);
-      res.json({
-        success: true,
-        data: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          gender: user.gender,
-          country: user.country,
-          state: user.state,
-          city: user.city,
-          salary: user.salary,
-          dateOfBirth: user.dateOfBirth,
-          jobType: user.jobType,
-          role: user.role,
-          isApproved: user.isApproved,
-        }
+    const [userResult, profileResult] = await Promise.allSettled([
+      authService.getUser(req.userId),
+      prisma.profiles.findUnique({
+        where: { id: req.userId },
+      }),
+    ]);
+
+    if (userResult.status === 'rejected' && userResult.reason?.message !== 'User not found') {
+      logger.warn('Get profile user lookup failed, falling back to auth snapshot.', {
+        message: userResult.reason?.message,
+        userId: req.userId,
       });
-    } catch (userError: any) {
-      if (userError.message === 'User not found') {
-        // Return 404 but with some context
-        return res.status(404).json({
-          success: false,
-          error: 'User profile not found in database',
-          code: 'USER_NOT_FOUND'
-        });
-      }
-      throw userError;
     }
+
+    if (profileResult.status === 'rejected') {
+      logger.warn('Get profile profiles lookup failed, falling back to auth snapshot.', {
+        message: profileResult.reason?.message,
+        userId: req.userId,
+      });
+    }
+
+    const userRecord = userResult.status === 'fulfilled' ? userResult.value : null;
+    const profileRecord = profileResult.status === 'fulfilled' ? profileResult.value : null;
+
+    res.json({
+      success: true,
+      data: buildProfilePayload(req.userId, req.user, userRecord, profileRecord),
+    });
   } catch (error: any) {
     logger.error('Get profile error:', {
       message: error.message,
       userId: req.userId
     });
-    res.status(500).json({ success: false, error: 'Failed to fetch profile' });
+    res.json({
+      success: true,
+      data: buildProfilePayload(req.userId || '', req.user, null, null),
+    });
   }
 };
 

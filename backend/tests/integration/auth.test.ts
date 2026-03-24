@@ -3,12 +3,33 @@
  * Covers: Registration, Login, Profile, Token Management, Edge Cases
  */
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 import { app } from '../../src/app';
 
 const API = '/api/v1';
 
 // Unique test user per run
 const uniqueEmail = () => `test_${Date.now()}_${Math.random().toString(36).slice(2)}@example.com`;
+
+const getSignedAuthToken = (overrides: Record<string, unknown> = {}) => {
+  if (!process.env.JWT_SECRET) {
+    process.env.JWT_SECRET = 'test-jwt-secret';
+  }
+
+  return jwt.sign(
+    {
+      userId: 'profile-fallback-user',
+      id: 'profile-fallback-user',
+      email: 'profile-fallback@example.com',
+      role: 'advisor',
+      isApproved: true,
+      name: 'Profile Fallback',
+      ...overrides,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: '15m' },
+  );
+};
 
 describe('AUTH MODULE', () => {
   // ───────── Registration ─────────
@@ -192,6 +213,25 @@ describe('AUTH MODULE', () => {
         .get(`${API}/auth/profile`)
         .set('Authorization', 'NotBearer token');
       expect(res.status).toBe(401);
+    });
+
+    it('should return auth snapshot fallback data for a valid JWT even without a Prisma user row', async () => {
+      const token = getSignedAuthToken();
+
+      const res = await request(app)
+        .get(`${API}/auth/profile`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toMatchObject({
+        id: 'profile-fallback-user',
+        email: 'profile-fallback@example.com',
+        role: 'advisor',
+        isApproved: true,
+        firstName: 'Profile',
+        lastName: 'Fallback',
+      });
     });
   });
 

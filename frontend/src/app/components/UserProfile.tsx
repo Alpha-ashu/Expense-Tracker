@@ -462,6 +462,7 @@ export const UserProfile: React.FC = () => {
         jobType: nextProfileData.jobType,
         mobile: nextProfileData.mobile,
         avatarId: resolvedAvatar.id,
+        avatarUrl: resolvedAvatar.url,
       }).then(() => {
         backendSyncService.removePendingOperation(operationId);
         localStorage.removeItem('profile_sync_pending');

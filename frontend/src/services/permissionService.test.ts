@@ -44,12 +44,12 @@ describe('permissionService', () => {
 
     const permissions = await permissionService.fetchUserPermissions('user-1', 'user');
 
-    expect(fetch).toHaveBeenCalledWith('/api/v1/auth/profile', {
+    expect(fetch).toHaveBeenCalledWith('/api/v1/auth/profile', expect.objectContaining({
       method: 'GET',
       headers: {
         Authorization: 'Bearer session-token',
       },
-    });
+    }));
     expect(permissions.role).toBe('admin');
     expect(permissions.permissions.canAccessAdminPanel).toBe(true);
   });
@@ -105,5 +105,88 @@ describe('permissionService', () => {
     expect(permissions.role).toBe('advisor');
     expect(permissions.permissions.canAccessAdvisorPanel).toBe(true);
     expect(permissions.permissions.canAccessAdminPanel).toBe(false);
+  });
+
+  it('reuses the last successful backend role during a later transient failure', async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'session-token',
+        },
+      },
+    });
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            role: 'admin',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        json: async () => ({
+          success: false,
+          error: 'Internal Server Error',
+        }),
+      });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const initialPermissions = await permissionService.fetchUserPermissions('user-1', 'user');
+    const retryPermissions = await permissionService.fetchUserPermissions('user-1', 'user');
+
+    expect(initialPermissions.role).toBe('admin');
+    expect(retryPermissions.role).toBe('admin');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('deduplicates concurrent backend role lookups for the same user', async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'session-token',
+        },
+      },
+    });
+
+    let resolveFetch: ((value: any) => void) | null = null;
+    const fetchPromise = new Promise((resolve) => {
+      resolveFetch = resolve;
+    });
+
+    const fetchMock = vi.fn().mockReturnValue(fetchPromise);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const firstLookup = permissionService.fetchUserPermissions('user-1', 'user');
+    const secondLookup = permissionService.fetchUserPermissions('user-1', 'user');
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    resolveFetch?.({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: {
+          role: 'advisor',
+          isApproved: true,
+        },
+      }),
+    });
+
+    const [firstPermissions, secondPermissions] = await Promise.all([firstLookup, secondLookup]);
+
+    expect(firstPermissions.role).toBe('advisor');
+    expect(secondPermissions.role).toBe('advisor');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

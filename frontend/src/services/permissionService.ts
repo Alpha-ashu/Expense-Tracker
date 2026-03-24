@@ -7,6 +7,7 @@ import { UserRole } from '@/lib/featureFlags';
 import supabase from '@/utils/supabase/client';
 
 const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+const PROFILE_LOOKUP_TIMEOUT_MS = 5000;
 
 const normalizeUserRole = (value: unknown): UserRole => {
   if (value === 'admin' || value === 'advisor' || value === 'user') {
@@ -63,10 +64,18 @@ export interface UserPermissions {
   lastUpdated: string;
 }
 
+type BackendRoleSnapshot = {
+  role: UserRole;
+  isApproved?: boolean;
+  fetchedAt: string;
+};
+
 class PermissionService {
   private static instance: PermissionService;
   private permissions: UserPermissions | null = null;
   private listeners: ((permissions: UserPermissions | null) => void)[] = [];
+  private inflightRoleLookups = new Map<string, Promise<UserRole>>();
+  private roleSnapshots = new Map<string, BackendRoleSnapshot>();
 
   private constructor() { }
 
@@ -90,38 +99,91 @@ class PermissionService {
   }
 
   private async resolveUserRole(userId: string, fallbackRole?: UserRole): Promise<UserRole> {
+    const existingLookup = this.inflightRoleLookups.get(userId);
+    if (existingLookup) {
+      return existingLookup;
+    }
+
+    const lookupPromise = this.loadUserRole(userId, fallbackRole);
+    this.inflightRoleLookups.set(userId, lookupPromise);
+
+    try {
+      return await lookupPromise;
+    } finally {
+      this.inflightRoleLookups.delete(userId);
+    }
+  }
+
+  private getCachedRole(userId: string): UserRole | null {
+    const snapshot = this.roleSnapshots.get(userId);
+    if (!snapshot) {
+      return null;
+    }
+
+    return resolveEffectiveRole(snapshot.role, snapshot.isApproved);
+  }
+
+  private rememberResolvedRole(userId: string, role: UserRole, isApproved?: boolean): UserRole {
+    this.roleSnapshots.set(userId, {
+      role,
+      isApproved,
+      fetchedAt: new Date().toISOString(),
+    });
+
+    return resolveEffectiveRole(role, isApproved);
+  }
+
+  private async loadUserRole(userId: string, fallbackRole?: UserRole): Promise<UserRole> {
     const safeFallback = normalizeUserRole(fallbackRole);
+    const cachedRole = this.getCachedRole(userId);
 
     try {
       const token = await getAuthToken();
       if (!token) {
         console.warn('No auth token available for permission lookup, using fallback permissions.', { userId });
-        return safeFallback;
+        return cachedRole ?? safeFallback;
       }
 
-      const response = await fetch(`${API_BASE}/auth/profile`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), PROFILE_LOOKUP_TIMEOUT_MS);
 
-      const payload = await response.json().catch(() => ({} as {
-        success?: boolean;
-        data?: { role?: unknown; isApproved?: boolean };
-        error?: string;
-      }));
-      if (!response.ok || payload.success === false) {
-        console.warn(
-          'Failed to load backend profile role, using fallback permissions:',
-          payload.error || response.statusText || `HTTP ${response.status}`,
-        );
-        return safeFallback;
+      try {
+        const response = await fetch(`${API_BASE}/auth/profile`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          signal: controller.signal,
+        });
+
+        const payload = await response.json().catch(() => ({} as {
+          success?: boolean;
+          data?: { role?: unknown; isApproved?: boolean };
+          error?: string;
+        }));
+
+        if (!response.ok || payload.success === false) {
+          const errorMessage = payload.error || response.statusText || `HTTP ${response.status}`;
+          if (cachedRole) {
+            console.warn('Failed to load backend profile role, using cached permissions role:', errorMessage);
+            return cachedRole;
+          }
+
+          console.warn('Failed to load backend profile role, using fallback permissions:', errorMessage);
+          return safeFallback;
+        }
+
+        const backendRole = normalizeUserRole(payload.data?.role ?? safeFallback);
+        return this.rememberResolvedRole(userId, backendRole, payload.data?.isApproved);
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const backendRole = normalizeUserRole(payload.data?.role ?? safeFallback);
-      return resolveEffectiveRole(backendRole, payload.data?.isApproved);
     } catch (error) {
+      if (cachedRole) {
+        console.warn('Unexpected backend role lookup failure, using cached permissions role:', error);
+        return cachedRole;
+      }
+
       console.warn('Unexpected backend role lookup failure, using fallback permissions:', error);
       return safeFallback;
     }
@@ -307,6 +369,8 @@ class PermissionService {
    */
   clearPermissions(): void {
     this.permissions = null;
+    this.inflightRoleLookups.clear();
+    this.roleSnapshots.clear();
     this.notifyListeners();
   }
 
