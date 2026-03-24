@@ -11,6 +11,37 @@ export interface CreateTransactionParams {
   onDuplicateNotify?: () => void;
 }
 
+const serializeReceiptField = (value: unknown) => {
+  if (value == null) return '';
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '';
+  }
+};
+
+const buildReceiptImportMetadata = (scanResult: ReceiptScanResult, currency: string) => ({
+  Currency: scanResult.currency || currency,
+  'Invoice Number': scanResult.invoiceNumber || '',
+  'Payment Method': scanResult.paymentMethod || '',
+  'OCR Confidence': scanResult.confidence?.toString() || '',
+  'Tax Amount': scanResult.taxAmount?.toFixed(2) || '',
+  'Subtotal': scanResult.subtotal?.toFixed(2) || '',
+  'Location': scanResult.location || '',
+  'Tax Breakdown': serializeReceiptField(scanResult.taxBreakdown),
+  'Detected Items': serializeReceiptField(scanResult.items),
+  'Validation Result': serializeReceiptField(scanResult.validationResult),
+  'Receipt Summary': serializeReceiptField({
+    merchantName: scanResult.merchantName || '',
+    amount: scanResult.amount ?? '',
+    subtotal: scanResult.subtotal ?? '',
+    taxAmount: scanResult.taxAmount ?? '',
+    paymentMethod: scanResult.paymentMethod || '',
+    invoiceNumber: scanResult.invoiceNumber || '',
+  }),
+});
+
 export class TransactionService {
   async createFromReceipt(
     params: CreateTransactionParams,
@@ -35,11 +66,6 @@ export class TransactionService {
       || scanResult.merchantName
       || 'Receipt';
 
-    // Embed tax amount in description for Tax Tracker reads (format: tax:<amount>)
-    const taxSuffix = scanResult.taxAmount && scanResult.taxAmount > 0
-      ? ` tax:${scanResult.taxAmount.toFixed(2)}`
-      : '';
-
     const savedTransaction = await financialDataCaptureService.saveTransactionDraft(
       {
         type: 'expense',
@@ -47,19 +73,11 @@ export class TransactionService {
         accountId,
         category: scanResult.category || 'Shopping',
         subcategory: scanResult.subcategory?.trim() || '',
-        description: `${baseDescription}${taxSuffix}`,
+        description: baseDescription,
         merchant: scanResult.merchantName || '',
         date: scanResult.date || new Date(),
         importSource: 'receipt-scanner',
-        importMetadata: {
-          Currency: scanResult.currency || currency,
-          'Invoice Number': scanResult.invoiceNumber || '',
-          'Payment Method': scanResult.paymentMethod || '',
-          'OCR Confidence': scanResult.confidence?.toString() || '',
-          'Tax Amount': scanResult.taxAmount?.toFixed(2) || '',
-          'Subtotal': scanResult.subtotal?.toFixed(2) || '',
-          'Location': scanResult.location || '',
-        },
+        importMetadata: buildReceiptImportMetadata(scanResult, currency),
       },
       {
         userId,

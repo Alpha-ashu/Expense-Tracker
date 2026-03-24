@@ -161,6 +161,16 @@ const sanitizeReceiptDescription = (result: ReceiptScannerResult) => {
   return base.replace(/\s+/g, ' ').trim().slice(0, 160);
 };
 
+const serializeReceiptField = (value: unknown) => {
+  if (value == null) return '';
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '';
+  }
+};
+
 const mapReceiptToDraft = (result: ReceiptScannerResult, accountId: number): TransactionDraft | null => {
   if (!result.amount || !result.date) return null;
 
@@ -185,6 +195,16 @@ const mapReceiptToDraft = (result: ReceiptScannerResult, accountId: number): Tra
       'Payment Method': result.paymentMethod || '',
       'Invoice Number': result.invoiceNumber || '',
       'Tax Amount': result.taxAmount != null ? String(result.taxAmount) : '',
+      'Tax Breakdown': serializeReceiptField(result.taxBreakdown),
+      'Detected Items': serializeReceiptField(result.items),
+      'Receipt Summary': serializeReceiptField({
+        merchantName: result.merchantName || '',
+        subtotal: result.subtotal ?? '',
+        amount: result.amount ?? '',
+        paymentMethod: result.paymentMethod || '',
+        location: result.location || '',
+      }),
+      'Validation Result': serializeReceiptField(result.validationResult),
       'OCR Confidence': result.confidence != null ? String(result.confidence) : '',
     },
   };

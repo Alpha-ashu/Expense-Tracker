@@ -105,12 +105,16 @@ export class ReceiptParserService {
       mergeResultField(finalResult, result, 'date');
       mergeResultField(finalResult, result, 'time');
       mergeResultField(finalResult, result, 'currency');
+      mergeResultField(finalResult, result, 'location');
       mergeResultField(finalResult, result, 'paymentMethod');
       mergeResultField(finalResult, result, 'invoiceNumber');
       mergeResultField(finalResult, result, 'category');
       mergeResultField(finalResult, result, 'subcategory');
       mergeResultField(finalResult, result, 'notes');
+      mergeResultField(finalResult, result, 'description');
       mergeResultField(finalResult, result, 'items');
+      mergeResultField(finalResult, result, 'taxBreakdown');
+      mergeResultField(finalResult, result, 'validationResult');
 
       if ((!finalResult.amount || finalResult.amount <= 0) && result.amount && result.amount > 0) {
         finalResult.amount = result.amount;

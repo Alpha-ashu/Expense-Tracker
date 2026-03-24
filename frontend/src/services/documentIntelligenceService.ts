@@ -170,6 +170,7 @@ async function createDocumentRecord(input: {
     fileName: input.file.name,
     fileType: input.file.type,
     fileSize: input.file.size,
+    fileData: input.file,
     uploadDate: now,
     processingStatus: input.processingStatus ?? 'queued',
     accountId: input.accountId,

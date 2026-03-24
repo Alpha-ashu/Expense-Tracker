@@ -2,6 +2,10 @@
 
 This folder contains all SQL scripts to set up your Expense Tracker database in Supabase.
 
+## Current note
+
+The current application path treats the backend Prisma `UserPin` model as the authoritative PIN state. Historical `user_pins` SQL in this folder is kept for legacy environments and should not be treated as the primary PIN source for new backend work.
+
 ## 📋 Quick Start
 
 ### **1. Run Migrations in Order:**
@@ -12,7 +16,7 @@ Open each file in **Supabase SQL Editor** and run them in this order:
 2. **[002_enable_rls.sql](migrations/002_enable_rls.sql)** - Enables Row Level Security
 3. **[003_seed_data.sql](migrations/003_seed_data.sql)** - *(Optional)* Adds sample data for testing
 4. **[004_add_missing_columns.sql](migrations/004_add_missing_columns.sql)** - *(Recommended)* Aligns friends/group_expenses with app sync fields
-5. **[007_add_user_pins_table.sql](migrations/007_add_user_pins_table.sql)** - *(Required for PIN cloud sync)* Adds `user_pins` table + RLS
+5. **[007_add_user_pins_table.sql](migrations/007_add_user_pins_table.sql)** - *(Legacy only)* Adds `user_pins` table for older Supabase PIN backup flows
 6. **[010_enforce_rls_core_finance_tables.sql](migrations/010_enforce_rls_core_finance_tables.sql)** - *(Recommended before production)* Forces strict ownership RLS on core finance tables
 7. **[010_verify_rls_core_finance_tables.sql](migrations/010_verify_rls_core_finance_tables.sql)** - Verifies RLS/FORCE RLS and policy coverage on production-critical tables
 
@@ -29,7 +33,7 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 | Table | Description | Records |
 |-------|-------------|---------|
 | **profiles** | User profiles and settings | User info |
-| **user_pins** | Encrypted PIN backup metadata | PIN auth sync |
+| **user_pins** | Legacy PIN backup metadata for older Supabase-only flows | Legacy only |
 | **accounts** | Bank accounts, cards, cash | Financial accounts |
 | **friends** | Contact list for lending/borrowing | Contacts |
 | **transactions** | Income, expenses, transfers | All transactions |
@@ -91,7 +95,7 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 - Adds `updated_at` triggers and missing indexes
 - Safe to run multiple times (uses `IF NOT EXISTS`)
 
-### **007_add_user_pins_table.sql** *(Required for PIN cloud sync)*
+### **007_add_user_pins_table.sql** *(Legacy only)*
 - Creates **user_pins** table used by `PINAuth`
 - Enables RLS and adds per-user CRUD policies
 - Adds `updated_at` trigger and expiration index

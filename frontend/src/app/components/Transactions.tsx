@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { db } from '@/lib/database';
-import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet, Receipt, Layers } from 'lucide-react';
+import { db, type DocumentRecord } from '@/lib/database';
+import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet, Receipt, Layers, Eye, X } from 'lucide-react';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
@@ -14,10 +14,49 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } fr
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
+import type { TaxComponent } from '@/types/receipt.types';
+import { DocumentManagementService } from '@/services/documentManagementService';
 
 const CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
   income: Object.values(INCOME_CATEGORIES).map(cat => cat.name),
+};
+
+const parseMetadataNumber = (value?: string) => {
+  if (!value) return 0;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+const parseTaxBreakdown = (value?: string): TaxComponent[] => {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((item): item is TaxComponent => !!item && typeof item === 'object')
+      .map((item) => ({
+        name: typeof item.name === 'string' ? item.name : 'Tax',
+        rate: typeof item.rate === 'number' ? item.rate : undefined,
+        amount: typeof item.amount === 'number' ? item.amount : 0,
+      }))
+      .filter((item) => item.amount > 0);
+  } catch {
+    return [];
+  }
+};
+
+const getDocumentIdFromTransaction = (transaction: { attachment?: string; importMetadata?: Record<string, string> }) => {
+  const attachmentMatch = transaction.attachment?.match(/^document:(\d+)$/);
+  if (attachmentMatch) {
+    const documentId = Number.parseInt(attachmentMatch[1], 10);
+    if (Number.isFinite(documentId)) return documentId;
+  }
+
+  const metadataId = Number.parseInt(transaction.importMetadata?.['Document Id'] || '', 10);
+  return Number.isFinite(metadataId) ? metadataId : null;
 };
 
 export const Transactions: React.FC = () => {
@@ -31,6 +70,9 @@ export const Transactions: React.FC = () => {
   const [transactionToDelete, setTransactionToDelete] = useState<{ id: number; description: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(200);
+  const [previewDocument, setPreviewDocument] = useState<DocumentRecord | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const documentService = useMemo(() => new DocumentManagementService(), []);
 
   const deferredSearch = useDeferredValue(searchQuery);
   const normalizedSearch = useMemo(() => deferredSearch.trim().toLowerCase(), [deferredSearch]);
@@ -70,26 +112,44 @@ export const Transactions: React.FC = () => {
     return { expenses, income, netFlow: income - expenses };
   }, [timeFilteredTransactions]);
 
-  // Tax summary — extracted from transactions that have taxAmount stored in description metadata
   const taxStats = useMemo(() => {
     let totalTax = 0;
+    let billCount = 0;
     const byCategory: Record<string, number> = {};
+    const byType: Record<string, number> = {};
+
     for (const tx of timeFilteredTransactions) {
       if (tx.type !== 'expense') continue;
-      // taxAmount is stored in the transaction description as JSON metadata when added via scanner
-      // We parse it from the notes pattern: "tax:<amount>"
-      const taxMatch = tx.description?.match(/\btax:([\d.]+)\b/);
-      if (taxMatch) {
-        const tax = parseFloat(taxMatch[1]);
-        if (!isNaN(tax) && tax > 0) {
-          totalTax += tax;
-          const cat = tx.category || 'Other';
-          byCategory[cat] = (byCategory[cat] ?? 0) + tax;
-        }
+
+      const tax = parseMetadataNumber(tx.importMetadata?.['Tax Amount']);
+      const taxBreakdown = parseTaxBreakdown(tx.importMetadata?.['Tax Breakdown']);
+      const documentId = getDocumentIdFromTransaction(tx);
+
+      if (documentId) {
+        billCount += 1;
+      }
+
+      if (tax > 0) {
+        totalTax += tax;
+        const category = tx.category || 'Other';
+        byCategory[category] = (byCategory[category] ?? 0) + tax;
+      }
+
+      for (const component of taxBreakdown) {
+        byType[component.name] = (byType[component.name] ?? 0) + component.amount;
       }
     }
+
     const topCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 4);
-    return { totalTax, topCategories, hasTaxData: totalTax > 0 };
+    const topTaxTypes = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+    return {
+      totalTax,
+      billCount,
+      topCategories,
+      topTaxTypes,
+      hasTaxData: totalTax > 0 || billCount > 0,
+    };
   }, [timeFilteredTransactions]);
 
   const currencyFormatter = useMemo(() => (
@@ -110,6 +170,14 @@ export const Transactions: React.FC = () => {
     setVisibleCount(200);
   }, [filterType, timePeriod, normalizedSearch]);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const visibleTransactions = useMemo(
     () => filteredTransactions.slice(0, visibleCount),
     [filteredTransactions, visibleCount]
@@ -122,6 +190,41 @@ export const Transactions: React.FC = () => {
   const handleDeleteTransaction = (id: number, description: string) => {
     setTransactionToDelete({ id, description });
     setDeleteModalOpen(true);
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewUrl('');
+    setPreviewDocument(null);
+  };
+
+  const handlePreviewBill = async (transaction: (typeof transactions)[number]) => {
+    const documentId = getDocumentIdFromTransaction(transaction);
+    if (!documentId) {
+      toast.error('No bill is attached to this expense yet.');
+      return;
+    }
+
+    try {
+      const document = await documentService.getDocument(documentId);
+      if (!document?.fileData) {
+        toast.error('The attached bill is missing local preview data.');
+        return;
+      }
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      const nextPreviewUrl = URL.createObjectURL(document.fileData);
+      setPreviewDocument(document);
+      setPreviewUrl(nextPreviewUrl);
+    } catch (error) {
+      console.error('Failed to preview bill:', error);
+      toast.error('Failed to open the attached bill.');
+    }
   };
 
   const confirmDeleteTransaction = async () => {
@@ -234,7 +337,7 @@ export const Transactions: React.FC = () => {
             </div>
             <div className="ml-auto text-right">
               <p className="text-xl font-bold text-orange-800">{formatCurrency(taxStats.totalTax)}</p>
-              <p className="text-xs text-orange-500">Total tax paid</p>
+              <p className="text-xs text-orange-500">{taxStats.billCount} bill{taxStats.billCount === 1 ? '' : 's'} attached</p>
             </div>
           </div>
           {taxStats.topCategories.length > 0 && (
@@ -247,8 +350,18 @@ export const Transactions: React.FC = () => {
               ))}
             </div>
           )}
+          {taxStats.topTaxTypes.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+              {taxStats.topTaxTypes.map(([name, amt]) => (
+                <div key={name} className="rounded-xl bg-white/60 border border-orange-100 px-3 py-2">
+                  <p className="text-xs font-semibold text-orange-700 truncate">{name}</p>
+                  <p className="text-sm font-bold text-orange-900">{formatCurrency(amt)}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="text-xs text-orange-500 mt-3">
-            💡 Taxes are tracked automatically when you scan bills with the bill scanner.
+            Taxes are tracked from structured receipt metadata, including GST, VAT, and other components.
           </p>
         </div>
       ) : (
@@ -320,6 +433,8 @@ export const Transactions: React.FC = () => {
                 const displayType = transaction.type === 'transfer'
                   ? (transaction.subcategory === 'Transfer In' ? 'income' : 'expense')
                   : transaction.type;
+                const attachedDocumentId = getDocumentIdFromTransaction(transaction);
+                const attachedTaxAmount = parseMetadataNumber(transaction.importMetadata?.['Tax Amount']);
 
                 const animationProps = shouldAnimateRows ? {
                   initial: { opacity: 0, y: 10 },
@@ -346,6 +461,13 @@ export const Transactions: React.FC = () => {
                             {transaction.description || transaction.category}
                           </p>
                           <p className="text-xs text-gray-400 font-medium">{formatLocalDate(transaction.date, 'en-US')}</p>
+                          {(attachedDocumentId || attachedTaxAmount > 0) && (
+                            <p className="text-[11px] text-gray-500 font-medium mt-1">
+                              {attachedTaxAmount > 0 ? `Tax ${formatCurrency(attachedTaxAmount)}` : 'Bill attached'}
+                              {attachedDocumentId && attachedTaxAmount > 0 ? ' • ' : ''}
+                              {attachedDocumentId ? 'Bill attached' : ''}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -367,6 +489,16 @@ export const Transactions: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {attachedDocumentId && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-orange-600"
+                            onClick={() => handlePreviewBill(transaction)}
+                          >
+                            <Eye size={14} />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -484,6 +616,45 @@ export const Transactions: React.FC = () => {
           setTransactionToDelete(null);
         }}
       />
+
+      {previewDocument && previewUrl && (
+        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-4xl rounded-[28px] bg-white shadow-2xl border border-white/20 overflow-hidden">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-gray-900">Attached Bill</h3>
+                <p className="text-sm text-gray-500 truncate">{previewDocument.fileName}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 text-gray-500 hover:text-gray-900"
+                onClick={closePreview}
+              >
+                <X size={16} />
+              </Button>
+            </div>
+
+            <div className="bg-gray-50 p-3 sm:p-4">
+              <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white min-h-[60vh]">
+                {previewDocument.fileType === 'application/pdf' ? (
+                  <iframe
+                    src={previewUrl}
+                    title={previewDocument.fileName}
+                    className="h-[70vh] w-full"
+                  />
+                ) : (
+                  <img
+                    src={previewUrl}
+                    alt={previewDocument.fileName}
+                    className="max-h-[70vh] w-full object-contain bg-white"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ReceiptScanner
         isOpen={showScanModal}

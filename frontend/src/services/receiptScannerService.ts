@@ -1,26 +1,16 @@
 // @ts-ignore
 import * as pdfjsLib from 'pdfjs-dist/build/pdf';
+import type {
+  ReceiptLineItem,
+  ReceiptScanResult,
+  TaxComponent,
+  TotalValidationResult,
+} from '@/types/receipt.types';
 import { documentIntelligenceService } from './documentIntelligenceService';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
-export interface ReceiptScannerResult {
-  merchantName?: string;
-  amount?: number;
-  date?: Date;
-  time?: string;
-  currency?: string;
-  taxAmount?: number;
-  subtotal?: number;
-  paymentMethod?: string;
-  invoiceNumber?: string;
-  category?: string;
-  subcategory?: string;
-  notes?: string;
-  items?: Array<{ name: string; amount: number }>;
-  confidence?: number;
-  rawText?: string;
-}
+export interface ReceiptScannerResult extends ReceiptScanResult {}
 
 export const SUPPORTED_RECEIPT_MIME_TYPES = [
   'image/jpeg',
@@ -37,15 +27,20 @@ const RECEIPT_TOTAL_PATTERNS = [
   /total\s*amount/i,
   /total\s*payable/i,
   /amount\s*payable/i,
+  /amount\s*pay\w*/i,
+  /amou\w*pay\w*/i,
   /amount\s*paid/i,
   /amount\s*due/i,
   /balance\s*due/i,
   /net\s*total/i,
+  /net\s*amount/i,
+  /net\s*mount/i,
   /bill\s*total/i,
   /total/i,
 ];
 
 const RECEIPT_SUBTOTAL_PATTERNS = [/sub\s*total/i, /subtotal/i];
+const RECEIPT_PRE_TAX_PATTERNS = [/bill\s*amount/i, /bill\s*total/i, /^\s*total\b/i];
 const RECEIPT_TAX_PATTERNS = [/tax/i, /vat/i, /gst/i, /service\s*tax/i];
 const PAYMENT_METHOD_PATTERNS = [
   { label: 'Visa', pattern: /\bvisa\b/i },
@@ -72,7 +67,12 @@ const SUMMARY_BOUNDARY_PATTERNS = [
   /grand\s*total/i,
   /food\s*total/i,
   /net\s*total/i,
+  /net\s*amount/i,
+  /net\s*mount/i,
+  /bill\s*amount/i,
   /amount\s*payable/i,
+  /amount\s*pay\w*/i,
+  /amou\w*pay\w*/i,
   /balance\s*due/i,
   /cgst/i,
   /sgst/i,
@@ -86,12 +86,33 @@ const GROCERY_RECEIPT_HINTS = /supermarket|mart|grocery|grocer|vegetable|fruit|m
 const SHOPPING_RECEIPT_HINTS = /mall|fashion|apparel|clothing|retail|electronics|store/i;
 
 const normalizeWhitespace = (value: string) => value.replace(/\s+/g, ' ').trim();
+const normalizeForMatching = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 
 const countMatches = (value: string, pattern: RegExp) => value.match(pattern)?.length || 0;
 
-const hasSummaryBoundary = (line: string) => SUMMARY_BOUNDARY_PATTERNS.some((pattern) => pattern.test(line));
+const hasSummaryBoundary = (line: string) => {
+  const normalizedLine = normalizeForMatching(line);
+  return (
+    SUMMARY_BOUNDARY_PATTERNS.some((pattern) => pattern.test(line) || pattern.test(normalizedLine))
+    || /\b(?:discount|discounted|round off|roundof|net amount|net mount|bill amount|amount payable|service charge|service tax|cgst|sgst|igst)\b/i.test(normalizedLine)
+    || /\b(?:vat|tax)\b.*\d/i.test(normalizedLine)
+  );
+};
 
-const isMetadataLine = (line: string) => MERCHANT_LINE_BLOCKLIST.test(line);
+const isMetadataLine = (line: string) => {
+  const normalizedLine = normalizeForMatching(line);
+  return (
+    MERCHANT_LINE_BLOCKLIST.test(line)
+    || /\b(?:rill|bill|invoice|receipt|token|table|cash memo|cashier|captain|phone|ph|gstin|gst no|vat tin|fssai|address|road|street|lane|avenue|table|stud|date|time)\b/i.test(normalizedLine)
+  );
+};
 
 const extractAmounts = (text: string, options?: { allowLooseIntegers?: boolean }) => {
   const allowLooseIntegers = options?.allowLooseIntegers ?? false;
@@ -243,21 +264,74 @@ const extractSectionAmount = (lines: string[], patterns: RegExp[], lineGuard?: (
   return best || undefined;
 };
 
-const extractTaxAmount = (lines: string[]) => {
-  const componentTaxLines = lines.filter((line) =>
-    /(c\.?g\.?s\.?t|s\.?g\.?s\.?t|i\.?g\.?s\.?t|service\s*tax)\b/i.test(line)
-    && !/gstin|gst\s*(?:no|in|reg)|vat\s*tin|fssai|invoice\s*no|bill\s*no|registration/i.test(line),
+const extractPretaxAmount = (lines: string[]) =>
+  extractSectionAmount(
+    lines,
+    RECEIPT_PRE_TAX_PATTERNS,
+    (line) => !/amount\s*payable|net\s*amount|grand\s*total/i.test(line),
   );
 
-  const componentTaxes = componentTaxLines
-    .map((line) => {
-      const amounts = extractAmounts(line, { allowLooseIntegers: true });
-      return amounts.length > 0 ? Math.max(...amounts) : 0;
-    })
-    .filter((value) => value > 0);
+const toRoundedAmount = (value: number) => Number(value.toFixed(2));
 
-  if (componentTaxes.length > 0) {
-    return Number(componentTaxes.reduce((sum, value) => sum + value, 0).toFixed(2));
+const normalizeTaxLabel = (line: string) => {
+  const normalizedLine = normalizeForMatching(line);
+  if (/c\.?g\.?s\.?t/i.test(line)) return 'CGST';
+  if (/s\.?g\.?s\.?t/i.test(line)) return 'SGST';
+  if (/i\.?g\.?s\.?t/i.test(line)) return 'IGST';
+  if (/service\s*charge/i.test(line)) return 'Service Charge';
+  if (/service\s*tax|s\.?\s*tax/i.test(line)) return 'Service Tax';
+  if (/\bstx\b/i.test(line)) return 'STX';
+  if (/\bvat\b/i.test(line)) return 'VAT';
+  if (/\bvan\b/i.test(normalizedLine)) return 'VAT';
+  if (/\bgst\b/i.test(line)) return 'GST';
+  if (/\btax\b/i.test(line)) return 'Tax';
+
+  const label = normalizeWhitespace(
+    line
+      .replace(/\b(?:rs\.?|inr|₹|€|£|\$)\b/gi, ' ')
+      .replace(/\d[\d,.]*(?:\s*%+)?/g, ' ')
+      .replace(/[:()@]+/g, ' ')
+      .replace(/\s+/g, ' '),
+  );
+
+  return label || 'Tax';
+};
+
+const extractTaxBreakdown = (lines: string[]): TaxComponent[] => {
+  const taxBreakdown: TaxComponent[] = [];
+
+  for (const line of lines) {
+    const normalizedLine = normalizeForMatching(line);
+    if (
+      !(
+        /(c\.?g\.?s\.?t|s\.?g\.?s\.?t|i\.?g\.?s\.?t|\bgst\b|\bvat\b|service\s*tax|service\s*charge|\bstx\b|\btax\b)/i.test(line)
+        || /\b(?:c gst|s gst|igst|gst|vat|van|service tax|service charge|stx|tax)\b/i.test(normalizedLine)
+      )
+      || /gstin|gst\s*(?:no|in|reg)|vat\s*tin|fssai|invoice\s*no|bill\s*no|registration|tax\s*invoice/i.test(normalizedLine)
+    ) {
+      continue;
+    }
+
+    const amounts = extractAmounts(line, { allowLooseIntegers: true });
+    if (amounts.length === 0) continue;
+
+    const amount = amounts[amounts.length - 1];
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+
+    const rateMatch = line.match(/(\d+(?:\.\d+)?)\s*%/);
+    taxBreakdown.push({
+      name: normalizeTaxLabel(line),
+      rate: rateMatch ? Number.parseFloat(rateMatch[1]) : undefined,
+      amount: toRoundedAmount(amount),
+    });
+  }
+
+  return taxBreakdown;
+};
+
+const extractTaxAmount = (lines: string[], taxBreakdown?: TaxComponent[]) => {
+  if (taxBreakdown && taxBreakdown.length > 0) {
+    return toRoundedAmount(taxBreakdown.reduce((sum, component) => sum + component.amount, 0));
   }
 
   // Try standalone GST / tax amount lines
@@ -280,7 +354,7 @@ const extractTaxAmount = (lines: string[]) => {
 
 const scoreTotalCandidate = (line: string, index: number) => {
   let score = index * 0.05;
-  if (/grand\s*total|food\s*total|net\s*total|amount\s*payable|bill\s*total|total\s*amount/i.test(line)) score += 3;
+  if (/grand\s*total|food\s*total|net\s*total|net\s*amount|amount\s*payable|total\s*amount/i.test(line)) score += 3;
   else if (/\btotal\b/i.test(line)) score += 1;
   if (/\.\d{2}\b/.test(line)) score += 0.2;
   if (/sub\s*total/i.test(line)) score -= 4;
@@ -293,9 +367,10 @@ const extractBestTotalAmount = (lines: string[]) => {
 
   lines.forEach((line, index) => {
     const normalized = normalizeWhitespace(line).toLowerCase();
-    if (!RECEIPT_TOTAL_PATTERNS.some((pattern) => pattern.test(normalized))) return;
-    if (RECEIPT_SUBTOTAL_PATTERNS.some((pattern) => pattern.test(normalized))) return;
-    if (RECEIPT_TAX_PATTERNS.some((pattern) => pattern.test(normalized))) return;
+    const normalizedMatchLine = normalizeForMatching(line);
+    if (!RECEIPT_TOTAL_PATTERNS.some((pattern) => pattern.test(normalized) || pattern.test(normalizedMatchLine))) return;
+    if (RECEIPT_SUBTOTAL_PATTERNS.some((pattern) => pattern.test(normalized) || pattern.test(normalizedMatchLine))) return;
+    if (RECEIPT_TAX_PATTERNS.some((pattern) => pattern.test(normalized) || pattern.test(normalizedMatchLine))) return;
 
     // Skip per-line item totals in tabular invoices.
     if (/\bqty|quantity|unit\s*price|tax\s*type|description\b/i.test(normalized)) return;
@@ -329,6 +404,24 @@ const extractBestTotalAmount = (lines: string[]) => {
 };
 
 const detectMerchantLine = (lines: string[]) => {
+  const candidatePair = lines
+    .slice(0, 3)
+    .filter((line) => line.length >= 2 && line.length <= 28 && /[a-z]{2,}/i.test(line) && !isMetadataLine(line));
+  if (candidatePair.length >= 2) {
+    const combined = normalizeWhitespace(`${candidatePair[0]} ${candidatePair[1]}`);
+    if (
+      combined.length <= 42
+      && !isMetadataLine(combined)
+      && (
+        /[&]$/.test(candidatePair[0])
+        || MERCHANT_NAME_HINTS.test(candidatePair[1])
+        || /\b(?:restaurant|cafe|hotel|foods?|kitchen|grill|mart|store|private|pvt|ltd)\b/i.test(candidatePair[1])
+      )
+    ) {
+      return combined;
+    }
+  }
+
   const prioritized = lines.find((line) => BILL_MERCHANT_HINTS.some((pattern) => pattern.test(line)));
   if (prioritized) return prioritized;
 
@@ -378,6 +471,7 @@ const detectMerchantLine = (lines: string[]) => {
 
 const normalizeItemName = (value: string) => normalizeWhitespace(
   value
+    .replace(/^\d+\s+/, ' ')
     .replace(/^[^a-z0-9]+/i, ' ')
     .replace(/[^a-z0-9&()\/+,._\-\s]/gi, ' ')
     .replace(/\s*[|:]+\s*/g, ' '),
@@ -403,11 +497,61 @@ const isLikelyGarbageItemName = (value: string) => {
   return false;
 };
 
+const deriveItemMetrics = (amounts: number[]) => {
+  const itemAmount = amounts[amounts.length - 1];
+  let quantity: number | undefined;
+  let rate: number | undefined;
+
+  if (amounts.length >= 3) {
+    const maybeQuantity = amounts[amounts.length - 3];
+    const maybeRate = amounts[amounts.length - 2];
+    if (
+      maybeQuantity > 0
+      && maybeQuantity <= 100
+      && maybeRate > 0
+      && Math.abs((maybeQuantity * maybeRate) - itemAmount) <= Math.max(2, itemAmount * 0.08)
+    ) {
+      quantity = maybeQuantity;
+      rate = maybeRate;
+    }
+  }
+
+  if (!quantity && amounts.length >= 2) {
+    const candidate = amounts[amounts.length - 2];
+
+    if (candidate > 0 && candidate <= 100 && Number.isInteger(candidate)) {
+      const derivedRate = itemAmount / candidate;
+      if (derivedRate > 0 && Number.isFinite(derivedRate)) {
+        quantity = candidate;
+        rate = toRoundedAmount(derivedRate);
+      }
+    } else if (candidate > 0 && candidate <= itemAmount) {
+      rate = candidate;
+      const derivedQuantity = itemAmount / candidate;
+      if (
+        derivedQuantity > 0
+        && derivedQuantity <= 100
+        && Math.abs(Math.round(derivedQuantity) - derivedQuantity) <= 0.1
+      ) {
+        quantity = Math.round(derivedQuantity);
+      }
+    }
+  }
+
+  return {
+    itemAmount: toRoundedAmount(itemAmount),
+    quantity,
+    rate: rate ? toRoundedAmount(rate) : undefined,
+  };
+};
+
 const extractItems = (lines: string[], totalAmount?: number) => {
-  const items: Array<{ name: string; amount: number }> = [];
+  const items: ReceiptLineItem[] = [];
   let reachedSummary = false;
 
   for (const line of lines) {
+    const normalizedLine = normalizeForMatching(line);
+
     if (hasSummaryBoundary(line)) {
       reachedSummary = true;
       continue;
@@ -415,6 +559,7 @@ const extractItems = (lines: string[], totalAmount?: number) => {
 
     if (reachedSummary) continue;
     if (isMetadataLine(line)) continue;
+    if (/\b(?:thank|visit again|chepauk|street|road|phone|captain|user id|thank you|cash rill|rill no|bill no|date)\b/i.test(normalizedLine)) continue;
     if (RECEIPT_TOTAL_PATTERNS.some((pattern) => pattern.test(line))) continue;
     if (RECEIPT_SUBTOTAL_PATTERNS.some((pattern) => pattern.test(line))) continue;
     if (RECEIPT_TAX_PATTERNS.some((pattern) => pattern.test(line))) continue;
@@ -422,18 +567,32 @@ const extractItems = (lines: string[], totalAmount?: number) => {
 
     const amounts = extractAmounts(line, { allowLooseIntegers: true });
     if (amounts.length === 0 || amounts.length > 4) continue;
-    const itemAmount = amounts[amounts.length - 1];
+    if (
+      amounts.length === 1
+      && /^\d+[,\s]/.test(line)
+      && /\b(?:street|st|road|lane|avenue|nagar|station|centre|center|city|chepauk|janakpuri)\b/i.test(normalizedLine)
+    ) {
+      continue;
+    }
+    const { itemAmount, quantity, rate } = deriveItemMetrics(amounts);
     if (totalAmount && itemAmount > totalAmount) continue;
 
     const rawName = line.replace(/(?:rs\.?|₹|€|£|\$|usd|eur|gbp|inr)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ');
     const name = normalizeItemName(rawName);
+    const normalizedName = normalizeForMatching(name);
     const tokens = name.split(/\s+/).filter(Boolean);
     const shortTokens = tokens.filter((token) => token.length <= 2).length;
     if (name.length < 3 || !/[a-z]/i.test(name)) continue;
     if (tokens.length > 0 && (shortTokens / tokens.length) > 0.5) continue;
     if (/invoice|receipt|gstin|fssai|phone|mobile|thank\s*you|www\.|qty|quantity|item\s*code/i.test(name)) continue;
+    if (/\b(?:round off|roundof|round o\w*|net amount|net mount|amount payable|bill amount|discount|table|captain|date)\b/i.test(normalizedName)) continue;
     if (isLikelyGarbageItemName(name)) continue;
-    items.push({ name, amount: itemAmount });
+    items.push({
+      name,
+      quantity,
+      rate,
+      amount: itemAmount,
+    });
   }
 
   return items.slice(0, 12);
@@ -442,7 +601,7 @@ const extractItems = (lines: string[], totalAmount?: number) => {
 const deriveCategoryHint = (
   rawText: string,
   merchantName: string,
-  items: Array<{ name: string; amount: number }>,
+  items: ReceiptLineItem[],
 ) => {
   const combined = `${merchantName} ${items.map((item) => item.name).join(' ')} ${rawText}`.toLowerCase();
 
@@ -450,6 +609,35 @@ const deriveCategoryHint = (
   if (GROCERY_RECEIPT_HINTS.test(combined)) return 'Groceries';
   if (SHOPPING_RECEIPT_HINTS.test(combined)) return 'Shopping';
   return undefined;
+};
+
+const buildValidationResult = (input: {
+  amount?: number;
+  subtotal?: number;
+  taxAmount?: number;
+  taxBreakdown?: TaxComponent[];
+  items?: ReceiptLineItem[];
+}): TotalValidationResult | undefined => {
+  if (!input.amount || input.amount <= 0) return undefined;
+
+  const subtotal = input.subtotal
+    ?? (input.items && input.items.length > 0
+      ? toRoundedAmount(input.items.reduce((sum, item) => sum + item.amount, 0))
+      : 0);
+
+  const taxAmount = input.taxAmount
+    ?? (input.taxBreakdown && input.taxBreakdown.length > 0
+      ? toRoundedAmount(input.taxBreakdown.reduce((sum, item) => sum + item.amount, 0))
+      : 0);
+
+  const calculated = toRoundedAmount(subtotal + taxAmount);
+  if (calculated <= 0) return undefined;
+
+  return {
+    isValid: Math.abs(calculated - input.amount) <= Math.max(2, input.amount * 0.05),
+    calculated,
+    detected: toRoundedAmount(input.amount),
+  };
 };
 
 async function canvasToBlob(canvas: HTMLCanvasElement) {
@@ -695,11 +883,16 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
     ? documentIntelligenceService.toTitleCase(normalizedMerchant)
     : merchantLine;
   const subtotal = extractSectionAmount(lines, RECEIPT_SUBTOTAL_PATTERNS);
-  const taxAmount = extractTaxAmount(lines);
+  const pretaxAmount = extractPretaxAmount(lines);
+  const taxBreakdown = extractTaxBreakdown(lines);
+  const taxAmount = extractTaxAmount(lines, taxBreakdown);
   const amountFromLabels = extractBestTotalAmount(lines)
     ?? extractSectionAmount(lines, RECEIPT_TOTAL_PATTERNS);
   const fallbackAmounts = lines
-    .filter((line) => /total|amount|price|payable|due|balance|subtotal|tax|vat|net|grand/i.test(line))
+    .filter((line) => {
+      const normalizedLine = normalizeForMatching(line);
+      return /total|amount|price|pay|due|balance|subtotal|tax|vat|net|grand/i.test(normalizedLine);
+    })
     .flatMap((line) => extractAmounts(line, { allowLooseIntegers: true }));
 
   let amount = amountFromLabels
@@ -707,6 +900,10 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
 
   let resolvedSubtotal = subtotal;
   let resolvedTaxAmount = taxAmount;
+
+  if (!resolvedSubtotal && pretaxAmount && (!amount || pretaxAmount < amount)) {
+    resolvedSubtotal = pretaxAmount;
+  }
 
   if (amount && resolvedTaxAmount && resolvedTaxAmount > amount * 0.35) {
     resolvedTaxAmount = undefined;
@@ -759,6 +956,13 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
   const notes = resolvedCategory !== 'Others'
     ? `${resolvedCategory.toLowerCase()} receipt`
     : 'receipt import';
+  const validationResult = buildValidationResult({
+    amount,
+    subtotal: resolvedSubtotal,
+    taxAmount: resolvedTaxAmount,
+    taxBreakdown,
+    items,
+  });
 
   return {
     merchantName,
@@ -767,6 +971,7 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
     time,
     currency,
     taxAmount: resolvedTaxAmount,
+    taxBreakdown: taxBreakdown.length > 0 ? taxBreakdown : undefined,
     subtotal: resolvedSubtotal,
     paymentMethod,
     invoiceNumber,
@@ -776,6 +981,7 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
       : '',
     notes,
     items,
+    validationResult,
     confidence: [
       merchantName ? 0.16 : 0,
       amount ? 0.26 : 0,

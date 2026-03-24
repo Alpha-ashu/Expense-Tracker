@@ -34,7 +34,7 @@ vi.mock('@/services/syncService', () => ({
 describe('SmartExpenseImportService Integration Test', () => {
     it('correctly parses the 250+ records third-party JSON', async () => {
         const rootDir = path.resolve(process.cwd(), '..');
-        const filePath = path.join(rootDir, 'tests', 'expense_test_250_records.json');
+        const filePath = path.join(rootDir, 'tests', 'fixtures', 'imports', 'expense_test_250_records.json');
         const jsonContent = fs.readFileSync(filePath, 'utf-8');
 
         const file = new File([jsonContent], 'expense_test_250_records.json', { type: 'application/json' });
@@ -57,7 +57,7 @@ describe('SmartExpenseImportService Integration Test', () => {
 
     it('correctly handles different.json with alternative keys', async () => {
         const rootDir = path.resolve(process.cwd(), '..');
-        const filePath = path.join(rootDir, 'tests', 'different.json');
+        const filePath = path.join(rootDir, 'tests', 'fixtures', 'imports', 'different.json');
         const jsonContent = fs.readFileSync(filePath, 'utf-8');
 
         const file = new File([jsonContent], 'different.json', { type: 'application/json' });
@@ -109,6 +109,127 @@ describe('SmartExpenseImportService Integration Test', () => {
             expect(preview.rows[0]?.date).toBeInstanceOf(Date);
             expect(preview.rows[0]?.duplicate).toBe(false);
             expect(preview.rows[1]?.duplicate).toBe(true);
+        }
+    });
+
+    it('parses structured ledger JSON like expense.json into import preview rows', async () => {
+        const payload = JSON.stringify({
+            user: {
+                user_id: 'U1001',
+                name: 'Ashraf',
+                currency: 'INR',
+            },
+            accounts: [
+                { account_id: 'A1', account_name: 'HDFC Salary Account', type: 'bank', balance: 85000 },
+                { account_id: 'A2', account_name: 'ICICI Credit Card', type: 'credit_card', balance: -12000 },
+                { account_id: 'A3', account_name: 'Cash Wallet', type: 'cash', balance: 3500 },
+                { account_id: 'A4', account_name: 'Paytm Wallet', type: 'digital_wallet', balance: 2400 },
+            ],
+            transactions: [
+                {
+                    transaction_id: 'T1',
+                    account_id: 'A1',
+                    type: 'credit',
+                    amount: 50000,
+                    category: 'Salary',
+                    description: 'Monthly salary credited',
+                    date: '2026-03-01',
+                },
+                {
+                    transaction_id: 'T2',
+                    account_id: 'A1',
+                    type: 'debit',
+                    amount: 2500,
+                    category: 'Food',
+                    description: 'Dinner at restaurant',
+                    date: '2026-03-03',
+                },
+                {
+                    transaction_id: 'T3',
+                    account_id: 'A2',
+                    type: 'debit',
+                    amount: 5000,
+                    category: 'Shopping',
+                    description: 'Amazon purchase',
+                    date: '2026-03-05',
+                },
+                {
+                    transaction_id: 'T4',
+                    account_id: 'A4',
+                    type: 'debit',
+                    amount: 600,
+                    category: 'Transport',
+                    description: 'Uber ride payment',
+                    date: '2026-03-06',
+                },
+            ],
+        });
+
+        const file = new File([payload], 'expense.json', { type: 'application/json' });
+
+        // @ts-ignore
+        const preview = await smartExpenseImportService.analyzeFile(file, { defaultAccountId: 1 });
+
+        expect(preview.kind).toBe('third-party');
+        if (preview.kind === 'third-party') {
+            expect(preview.rows).toHaveLength(4);
+            expect(preview.rows[0]?.transactionType).toBe('income');
+            expect(preview.rows[0]?.category).toBe('Salary');
+            expect(preview.rows[0]?.resolvedAccountName).toBe('HDFC Salary Account');
+            expect(preview.rows[2]?.resolvedAccountName).toBe('ICICI Credit Card');
+            expect(preview.rows[3]?.resolvedAccountName).toBe('Paytm Wallet');
+        }
+    });
+
+    it('flags duplicate transaction ids and duplicate content like expense1.json', async () => {
+        const payload = JSON.stringify({
+            accounts: [
+                { account_id: 'A1', account_name: 'HDFC Salary Account', type: 'bank', balance: 90000 },
+                { account_id: 'A5', account_name: 'Google Pay Wallet', type: 'digital_wallet', balance: 1800 },
+            ],
+            transactions: [
+                {
+                    transaction_id: 'T1',
+                    account_id: 'A1',
+                    type: 'credit',
+                    amount: 50000,
+                    category: 'Salary',
+                    description: 'Monthly salary credited',
+                    date: '2026-03-01',
+                },
+                {
+                    transaction_id: 'T1',
+                    account_id: 'A1',
+                    type: 'credit',
+                    amount: 50000,
+                    category: 'Salary',
+                    description: 'Monthly salary credited',
+                    date: '2026-03-01',
+                },
+                {
+                    transaction_id: 'T6',
+                    account_id: 'A5',
+                    type: 'debit',
+                    amount: 450,
+                    category: 'Food',
+                    description: 'Lunch order via Swiggy',
+                    date: '2026-03-11',
+                },
+            ],
+        });
+
+        const file = new File([payload], 'expense1.json', { type: 'application/json' });
+
+        // @ts-ignore
+        const preview = await smartExpenseImportService.analyzeFile(file, { defaultAccountId: 1 });
+
+        expect(preview.kind).toBe('third-party');
+        if (preview.kind === 'third-party') {
+            expect(preview.rows).toHaveLength(3);
+            expect(preview.rows[0]?.duplicate).toBe(false);
+            expect(preview.rows[1]?.duplicate).toBe(true);
+            expect(preview.rows[1]?.externalId).toBe('T1');
+            expect(preview.rows[2]?.resolvedAccountName).toBe('Google Pay Wallet');
         }
     });
 });

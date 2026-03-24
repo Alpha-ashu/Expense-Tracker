@@ -159,7 +159,18 @@ export class TesseractOCRService implements OCRService {
 
   private async parseWithStrategies(rawText: string, userId?: string): Promise<ReceiptScanResult> {
     try {
-      return await receiptParserService.parseReceipt(rawText, { userId });
+      const strategic = await receiptParserService.parseReceipt(rawText, { userId });
+      const heuristic = await parseReceiptText(rawText, userId);
+
+      return {
+        ...heuristic,
+        ...strategic,
+        items: strategic.items?.length ? strategic.items : heuristic.items,
+        taxBreakdown: strategic.taxBreakdown?.length ? strategic.taxBreakdown : heuristic.taxBreakdown,
+        validationResult: strategic.validationResult ?? heuristic.validationResult,
+        description: strategic.description ?? heuristic.description,
+        rawText,
+      };
     } catch {
       // Keep existing parser as a safety fallback for unknown receipt formats.
       return parseReceiptText(rawText, userId);

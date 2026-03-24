@@ -137,4 +137,59 @@ describe('parseReceiptText', () => {
     expect(result.date?.getFullYear()).toBe(2026);
     expect(result.amount).toBe(680);
   });
+
+  it('extracts service tax and VAT components from detailed restaurant bills', async () => {
+    const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.hiraSweetsDetailed, 'user-12');
+
+    expect(result.merchantName).toBe('Hira Sweets & Restaurant');
+    expect(result.amount).toBe(89);
+    expect(result.subtotal).toBe(75);
+    expect(result.taxAmount).toBeCloseTo(12.73, 2);
+    expect(result.taxBreakdown).toEqual([
+      { name: 'Service Tax', rate: 4.8, amount: 3.35 },
+      { name: 'VAT', rate: 12.5, amount: 9.38 },
+    ]);
+    expect(result.items?.[0]).toEqual({
+      name: 'CHOLE BHATURE',
+      quantity: 1,
+      rate: 75,
+      amount: 75,
+    });
+  });
+
+  it('extracts VAT and STX breakdown with a valid computed total', async () => {
+    const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.pariwaarRestaurantDetailed, 'user-13');
+
+    expect(result.amount).toBe(799);
+    expect(result.subtotal).toBe(663);
+    expect(result.taxAmount).toBeCloseTo(135.93, 2);
+    expect(result.taxBreakdown).toEqual([
+      { name: 'VAT', rate: 14.5, amount: 96.15 },
+      { name: 'STX', rate: 6, amount: 39.78 },
+    ]);
+    expect(result.validationResult?.isValid).toBe(true);
+    expect(result.items?.[0]).toEqual({
+      name: 'Chicken Corn Soup',
+      quantity: 1,
+      rate: 94,
+      amount: 94,
+    });
+  });
+
+  it('extracts itemized VAT receipts with quantity and rate columns', async () => {
+    const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.nairMessDetailed, 'user-14');
+
+    expect(result.amount).toBe(1119);
+    expect(result.subtotal).toBe(1097);
+    expect(result.taxAmount).toBeCloseTo(21.94, 2);
+    expect(result.taxBreakdown).toEqual([
+      { name: 'VAT', amount: 21.94 },
+    ]);
+    expect(result.items?.[1]).toEqual({
+      name: 'MUTTON FRY',
+      quantity: 2,
+      rate: 77,
+      amount: 154,
+    });
+  });
 });

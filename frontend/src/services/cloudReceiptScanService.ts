@@ -164,6 +164,9 @@ export class CloudReceiptScanService {
     const taxBreakdown = parseTaxBreakdown(payload.taxBreakdown);
     const items = parseItems(payload.items);
     const validationResult = parseValidationResult(payload.validationResult);
+    const taxAmount = typeof payload.taxAmount === 'number'
+      ? payload.taxAmount
+      : taxBreakdown?.reduce((sum, item) => sum + item.amount, 0);
 
     // Auto-generate smart description from top items if not provided by AI
     const aiDescription = typeof payload.description === 'string' ? payload.description : undefined;
@@ -183,8 +186,10 @@ export class CloudReceiptScanService {
       location,
       time: typeof payload.time === 'string' ? payload.time : undefined,
       subtotal: typeof payload.subtotal === 'number' ? payload.subtotal : undefined,
-      taxAmount: typeof payload.taxAmount === 'number' ? payload.taxAmount : undefined,
-      taxBreakdown,
+      taxAmount: typeof taxAmount === 'number' && Number.isFinite(taxAmount) ? Number(taxAmount.toFixed(2)) : undefined,
+      taxBreakdown: taxBreakdown && taxBreakdown.length > 0
+        ? taxBreakdown
+        : (typeof taxAmount === 'number' && taxAmount > 0 ? [{ name: 'Tax', amount: Number(taxAmount.toFixed(2)) }] : undefined),
       invoiceNumber: typeof payload.invoiceNumber === 'string' ? payload.invoiceNumber : undefined,
       paymentMethod: typeof payload.paymentMethod === 'string' ? payload.paymentMethod : undefined,
       category: typeof payload.category === 'string' ? payload.category : undefined,

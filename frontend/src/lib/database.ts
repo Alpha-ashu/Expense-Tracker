@@ -418,6 +418,7 @@ export interface DocumentRecord {
   fileName: string;
   fileType: string;
   fileSize: number;
+  fileData?: Blob;
   fileHash?: string;
   filePath?: string;
   uploadDate: Date;

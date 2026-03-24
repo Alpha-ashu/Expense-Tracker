@@ -39,6 +39,10 @@ export class EnhancedReceiptScannerService {
       next.amount = Number((next.subtotal + (next.taxAmount || 0)).toFixed(2));
     }
 
+    if ((!next.taxAmount || next.taxAmount <= 0) && next.taxBreakdown && next.taxBreakdown.length > 0) {
+      next.taxAmount = Number(next.taxBreakdown.reduce((sum, item) => sum + item.amount, 0).toFixed(2));
+    }
+
     if (!next.category || this.isClearlyMismatchedCategory(next)) {
       next.category = this.suggestCategory(next);
     }
@@ -59,6 +63,25 @@ export class EnhancedReceiptScannerService {
     // Derive subtotal from total - tax if both exist but subtotal is missing
     if (!next.subtotal && next.amount && next.taxAmount && next.amount > next.taxAmount) {
       next.subtotal = Number((next.amount - next.taxAmount).toFixed(2));
+    }
+
+    if ((!next.taxBreakdown || next.taxBreakdown.length === 0) && next.taxAmount && next.taxAmount > 0) {
+      next.taxBreakdown = [{ name: 'Tax', amount: Number(next.taxAmount.toFixed(2)) }];
+    }
+
+    if (!next.validationResult && next.amount) {
+      const itemSubtotal = next.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
+      const subtotal = next.subtotal ?? (itemSubtotal > 0 ? Number(itemSubtotal.toFixed(2)) : 0);
+      const taxAmount = next.taxAmount ?? 0;
+      const calculated = Number((subtotal + taxAmount).toFixed(2));
+
+      if (calculated > 0) {
+        next.validationResult = {
+          isValid: Math.abs(calculated - next.amount) <= Math.max(2, next.amount * 0.05),
+          calculated,
+          detected: Number(next.amount.toFixed(2)),
+        };
+      }
     }
 
     // Clean garbage merchant name (e.g. `\`, `|`, single chars)

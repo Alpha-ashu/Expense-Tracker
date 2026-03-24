@@ -16,8 +16,13 @@ export const useReceiptScanner = () => {
   const [scanResult, setScanResult] = useState<ReceiptScanResult | null>(null);
   const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
 
-  // FORCE to false for now so user doesn't accidentally bypass cloud pipeline
-  const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(false);
+  const [onDeviceOnly, setOnDeviceOnly] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(RECEIPT_OCR_ON_DEVICE_ONLY_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const ocrService = useRef(new EnhancedReceiptScannerService());
   const documentService = useRef(new DocumentManagementService());
@@ -73,19 +78,31 @@ export const useReceiptScanner = () => {
       documentId = await documentService.current.createDocumentRecord(selectedFile, accountId);
       setScanDocumentId(documentId);
 
+      const scanWithOnDeviceOcr = async () => ocrService.current.scanAndParseReceipt(
+        selectedFile,
+        userId,
+        (status, progress) => {
+          setScanProgress(progress);
+          setScanStatus(status);
+        },
+      );
+
       let result: ReceiptScanResult | null = null;
 
-      try {
-        result = await cloudOcrService.current.scanReceipt(selectedFile, (progress) => {
-          setScanProgress(progress.progress);
-          setScanStatus(progress.status);
-        });
-      } catch (cloudError: any) {
-        const errMsg = cloudError?.message || '';
-        toast.error('Cloud OCR Error: ' + (errMsg || 'AI limit reached. Please wait and try again.'), { duration: 5000 });
-        setScanStatus('Failed: ' + errMsg);
-        setIsScanning(false);
-        return null;
+      if (onDeviceOnly) {
+        result = await scanWithOnDeviceOcr();
+      } else {
+        try {
+          result = await cloudOcrService.current.scanReceipt(selectedFile, (progress) => {
+            setScanProgress(progress.progress);
+            setScanStatus(progress.status);
+          });
+        } catch (cloudError: any) {
+          const errMsg = cloudError?.message || 'Cloud OCR unavailable';
+          toast.warning(`${errMsg}. Falling back to on-device OCR.`, { duration: 5000 });
+          setScanStatus('Cloud OCR unavailable. Trying on-device scan…');
+          result = await scanWithOnDeviceOcr();
+        }
       }
       
       if (!result) {
@@ -98,6 +115,8 @@ export const useReceiptScanner = () => {
           merchantName: result.merchantName || '',
           invoiceNumber: result.invoiceNumber || '',
           paymentMethod: result.paymentMethod || '',
+          taxAmount: result.taxAmount?.toFixed(2) || '',
+          subtotal: result.subtotal?.toFixed(2) || '',
         },
       });
 
