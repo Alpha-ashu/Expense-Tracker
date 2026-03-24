@@ -112,4 +112,26 @@ describe('api auth token resolution', () => {
     expect(window.location.pathname).toBe('/');
     expect(TokenManager.getAccessToken()).toBeNull();
   });
+
+  it('handles non-JSON error responses without throwing a JSON parse error', async () => {
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: 'session-token',
+        },
+      },
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => '',
+    }));
+
+    await expect(api.auth.getProfile()).rejects.toMatchObject({
+      status: 500,
+      message: 'Internal Server Error',
+    });
+  });
 });

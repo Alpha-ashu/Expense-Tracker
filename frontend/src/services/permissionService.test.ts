@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearOptionalBackendUnavailable } from '@/lib/apiBase';
 
 const { getSession } = vi.hoisted(() => ({
   getSession: vi.fn(),
@@ -17,6 +18,7 @@ import { permissionService } from './permissionService';
 describe('permissionService', () => {
   beforeEach(() => {
     permissionService.clearPermissions();
+    clearOptionalBackendUnavailable();
     getSession.mockReset();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

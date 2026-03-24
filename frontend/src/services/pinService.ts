@@ -1,3 +1,14 @@
+import {
+  buildApiUrl,
+  clearOptionalBackendUnavailable,
+  getApiBaseCandidates,
+  getConfiguredApiBase,
+  markOptionalBackendUnavailable,
+  shouldRetryWithLocalApiFallback,
+  shouldSkipOptionalBackendRequests,
+} from '@/lib/apiBase';
+import supabase from '@/utils/supabase/client';
+
 export interface PinStatus {
   success: boolean;
   message: string;
@@ -5,6 +16,7 @@ export interface PinStatus {
   attemptsRemaining?: number;
   lockedUntil?: string;
   backup?: string;
+  statusCode?: number;
 }
 
 export interface PinVerifyRequest {
@@ -12,19 +24,65 @@ export interface PinVerifyRequest {
   deviceId?: string;
 }
 
+const PIN_NOT_SET_MESSAGE = /pin not set|no pin key backup found/i;
+const PIN_SERVICE_FAILURE_MESSAGE = /(internal server error|http 5\d\d|network error|failed to fetch|request timeout|pin request failed)/i;
+
+export const isPinMissing = (status?: PinStatus | null): boolean => {
+  if (!status || status.success) {
+    return false;
+  }
+
+  if (status.statusCode === 404) {
+    return true;
+  }
+
+  return PIN_NOT_SET_MESSAGE.test(status.message);
+};
+
+export const isPinServiceUnavailable = (status?: PinStatus | null): boolean => {
+  if (!status || status.success) {
+    return false;
+  }
+
+  if (typeof status.statusCode === 'number') {
+    return status.statusCode >= 500;
+  }
+
+  return PIN_SERVICE_FAILURE_MESSAGE.test(status.message);
+};
+
 class PinService {
-  private readonly API_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+  private readonly API_URL = getConfiguredApiBase();
   private readonly PIN_SETUP_KEY = 'pin_setup_completed';
   private readonly PIN_CREATED_KEY = 'pin_created';
   private readonly PIN_EXPIRES_KEY = 'pin_expires_at';
   private readonly PIN_VERIFIED_KEY = 'pin_verified';
   private readonly PIN_VERIFIED_AT_KEY = 'pin_verified_at';
+  private readonly PIN_PENDING_SERVER_SYNC_KEY = 'pin_pending_server_sync';
 
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('auth_token');
+  private async getAuthToken(): Promise<string | null> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        return session.access_token;
+      }
+    } catch {
+      // Fall back to locally stored tokens.
+    }
+
+    return (
+      localStorage.getItem('auth_token')
+      || localStorage.getItem('accessToken')
+      || localStorage.getItem('token')
+      || localStorage.getItem('authToken')
+    );
+  }
+
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const token = await this.getAuthToken();
     return {
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
@@ -49,24 +107,72 @@ class PinService {
       attemptsRemaining: payload?.attemptsRemaining,
       lockedUntil: payload?.lockedUntil,
       backup: payload?.backup,
+      statusCode: response.status,
     };
   }
 
   private async get(path: string): Promise<PinStatus> {
-    if (!localStorage.getItem('auth_token')) {
+    const headers = await this.getAuthHeaders();
+    if (!('Authorization' in headers)) {
       return {
         success: false,
         message: 'Session expired. Please sign in again.',
       };
     }
 
-    try {
-      const response = await fetch(`${this.API_URL}/pin/${path}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders(),
-      });
+    if (shouldSkipOptionalBackendRequests(this.API_URL)) {
+      return {
+        success: false,
+        message: 'Backend PIN service unavailable in development mode',
+        statusCode: 503,
+      };
+    }
 
-      return await this.parseResponse(response);
+    try {
+      const apiBases = getApiBaseCandidates(this.API_URL);
+
+      for (let index = 0; index < apiBases.length; index += 1) {
+        const apiBase = apiBases[index];
+        try {
+          const response = await fetch(buildApiUrl(apiBase, `/pin/${path}`), {
+            method: 'GET',
+            headers,
+          });
+
+          if (!response.ok && index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(response.status)) {
+            markOptionalBackendUnavailable(apiBase);
+            console.warn('PIN GET failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              path,
+              status: response.status,
+            });
+            continue;
+          }
+
+          clearOptionalBackendUnavailable();
+          return await this.parseResponse(response);
+        } catch (error) {
+          if (shouldRetryWithLocalApiFallback(undefined, error)) {
+            markOptionalBackendUnavailable(apiBase);
+          }
+
+          if (index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
+            console.warn('PIN GET failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              path,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+
+          throw error;
+        }
+      }
+
+      return {
+        success: false,
+        message: 'PIN request failed',
+      };
     } catch (error) {
       return {
         success: false,
@@ -88,24 +194,73 @@ class PinService {
     if (result.expiresAt) {
       localStorage.setItem(this.PIN_EXPIRES_KEY, result.expiresAt);
     }
+
+    this.clearPendingServerSync();
   }
 
   private async post(path: string, body: object): Promise<PinStatus> {
-    if (!localStorage.getItem('auth_token')) {
+    const headers = await this.getAuthHeaders();
+    if (!('Authorization' in headers)) {
       return {
         success: false,
         message: 'Session expired. Please sign in again.',
       };
     }
 
-    try {
-      const response = await fetch(`${this.API_URL}/pin/${path}`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(body),
-      });
+    if (shouldSkipOptionalBackendRequests(this.API_URL)) {
+      return {
+        success: false,
+        message: 'Backend PIN service unavailable in development mode',
+        statusCode: 503,
+      };
+    }
 
-      return await this.parseResponse(response);
+    try {
+      const apiBases = getApiBaseCandidates(this.API_URL);
+
+      for (let index = 0; index < apiBases.length; index += 1) {
+        const apiBase = apiBases[index];
+        try {
+          const response = await fetch(buildApiUrl(apiBase, `/pin/${path}`), {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+          });
+
+          if (!response.ok && index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(response.status)) {
+            markOptionalBackendUnavailable(apiBase);
+            console.warn('PIN POST failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              path,
+              status: response.status,
+            });
+            continue;
+          }
+
+          clearOptionalBackendUnavailable();
+          return await this.parseResponse(response);
+        } catch (error) {
+          if (shouldRetryWithLocalApiFallback(undefined, error)) {
+            markOptionalBackendUnavailable(apiBase);
+          }
+
+          if (index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
+            console.warn('PIN POST failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              path,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+
+          throw error;
+        }
+      }
+
+      return {
+        success: false,
+        message: 'PIN request failed',
+      };
     } catch (error) {
       return {
         success: false,
@@ -115,20 +270,67 @@ class PinService {
   }
 
   private async delete(path: string): Promise<PinStatus> {
-    if (!localStorage.getItem('auth_token')) {
+    const headers = await this.getAuthHeaders();
+    if (!('Authorization' in headers)) {
       return {
         success: false,
         message: 'Session expired. Please sign in again.',
       };
     }
 
-    try {
-      const response = await fetch(`${this.API_URL}/pin/${path}`, {
-        method: 'DELETE',
-        headers: this.getAuthHeaders(),
-      });
+    if (shouldSkipOptionalBackendRequests(this.API_URL)) {
+      return {
+        success: false,
+        message: 'Backend PIN service unavailable in development mode',
+        statusCode: 503,
+      };
+    }
 
-      return await this.parseResponse(response);
+    try {
+      const apiBases = getApiBaseCandidates(this.API_URL);
+
+      for (let index = 0; index < apiBases.length; index += 1) {
+        const apiBase = apiBases[index];
+        try {
+          const response = await fetch(buildApiUrl(apiBase, `/pin/${path}`), {
+            method: 'DELETE',
+            headers,
+          });
+
+          if (!response.ok && index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(response.status)) {
+            markOptionalBackendUnavailable(apiBase);
+            console.warn('PIN DELETE failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              path,
+              status: response.status,
+            });
+            continue;
+          }
+
+          clearOptionalBackendUnavailable();
+          return await this.parseResponse(response);
+        } catch (error) {
+          if (shouldRetryWithLocalApiFallback(undefined, error)) {
+            markOptionalBackendUnavailable(apiBase);
+          }
+
+          if (index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
+            console.warn('PIN DELETE failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              path,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+
+          throw error;
+        }
+      }
+
+      return {
+        success: false,
+        message: 'PIN request failed',
+      };
     } catch (error) {
       return {
         success: false,
@@ -193,6 +395,31 @@ class PinService {
     return this.delete('key-backup');
   }
 
+  markPinCreatedLocally(expiresAt?: string): void {
+    this.persistPinState({
+      success: true,
+      message: 'PIN created locally',
+      expiresAt,
+    }, true);
+  }
+
+  markPinVerifiedLocally(): void {
+    localStorage.setItem(this.PIN_VERIFIED_KEY, 'true');
+    localStorage.setItem(this.PIN_VERIFIED_AT_KEY, new Date().toISOString());
+  }
+
+  markPendingServerSync(): void {
+    localStorage.setItem(this.PIN_PENDING_SERVER_SYNC_KEY, 'true');
+  }
+
+  hasPendingServerSync(): boolean {
+    return localStorage.getItem(this.PIN_PENDING_SERVER_SYNC_KEY) === 'true';
+  }
+
+  clearPendingServerSync(): void {
+    localStorage.removeItem(this.PIN_PENDING_SERVER_SYNC_KEY);
+  }
+
   /**
    * Validate PIN format
    */
@@ -214,6 +441,7 @@ class PinService {
     localStorage.removeItem(this.PIN_SETUP_KEY);
     localStorage.removeItem(this.PIN_CREATED_KEY);
     localStorage.removeItem(this.PIN_EXPIRES_KEY);
+    this.clearPendingServerSync();
     this.clearPinVerification();
   }
 

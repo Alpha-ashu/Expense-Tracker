@@ -17,7 +17,9 @@ interface Config {
   className: string;
 }
 
-const STATUS_CONFIG: Record<OverallSyncStatus, Config> = {
+type DisplaySyncStatus = OverallSyncStatus | 'pending';
+
+const STATUS_CONFIG: Record<DisplaySyncStatus, Config> = {
   offline: {
     icon: <CloudOff size={13} className="shrink-0" />,
     label: 'Offline',
@@ -38,6 +40,11 @@ const STATUS_CONFIG: Record<OverallSyncStatus, Config> = {
     label: 'Sync error',
     className: 'bg-red-100 text-red-700 border-red-200',
   },
+  pending: {
+    icon: <RefreshCw size={13} className="shrink-0" />,
+    label: 'Pending sync',
+    className: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  },
   idle: {
     icon: <Cloud size={13} className="shrink-0" />,
     label: 'Sync ready',
@@ -56,7 +63,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ compact = false, c
   const backendStatus = useBackendSyncStatus();
   
   // Use backend sync status when available, fallback to frontend
-  const actualStatus = backendStatus.syncInProgress ? 'syncing' : 
+  const actualStatus: DisplaySyncStatus = backendStatus.syncInProgress ? 'syncing' : 
                       backendStatus.pendingOperations > 0 ? 'pending' :
                       !backendStatus.isOnline ? 'offline' : 
                       stats.status;

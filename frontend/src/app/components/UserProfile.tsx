@@ -14,6 +14,7 @@ import { backupPINKeys, restorePINKeys, storeMasterKey } from '@/lib/encryption'
 import { calculateAge, getAgeGroup, getAgeGroupLabel } from '@/lib/avatar';
 import { AVATAR_OPTIONS, DEFAULT_AVATAR, resolveAvatarSelection } from '@/lib/avatar-gallery';
 import { api } from '@/lib/api';
+import { shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
 import { pinService } from '@/services/pinService';
 
 interface ProfileData {
@@ -262,17 +263,21 @@ export const UserProfile: React.FC = () => {
       let finalData: any = null;
 
       // Prefer Backend Data
-      try {
-        console.log('[UserProfile] Fetching from backend API...');
-        const backendRes = await api.auth.getProfile();
-        if (backendRes.success && backendRes.data) {
-          finalData = backendRes.data;
-          console.log('[UserProfile] Received data from backend:', finalData);
-        } else {
-          console.log('[UserProfile] Backend fetch returned no data or success=false:', backendRes);
+      if (!shouldSkipOptionalBackendRequests()) {
+        try {
+          console.log('[UserProfile] Fetching from backend API...');
+          const backendRes = await api.auth.getProfile();
+          if (backendRes.success && backendRes.data) {
+            finalData = backendRes.data;
+            console.log('[UserProfile] Received data from backend:', finalData);
+          } else {
+            console.log('[UserProfile] Backend fetch returned no data or success=false:', backendRes);
+          }
+        } catch (backendError) {
+          console.warn('[UserProfile] Backend profile fetch failed, trying Supabase fallback:', backendError);
         }
-      } catch (backendError) {
-        console.warn('[UserProfile] Backend profile fetch failed, trying Supabase fallback:', backendError);
+      } else {
+        console.info('[UserProfile] Skipping backend profile fetch while backend is unavailable in development mode.');
       }
 
       // Fallback/Supplement with Supabase
@@ -449,48 +454,59 @@ export const UserProfile: React.FC = () => {
       backendSyncService.addPendingOperation(operationId);
 
       // 4. Update via Backend API (fire-and-forget)
-      const { api } = await import('@/lib/api');
-      api.auth.updateProfile({
-        firstName: nextProfileData.firstName,
-        lastName: nextProfileData.lastName,
-        gender: nextProfileData.gender,
-        country: nextProfileData.country,
-        state: nextProfileData.state,
-        city: nextProfileData.city,
-        monthlyIncome: nextProfileData.monthlyIncome,
-        dateOfBirth: nextProfileData.dateOfBirth,
-        jobType: nextProfileData.jobType,
-        mobile: nextProfileData.mobile,
-        avatarId: resolvedAvatar.id,
-        avatarUrl: resolvedAvatar.url,
-      }).then(() => {
-        backendSyncService.removePendingOperation(operationId);
-        localStorage.removeItem('profile_sync_pending');
-        console.log('✅ Profile synced to backend');
-      }).catch((error) => {
-        console.warn('⚠️ Backend sync failed, will retry:', error);
-      });
+      if (!shouldSkipOptionalBackendRequests()) {
+        void api.auth.updateProfile({
+          firstName: nextProfileData.firstName,
+          lastName: nextProfileData.lastName,
+          gender: nextProfileData.gender,
+          country: nextProfileData.country,
+          state: nextProfileData.state,
+          city: nextProfileData.city,
+          monthlyIncome: nextProfileData.monthlyIncome,
+          dateOfBirth: nextProfileData.dateOfBirth,
+          jobType: nextProfileData.jobType,
+          mobile: nextProfileData.mobile,
+          avatarId: resolvedAvatar.id,
+          avatarUrl: resolvedAvatar.url,
+        }).then(() => {
+          backendSyncService.removePendingOperation(operationId);
+          localStorage.removeItem('profile_sync_pending');
+          console.log('✅ Profile synced to backend');
+        }).catch((error) => {
+          console.warn('⚠️ Backend sync failed, will retry:', error);
+        });
+      } else {
+        console.info('[UserProfile] Skipping immediate backend profile sync while backend is unavailable in development mode.');
+      }
 
       // 5. Best-effort Supabase sync (optional, non-blocking)
-      supabase.from('profiles').upsert({
-        id: user.id,
-        email: nextProfileData.email,
-        full_name: `${nextProfileData.firstName} ${nextProfileData.lastName}`.trim(),
-        first_name: nextProfileData.firstName,
-        last_name: nextProfileData.lastName,
-        phone: nextProfileData.mobile,
-        avatar_url: resolvedAvatar.url,
-        date_of_birth: nextProfileData.dateOfBirth || null,
-        monthly_income: nextProfileData.monthlyIncome,
-        job_type: nextProfileData.jobType || null,
-        gender: nextProfileData.gender || null,
-        country: nextProfileData.country || null,
-        state: nextProfileData.state || null,
-        city: nextProfileData.city || null,
-        updated_at: new Date().toISOString(),
-      }).catch((syncError) => {
-        console.warn('Silent Supabase sync error (non-blocking):', syncError);
-      });
+      void (async () => {
+        try {
+          const { error: syncError } = await supabase.from('profiles').upsert({
+            id: user.id,
+            email: nextProfileData.email,
+            full_name: `${nextProfileData.firstName} ${nextProfileData.lastName}`.trim(),
+            first_name: nextProfileData.firstName,
+            last_name: nextProfileData.lastName,
+            phone: nextProfileData.mobile,
+            avatar_url: resolvedAvatar.url,
+            date_of_birth: nextProfileData.dateOfBirth || null,
+            monthly_income: nextProfileData.monthlyIncome,
+            job_type: nextProfileData.jobType || null,
+            gender: nextProfileData.gender || null,
+            country: nextProfileData.country || null,
+            state: nextProfileData.state || null,
+            city: nextProfileData.city || null,
+            updated_at: new Date().toISOString(),
+          });
+
+          if (syncError) {
+            console.warn('Silent Supabase sync error (non-blocking):', syncError);
+          }
+        } catch (syncError) {
+          console.warn('Silent Supabase sync error (non-blocking):', syncError);
+        }
+      })();
 
       toast.success('Profile updated successfully!');
     } catch (error: any) {

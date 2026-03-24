@@ -4,12 +4,13 @@
  */
 
 import { toast } from 'sonner';
+import { buildApiUrl, getApiBaseCandidates, getConfiguredApiBase, shouldRetryWithLocalApiFallback } from './apiBase';
 import supabase from '@/utils/supabase/client';
 import type { ApiResponse, ApiError } from '@/types';
 
 // ==================== Configuration ====================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+const API_BASE_URL = getConfiguredApiBase();
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 // ==================== Token Management ====================
@@ -162,67 +163,87 @@ class HTTPClient {
       ...fetchConfig.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
     };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const baseCandidates = getApiBaseCandidates(this.baseURL);
 
     try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, {
-        ...fetchConfig,
-        headers,
-        signal: controller.signal,
-      });
+      for (let index = 0; index < baseCandidates.length; index += 1) {
+        const apiBase = baseCandidates[index];
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      clearTimeout(timeoutId);
+        try {
+          const response = await fetch(buildApiUrl(apiBase, endpoint), {
+            ...fetchConfig,
+            headers,
+            signal: controller.signal,
+          });
 
-      const data = await response.json();
+          const data = await this.parseResponseBody(response);
 
-      if (!response.ok) {
-        const error: ApiError = {
-          code: data.code || `HTTP_${response.status}`,
-          message: data.message || response.statusText,
-          details: data.details,
-        };
+          if (!response.ok) {
+            if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(response.status)) {
+              continue;
+            }
 
-        if (showErrorToast) {
-          toast.error(error.message);
-        }
+            const error: ApiError = {
+              code: data.code || `HTTP_${response.status}`,
+              message: data.message || response.statusText,
+              details: data.details,
+            };
 
-        // Handle 401 Unauthorized
-        if (response.status === 401) {
-          TokenManager.clearTokens();
-          const hasSupabaseSession = await hasActiveSupabaseSession();
-          if (!hasSupabaseSession && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+            if (showErrorToast) {
+              toast.error(error.message);
+            }
+
+            // Handle 401 Unauthorized
+            if (response.status === 401) {
+              TokenManager.clearTokens();
+              const hasSupabaseSession = await hasActiveSupabaseSession();
+              if (!hasSupabaseSession && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+            }
+
+            throw new APIError(error.code, error.message, response.status, error.details);
           }
+
+          if (showSuccessToast && successMessage) {
+            toast.success(successMessage);
+          }
+
+          return {
+            success: true,
+            data: data.data || data,
+            message: data.message,
+          };
+        } catch (error: any) {
+          if (error.name === 'AbortError') {
+            if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
+              continue;
+            }
+
+            const timeoutError = new APIError(
+              'TIMEOUT_ERROR',
+              'Request timeout. Please try again.',
+              0);
+            if (showErrorToast) {
+              toast.error(timeoutError.message);
+            }
+            throw timeoutError;
+          }
+
+          if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
+            continue;
+          }
+
+          return handleAPIError(error);
+        } finally {
+          clearTimeout(timeoutId);
         }
-
-        throw new APIError(error.code, error.message, response.status, error.details);
       }
 
-      if (showSuccessToast && successMessage) {
-        toast.success(successMessage);
-      }
-
-      return {
-        success: true,
-        data: data.data || data,
-        message: data.message,
-      };
+      throw new APIError('REQUEST_ERROR', 'Failed to make request', 0);
     } catch (error: any) {
-      clearTimeout(timeoutId);
-
-      if (error.name === 'AbortError') {
-        const timeoutError = new APIError(
-          'TIMEOUT_ERROR',
-          'Request timeout. Please try again.',
-          0);
-        if (showErrorToast) {
-          toast.error(timeoutError.message);
-        }
-        throw timeoutError;
-      }
-
       return handleAPIError(error);
     }
   }
@@ -269,6 +290,28 @@ class HTTPClient {
 
   async delete<T>(endpoint: string, config?: RequestConfig): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...config, method: 'DELETE' });
+  }
+
+  private async parseResponseBody(response: Response): Promise<any> {
+    if (typeof response.text !== 'function') {
+      if (typeof response.json === 'function') {
+        return response.json();
+      }
+      return {};
+    }
+
+    const raw = await response.text();
+    if (!raw) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {
+        message: raw,
+      };
+    }
   }
 }
 

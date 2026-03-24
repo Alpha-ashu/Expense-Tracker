@@ -9,6 +9,7 @@
  */
 
 import { db } from './database';
+import { buildApiUrl, getConfiguredApiBase, shouldSkipOptionalBackendRequests } from './apiBase';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ export interface BackendSyncStatus {
 
 class BackendSyncService {
   private static instance: BackendSyncService;
+  private readonly apiBase = getConfiguredApiBase();
   private syncInProgress: boolean = false;
   private lastSyncTime: Date | null = null;
   private pendingOperations: Set<string> = new Set();
@@ -84,6 +86,11 @@ class BackendSyncService {
       return false;
     }
 
+    if (shouldSkipOptionalBackendRequests(this.apiBase)) {
+      console.info('ℹ️ Backend sync skipped while backend is unavailable in development mode.');
+      return false;
+    }
+
     this.syncInProgress = true;
     console.log('🔄 Starting backend sync...');
 
@@ -96,11 +103,14 @@ class BackendSyncService {
       }
 
       // Call backend API for sync instead of direct Supabase operations
-      const response = await fetch('/api/sync/pull', {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      const response = await fetch(buildApiUrl(this.apiBase, '/sync/pull'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`,
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         body: JSON.stringify({
           deviceId: this.getDeviceId(),

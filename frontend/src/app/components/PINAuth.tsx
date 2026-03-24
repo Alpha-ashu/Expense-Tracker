@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Fingerprint, Shield } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
 import { isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
-import { pinService } from '@/services/pinService';
+import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
@@ -19,6 +19,45 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
 
+  const finalizeAuthentication = async (key: string, successMessage: string) => {
+    if (Capacitor.isNativePlatform()) {
+      await Preferences.set({
+        key: 'user_authenticated',
+        value: 'true',
+      });
+    }
+
+    toast.success(successMessage);
+    onAuthenticated(key);
+  };
+
+  const syncPendingPinToServer = async (pinValue: string) => {
+    if (!pinService.hasPendingServerSync()) {
+      return;
+    }
+
+    const createResult = await pinService.createPin(pinValue);
+    if (!createResult.success) {
+      if (/already exists/i.test(createResult.message)) {
+        pinService.clearPendingServerSync();
+        return;
+      }
+
+      if (!isPinServiceUnavailable(createResult)) {
+        console.warn('PIN sync to server failed:', createResult.message);
+      }
+      return;
+    }
+
+    const backup = backupPINKeys();
+    if (backup.hash && backup.salt) {
+      const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
+      if (!backupResult.success) {
+        console.warn('PIN key backup refresh failed after deferred PIN sync:', backupResult.message);
+      }
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -27,8 +66,9 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
       try {
         const status = await pinService.getStatus();
         const hasServerPin = status.success;
+        const hasLocalPin = isPINSet();
 
-        if (hasServerPin && !isPINSet()) {
+        if (hasServerPin && !hasLocalPin) {
           const keyBackupResult = await pinService.getKeyBackup();
           if (keyBackupResult.success && keyBackupResult.backup) {
             const [hash, salt] = keyBackupResult.backup.split('|');
@@ -39,7 +79,8 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         if (isMounted) {
-          setIsCreating(!hasServerPin);
+          const shouldCreatePin = !hasLocalPin && (isPinMissing(status) || isPinServiceUnavailable(status));
+          setIsCreating(shouldCreatePin);
           setIsLoading(false);
         }
       } catch (error: any) {
@@ -104,13 +145,21 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         const createResult = await pinService.createPin(pin);
-        if (!createResult.success) {
+        if (!createResult.success && !isPinServiceUnavailable(createResult)) {
           toast.error(createResult.message || 'Failed to create PIN');
           setIsLoading(false);
           return;
         }
 
         const key = storeMasterKey(pin);
+
+        if (!createResult.success) {
+          const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+          pinService.markPinCreatedLocally(expiresAt);
+          pinService.markPendingServerSync();
+          await finalizeAuthentication(key, 'PIN created on this device. Server sync is pending.');
+          return;
+        }
 
         const backup = backupPINKeys();
         if (backup.hash && backup.salt) {
@@ -119,17 +168,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
             console.warn('PIN key backup refresh failed after PIN creation:', backupResult.message);
           }
         }
-
-        // Store in Capacitor Preferences for native platforms
-        if (Capacitor.isNativePlatform()) {
-          await Preferences.set({
-            key: 'user_authenticated',
-            value: 'true',
-          });
-        }
-
-        toast.success('PIN created successfully');
-        onAuthenticated(key);
+        await finalizeAuthentication(key, 'PIN created successfully');
       } else {
         // Verifying existing PIN
         if (pin.length !== 6) {
@@ -139,14 +178,16 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         const verifyResult = await pinService.verifyPin({ pin });
-        if (!verifyResult.success) {
+        const localResult = verifyPIN(pin);
+
+        if (!verifyResult.success && !(localResult.isValid && (isPinServiceUnavailable(verifyResult) || pinService.hasPendingServerSync() || isPinMissing(verifyResult)))) {
           toast.error(verifyResult.message || 'Invalid PIN');
           setPin('');
           setIsLoading(false);
           return;
         }
 
-        if (!isPINSet()) {
+        if (verifyResult.success && !isPINSet()) {
           const keyBackupResult = await pinService.getKeyBackup();
           if (keyBackupResult.success && keyBackupResult.backup) {
             const [hash, salt] = keyBackupResult.backup.split('|');
@@ -156,12 +197,14 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           }
         }
 
-        const localResult = verifyPIN(pin);
         const key = localResult.isValid && localResult.key
           ? localResult.key
           : storeMasterKey(pin);
 
-        if (!localResult.isValid) {
+        if (!verifyResult.success && localResult.isValid) {
+          pinService.markPinVerifiedLocally();
+          void syncPendingPinToServer(pin);
+        } else if (!localResult.isValid) {
           const backup = backupPINKeys();
           if (backup.hash && backup.salt) {
             const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
@@ -172,16 +215,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         if (key) {
-          // Store in Capacitor Preferences for native platforms
-          if (Capacitor.isNativePlatform()) {
-            await Preferences.set({
-              key: 'user_authenticated',
-              value: 'true',
-            });
-          }
-
-          toast.success('Authentication successful');
-          onAuthenticated(key);
+          await finalizeAuthentication(key, 'Authentication successful');
         }
       }
     } catch (error) {

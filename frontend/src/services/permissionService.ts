@@ -4,9 +4,18 @@
  */
 
 import { UserRole } from '@/lib/featureFlags';
+import {
+  buildApiUrl,
+  clearOptionalBackendUnavailable,
+  getApiBaseCandidates,
+  getConfiguredApiBase,
+  markOptionalBackendUnavailable,
+  shouldRetryWithLocalApiFallback,
+  shouldSkipOptionalBackendRequests,
+} from '@/lib/apiBase';
 import supabase from '@/utils/supabase/client';
 
-const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+const API_BASE = getConfiguredApiBase();
 const PROFILE_LOOKUP_TIMEOUT_MS = 5000;
 
 const normalizeUserRole = (value: unknown): UserRole => {
@@ -136,6 +145,7 @@ class PermissionService {
   private async loadUserRole(userId: string, fallbackRole?: UserRole): Promise<UserRole> {
     const safeFallback = normalizeUserRole(fallbackRole);
     const cachedRole = this.getCachedRole(userId);
+    const apiBases = getApiBaseCandidates(API_BASE);
 
     try {
       const token = await getAuthToken();
@@ -144,39 +154,79 @@ class PermissionService {
         return cachedRole ?? safeFallback;
       }
 
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), PROFILE_LOOKUP_TIMEOUT_MS);
+      if (shouldSkipOptionalBackendRequests(API_BASE)) {
+        return cachedRole ?? safeFallback;
+      }
 
-      try {
-        const response = await fetch(`${API_BASE}/auth/profile`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal: controller.signal,
-        });
+      for (let index = 0; index < apiBases.length; index += 1) {
+        const apiBase = apiBases[index];
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), PROFILE_LOOKUP_TIMEOUT_MS);
 
-        const payload = await response.json().catch(() => ({} as {
-          success?: boolean;
-          data?: { role?: unknown; isApproved?: boolean };
-          error?: string;
-        }));
+        try {
+          const response = await fetch(buildApiUrl(apiBase, '/auth/profile'), {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: controller.signal,
+          });
 
-        if (!response.ok || payload.success === false) {
-          const errorMessage = payload.error || response.statusText || `HTTP ${response.status}`;
+          const payload = await response.json().catch(() => ({} as {
+            success?: boolean;
+            data?: { role?: unknown; isApproved?: boolean };
+            error?: string;
+          }));
+
+          if (!response.ok || payload.success === false) {
+            const errorMessage = payload.error || response.statusText || `HTTP ${response.status}`;
+            if (shouldRetryWithLocalApiFallback(response.status)) {
+              markOptionalBackendUnavailable(apiBase);
+            }
+
+            if (index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(response.status)) {
+              console.warn('Backend profile lookup failed on configured API base, retrying local API fallback.', {
+                apiBase,
+                error: errorMessage,
+              });
+              continue;
+            }
+
+            if (cachedRole) {
+              console.warn('Failed to load backend profile role, using cached permissions role:', errorMessage);
+              return cachedRole;
+            }
+
+            console.warn('Failed to load backend profile role, using fallback permissions:', errorMessage);
+            return safeFallback;
+          }
+
+          const backendRole = normalizeUserRole(payload.data?.role ?? safeFallback);
+          clearOptionalBackendUnavailable();
+          return this.rememberResolvedRole(userId, backendRole, payload.data?.isApproved);
+        } catch (error) {
+          if (shouldRetryWithLocalApiFallback(undefined, error)) {
+            markOptionalBackendUnavailable(apiBase);
+          }
+
+          if (index < apiBases.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
+            console.warn('Backend profile lookup failed on configured API base, retrying local API fallback.', {
+              apiBase,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+
           if (cachedRole) {
-            console.warn('Failed to load backend profile role, using cached permissions role:', errorMessage);
+            console.warn('Unexpected backend role lookup failure, using cached permissions role:', error);
             return cachedRole;
           }
 
-          console.warn('Failed to load backend profile role, using fallback permissions:', errorMessage);
+          console.warn('Unexpected backend role lookup failure, using fallback permissions:', error);
           return safeFallback;
+        } finally {
+          clearTimeout(timeoutId);
         }
-
-        const backendRole = normalizeUserRole(payload.data?.role ?? safeFallback);
-        return this.rememberResolvedRole(userId, backendRole, payload.data?.isApproved);
-      } finally {
-        clearTimeout(timeoutId);
       }
     } catch (error) {
       if (cachedRole) {
