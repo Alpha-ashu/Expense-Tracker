@@ -240,23 +240,32 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
-    const [userResult, profileResult] = await Promise.allSettled([
-      authService.getUser(req.userId),
-      prisma.profiles.findUnique({
-        where: { id: req.userId },
-      }),
-    ]);
+    // BUG FIX #3: Wrap database calls in individual try-catch to prevent cascading failures
+    let userResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
+    let profileResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
 
-    if (userResult.status === 'rejected' && userResult.reason?.message !== 'User not found') {
-      logger.warn('Get profile user lookup failed, falling back to auth snapshot.', {
-        message: userResult.reason?.message,
-        userId: req.userId,
-      });
+    try {
+      const user = await authService.getUser(req.userId);
+      userResult = { status: 'fulfilled', value: user };
+    } catch (err: any) {
+      userResult = { status: 'rejected', reason: err };
+      if (err?.message !== 'User not found') {
+        logger.warn('Get profile user lookup failed, falling back to auth snapshot.', {
+          message: err?.message,
+          userId: req.userId,
+        });
+      }
     }
 
-    if (profileResult.status === 'rejected') {
+    try {
+      const profile = await prisma.profiles.findUnique({
+        where: { id: req.userId },
+      });
+      profileResult = { status: 'fulfilled', value: profile };
+    } catch (err: any) {
+      profileResult = { status: 'rejected', reason: err };
       logger.warn('Get profile profiles lookup failed, falling back to auth snapshot.', {
-        message: profileResult.reason?.message,
+        message: err?.message,
         userId: req.userId,
       });
     }
@@ -269,8 +278,9 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       data: buildProfilePayload(req.userId, req.user, userRecord, profileRecord),
     });
   } catch (error: any) {
-    logger.error('Get profile error:', {
-      message: error.message,
+    // BUG FIX #3: Even if everything fails, return 200 with auth snapshot instead of 500
+    logger.error('Get profile critical error:', {
+      message: error?.message || 'Unknown error',
       userId: req.userId
     });
     res.json({

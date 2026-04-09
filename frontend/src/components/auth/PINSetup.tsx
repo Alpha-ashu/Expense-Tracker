@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Shield, Check, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { backupPINKeys, isPINSet, restorePINKeys, storeMasterKey, verifyPIN } from '@/lib/encryption';
-import { pinService } from '@/services/pinService';
+import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
 
 interface PINSetupProps {
   onComplete: (pin: string) => void;
@@ -99,7 +99,21 @@ export const PINSetup: React.FC<PINSetupProps> = ({
         ? await pinService.verifyPin({ pin: candidatePin })
         : await pinService.createPin(candidatePin);
 
-      if (!result.success) {
+      // SECURITY FIX (Bug #2): Server failures (500 errors) on PIN verification MUST be treated as Access Denied.
+      // When verifying an existing PIN, any server error blocks access - no local fallback allowed.
+      if (step === 'enter' && !result.success) {
+        if (isPinServiceUnavailable(result)) {
+          // Server error (500) on PIN verification = Access Denied
+          setError('PIN verification service unavailable. Access denied for security.');
+          return;
+        }
+        // Other verification failures (wrong PIN, etc.)
+        setError(result.message || 'PIN verification failed. Please try again.');
+        return;
+      }
+
+      // For PIN creation, server errors can fall back to local-only mode
+      if (!result.success && step !== 'enter' && !isPinServiceUnavailable(result)) {
         setError(result.message || 'PIN request failed. Please try again.');
         return;
       }
@@ -119,10 +133,22 @@ export const PINSetup: React.FC<PINSetupProps> = ({
         storeMasterKey(candidatePin);
       }
 
+      // Only allow local fallback for PIN creation (not verification)
+      if (!result.success && step !== 'enter') {
+        const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+        pinService.markPinCreatedLocally(expiresAt);
+        pinService.markPendingServerSync();
+      }
+
       const backup = backupPINKeys();
       if (backup.hash && backup.salt) {
+        // SECURITY: Never mark PIN as verified locally when server verification failed
+        if (result.success && step === 'enter' && localResult.isValid) {
+          pinService.markPinVerifiedLocally();
+        }
+
         const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
-        if (!backupResult.success) {
+        if (!backupResult.success && !isPinServiceUnavailable(backupResult) && !isPinMissing(backupResult)) {
           console.warn('PIN key backup refresh failed during setup:', backupResult.message);
         }
       }
@@ -131,7 +157,13 @@ export const PINSetup: React.FC<PINSetupProps> = ({
       localStorage.setItem('pin_created_at', new Date().toISOString());
       localStorage.setItem('pin_expiry', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString()); // 90 days
 
-      toast.success(step === 'enter' ? 'PIN verified successfully!' : 'PIN created successfully!');
+      toast.success(
+        step === 'enter'
+          ? 'PIN verified successfully!'
+          : result.success
+            ? 'PIN created successfully!'
+            : 'PIN created on this device. Server sync is pending.',
+      );
       onComplete(candidatePin);
     } catch (err) {
       setError('Failed to save PIN. Please try again.');
@@ -198,7 +230,7 @@ export const PINSetup: React.FC<PINSetupProps> = ({
           <p className="text-sm text-gray-600">
             {step === 'create' && 'Set a 6-digit PIN to secure your app'}
             {step === 'confirm' && 'Re-enter your PIN to confirm'}
-            {step === 'enter' && 'Enter your existing PIN to continue'}
+            {step === 'enter' && 'Please enter your 6 digit pin'}
           </p>
         </div>
 

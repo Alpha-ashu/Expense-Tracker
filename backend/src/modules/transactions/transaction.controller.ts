@@ -81,7 +81,9 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       transferType,
     } = req.body;
 
-    const numericAmount = Number(amount);
+    // BUG FIX #4: Round to 2 decimal places to prevent floating-point precision errors
+    // e.g., 200.17 saved as 199.80 due to IEEE 754 floating-point representation
+    const numericAmount = Math.round(Number(amount) * 100) / 100;
     const txDate = new Date(date);
     const dedupHash = generateDedupHash(userId, numericAmount, txDate, description);
 

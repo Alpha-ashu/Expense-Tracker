@@ -166,12 +166,16 @@ const isTimeoutError = (error: any) =>
   error?.name === 'TimeoutError' ||
   (error?.message && String(error.message).toLowerCase().includes('timeout'));
 
-const syncProfileFromSupabase = async (user: User) => {
-  const { data: profile = null } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+const syncProfileFromBackend = async (user: User) => {
+  // SECURITY FIX (Bug #1): Route through backend API instead of direct Supabase call
+  let profile: any = null;
+  try {
+    const { apiClient } = await import('@/lib/api');
+    const response = await apiClient.get('/auth/profile');
+    profile = response.success ? response.data : null;
+  } catch (err) {
+    console.warn('Failed to fetch profile from backend:', err);
+  }
 
   let localProfile = readLocalProfile();
   const localUpdatedAt = getLocalProfileUpdatedAt(localProfile);
@@ -284,40 +288,34 @@ const syncProfileFromSupabase = async (user: User) => {
     avatarUrl: localProfile?.profilePhoto || localProfile?.avatarUrl || null,
   });
 
-  const baseProfile = {
-    id: user.id,
-    email: user.email,
+  // SECURITY FIX: Profile updates must route through backend API
+  // Client should never write directly to profiles table
+  const profilePayload = {
     full_name: displayName || null,
     first_name: firstName || null,
     last_name: lastName || null,
     phone: localProfile?.mobile || null,
-    updated_at: new Date().toISOString(),
+    date_of_birth: localProfile?.dateOfBirth || null,
+    job_type: localProfile?.jobType || null,
+    monthly_income: monthlyIncome ?? null,
+    annual_income: annualIncome ?? null,
+    avatar_url: resolvedAvatar.url,
   };
 
   try {
-    const { error } = await supabase.from('profiles').upsert({
-      ...baseProfile,
-      date_of_birth: localProfile?.dateOfBirth || null,
-      job_type: localProfile?.jobType || null,
-      monthly_income: monthlyIncome ?? null,
-      annual_income: annualIncome ?? null,
-      avatar_url: resolvedAvatar.url,
-    }, { onConflict: 'id' });
+    const { apiClient } = await import('@/lib/api');
+    const response = await apiClient.put('/auth/profile', profilePayload);
 
-    if (error) {
-      console.warn('Extended profile upsert failed, trying base:', error.message);
-      const { error: baseError } = await supabase.from('profiles').upsert(baseProfile, { onConflict: 'id' });
-      if (baseError) {
-        console.warn('Base profile upsert failed (local cache retained):', baseError.message);
-        return;
-      }
+    if (response.success) {
+      localStorage.setItem('onboarding_completed', 'true');
+      localStorage.setItem('profile_updated_at', new Date().toISOString());
+      localStorage.removeItem('profile_sync_pending');
+    } else {
+      console.warn('Profile sync to backend failed (local cache retained):', response.message);
+      localStorage.setItem('profile_sync_pending', 'true');
     }
-
-    localStorage.setItem('onboarding_completed', 'true');
-    localStorage.setItem('profile_updated_at', baseProfile.updated_at);
-    localStorage.removeItem('profile_sync_pending');
   } catch (error) {
-    console.warn('Local profile sync to Supabase failed (non-blocking):', error);
+    console.warn('Local profile sync to backend failed (non-blocking):', error);
     localStorage.setItem('profile_sync_pending', 'true');
   }
 };
@@ -332,7 +330,7 @@ const syncFromSupabase = async (user: User) => {
       try {
         await fetchWithTimeout(Promise.all([
           syncUserDataFromCloud(user.id),
-          syncProfileFromSupabase(user),
+          syncProfileFromBackend(user),
         ]), timeouts[attempt]);
         return;
       } catch (err) {

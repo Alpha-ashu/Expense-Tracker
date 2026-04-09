@@ -16,7 +16,7 @@ model Account {
   type             String             @default("bank")
   provider         String?
   country          String?
-  balance          Float              @default(0)
+  balance          Float              @default(0) // Computed by trigger from transactions
   currency         String             @default("USD")
   isActive         Boolean            @default(true)
   syncStatus       String             @default("synced")
@@ -31,6 +31,7 @@ model Account {
   @@index([isActive])
   @@index([syncStatus])
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model AdvisorAvailability {
@@ -267,9 +268,9 @@ model Investment {
   quantity      Float
   buyPrice      Float
   currentPrice  Float
-  totalInvested Float
-  currentValue  Float
-  profitLoss    Float
+  totalInvested Float // Computed by trigger: quantity * buyPrice
+  currentValue  Float // Computed by trigger: quantity * currentPrice
+  profitLoss    Float // Computed by trigger: currentValue - totalInvested
   purchaseDate  DateTime
   lastUpdated   DateTime
   createdAt     DateTime  @default(now())
@@ -279,6 +280,7 @@ model Investment {
 
   @@index([assetType])
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model Loan {
@@ -288,7 +290,7 @@ model Loan {
   type               String
   name               String
   principalAmount    Float
-  outstandingBalance Float
+  outstandingBalance Float // Computed by trigger: principalAmount - sum(payments)
   interestRate       Float?
   emiAmount          Float?
   dueDate            DateTime?
@@ -306,20 +308,23 @@ model Loan {
   @@index([status])
   @@index([syncStatus])
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model LoanPayment {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   loanId    String
   amount    Float
   accountId String?
   date      DateTime
   notes     String?
-  createdAt DateTime @default(now())
-  loan      Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime? // Added for soft-delete consistency
+  loan      Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
 
   @@index([date])
   @@index([loanId])
+  @@index([deletedAt])
 }
 
 model Notification {
@@ -333,11 +338,13 @@ model Notification {
   isRead    Boolean   @default(false)
   createdAt DateTime  @default(now())
   readAt    DateTime?
+  deletedAt DateTime? // Added for soft-delete consistency
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([isRead])
   @@index([userId])
+  @@index([deletedAt])
 }
 
 model Payment {
@@ -448,6 +455,8 @@ model Transaction {
   @@index([groupExpenseId])
   @@index([syncStatus])
   @@index([userId])
+  @@index([userId, date]) // Composite index for user transaction queries
+  @@index([deletedAt])
 }
 
 model User {
@@ -616,7 +625,7 @@ model GroupExpense {
   totalAmount          Float
   paidBy               String?
   date                 DateTime
-  members              String?
+  members              String?              // DEPRECATED: Use GroupExpenseMember relation instead
   items                String?
   description          String?
   category             String?
@@ -635,12 +644,33 @@ model GroupExpense {
   transactions         Transaction[]
   paidByAccount        Account?      @relation(fields: [paidBy], references: [id])
   user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupMembers         GroupExpenseMember[] // New relational structure
 
   @@index([date])
   @@index([paidBy])
   @@index([syncStatus])
   @@index([userId])
   @@map("group_expenses")
+}
+
+model GroupExpenseMember {
+  id             String       @id @default(uuid())
+  groupExpenseId String
+  userId         String?      -- Optional: may be a friend without user account
+  name           String       -- Display name
+  email          String?
+  phone          String?
+  shareAmount    Float        @default(0)
+  hasPaid        Boolean      @default(false)
+  paidAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+  groupExpense   GroupExpense @relation(fields: [groupExpenseId], references: [id], onDelete: Cascade)
+
+  @@index([groupExpenseId])
+  @@index([userId])
+  @@index([deletedAt])
 }
 
 model user_features {
@@ -672,9 +702,8 @@ model profiles {
   country          String?
   state            String?
   city             String?
-  currency         String?
-  language         String?
-  pin_code         String?
+  // REMOVED: currency, language (moved to UserSettings - single source of truth)
+  // REMOVED: pin_code (security: use UserPin.pinHash only)
   visible_features Json?
   created_at       DateTime? @default(now()) @db.Timestamptz(6)
   updated_at       DateTime? @updatedAt @db.Timestamptz(6)

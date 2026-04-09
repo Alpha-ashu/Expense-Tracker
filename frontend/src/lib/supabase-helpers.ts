@@ -1,11 +1,11 @@
 // =====================================================
-// Supabase Database Helper Functions
+// Database Helper Functions (API-Only)
 // =====================================================
-// Import and use these functions throughout your app
-// to interact with Supabase tables
+// IMPORTANT: All database operations route through /api/v1/* endpoints.
+// Direct Supabase access from frontend has been removed for security.
 // =====================================================
 
-import supabase from '@/utils/supabase/client';
+import { apiClient } from '@/lib/api';
 
 // =====================================================
 // TYPE DEFINITIONS (matching database schema)
@@ -109,25 +109,15 @@ export async function resetPassword(email: string) {
 // =====================================================
 
 export async function getProfile() {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .single();
-  
-  if (error) throw error;
-  return data as Profile;
+  const response = await apiClient.get('/auth/profile');
+  if (!response.success) throw new Error(response.message || 'Failed to fetch profile');
+  return response.data as Profile;
 }
 
 export async function updateProfile(updates: Partial<Profile>) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', (await getCurrentUser()).id)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  const response = await apiClient.put('/auth/profile', updates);
+  if (!response.success) throw new Error(response.message || 'Failed to update profile');
+  return response.data;
 }
 
 // =====================================================
@@ -135,60 +125,45 @@ export async function updateProfile(updates: Partial<Profile>) {
 // =====================================================
 
 export async function getAccounts() {
-  const { data, error } = await supabase
-    .from('accounts')
-    .select('*')
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false });
-  
-  if (error) throw error;
-  return data as Account[];
+  const response = await apiClient.get('/accounts');
+  if (!response.success) throw new Error(response.message || 'Failed to fetch accounts');
+  return (response.data || []) as Account[];
 }
 
 export async function getActiveAccounts() {
-  const { data, error } = await supabase
-    .from('accounts')
-    .select('*')
-    .eq('is_active', true)
-    .is('deleted_at', null)
-    .order('name');
-  
-  if (error) throw error;
-  return data as Account[];
+  const response = await apiClient.get('/accounts?active=true');
+  if (!response.success) throw new Error(response.message || 'Failed to fetch accounts');
+  const accounts = (response.data || []) as Account[];
+  return accounts.filter(a => a.is_active && !a.deleted_at);
 }
 
 export async function createAccount(account: Omit<Account, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'deleted_at'>) {
-  const user = await getCurrentUser();
-  const { data, error } = await supabase
-    .from('accounts')
-    .insert({ ...account, user_id: user.id })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  // SECURITY: created_at, updated_at, user_id are set server-side only
+  // Client should NEVER send these fields
+  const payload = {
+    name: account.name,
+    type: account.type,
+    balance: account.balance,
+    currency: account.currency,
+    is_active: account.is_active,
+  };
+  const response = await apiClient.post('/accounts', payload);
+  if (!response.success) throw new Error(response.message || 'Failed to create account');
+  return response.data;
 }
 
 export async function updateAccount(id: number, updates: Partial<Account>) {
-  const { data, error } = await supabase
-    .from('accounts')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
+  // SECURITY: Strip server-owned fields - balance must be computed via transactions
+  const { created_at, updated_at, deleted_at, user_id, ...safeUpdates } = updates;
+  const response = await apiClient.put(`/accounts/${id}`, safeUpdates);
+  if (!response.success) throw new Error(response.message || 'Failed to update account');
+  return response.data;
 }
 
 export async function deleteAccount(id: number) {
-  // Soft delete
-  const { error } = await supabase
-    .from('accounts')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
-  
-  if (error) throw error;
+  // Soft delete - server sets deleted_at timestamp
+  const response = await apiClient.delete(`/accounts/${id}`);
+  if (!response.success) throw new Error(response.message || 'Failed to delete account');
 }
 
 // =====================================================
@@ -196,126 +171,80 @@ export async function deleteAccount(id: number) {
 // =====================================================
 
 export async function getTransactions(limit?: number) {
-  let query = supabase
-    .from('transactions')
-    .select('*')
-    .is('deleted_at', null)
-    .order('date', { ascending: false });
-  
-  if (limit) {
-    query = query.limit(limit);
-  }
-  
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as Transaction[];
+  const url = limit ? `/transactions?limit=${limit}` : '/transactions';
+  const response = await apiClient.get(url);
+  if (!response.success) throw new Error(response.message || 'Failed to fetch transactions');
+  return (response.data || []) as Transaction[];
 }
 
 export async function getTransactionsByAccount(accountId: number) {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('account_id', accountId)
-    .is('deleted_at', null)
-    .order('date', { ascending: false });
-  
-  if (error) throw error;
-  return data as Transaction[];
+  const response = await apiClient.get(`/transactions?accountId=${accountId}`);
+  if (!response.success) throw new Error(response.message || 'Failed to fetch transactions');
+  return (response.data || []) as Transaction[];
 }
 
 export async function getTransactionsByDateRange(startDate: string, endDate: string) {
-  const { data, error } = await supabase
-    .from('transactions')
-    .select('*')
-    .gte('date', startDate)
-    .lte('date', endDate)
-    .is('deleted_at', null)
-    .order('date', { ascending: false });
-  
-  if (error) throw error;
-  return data as Transaction[];
+  const response = await apiClient.get(`/transactions?startDate=${startDate}&endDate=${endDate}`);
+  if (!response.success) throw new Error(response.message || 'Failed to fetch transactions');
+  return (response.data || []) as Transaction[];
 }
 
 export async function createTransaction(transaction: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'deleted_at'>) {
-  const user = await getCurrentUser();
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert({ ...transaction, user_id: user.id })
-    .select()
-    .single();
-  
-  if (error) throw error;
-  
-  // Update account balance
-  if (transaction.type === 'expense') {
-    await updateAccountBalance(transaction.account_id, -transaction.amount);
-  } else if (transaction.type === 'income') {
-    await updateAccountBalance(transaction.account_id, transaction.amount);
-  } else if (transaction.type === 'transfer' && transaction.transfer_to_account_id) {
-    await updateAccountBalance(transaction.account_id, -transaction.amount);
-    await updateAccountBalance(transaction.transfer_to_account_id, transaction.amount);
-  }
-  
-  return data;
+  // SECURITY: Server sets created_at, updated_at, user_id
+  // Server also recomputes account balances - never trust client balance
+  const payload = {
+    type: transaction.type,
+    amount: transaction.amount,
+    account_id: transaction.account_id,
+    category: transaction.category,
+    subcategory: transaction.subcategory,
+    description: transaction.description,
+    merchant: transaction.merchant,
+    date: transaction.date,
+    tags: transaction.tags,
+    attachment: transaction.attachment,
+    transfer_to_account_id: transaction.transfer_to_account_id,
+    transfer_type: transaction.transfer_type,
+  };
+  const response = await apiClient.post('/transactions', payload);
+  if (!response.success) throw new Error(response.message || 'Failed to create transaction');
+  return response.data;
 }
 
-async function updateAccountBalance(accountId: number, amount: number) {
-  const { data: account } = await supabase
-    .from('accounts')
-    .select('balance')
-    .eq('id', accountId)
-    .single();
-  
-  if (account) {
-    await supabase
-      .from('accounts')
-      .update({ balance: account.balance + amount })
-      .eq('id', accountId);
-  }
+// DEPRECATED: Balance updates must be computed server-side by summing transactions
+// This function is kept for backward compatibility but does nothing
+// Server recomputes balance on every transaction change
+async function updateAccountBalance(_accountId: number, _amount: number) {
+  // No-op: Server handles balance computation
+  console.warn('updateAccountBalance is deprecated - server computes balances');
 }
 
 export async function deleteTransaction(id: number) {
-  // Soft delete
-  const { error } = await supabase
-    .from('transactions')
-    .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
-  
-  if (error) throw error;
+  // Soft delete - server sets deleted_at timestamp and recomputes balances
+  const response = await apiClient.delete(`/transactions/${id}`);
+  if (!response.success) throw new Error(response.message || 'Failed to delete transaction');
 }
 
 // =====================================================
 // REALTIME SUBSCRIPTIONS
 // =====================================================
 
-export function subscribeToTransactions(callback: (payload: any) => void) {
-  return supabase
-    .channel('transactions-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'transactions'
-      },
-      callback
-    )
-    .subscribe();
+// DEPRECATED: Real-time subscriptions must use WebSocket through backend API
+// Direct Supabase real-time access has been disabled for security
+export function subscribeToTransactions(_callback: (payload: any) => void) {
+  console.warn('subscribeToTransactions is deprecated - use API polling or backend WebSocket');
+  return {
+    unsubscribe: () => {}
+  };
 }
 
-export function subscribeToAccounts(callback: (payload: any) => void) {
-  return supabase
-    .channel('accounts-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'accounts'
-      },
-      callback
-    )
-    .subscribe();
+// DEPRECATED: Real-time subscriptions must use WebSocket through backend API
+// Direct Supabase real-time access has been disabled for security
+export function subscribeToAccounts(_callback: (payload: any) => void) {
+  console.warn('subscribeToAccounts is deprecated - use API polling or backend WebSocket');
+  return {
+    unsubscribe: () => {}
+  };
 }
 
 // =====================================================

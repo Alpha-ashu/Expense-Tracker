@@ -486,6 +486,8 @@ async function mapGroupMembersToRemote(members: any[] | undefined) {
 async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userId: string) {
   switch (table) {
     case 'accounts': {
+      // SECURITY: Server sets created_at, updated_at, and recomputes balance from transactions
+      // Client should NEVER send these fields
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -493,16 +495,16 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         type: record.type,
         provider: record.provider ?? null,
         country: record.country ?? null,
-        balance: Number(record.balance ?? 0),
+        // Balance is computed server-side - do NOT send client balance
         currency: record.currency || 'INR',
         is_active: record.isActive ?? true,
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('accounts', base, record);
     }
 
     case 'friends': {
+      // SECURITY: Server sets created_at, updated_at
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -511,7 +513,6 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         phone: record.phone ?? null,
         avatar: record.avatar ?? null,
         notes: record.notes ?? null,
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('friends', base, record);
@@ -537,6 +538,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         return null;
       }
 
+      // SECURITY: Server sets created_at, updated_at
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -560,7 +562,6 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         import_metadata: record.importMetadata ?? null,
         original_category: record.originalCategory ?? null,
         imported_at: toIsoString(record.importedAt),
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('transactions', base, record);
@@ -573,6 +574,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
       const remoteAccountId = record.accountId ? await resolveRemoteAccountId(record.accountId) : null;
       if (record.accountId && remoteAccountId === undefined) return null;
 
+      // SECURITY: Server sets created_at, updated_at
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -593,13 +595,13 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         contact_phone: record.contactPhone ?? null,
         account_id: remoteAccountId ?? null,
         notes: record.notes ?? null,
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('loans', base, record);
     }
 
     case 'goals': {
+      // SECURITY: Server sets created_at, updated_at
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -610,7 +612,6 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         target_date: toIsoString(record.targetDate),
         category: record.category ?? 'other',
         is_group_goal: record.isGroupGoal ?? false,
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('goals', base, record);
@@ -631,6 +632,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         return null;
       }
 
+      // SECURITY: Server sets created_at, updated_at
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -650,7 +652,6 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         created_by_name: record.createdByName ?? null,
         status: record.status ?? null,
         notification_status: record.notificationStatus ?? null,
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('group_expenses', base, record);
@@ -687,6 +688,7 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         : null;
       if (record.saleFeeTransactionId && remoteSaleFeeTransactionId === undefined) return null;
 
+      // SECURITY: Server sets created_at, updated_at
       const base = {
         user_id: userId,
         local_id: record.id,
@@ -725,7 +727,6 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         realized_profit_loss: record.realizedProfitLoss ?? null,
         settlement_account_id: remoteSettlementAccountId ?? null,
         close_notes: record.closeNotes ?? null,
-        created_at: toIsoString(record.createdAt) ?? new Date().toISOString(),
       };
 
       return attachRemoteTimestamps('investments', base, record);
@@ -746,10 +747,11 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
   // Use UPSERT with onConflict for all sync operations to prevent duplication
   // This handles both new records (INSERT) and existing ones (UPDATE)
   let payload = buildRemotePayloadForTable(table, mappedPayload);
+  // OPTIMIZATION: Only select 'id' to reduce bandwidth (Bug #8 fix)
   let { data: remoteRecord, error } = await supabase
     .from(table)
     .upsert(payload, { onConflict: 'user_id,local_id' })
-    .select()
+    .select('id,updated_at')
     .single();
 
   // Backward compatibility: if the remote table schema is behind, strip the
@@ -762,10 +764,11 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
     markUnsupportedColumn(table, missingColumn);
     payload = buildRemotePayloadForTable(table, mappedPayload);
 
+    // OPTIMIZATION: Only select 'id' to reduce bandwidth (Bug #8 fix)
     const retry = await supabase
       .from(table)
       .upsert(payload, { onConflict: 'user_id,local_id' })
-      .select()
+      .select('id,updated_at')
       .single();
 
     remoteRecord = retry.data;
@@ -1552,6 +1555,38 @@ export async function saveTransactionWithBackendSync(transaction: any) {
 
   const savedId = await db.transactions.add(dbTransaction);
   queueRecordUpsertSync('transactions', savedId, toNumber(transaction?.remoteId));
+
+  return { ...dbTransaction, id: savedId };
+}
+
+export async function saveTransactionAndUpdateAccountWithBackendSync(
+  transaction: any,
+  accountId: number,
+  nextAccountBalance: number,
+) {
+  initializeBackendSync();
+
+  const now = new Date();
+  const dbTransaction: any = {
+    ...transaction,
+    createdAt: transaction.createdAt ?? now,
+    updatedAt: now,
+  };
+
+  const savedId = await db.transactions.add(dbTransaction);
+
+  try {
+    await db.accounts.update(accountId, {
+      balance: nextAccountBalance,
+      updatedAt: now,
+    });
+  } catch (error) {
+    await db.transactions.delete(savedId);
+    throw error;
+  }
+
+  queueRecordUpsertSync('transactions', savedId, toNumber(transaction?.remoteId));
+  queueRecordUpsertSync('accounts', accountId);
 
   return { ...dbTransaction, id: savedId };
 }
