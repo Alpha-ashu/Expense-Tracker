@@ -23,7 +23,6 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path mapping */
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": ["frontend/src/*"]
