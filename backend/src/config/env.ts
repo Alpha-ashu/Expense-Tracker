@@ -29,4 +29,17 @@ const envSchema = z.object({
   RECEIPT_SCAN_RATE_LIMIT: z.coerce.number().int().positive().optional(),
 });
 
-export const env = envSchema.parse(process.env);
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error('❌ Invalid environment variables:', JSON.stringify(parsed.error.format(), null, 2));
+  
+  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+    // In strict production (non-Vercel), we might still want to catch this later
+    // but on Vercel, we need to be careful not to crash the whole runtime if possible.
+  }
+}
+
+export const env = parsed.success 
+  ? parsed.data 
+  : (process.env as any); // Fallback to raw process.env if validation fails

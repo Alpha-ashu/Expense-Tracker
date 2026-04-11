@@ -1,5 +1,24 @@
 import winston from 'winston';
 
+const isVercel = process.env.VERCEL === '1' || !!process.env.NOW_REGION;
+const isProduction = process.env.NODE_ENV === 'production';
+
+const transports: winston.transport[] = [
+  new winston.transports.Console(),
+];
+
+// Only add file transports if NOT on Vercel (read-only filesystem)
+if (!isVercel && !isProduction) {
+  try {
+    transports.push(
+      new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+      new winston.transports.File({ filename: 'logs/combined.log' })
+    );
+  } catch (err) {
+    console.warn('Failed to initialize file transports:', err);
+  }
+}
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
@@ -7,11 +26,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
+  transports,
 });
 
 if (process.env.NODE_ENV !== 'production') {

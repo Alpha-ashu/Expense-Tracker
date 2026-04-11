@@ -344,7 +344,8 @@ exports.Prisma.LoanPaymentScalarFieldEnum = {
   accountId: 'accountId',
   date: 'date',
   notes: 'notes',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.NotificationScalarFieldEnum = {
@@ -357,7 +358,8 @@ exports.Prisma.NotificationScalarFieldEnum = {
   deepLink: 'deepLink',
   isRead: 'isRead',
   createdAt: 'createdAt',
-  readAt: 'readAt'
+  readAt: 'readAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.PaymentScalarFieldEnum = {
@@ -566,6 +568,21 @@ exports.Prisma.GroupExpenseScalarFieldEnum = {
   deletedAt: 'deletedAt'
 };
 
+exports.Prisma.GroupExpenseMemberScalarFieldEnum = {
+  id: 'id',
+  groupExpenseId: 'groupExpenseId',
+  userId: 'userId',
+  name: 'name',
+  email: 'email',
+  phone: 'phone',
+  shareAmount: 'shareAmount',
+  hasPaid: 'hasPaid',
+  paidAt: 'paidAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
 exports.Prisma.User_featuresScalarFieldEnum = {
   user_id: 'user_id',
   avg_spend: 'avg_spend',
@@ -595,9 +612,6 @@ exports.Prisma.ProfilesScalarFieldEnum = {
   country: 'country',
   state: 'state',
   city: 'city',
-  currency: 'currency',
-  language: 'language',
-  pin_code: 'pin_code',
   visible_features: 'visible_features',
   created_at: 'created_at',
   updated_at: 'updated_at'
@@ -665,6 +679,7 @@ exports.Prisma.ModelName = {
   ai_insights: 'ai_insights',
   ai_model_runs: 'ai_model_runs',
   GroupExpense: 'GroupExpense',
+  GroupExpenseMember: 'GroupExpenseMember',
   user_features: 'user_features',
   profiles: 'profiles'
 };

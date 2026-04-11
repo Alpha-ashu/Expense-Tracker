@@ -49,3 +49,5 @@ Thumbs.db
 *.jks
 android/key.properties
 secure/
+
+backend/generated/
