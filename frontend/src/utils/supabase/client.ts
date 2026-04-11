@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+let hasWarnedMissingConfig = false;
 
 // Warn if someone accidentally uses the server-side secret key in the browser.
 // sb_secret_ keys are for server-side use only and will cause auth failures.
@@ -21,9 +22,12 @@ if (supabaseKey && supabaseKey.startsWith('sb_secret_')) {
 
 // Create a stub client for when env vars are missing
 const createStubClient = (): any => {
-	console.error(
-		'Supabase configuration is missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY in your environment.',
-	);
+	if (!hasWarnedMissingConfig) {
+		hasWarnedMissingConfig = true;
+		console.warn(
+			'Supabase configuration is missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY in your environment.',
+		);
+	}
 
 	return {
 		auth: {

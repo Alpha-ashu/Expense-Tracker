@@ -6,7 +6,7 @@ import { canInstallPWA, showInstallPrompt, isAppInstalled } from '@/lib/pwa';
 export const PWAInstallPrompt: React.FC = () => {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
-  const autoPromptAttempted = useRef(false);
+  const promptShown = useRef(false);
 
   useEffect(() => {
     // Check if app is already installed
@@ -26,36 +26,20 @@ export const PWAInstallPrompt: React.FC = () => {
       }
     }
 
-    const attemptAutoPrompt = async () => {
-      if (autoPromptAttempted.current) return;
+    const revealPrompt = () => {
+      if (promptShown.current) return;
       if (!canInstallPWA()) return;
-
-      const hasUserActivation = !!navigator.userActivation?.hasBeenActive;
-      if (!hasUserActivation) {
-        setShowPrompt(true);
-        return;
-      }
-
-      autoPromptAttempted.current = true;
-      const installed = await showInstallPrompt();
-      if (installed) {
-        setShowPrompt(false);
-        localStorage.removeItem('pwa_install_dismissed');
-      } else {
-        setShowPrompt(false);
-        localStorage.setItem('pwa_install_dismissed', Date.now().toString());
-      }
+      promptShown.current = true;
+      setShowPrompt(true);
     };
 
-    // Wait a bit before showing the prompt (better UX)
     const timer = setTimeout(() => {
-      void attemptAutoPrompt();
+      revealPrompt();
     }, 3000);
 
-    // Also listen for the deferred prompt becoming available later
     const onReady = () => {
       if (!isAppInstalled()) {
-        void attemptAutoPrompt();
+        revealPrompt();
       }
     };
     window.addEventListener('pwainstallready', onReady);
@@ -75,6 +59,7 @@ export const PWAInstallPrompt: React.FC = () => {
       localStorage.removeItem('pwa_install_dismissed');
     } else {
       setIsInstalling(false);
+      setShowPrompt(true);
     }
   };
 

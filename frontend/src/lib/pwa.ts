@@ -79,27 +79,40 @@ export const isAppInstalled = (): boolean => {
 
 // PWA Install Prompt
 let deferredPrompt: any = null;
+let hasInstallPromptListeners = false;
 
 export const setupPWAInstallPrompt = () => {
+  if (import.meta.env.DEV || hasInstallPromptListeners) {
+    return;
+  }
+
+  hasInstallPromptListeners = true;
+
   window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
     // Stash the event so it can be triggered later
     deferredPrompt = e;
-    console.log('PWA install prompt available');
+    if (import.meta.env.VITE_DEBUG_PWA === 'true') {
+      console.info('PWA install prompt available');
+    }
     // Notify listeners that the install prompt is now available
     window.dispatchEvent(new Event('pwainstallready'));
   });
 
   window.addEventListener('appinstalled', () => {
-    console.log('PWA was installed');
+    if (import.meta.env.VITE_DEBUG_PWA === 'true') {
+      console.info('PWA was installed');
+    }
     deferredPrompt = null;
   });
 };
 
 export const showInstallPrompt = async (): Promise<boolean> => {
   if (!deferredPrompt) {
-    console.log('Install prompt not available');
+    if (import.meta.env.VITE_DEBUG_PWA === 'true') {
+      console.info('Install prompt not available');
+    }
     return false;
   }
 
@@ -109,7 +122,9 @@ export const showInstallPrompt = async (): Promise<boolean> => {
     
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
+    if (import.meta.env.VITE_DEBUG_PWA === 'true') {
+      console.info(`User response to install prompt: ${outcome}`);
+    }
     
     // We've used the prompt, can't use it again
     deferredPrompt = null;
