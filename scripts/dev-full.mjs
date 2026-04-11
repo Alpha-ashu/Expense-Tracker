@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const root = resolve(__dirname, '..');
+const backendDir = resolve(root, 'backend');
 
 const processes = [
-  spawn(npmCmd, ['run', 'dev'], { stdio: 'inherit', env: process.env }),
-  spawn(npmCmd, ['run', 'dev:backend'], { stdio: 'inherit', env: process.env }),
+  // Frontend: vite dev server from root
+  spawn('npm', ['run', 'dev'], { stdio: 'inherit', cwd: root, env: process.env, shell: true }),
+  // Backend: ts-node-dev from backend/ directory
+  spawn('npm', ['run', 'dev'], { stdio: 'inherit', cwd: backendDir, env: process.env, shell: true }),
 ];
 
 let shuttingDown = false;

@@ -19,12 +19,16 @@ export interface AuthRequest extends Request {
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-const supabase = (supabaseUrl && supabaseServiceKey) 
+// Supabase JWT Secret — found in Supabase Dashboard → Project Settings → API → JWT Settings
+// This lets us verify Supabase access tokens locally without the service role key.
+const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || '';
+const supabase = (supabaseUrl && supabaseServiceKey && !supabaseServiceKey.startsWith('sb_publishable_'))
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 const AUTH_STATUS_LOOKUP_TIMEOUT_MS = Number(process.env.AUTH_STATUS_LOOKUP_TIMEOUT_MS || 250);
 const STATUS_LOOKUP_TIMEOUT = Symbol('auth-status-timeout');
 const ALLOW_TEST_ROLE_FALLBACK = process.env.NODE_ENV === 'test';
+
 
 interface UserAuthSnapshot {
   email: string;
@@ -122,7 +126,34 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       }
     }
 
-    // 2. Try Supabase verification (handles ES256, HS256, etc.)
+    // 2. Try Supabase JWT Secret verification (fast, no network call needed)
+    if (supabaseJwtSecret) {
+      try {
+        const supabaseDecoded = jwt.verify(token, supabaseJwtSecret) as any;
+        const userId = supabaseDecoded?.sub;
+
+        if (typeof userId === 'string' && userId.length > 0) {
+          const authSnapshot = await getUserAuthSnapshot(userId);
+          if (authSnapshot?.status === 'suspended') {
+            return res.status(403).json({ error: 'Account suspended. Contact support.', code: 'ACCOUNT_SUSPENDED' });
+          }
+
+          req.userId = userId;
+          req.user = {
+            id: userId,
+            email: authSnapshot?.email || supabaseDecoded.email || '',
+            role: authSnapshot?.role || 'user',
+            isApproved: authSnapshot?.isApproved ?? false,
+            name: authSnapshot?.name || supabaseDecoded.user_metadata?.full_name,
+          };
+          return next();
+        }
+      } catch (err) {
+        // Fall through to Supabase API check
+      }
+    }
+
+    // 3. Try Supabase API verification (requires valid service role key)
     if (supabase && process.env.NODE_ENV !== 'test') {
       try {
         const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -149,6 +180,30 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
         logger.warn('Supabase auth lookup failed, continuing to final auth rejection.', {
           error: supabaseError instanceof Error ? supabaseError.message : String(supabaseError),
         });
+      }
+    }
+
+    // 4. Dev-mode fallback: decode token without verification to aid local development.
+    // This allows the app to function locally even without a Supabase JWT Secret configured.
+    // Set SUPABASE_JWT_SECRET in backend/.env to enable proper verification instead.
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        const unverified = jwt.decode(token) as any;
+        const userId = unverified?.sub;
+        if (typeof userId === 'string' && userId.length > 0) {
+          logger.warn('⚠️  Auth: Using UNVERIFIED token in development mode. Set SUPABASE_JWT_SECRET in backend/.env to enable proper verification.');
+          req.userId = userId;
+          req.user = {
+            id: userId,
+            email: unverified.email || '',
+            role: 'user',
+            isApproved: false,
+            name: unverified.user_metadata?.full_name,
+          };
+          return next();
+        }
+      } catch {
+        // fall through to 401
       }
     }
 
