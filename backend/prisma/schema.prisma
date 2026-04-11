@@ -656,8 +656,8 @@ model GroupExpense {
 model GroupExpenseMember {
   id             String       @id @default(uuid())
   groupExpenseId String
-  userId         String?      -- Optional: may be a friend without user account
-  name           String       -- Display name
+  userId         String?      // Optional: may be a friend without user account
+  name           String       // Display name
   email          String?
   phone          String?
   shareAmount    Float        @default(0)
