@@ -84,6 +84,12 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     // BUG FIX #4: Round to 2 decimal places to prevent floating-point precision errors
     // e.g., 200.17 saved as 199.80 due to IEEE 754 floating-point representation
     const numericAmount = Math.round(Number(amount) * 100) / 100;
+
+    // Validate amount is positive and finite
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return res.status(400).json({ error: 'Transaction amount must be a positive number' });
+    }
+
     const txDate = new Date(date);
     const dedupHash = generateDedupHash(userId, numericAmount, txDate, description);
 
@@ -214,6 +220,14 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
     const userId = getUserId(req);
     const { id } = req.params;
     const body = req.body as Record<string, unknown>;
+
+    // Validate amount if provided: must be positive and finite
+    if (body.amount !== undefined) {
+      const numAmount = Number(body.amount);
+      if (!Number.isFinite(numAmount) || numAmount <= 0) {
+        return res.status(400).json({ error: 'Transaction amount must be a positive number' });
+      }
+    }
 
     // Whitelist only updatable fields to prevent field injection
     const updates: Record<string, unknown> = {};

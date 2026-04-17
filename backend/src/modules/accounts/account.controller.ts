@@ -96,15 +96,26 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Account not found' });
     }
 
-    if (body.balance !== undefined && Number(body.balance) < 0) {
-      return res.status(400).json({ error: 'Account balance cannot be negative' });
+    // Validate balance: must be non-negative and finite
+    if (body.balance !== undefined) {
+      const numBalance = Number(body.balance);
+      if (!Number.isFinite(numBalance) || numBalance < 0) {
+        return res.status(400).json({ error: 'Account balance must be a non-negative number' });
+      }
     }
 
     // Whitelist only permitted fields to prevent mass assignment
     const allowedFields = ['name', 'type', 'provider', 'country', 'balance', 'currency', 'color', 'icon', 'syncStatus'] as const;
     const updates: Record<string, any> = {};
     for (const field of allowedFields) {
-      if (body[field] !== undefined) updates[field] = body[field];
+      if (body[field] !== undefined) {
+        // Sanitize string fields to prevent XSS
+        if ((field === 'name' || field === 'provider' || field === 'country') && typeof body[field] === 'string') {
+          updates[field] = sanitize(body[field]);
+        } else {
+          updates[field] = body[field];
+        }
+      }
     }
 
     const updated = await prisma.account.update({

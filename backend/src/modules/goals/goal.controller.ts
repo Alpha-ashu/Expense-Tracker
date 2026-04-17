@@ -89,11 +89,33 @@ export const updateGoal = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Goal not found' });
     }
 
+    // Validate numeric fields if provided
+    if (body.targetAmount !== undefined) {
+      const numTarget = Number(body.targetAmount);
+      if (!Number.isFinite(numTarget) || numTarget <= 0) {
+        return res.status(400).json({ success: false, error: 'Target amount must be a positive number' });
+      }
+    }
+
+    if (body.currentAmount !== undefined) {
+      const numCurrent = Number(body.currentAmount);
+      if (!Number.isFinite(numCurrent) || numCurrent < 0) {
+        return res.status(400).json({ success: false, error: 'Current amount must be a non-negative number' });
+      }
+    }
+
     // Whitelist only permitted fields to prevent mass assignment
     const allowedFields = ['name', 'targetAmount', 'currentAmount', 'targetDate', 'category', 'isGroupGoal', 'syncStatus'] as const;
     const updates: Record<string, any> = {};
     for (const field of allowedFields) {
-      if (body[field] !== undefined) updates[field] = body[field];
+      if (body[field] !== undefined) {
+        // Sanitize name field
+        if (field === 'name' && typeof body[field] === 'string') {
+          updates[field] = sanitize(body[field]);
+        } else {
+          updates[field] = body[field];
+        }
+      }
     }
     if (updates.targetDate) updates.targetDate = new Date(updates.targetDate);
 
