@@ -3,7 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { backendService } from '@/lib/backend-api';
-import { queueTransactionInsertSync } from '@/lib/auth-sync-integration';
+import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { db } from '@/lib/database';
 import { TrendingUp, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -361,7 +361,7 @@ export const AddInvestment: React.FC = () => {
       let purchaseTransactionId: number | undefined;
       let purchaseFeeTransactionId: number | undefined;
 
-      await db.transaction('rw', db.accounts, db.transactions, db.investments, async () => {
+      if (savedInvestment?.storage === 'local') {
         purchaseTransactionId = await db.transactions.add({
           type: 'expense',
           amount: assetCostInBaseCurrency,
@@ -391,22 +391,8 @@ export const AddInvestment: React.FC = () => {
             updatedAt: createdAt,
           });
         }
-
-        await db.accounts.update(fundingAccount.id!, {
-          balance: fundingAccount.balance - totalPurchaseCost,
-          updatedAt: createdAt,
-        });
-
-        if (Number.isFinite(localInvestmentId)) {
-          await db.investments.update(localInvestmentId, {
-            purchaseTransactionId,
-            purchaseFeeTransactionId,
-          });
-        }
-      });
-
-      if (purchaseTransactionId) {
-        queueTransactionInsertSync(purchaseTransactionId, {
+      } else {
+        const savedPurchaseTransaction = await saveTransactionWithBackendSync({
           type: 'expense',
           amount: assetCostInBaseCurrency,
           accountId: fundingAccount.id!,
@@ -415,34 +401,44 @@ export const AddInvestment: React.FC = () => {
           description: `Bought ${investmentLabel}`,
           merchant: formData.broker,
           date: transactionDate,
+          tags: ['investment', 'purchase'],
+          createdAt,
+          updatedAt: createdAt,
         });
-      }
+        purchaseTransactionId = savedPurchaseTransaction.id;
 
-      if (purchaseFeeTransactionId) {
-        queueTransactionInsertSync(purchaseFeeTransactionId, {
-          type: 'expense',
-          amount: formData.purchaseFees,
-          accountId: fundingAccount.id!,
-          category: 'Investment Fees',
-          subcategory: mapInvestmentType(formData.type),
-          description: `Purchase fees for ${investmentLabel}`,
-          merchant: formData.broker,
-          date: transactionDate,
-        });
-      }
-
-      if (Number.isFinite(localInvestmentId)) {
-        try {
-          await backendService.updateInvestment(String(localInvestmentId), {
-            purchaseTransactionId,
-            purchaseFeeTransactionId,
-            fundingAccountId: fundingAccount.id,
-            purchaseFees: formData.purchaseFees,
+        if (formData.purchaseFees > 0) {
+          const savedFeeTransaction = await saveTransactionWithBackendSync({
+            type: 'expense',
+            amount: formData.purchaseFees,
+            accountId: fundingAccount.id!,
+            category: 'Investment Fees',
+            subcategory: mapInvestmentType(formData.type),
+            description: `Purchase fees for ${investmentLabel}`,
+            merchant: formData.broker,
+            date: transactionDate,
+            tags: ['investment', 'fee'],
+            createdAt,
+            updatedAt: createdAt,
           });
-        } catch (syncError) {
-          console.error('Failed to sync purchase transaction metadata:', syncError);
+          purchaseFeeTransactionId = savedFeeTransaction.id;
         }
       }
+
+      await db.transaction('rw', db.accounts, db.investments, async () => {
+        await db.accounts.update(fundingAccount.id!, {
+          balance: fundingAccount.balance - totalPurchaseCost,
+          updatedAt: createdAt,
+        });
+
+        if (Number.isFinite(localInvestmentId)) {
+          await db.investments.update(localInvestmentId, {
+            cloudId: savedInvestment?.id ?? undefined,
+            purchaseTransactionId,
+            purchaseFeeTransactionId,
+          });
+        }
+      });
 
       toast.success(savedInvestment?.storage === 'local'
         ? 'Investment added to your local portfolio'

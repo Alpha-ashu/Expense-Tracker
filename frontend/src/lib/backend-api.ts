@@ -236,9 +236,15 @@ class BackendService {
         closedAt: investment.closedAt ? investment.closedAt.toISOString() : undefined,
       });
 
-      const localId = await RealtimeDataManager.addInvestment(localInvestment);
+      const responsePayload = normalizeInvestmentDates(response.data?.data ?? response.data);
+      const localId = await RealtimeDataManager.addInvestment({
+        ...localInvestment,
+        ...responsePayload,
+        cloudId: responsePayload?.id,
+        syncStatus: 'synced',
+      });
       return {
-        ...response.data,
+        ...responsePayload,
         localId,
       };
     } catch (error) {
@@ -585,17 +591,23 @@ class BackendService {
 
   // ===== INVESTMENTS =====
   async updateInvestment(id: string, updates: any) {
-    const localId = Number(id);
+    const localId = Number(updates?.localId ?? id);
     const localUpdates = normalizeInvestmentDates(updates);
 
     try {
       const response = await this.api.put(`/investments/${id}`, updates);
+      const responsePayload = normalizeInvestmentDates(response.data?.data ?? response.data);
 
       if (Number.isFinite(localId)) {
-        await RealtimeDataManager.updateInvestment(localId, localUpdates);
+        await RealtimeDataManager.updateInvestment(localId, {
+          ...localUpdates,
+          ...responsePayload,
+          cloudId: responsePayload?.id ?? updates?.cloudId,
+          syncStatus: 'synced',
+        });
       }
 
-      return response.data;
+      return responsePayload;
     } catch (error) {
       if (!shouldUseLocalFallback(error) || !Number.isFinite(localId)) {
         throw error;

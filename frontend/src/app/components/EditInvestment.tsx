@@ -112,7 +112,7 @@ export const EditInvestment: React.FC = () => {
       const now = new Date();
 
       if (!hasTrackedPurchaseCashflow) {
-        await backendService.updateInvestment(String(selectedId), {
+        await backendService.updateInvestment(selectedInvestment.cloudId ?? String(selectedId), {
           assetType: formData.assetType,
           assetName: formData.assetName,
           quantity: formData.quantity,
@@ -131,6 +131,8 @@ export const EditInvestment: React.FC = () => {
           totalInvestedNative,
           currentValueNative,
           valuationVersion: 2,
+          localId: selectedId,
+          cloudId: selectedInvestment.cloudId,
         });
 
         toast.success('Investment updated successfully');
@@ -309,7 +311,7 @@ export const EditInvestment: React.FC = () => {
         queueTransactionDeleteSync(deletedFeeTransactionId);
       }
 
-      await backendService.updateInvestment(String(selectedId), {
+      await backendService.updateInvestment(selectedInvestment.cloudId ?? String(selectedId), {
         assetType: formData.assetType,
         assetName: formData.assetName,
         quantity: formData.quantity,
@@ -330,8 +332,8 @@ export const EditInvestment: React.FC = () => {
         valuationVersion: 2,
         fundingAccountId: selectedFundingAccount!.id,
         purchaseFees: formData.purchaseFees,
-        purchaseTransactionId,
-        purchaseFeeTransactionId,
+        localId: selectedId,
+        cloudId: selectedInvestment.cloudId,
       });
 
       toast.success('Investment updated successfully');

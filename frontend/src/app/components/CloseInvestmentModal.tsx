@@ -5,7 +5,7 @@ import { useApp } from '@/contexts/AppContext';
 import { Investment, db } from '@/lib/database';
 import { Button } from '@/app/components/ui/button';
 import { backendService } from '@/lib/backend-api';
-import { queueTransactionInsertSync } from '@/lib/auth-sync-integration';
+import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { formatCurrencyAmount, formatNativeMoney, getConversionRateFromQuotes } from '@/lib/currencyUtils';
 import { fetchCurrencyConversionRate, getInvestmentDisplayName, getInvestmentMetrics } from '@/lib/investmentUtils';
 import { StockQuote } from '@/lib/stockApi';
@@ -142,24 +142,23 @@ export const CloseInvestmentModal: React.FC<CloseInvestmentModalProps> = ({
         updatedAt: now,
       };
 
-      let saleTransactionId: number | undefined;
-      let feeTransactionId: number | undefined;
-
-      await db.transaction('rw', db.transactions, db.accounts, db.investments, async () => {
-        saleTransactionId = await db.transactions.add({
-          ...saleTransaction,
+      const savedSaleTransaction = await saveTransactionWithBackendSync({
+        ...saleTransaction,
+        createdAt: now,
+        updatedAt: now,
+      });
+      const savedFeeTransaction = feeTransaction
+        ? await saveTransactionWithBackendSync({
+          ...feeTransaction,
           createdAt: now,
           updatedAt: now,
-        });
+        })
+        : null;
 
-        if (feeTransaction) {
-          feeTransactionId = await db.transactions.add({
-            ...feeTransaction,
-            createdAt: now,
-            updatedAt: now,
-          });
-        }
+      const saleTransactionId = savedSaleTransaction.id;
+      const feeTransactionId = savedFeeTransaction?.id;
 
+      await db.transaction('rw', db.accounts, db.investments, async () => {
         await db.accounts.update(settlementAccount.id!, {
           balance: settlementAccount.balance + netSaleValue,
           updatedAt: now,
@@ -172,19 +171,11 @@ export const CloseInvestmentModal: React.FC<CloseInvestmentModalProps> = ({
         });
       });
 
-      if (saleTransactionId) {
-        queueTransactionInsertSync(saleTransactionId, saleTransaction);
-      }
-
-      if (feeTransaction && feeTransactionId) {
-        queueTransactionInsertSync(feeTransactionId, feeTransaction);
-      }
-
       try {
-        await backendService.updateInvestment(String(investment.id), {
+        await backendService.updateInvestment(investment.cloudId ?? String(investment.id), {
           ...investmentUpdates,
-          saleTransactionId,
-          saleFeeTransactionId: feeTransactionId,
+          localId: investment.id,
+          cloudId: investment.cloudId,
         });
       } catch (error) {
         console.error('Failed to sync closed investment to backend:', error);

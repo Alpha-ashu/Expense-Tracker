@@ -74,30 +74,15 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         return;
       }
 
-      // Create expense transaction in source account (outflow)
       await saveTransactionWithBackendSync({
         type: 'transfer',
         amount: formData.amount,
         accountId: formData.fromAccountId,
         category: 'Transfer',
-        subcategory: 'Transfer Out',
+        subcategory: 'Transfer',
         description: formData.description || `Transfer to ${toAccount.name}`,
         date: new Date(),
         transferToAccountId: formData.toAccountId,
-        transferType: formData.transferType,
-        updatedAt: new Date(),
-      });
-
-      // Create income transaction in destination account (inflow)
-      await saveTransactionWithBackendSync({
-        type: 'transfer',
-        amount: formData.amount,
-        accountId: formData.toAccountId,
-        category: 'Transfer',
-        subcategory: 'Transfer In',
-        description: formData.description || `Transfer from ${fromAccount.name}`,
-        date: new Date(),
-        transferToAccountId: formData.fromAccountId,
         transferType: formData.transferType,
         updatedAt: new Date(),
       });
@@ -273,7 +258,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 max-w-2xl">
           <h3 className="font-semibold text-green-900 mb-2">✓ Safe & Secure</h3>
           <p className="text-sm text-green-700">
-            Transfers are instantly processed and create audit-trail transactions in both accounts for your records.
+            Transfers are instantly processed, update both account balances, and keep one authoritative transfer record.
           </p>
         </div>
       </div>

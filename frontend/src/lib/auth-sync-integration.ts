@@ -2076,7 +2076,7 @@ export async function handleLogout() {
 export async function saveTransactionWithBackendSync(transaction: any) {
   initializeBackendSync();
 
-  if (isBackendFirstSyncMode() && transaction?.type !== 'transfer') {
+  if (isBackendFirstSyncMode()) {
     const sourceAccount = await db.accounts.get(Number(transaction.accountId));
     if (!sourceAccount?.cloudId) {
       throw new Error('Account must be synced before creating a backend transaction');
@@ -2132,6 +2132,78 @@ export async function saveTransactionWithBackendSync(transaction: any) {
   queueRecordUpsertSync('transactions', savedId, toNumber(transaction?.remoteId));
 
   return { ...dbTransaction, id: savedId };
+}
+
+export async function updateTransactionWithBackendSync(localId: number, updates: any) {
+  initializeBackendSync();
+
+  const existing = await db.transactions.get(localId);
+  if (!existing) {
+    throw new Error('Transaction not found');
+  }
+
+  if (isBackendFirstSyncMode() && existing.cloudId) {
+    const transferTargetAccount = updates.transferToAccountId != null
+      ? await db.accounts.get(Number(updates.transferToAccountId))
+      : null;
+
+    if (updates.transferToAccountId != null && !transferTargetAccount?.cloudId) {
+      throw new Error('Transfer destination account must be synced before updating a backend transaction');
+    }
+
+    const response = await apiClient.put(`/transactions/${existing.cloudId}`, {
+      type: updates.type ?? existing.type,
+      amount: Number(updates.amount ?? existing.amount ?? 0),
+      category: updates.category ?? existing.category,
+      subcategory: updates.subcategory ?? existing.subcategory,
+      description: updates.description ?? existing.description,
+      merchant: updates.merchant ?? existing.merchant,
+      date: toIsoString(updates.date ?? existing.date) ?? new Date().toISOString(),
+      tags: Array.isArray(updates.tags) ? updates.tags : (existing.tags ?? []),
+      transferToAccountId: transferTargetAccount?.cloudId ?? undefined,
+      transferType: updates.transferType ?? existing.transferType,
+    }, {
+      showErrorToast: false,
+    });
+
+    const remote = response.data as any;
+    await db.transactions.update(localId, {
+      ...updates,
+      cloudId: remote?.id ?? existing.cloudId,
+      createdAt: toDate(remote?.createdAt) ?? existing.createdAt,
+      updatedAt: toDate(remote?.updatedAt) ?? new Date(),
+      syncStatus: 'synced' as const,
+      version: remote?.version ?? existing.version,
+    });
+    return;
+  }
+
+  await db.transactions.update(localId, {
+    ...updates,
+    updatedAt: new Date(),
+  });
+
+  queueRecordUpsertSync('transactions', localId, toNumber(existing.remoteId));
+}
+
+export async function deleteTransactionWithBackendSync(localId: number) {
+  initializeBackendSync();
+
+  const existing = await db.transactions.get(localId);
+  if (!existing) {
+    return;
+  }
+
+  if (isBackendFirstSyncMode() && existing.cloudId) {
+    await apiClient.delete(`/transactions/${existing.cloudId}`, {
+      showErrorToast: false,
+    });
+    await db.transactions.delete(localId);
+    return;
+  }
+
+  await db.transactions.delete(localId);
+  queueRecordDeleteSync('transactions', localId, toNumber(existing.remoteId));
 }
 
 export async function saveTransactionAndUpdateAccountWithBackendSync(

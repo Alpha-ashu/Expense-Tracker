@@ -168,7 +168,8 @@ export const Investments: React.FC = () => {
       });
 
       try {
-        await backendService.deleteInvestment(String(investmentToDelete.id));
+        const investment = await db.investments.get(investmentToDelete.id);
+        await backendService.deleteInvestment(investment?.cloudId ?? String(investmentToDelete.id));
       } catch (syncError) {
         console.error('Failed to sync investment deletion to backend:', syncError);
       }
