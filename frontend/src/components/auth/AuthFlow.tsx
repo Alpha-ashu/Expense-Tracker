@@ -11,6 +11,13 @@ import { toast } from 'sonner';
 import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
 import { Terms } from '@/app/components/Terms';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
+import {
+  isSupabaseConnectivityError,
+  isSupabaseTableUnavailable,
+  markSupabaseTemporarilyUnavailable,
+  rememberMissingSupabaseTable,
+  shouldSkipDirectSupabaseRequests,
+} from '@/lib/supabase-runtime';
 
 type AuthStep =
   | 'welcome'
@@ -97,11 +104,26 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       // Always go to PIN setup after sign-in.
       // Profile completion (onboarding) is handled by App.tsx's NewUserOnboarding gate,
       // so we don't need a separate legacy profile-setup path here.
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', data.user.id)
-        .single();
+      let profile: { id?: string } | null = null;
+      if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('profiles')) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          if (rememberMissingSupabaseTable('profiles', profileError)) {
+            profile = null;
+          } else if (isSupabaseConnectivityError(profileError)) {
+            markSupabaseTemporarilyUnavailable(profileError);
+          } else {
+            throw profileError;
+          }
+        } else {
+          profile = profileData;
+        }
+      }
 
       setIsNewUser(!profile);
       setStep('pin-setup');
@@ -227,7 +249,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
 
     try {
       // Store profile data
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
       if (user) {
         // Save profile — try full upsert first, fallback to base columns if migration not run
@@ -239,20 +262,28 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
           updated_at: new Date().toISOString(),
         };
 
-        const { error: profileError } = await supabase.from('profiles').upsert({
-          ...baseProfile,
-          date_of_birth: userProfile?.dateOfBirth || null,
-          job_type: userProfile?.jobType || null,
-          job_industry: userProfile?.jobIndustry || null,
-          monthly_income: parseFloat(userProfile?.monthlyIncome || '0'),
-        });
+        if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('profiles')) {
+          const { error: profileError } = await supabase.from('profiles').upsert({
+            ...baseProfile,
+            date_of_birth: userProfile?.dateOfBirth || null,
+            job_type: userProfile?.jobType || null,
+            job_industry: userProfile?.jobIndustry || null,
+            monthly_income: parseFloat(userProfile?.monthlyIncome || '0'),
+          });
 
-        if (profileError) {
-          // Likely missing extended columns — fall back to base columns only
-          console.warn('Extended profile upsert failed, trying base:', profileError.message);
-          const { error: baseError } = await supabase.from('profiles').upsert(baseProfile);
-          if (baseError) {
-            console.error('Base profile save also failed:', baseError);
+          if (profileError) {
+            if (rememberMissingSupabaseTable('profiles', profileError)) {
+              // Keep local onboarding state; cloud profile is unavailable in this deployment.
+            } else if (isSupabaseConnectivityError(profileError)) {
+              markSupabaseTemporarilyUnavailable(profileError);
+            } else {
+              // Likely missing extended columns — fall back to base columns only
+              console.warn('Extended profile upsert failed, trying base:', profileError.message);
+              const { error: baseError } = await supabase.from('profiles').upsert(baseProfile);
+              if (baseError && !rememberMissingSupabaseTable('profiles', baseError)) {
+                console.error('Base profile save also failed:', baseError);
+              }
+            }
           }
         }
 
@@ -306,7 +337,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
 
   const autoProvisionAccounts = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
 
       if (!user || !salaryAccount) return;
 

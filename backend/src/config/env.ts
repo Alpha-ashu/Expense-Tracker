@@ -13,7 +13,8 @@ const envSchema = z.object({
       if (typeof value === 'string') return value === 'true';
       return false;
     }),
-  JWT_SECRET: z.string().min(32),
+  JWT_SECRET: z.string().min(32).optional(),
+  SUPABASE_JWT_SECRET: z.string().min(1).optional(),
   FRONTEND_URL: z.string().url().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   // API Keys and Credentials
@@ -27,19 +28,33 @@ const envSchema = z.object({
   RECEIPT_OCR_API_KEY: z.string().optional(),
   RECEIPT_OCR_TIMEOUT_MS: z.coerce.number().int().positive().optional(),
   RECEIPT_SCAN_RATE_LIMIT: z.coerce.number().int().positive().optional(),
+}).transform((values, ctx) => {
+  const resolvedJwtSecret = values.JWT_SECRET || values.SUPABASE_JWT_SECRET;
+
+  if (!resolvedJwtSecret) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Either JWT_SECRET or SUPABASE_JWT_SECRET must be provided',
+      path: ['JWT_SECRET'],
+    });
+    return z.NEVER;
+  }
+
+  return {
+    ...values,
+    JWT_SECRET: resolvedJwtSecret,
+  };
 });
 
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Invalid environment variables:', JSON.stringify(parsed.error.format(), null, 2));
-  
-  if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
-    // In strict production (non-Vercel), we might still want to catch this later
-    // but on Vercel, we need to be careful not to crash the whole runtime if possible.
-  }
+  console.error('Invalid environment variables:', JSON.stringify(parsed.error.format(), null, 2));
 }
 
-export const env = parsed.success 
-  ? parsed.data 
-  : (process.env as any); // Fallback to raw process.env if validation fails
+export const env = parsed.success
+  ? parsed.data
+  : ({
+      ...(process.env as any),
+      JWT_SECRET: process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET,
+    } as any);

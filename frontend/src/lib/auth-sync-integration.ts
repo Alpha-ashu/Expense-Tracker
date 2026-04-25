@@ -1,6 +1,15 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
+import {
+  clearSupabaseTemporaryUnavailable,
+  filterAvailableSupabaseTables,
+  isSupabaseConnectivityError,
+  isSupabaseTableUnavailable,
+  markSupabaseTemporarilyUnavailable,
+  rememberMissingSupabaseTable,
+  shouldSkipDirectSupabaseRequests,
+} from '@/lib/supabase-runtime';
 
 type SyncedTableName =
   | 'accounts'
@@ -178,6 +187,7 @@ const isConnectivityError = (error: any) => {
   const message = String(error?.message || '').toLowerCase();
   const name = String(error?.name || '').toLowerCase();
   return (
+    isSupabaseConnectivityError(error) ||
     name.includes('abort') ||
     name.includes('network') ||
     message.includes('failed to fetch') ||
@@ -209,6 +219,10 @@ const isMissingColumnError = (error: any, column: string) => {
 };
 
 const fetchUserRows = async (table: SyncedTableName, userId: string) => {
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable(table)) {
+    return [];
+  }
+
   const runQuery = async (withDeletedAt: boolean) => {
     let query = supabase.from(table).select('*').eq('user_id', userId);
     if (withDeletedAt) {
@@ -232,9 +246,18 @@ const fetchUserRows = async (table: SyncedTableName, userId: string) => {
   }
 
   if (error) {
+    if (rememberMissingSupabaseTable(table, error)) {
+      return [];
+    }
+
+    if (isConnectivityError(error)) {
+      markSupabaseTemporarilyUnavailable(error);
+    }
+
     throw error;
   }
 
+  clearSupabaseTemporaryUnavailable();
   return normalizeArray(data as any[]);
 };
 
@@ -735,6 +758,10 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
 }
 
 async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, localId: number) {
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable(table)) {
+    return true;
+  }
+
   const localTable: any = getLocalTable(table);
   const localRecord = await localTable.get(localId);
   if (!localRecord) return true;
@@ -776,11 +803,16 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
   }
 
   if (error) {
+    if (rememberMissingSupabaseTable(table, error)) {
+      return true;
+    }
+
     if (isConnectivityError(error)) throw error;
     console.error(`Upsert failed for ${table}:${localId}`, error);
     return false;
   }
 
+  clearSupabaseTemporaryUnavailable();
   const remoteId = toNumber(remoteRecord?.id);
   if (!remoteId) return true;
 
@@ -795,6 +827,10 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
 }
 
 async function deleteRemoteRecord(userId: string, item: SyncQueueItem) {
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable(item.table)) {
+    return true;
+  }
+
   const remoteId = item.remoteId;
   if (!remoteId) return true;
 
@@ -805,9 +841,18 @@ async function deleteRemoteRecord(userId: string, item: SyncQueueItem) {
     .eq('user_id', userId);
 
   if (error && !isMissingRemoteRow(error)) {
+    if (rememberMissingSupabaseTable(item.table, error)) {
+      return true;
+    }
+
+    if (isConnectivityError(error)) {
+      markSupabaseTemporarilyUnavailable(error);
+    }
+
     throw error;
   }
 
+  clearSupabaseTemporaryUnavailable();
   return true;
 }
 
@@ -816,11 +861,28 @@ export async function processPendingSyncQueue() {
 
   if (syncState.processingQueue || isCloudSyncSuppressed()) return;
   if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  if (shouldSkipDirectSupabaseRequests()) return;
 
   const pendingItems = readSyncQueue();
   if (pendingItems.length === 0) return;
 
-  const { data: { user } } = await supabase.auth.getUser();
+  let user = null as { id: string } | null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    user = session?.user ? { id: session.user.id } : null;
+
+    if (!user) {
+      const { data } = await supabase.auth.getUser();
+      user = data.user ? { id: data.user.id } : null;
+    }
+  } catch (error) {
+    if (isConnectivityError(error)) {
+      markSupabaseTemporarilyUnavailable(error);
+      return;
+    }
+    throw error;
+  }
+
   if (!user) return;
 
   syncState.processingQueue = true;
@@ -1107,6 +1169,7 @@ export async function syncUserDataFromCloud(
   requestedTables: SyncedTableName[] = CORE_SYNC_TABLES
 ) {
   if (syncState.syncingFromCloud) return;
+  if (shouldSkipDirectSupabaseRequests()) return;
   syncState.syncingFromCloud = true;
 
   try {
@@ -1115,8 +1178,15 @@ export async function syncUserDataFromCloud(
     await deduplicateLocalData();
     await processPendingSyncQueue();
 
-    const targetTables = requestedTables.length > 0 ? requestedTables : CORE_SYNC_TABLES;
-    const expandedTables = expandTablesForSync(targetTables);
+    const targetTables = filterAvailableSupabaseTables(
+      requestedTables.length > 0 ? requestedTables : CORE_SYNC_TABLES
+    ) as SyncedTableName[];
+
+    if (targetTables.length === 0) {
+      return;
+    }
+
+    const expandedTables = filterAvailableSupabaseTables(expandTablesForSync(targetTables)) as SyncedTableName[];
     const mergeTargets = new Set<SyncedTableName>(targetTables);
     const shouldFetch = (table: SyncedTableName) => expandedTables.includes(table);
 
@@ -1434,7 +1504,16 @@ export async function syncUserDataFromCloud(
 }
 
 function scheduleCloudPull(userId: string, tables: SyncedTableName[] = CORE_SYNC_TABLES, delay = 400) {
-  tables.forEach((table) => syncState.pendingPullTables.add(table));
+  if (shouldSkipDirectSupabaseRequests()) {
+    return;
+  }
+
+  const schedulableTables = filterAvailableSupabaseTables(tables) as SyncedTableName[];
+  if (schedulableTables.length === 0) {
+    return;
+  }
+
+  schedulableTables.forEach((table) => syncState.pendingPullTables.add(table));
 
   if (syncState.pullTimer) {
     clearTimeout(syncState.pullTimer);
@@ -1442,16 +1521,28 @@ function scheduleCloudPull(userId: string, tables: SyncedTableName[] = CORE_SYNC
 
   syncState.pullTimer = setTimeout(() => {
     syncState.pullTimer = null;
-    const pendingTables = syncState.pendingPullTables.size > 0
-      ? [...syncState.pendingPullTables]
-      : [...CORE_SYNC_TABLES];
+    const pendingTables = (
+      syncState.pendingPullTables.size > 0
+        ? [...syncState.pendingPullTables]
+        : [...CORE_SYNC_TABLES]
+    ).filter((table) => !isSupabaseTableUnavailable(table)) as SyncedTableName[];
     syncState.pendingPullTables.clear();
+
+    if (pendingTables.length === 0 || shouldSkipDirectSupabaseRequests()) {
+      return;
+    }
 
     void (async () => {
       try {
         await syncUserDataFromCloud(userId, pendingTables);
       } catch (error) {
-        if (!isConnectivityError(error)) {
+        if (isConnectivityError(error)) {
+          markSupabaseTemporarilyUnavailable(error);
+          if (syncState.activeChannel) {
+            void supabase.removeChannel(syncState.activeChannel);
+            syncState.activeChannel = null;
+          }
+        } else {
           console.warn('Cloud pull failed:', error);
         }
       }
@@ -1468,9 +1559,26 @@ export function subscribeToUserCloudSync(userId: string) {
     syncState.activeChannel = null;
   }
 
+  if (shouldSkipDirectSupabaseRequests()) {
+    return () => {
+      if (syncState.activeUserId === userId) {
+        syncState.activeUserId = null;
+      }
+    };
+  }
+
+  const subscribableTables = filterAvailableSupabaseTables(CORE_SYNC_TABLES) as SyncedTableName[];
+  if (subscribableTables.length === 0) {
+    return () => {
+      if (syncState.activeUserId === userId) {
+        syncState.activeUserId = null;
+      }
+    };
+  }
+
   const channel = supabase.channel(`finora-user-sync-${userId}`);
 
-  for (const table of CORE_SYNC_TABLES) {
+  for (const table of subscribableTables) {
     channel.on(
       'postgres_changes',
       {
@@ -1487,7 +1595,8 @@ export function subscribeToUserCloudSync(userId: string) {
 
   channel.subscribe((status) => {
     if (status === 'SUBSCRIBED') {
-      scheduleCloudPull(userId, CORE_SYNC_TABLES, 200);
+      clearSupabaseTemporaryUnavailable();
+      scheduleCloudPull(userId, subscribableTables, 200);
     }
   });
 

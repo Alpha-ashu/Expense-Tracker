@@ -104,7 +104,7 @@ export const authenticatedRateLimit = (options: Omit<RateLimitOptions, 'keyGener
         const bearerToken = req.headers.authorization?.startsWith('Bearer ')
           ? req.headers.authorization.slice('Bearer '.length).trim()
           : '';
-        const secret = process.env.JWT_SECRET;
+        const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
 
         if (bearerToken && secret) {
           try {

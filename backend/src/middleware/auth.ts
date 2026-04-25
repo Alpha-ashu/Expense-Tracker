@@ -88,7 +88,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const customSecret = process.env.JWT_SECRET || '';
+    const customSecret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || '';
     let decoded: any;
 
     // 1. Try Custom JWT first (fast, local)

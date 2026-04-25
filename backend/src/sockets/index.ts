@@ -77,7 +77,7 @@ export class SocketManager {
   }
 
   private async verifyToken(token: string): Promise<SocketUserIdentity | null> {
-    const customSecret = process.env.JWT_SECRET || '';
+    const customSecret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || '';
 
     if (customSecret) {
       try {

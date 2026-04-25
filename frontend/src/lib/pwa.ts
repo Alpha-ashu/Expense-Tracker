@@ -79,14 +79,14 @@ export const isAppInstalled = (): boolean => {
 
 // PWA Install Prompt
 let deferredPrompt: any = null;
-let hasInstallPromptListeners = false;
+let installPromptListenersBound = false;
 
 export const setupPWAInstallPrompt = () => {
-  if (import.meta.env.DEV || hasInstallPromptListeners) {
+  if (import.meta.env.DEV || installPromptListenersBound) {
     return;
   }
 
-  hasInstallPromptListeners = true;
+  installPromptListenersBound = true;
 
   window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent the mini-infobar from appearing on mobile

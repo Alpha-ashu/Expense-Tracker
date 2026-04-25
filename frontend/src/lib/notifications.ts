@@ -3,6 +3,14 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from 'sonner';
 import { db, type Notification } from './database';
 import supabase from '@/utils/supabase/client';
+import {
+  clearSupabaseTemporaryUnavailable,
+  isSupabaseConnectivityError,
+  isSupabaseTableUnavailable,
+  markSupabaseTemporarilyUnavailable,
+  rememberMissingSupabaseTable,
+  shouldSkipDirectSupabaseRequests,
+} from '@/lib/supabase-runtime';
 
 type NotificationInput = Omit<Notification, 'id' | 'createdAt' | 'isRead'> & {
   createdAt?: Date;
@@ -100,8 +108,21 @@ const shouldUseSystemNotification = () =>
   typeof document !== 'undefined' && document.visibilityState !== 'visible';
 
 async function getActiveUserId() {
-  const { data } = await supabase.auth.getUser();
-  return data.user?.id;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      return session.user.id;
+    }
+
+    const { data } = await supabase.auth.getUser();
+    return data.user?.id;
+  } catch (error) {
+    if (isSupabaseConnectivityError(error)) {
+      markSupabaseTemporarilyUnavailable(error);
+      return null;
+    }
+    throw error;
+  }
 }
 
 async function showSystemNotification(title: string, body: string) {
@@ -191,6 +212,7 @@ async function syncRemoteNotification(row: SupabaseNotificationRow, notifyUser =
 async function syncSupabaseNotifications() {
   const userId = await getActiveUserId();
   if (!userId) return;
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
 
   const { data, error } = await supabase
     .from('notifications')
@@ -201,11 +223,19 @@ async function syncSupabaseNotifications() {
 
   if (error || !data) {
     if (error) {
+      if (rememberMissingSupabaseTable('notifications', error)) {
+        return;
+      }
+      if (isSupabaseConnectivityError(error)) {
+        markSupabaseTemporarilyUnavailable(error);
+        return;
+      }
       console.info('ℹ️ Supabase notifications sync skipped:', error.message);
     }
     return;
   }
 
+  clearSupabaseTemporaryUnavailable();
   for (const row of data as SupabaseNotificationRow[]) {
     await syncRemoteNotification(row, false);
   }
@@ -214,6 +244,7 @@ async function syncSupabaseNotifications() {
 async function subscribeToSupabaseNotifications() {
   const userId = await getActiveUserId();
   if (!userId || typeof (supabase as any).channel !== 'function') return;
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
 
   if (supabaseNotificationChannel) {
     await (supabase as any).removeChannel?.(supabaseNotificationChannel);
@@ -247,6 +278,9 @@ async function createRemoteNotification(notification: Notification) {
   if (!notification.userId || !SYNCABLE_NOTIFICATION_TYPES.has(notification.type)) {
     return;
   }
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) {
+    return;
+  }
 
   const { data, error } = await supabase
     .from('notifications')
@@ -264,11 +298,19 @@ async function createRemoteNotification(notification: Notification) {
 
   if (error || !data) {
     if (error) {
+      if (rememberMissingSupabaseTable('notifications', error)) {
+        return;
+      }
+      if (isSupabaseConnectivityError(error)) {
+        markSupabaseTemporarilyUnavailable(error);
+        return;
+      }
       console.info('ℹ️ Supabase notification insert skipped:', error.message);
     }
     return;
   }
 
+  clearSupabaseTemporaryUnavailable();
   await syncRemoteNotification(data as SupabaseNotificationRow, false);
 }
 
@@ -312,10 +354,12 @@ export const markNotificationAsRead = async (id: number) => {
   });
 
   if (notification.remoteId) {
-    await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', Number(notification.remoteId));
+    if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('notifications')) {
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', Number(notification.remoteId));
+    }
   }
 };
 
@@ -333,10 +377,12 @@ export const deleteNotificationRecord = async (id: number) => {
   await db.notifications.delete(id);
 
   if (notification.remoteId) {
-    await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', Number(notification.remoteId));
+    if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('notifications')) {
+      await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', Number(notification.remoteId));
+    }
   }
 };
 
@@ -350,7 +396,7 @@ export const clearNotificationRecords = async () => {
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value));
 
-  if (remoteIds.length > 0) {
+  if (remoteIds.length > 0 && !shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('notifications')) {
     await supabase
       .from('notifications')
       .delete()
