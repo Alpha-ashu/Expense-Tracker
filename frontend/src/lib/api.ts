@@ -4,7 +4,14 @@
  */
 
 import { toast } from 'sonner';
-import { buildApiUrl, getApiBaseCandidates, getConfiguredApiBase, shouldRetryWithLocalApiFallback } from './apiBase';
+import {
+  buildApiUrl,
+  clearOptionalBackendUnavailable,
+  getApiBaseCandidates,
+  getConfiguredApiBase,
+  markOptionalBackendUnavailable,
+  shouldRetryWithLocalApiFallback,
+} from './apiBase';
 import supabase from '@/utils/supabase/client';
 import type { ApiResponse, ApiError } from '@/types';
 
@@ -190,6 +197,10 @@ class HTTPClient {
           const data = await this.parseResponseBody(response);
 
           if (!response.ok) {
+            if (response.status >= 500) {
+              markOptionalBackendUnavailable(apiBase);
+            }
+
             if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(response.status)) {
               continue;
             }
@@ -220,6 +231,8 @@ class HTTPClient {
             toast.success(successMessage);
           }
 
+          clearOptionalBackendUnavailable();
+
           return {
             success: true,
             data: data.data || data,
@@ -227,6 +240,7 @@ class HTTPClient {
           };
         } catch (error: any) {
           if (error.name === 'AbortError') {
+            markOptionalBackendUnavailable(apiBase);
             if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
               continue;
             }
@@ -241,6 +255,7 @@ class HTTPClient {
             throw timeoutError;
           }
 
+          markOptionalBackendUnavailable(apiBase);
           if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
             continue;
           }

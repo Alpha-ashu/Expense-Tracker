@@ -2,6 +2,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { apiClient } from '@/lib/api';
+import { markOptionalBackendUnavailable, shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
 import {
   clearSupabaseTemporaryUnavailable,
   filterAvailableSupabaseTables,
@@ -1220,8 +1221,17 @@ const mergeBackendTable = async (table: SyncedTableName, backendRows: any[], nex
 };
 
 async function fetchBackendRows(path: string) {
-  const response = await apiClient.get<any[]>(path, { showErrorToast: false });
-  return toArray(response.data);
+  if (shouldSkipOptionalBackendRequests()) {
+    return [];
+  }
+
+  try {
+    const response = await apiClient.get<any[]>(path, { showErrorToast: false });
+    return toArray(response.data);
+  } catch {
+    markOptionalBackendUnavailable();
+    return [];
+  }
 }
 
 async function syncUserDataFromBackend(

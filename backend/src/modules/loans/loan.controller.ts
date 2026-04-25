@@ -4,6 +4,7 @@ import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
 import { cacheDeleteByPrefix } from '../../cache/redis';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 export const getLoans = async (req: AuthRequest, res: Response) => {
   try {
@@ -17,6 +18,11 @@ export const getLoans = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: loans });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      logger.warn('Loans fallback: database unavailable, returning empty dataset.');
+      return res.json({ success: true, data: [] });
+    }
+
     res.status(500).json({ success: false, error: 'Failed to fetch loans' });
   }
 };

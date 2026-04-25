@@ -5,6 +5,7 @@ import { prisma } from '../../db/prisma';
 import { Prisma } from '../../db/prisma-client';
 import { cacheDeleteByPrefix } from '../../cache/redis';
 import { eventBus } from '../../utils/eventBus';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 interface HttpLikeError {
   statusCode?: number;
@@ -110,6 +111,19 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 0,
+          total: 0,
+          totalPages: 0,
+        },
+      });
+    }
+
     res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
   }
 };

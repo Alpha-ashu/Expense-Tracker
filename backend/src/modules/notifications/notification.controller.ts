@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { requireRole } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 // Get user's notifications
 export const getNotifications = async (req: AuthRequest, res: Response) => {
@@ -23,6 +24,10 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
 
     res.json(notifications);
   } catch (error: any) {
+    if (isDatabaseUnavailableError(error)) {
+      return res.json([]);
+    }
+
     res.status(500).json({ error: error.message || 'Failed to fetch notifications' });
   }
 };

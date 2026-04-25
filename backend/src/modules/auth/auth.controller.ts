@@ -7,6 +7,7 @@ import { logger } from '../../config/logger';
 import { generateOtp, verifyOtp } from './otp.service';
 import { checkDeviceTrust, trustDevice, revokeDeviceTrust, listUserDevices } from './device.service';
 import { prisma } from '../../db/prisma';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 const authService = new AuthService();
 
@@ -244,8 +245,17 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     let userResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
     let profileResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
 
+    const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => {
+          setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+        }),
+      ]);
+    };
+
     try {
-      const user = await authService.getUser(req.userId);
+      const user = await withTimeout(authService.getUser(req.userId), 1500, 'User profile lookup');
       userResult = { status: 'fulfilled', value: user };
     } catch (err: any) {
       userResult = { status: 'rejected', reason: err };
@@ -258,15 +268,16 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
     }
 
     try {
-      const profile = await prisma.profiles.findUnique({
+      const profile = await withTimeout(prisma.profiles.findUnique({
         where: { id: req.userId },
-      });
+      }), 1500, 'Profiles lookup');
       profileResult = { status: 'fulfilled', value: profile };
     } catch (err: any) {
       profileResult = { status: 'rejected', reason: err };
       logger.warn('Get profile profiles lookup failed, falling back to auth snapshot.', {
         message: err?.message,
         userId: req.userId,
+        databaseUnavailable: isDatabaseUnavailableError(err),
       });
     }
 

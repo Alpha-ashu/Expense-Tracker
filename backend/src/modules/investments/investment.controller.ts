@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 const toDate = (value?: string) => {
   if (!value) return new Date();
@@ -18,7 +19,11 @@ export const getInvestments = async (req: AuthRequest, res: Response) => {
     });
 
     res.json({ success: true, data: investments });
-  } catch {
+  } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      return res.json({ success: true, data: [] });
+    }
+
     res.status(500).json({ success: false, error: 'Failed to fetch investments' });
   }
 };

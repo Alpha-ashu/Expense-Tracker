@@ -4,6 +4,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 const ensureFriendsTable = async () => {
   await prisma.$executeRawUnsafe(`
@@ -37,6 +38,11 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: friends });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      logger.warn('Friends fallback: database unavailable, returning empty dataset.');
+      return res.json({ success: true, data: [] });
+    }
+
     logger.error('Failed to fetch friends', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch friends' });
   }

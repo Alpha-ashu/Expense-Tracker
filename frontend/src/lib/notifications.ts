@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { db, type Notification } from './database';
 import supabase from '@/utils/supabase/client';
 import { apiClient } from '@/lib/api';
+import { markOptionalBackendUnavailable, shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
 
 type NotificationInput = Omit<Notification, 'id' | 'createdAt' | 'isRead'> & {
   createdAt?: Date;
@@ -200,6 +201,7 @@ async function syncRemoteNotification(row: BackendNotificationRow, notifyUser = 
 async function syncBackendNotifications() {
   const userId = await getActiveUserId();
   if (!userId) return;
+  if (shouldSkipOptionalBackendRequests()) return;
 
   let data: BackendNotificationRow[] = [];
   try {
@@ -208,6 +210,7 @@ async function syncBackendNotifications() {
     });
     data = Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    markOptionalBackendUnavailable();
     console.info('ℹ️ Backend notifications sync skipped:', error instanceof Error ? error.message : String(error));
     return;
   }

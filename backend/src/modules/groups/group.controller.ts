@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { logger } from '../../config/logger';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 // Helper to convert internal Prisma model to the response format
 const toResponse = (item: any) => ({
@@ -33,6 +34,11 @@ export const getGroups = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: groups.map(toResponse) });
   } catch (error) {
+    if (isDatabaseUnavailableError(error)) {
+      logger.warn('Groups fallback: database unavailable, returning empty dataset.');
+      return res.json({ success: true, data: [] });
+    }
+
     logger.error('Failed to fetch groups', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch groups' });
   }
