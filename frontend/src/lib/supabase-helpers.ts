@@ -77,7 +77,7 @@ export async function signUp(email: string, password: string, fullName?: string)
       emailRedirectTo: appUrl, // Supabase will add hash params with tokens
       data: {
         full_name: fullName,
-        role: 'user',
+        role: 'customer',
       },
     },
   });

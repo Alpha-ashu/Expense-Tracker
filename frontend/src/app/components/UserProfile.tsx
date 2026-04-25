@@ -160,8 +160,7 @@ export const UserProfile: React.FC = () => {
   const [deletePassword, setDeletePassword] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Fetch profile data: localStorage first (instant, guaranteed from onboarding),
-  // then Supabase to supplement or override if it has richer data.
+  // Fetch profile data: localStorage first, then backend profile API.
   /**
    * Normalize any jobType string (from either onboarding form) into one of
    * the three canonical values used by the profile dropdown.
@@ -258,15 +257,13 @@ export const UserProfile: React.FC = () => {
       }
     }
 
-    // ── SOURCE 2: Supabase profiles / Backend API (authoritative, cloud-synced) ──
+    // ── SOURCE 2: Backend API (authoritative, cloud-synced) ──
     try {
       let finalData: any = null;
-
-      // Prefer Backend Data
       if (!shouldSkipOptionalBackendRequests()) {
         try {
           console.log('[UserProfile] Fetching from backend API...');
-          const backendRes = await api.auth.getProfile();
+          const backendRes = await api.auth.getProfile({ force: true });
           if (backendRes.success && backendRes.data) {
             finalData = backendRes.data;
             console.log('[UserProfile] Received data from backend:', finalData);
@@ -274,24 +271,10 @@ export const UserProfile: React.FC = () => {
             console.log('[UserProfile] Backend fetch returned no data or success=false:', backendRes);
           }
         } catch (backendError) {
-          console.warn('[UserProfile] Backend profile fetch failed, trying Supabase fallback:', backendError);
+          console.warn('[UserProfile] Backend profile fetch failed:', backendError);
         }
       } else {
         console.info('[UserProfile] Skipping backend profile fetch while backend is unavailable in development mode.');
-      }
-
-      // Fallback/Supplement with Supabase
-      if (!finalData) {
-        const { data: supabaseData, error: supabaseError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (!supabaseError && supabaseData) {
-          finalData = supabaseData;
-          console.log('✅ Profile fetched from Supabase:', finalData);
-        }
       }
 
       if (finalData) {
@@ -345,7 +328,7 @@ export const UserProfile: React.FC = () => {
         localStorage.setItem('profile_updated_at', lastUpdated);
       }
     } catch (error) {
-      console.warn('Supabase profile fetch failed (non-blocking):', error);
+      console.warn('Backend profile fetch failed (non-blocking):', error);
     } finally {
       setIsLoading(false);
     }
@@ -479,35 +462,6 @@ export const UserProfile: React.FC = () => {
         console.info('[UserProfile] Skipping immediate backend profile sync while backend is unavailable in development mode.');
       }
 
-      // 5. Best-effort Supabase sync (optional, non-blocking)
-      void (async () => {
-        try {
-          const { error: syncError } = await supabase.from('profiles').upsert({
-            id: user.id,
-            email: nextProfileData.email,
-            full_name: `${nextProfileData.firstName} ${nextProfileData.lastName}`.trim(),
-            first_name: nextProfileData.firstName,
-            last_name: nextProfileData.lastName,
-            phone: nextProfileData.mobile,
-            avatar_url: resolvedAvatar.url,
-            date_of_birth: nextProfileData.dateOfBirth || null,
-            monthly_income: nextProfileData.monthlyIncome,
-            job_type: nextProfileData.jobType || null,
-            gender: nextProfileData.gender || null,
-            country: nextProfileData.country || null,
-            state: nextProfileData.state || null,
-            city: nextProfileData.city || null,
-            updated_at: new Date().toISOString(),
-          });
-
-          if (syncError) {
-            console.warn('Silent Supabase sync error (non-blocking):', syncError);
-          }
-        } catch (syncError) {
-          console.warn('Silent Supabase sync error (non-blocking):', syncError);
-        }
-      })();
-
       toast.success('Profile updated successfully!');
     } catch (error: any) {
       console.error('Failed to save profile:', error);
@@ -614,34 +568,7 @@ export const UserProfile: React.FC = () => {
         throw new Error('Invalid password. Deletion failed.');
       }
 
-      // 2. Call Supabase RPC function to delete account and all linked data
-      const { error: deleteError } = await supabase.rpc('delete_user_account', {
-        user_id: user.id
-      });
-
-      // Note: If you don't have this RPC function, you can use the admin API:
-      // await supabase.auth.admin.deleteUser(user.id);
-      // However, regular clients shouldn't have admin privileges. 
-      // The secure method is using an Edge Function, RPC, or triggering a DB deletion
-      // which cascades to auth if configured.
-
-      // For the sake of this implementation, we will attempt the built in auth trigger or manual cascade
-      if (deleteError) {
-        // Fallback: Delete profile record manually. Ensure Supabase cascades to delete 
-        // linked records. Delete the auth user using an edge-function if possible.
-        console.warn('RPC delete failed, trying direct table delete', deleteError);
-        await supabase.from('profiles').delete().eq('id', user.id);
-
-        // Due to RLS restrictions, standard clients cannot delete accounts via auth API directly
-        // User must be signed out if we can't delete from auth table
-      }
-
-      toast.success('Your account has been permanently deleted.');
-
-      // Cleanup locally
-      setIsDeleteModalOpen(false);
-      setDeletePassword('');
-      await handleSignOut();
+      throw new Error('Account deletion must be handled by a backend endpoint. Direct browser-side database deletion has been disabled.');
 
     } catch (error: any) {
       console.error('Account deletion failed:', error);

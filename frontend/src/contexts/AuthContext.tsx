@@ -5,6 +5,7 @@ import { UserRole } from '@/lib/featureFlags';
 import { permissionService } from '@/services/permissionService';
 import { db } from '@/lib/database';
 import { resolveAvatarSelection } from '@/lib/avatar-gallery';
+import { api } from '@/lib/api';
 import {
   handleLogout as handleBackendLogout,
   initializeBackendSync,
@@ -187,8 +188,7 @@ const syncProfileFromBackend = async (user: User) => {
   // SECURITY FIX (Bug #1): Route through backend API instead of direct Supabase call
     let profile: any = null;
     try {
-      const { apiClient } = await import('@/lib/api');
-      const response = await apiClient.get('/auth/profile');
+      const response = await api.auth.getProfile();
       profile = response.success ? response.data : null;
     } catch (err) {
       console.warn('Failed to fetch profile from backend:', err);
@@ -321,8 +321,7 @@ const syncProfileFromBackend = async (user: User) => {
     }
 
     try {
-      const { apiClient } = await import('@/lib/api');
-      const response = await apiClient.put('/auth/profile', profilePayload);
+      const response = await api.auth.updateProfile(profilePayload);
 
       if (response.success) {
         profileSyncLastPayload.set(user.id, payloadKey);

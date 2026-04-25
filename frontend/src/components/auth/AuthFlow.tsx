@@ -11,13 +11,7 @@ import { toast } from 'sonner';
 import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
 import { Terms } from '@/app/components/Terms';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
-import {
-  isSupabaseConnectivityError,
-  isSupabaseTableUnavailable,
-  markSupabaseTemporarilyUnavailable,
-  rememberMissingSupabaseTable,
-  shouldSkipDirectSupabaseRequests,
-} from '@/lib/supabase-runtime';
+import { api } from '@/lib/api';
 
 type AuthStep =
   | 'welcome'
@@ -100,32 +94,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       if (error) throw error;
 
       setEmail(credentials.email);
-
-      // Always go to PIN setup after sign-in.
-      // Profile completion (onboarding) is handled by App.tsx's NewUserOnboarding gate,
-      // so we don't need a separate legacy profile-setup path here.
-      let profile: { id?: string } | null = null;
-      if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('profiles')) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', data.user.id)
-          .maybeSingle();
-
-        if (profileError) {
-          if (rememberMissingSupabaseTable('profiles', profileError)) {
-            profile = null;
-          } else if (isSupabaseConnectivityError(profileError)) {
-            markSupabaseTemporarilyUnavailable(profileError);
-          } else {
-            throw profileError;
-          }
-        } else {
-          profile = profileData;
-        }
-      }
-
-      setIsNewUser(!profile);
+      setIsNewUser(false);
       setStep('pin-setup');
 
       saveFlowState('pin-setup');
@@ -149,6 +118,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
             first_name: data.firstName,
             last_name: data.lastName,
             phone: data.mobile,
+            role: 'customer',
           },
         },
       });
@@ -202,10 +172,16 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
       const isServerError = error?.status === 500 || error?.message?.toLowerCase().includes('internal server error');
       const isSmtpError = error?.message?.toLowerCase().includes('sending confirmation email') || error?.message?.toLowerCase().includes('smtp');
+      const isDuplicateUser =
+        error?.code === 'user_already_exists' ||
+        error?.status === 422 ||
+        error?.message?.toLowerCase().includes('already registered');
 
       let errMsg = error.message || 'Failed to create account';
       if (isNetworkError) {
         errMsg = 'Cannot connect to server. Please try again later.';
+      } else if (isDuplicateUser) {
+        errMsg = 'This email is already registered. Sign in instead or use a different email.';
       } else if (isServerError) {
         errMsg = 'Signup is temporarily unavailable (server error). Please try again in a moment or contact support if this persists.';
       } else if (isSmtpError) {
@@ -248,53 +224,44 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
     setSalaryAccount(account);
 
     try {
-      // Store profile data
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user ?? null;
 
       if (user) {
-        // Save profile — try full upsert first, fallback to base columns if migration not run
-        const baseProfile = {
-          id: user.id,
-          email: userProfile?.email,
-          full_name: `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim(),
-          phone: userProfile?.mobile ?? null,
-          updated_at: new Date().toISOString(),
+        const monthlyIncome = parseFloat(userProfile?.monthlyIncome || '0');
+        const fullName = `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim();
+        const profilePayload = {
+          full_name: fullName || null,
+          first_name: userProfile?.firstName || null,
+          last_name: userProfile?.lastName || null,
+          phone: userProfile?.mobile || null,
+          date_of_birth: userProfile?.dateOfBirth || null,
+          job_type: userProfile?.jobType || null,
+          monthly_income: Number.isFinite(monthlyIncome) ? monthlyIncome : null,
         };
 
-        if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('profiles')) {
-          const { error: profileError } = await supabase.from('profiles').upsert({
-            ...baseProfile,
-            date_of_birth: userProfile?.dateOfBirth || null,
-            job_type: userProfile?.jobType || null,
-            job_industry: userProfile?.jobIndustry || null,
-            monthly_income: parseFloat(userProfile?.monthlyIncome || '0'),
-          });
+        localStorage.setItem('user_profile', JSON.stringify({
+          displayName: fullName,
+          firstName: userProfile?.firstName || '',
+          lastName: userProfile?.lastName || '',
+          email: userProfile?.email || user.email || '',
+          mobile: userProfile?.mobile || '',
+          dateOfBirth: userProfile?.dateOfBirth || '',
+          jobType: userProfile?.jobType || '',
+          salary: Number.isFinite(monthlyIncome) ? monthlyIncome * 12 : 0,
+          monthlyIncome: Number.isFinite(monthlyIncome) ? monthlyIncome : 0,
+          updatedAt: new Date().toISOString(),
+        }));
+        localStorage.setItem('profile_sync_pending', 'true');
 
-          if (profileError) {
-            if (rememberMissingSupabaseTable('profiles', profileError)) {
-              // Keep local onboarding state; cloud profile is unavailable in this deployment.
-            } else if (isSupabaseConnectivityError(profileError)) {
-              markSupabaseTemporarilyUnavailable(profileError);
-            } else {
-              // Likely missing extended columns — fall back to base columns only
-              console.warn('Extended profile upsert failed, trying base:', profileError.message);
-              const { error: baseError } = await supabase.from('profiles').upsert(baseProfile);
-              if (baseError && !rememberMissingSupabaseTable('profiles', baseError)) {
-                console.error('Base profile save also failed:', baseError);
-              }
-            }
-          }
+        try {
+          await api.auth.updateProfile(profilePayload);
+          localStorage.removeItem('profile_sync_pending');
+        } catch (profileError) {
+          console.warn('Profile onboarding sync failed; local state retained for retry.', profileError);
         }
 
-        // Register device
-        const deviceId = localStorage.getItem('device_id') || generateDeviceId();
-        await supabase.from('user_devices').upsert({
-          user_id: user.id,
-          device_id: deviceId,
-          device_name: navigator.userAgent,
-          last_used: new Date().toISOString(),
-        });
+        localStorage.setItem('device_id', localStorage.getItem('device_id') || generateDeviceId());
       }
 
       setStep('pin-setup');

@@ -3,32 +3,22 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from 'sonner';
 import { db, type Notification } from './database';
 import supabase from '@/utils/supabase/client';
-import {
-  clearSupabaseTemporaryUnavailable,
-  isSupabaseConnectivityError,
-  isSupabaseTableUnavailable,
-  markSupabaseTemporarilyUnavailable,
-  rememberMissingSupabaseTable,
-  shouldSkipDirectSupabaseRequests,
-} from '@/lib/supabase-runtime';
-
-const DIRECT_CLOUD_SYNC_ENABLED =
-  import.meta.env.VITE_ENABLE_DIRECT_CLOUD_SYNC === 'true';
+import { apiClient } from '@/lib/api';
 
 type NotificationInput = Omit<Notification, 'id' | 'createdAt' | 'isRead'> & {
   createdAt?: Date;
   isRead?: boolean;
 };
 
-type SupabaseNotificationRow = {
-  id: number;
+type BackendNotificationRow = {
+  id: string;
   user_id: string;
   type: Notification['type'];
   title: string;
   message: string;
   due_date: string | null;
   is_read: boolean;
-  related_id: number | null;
+  related_id: string | null;
   created_at: string;
 };
 
@@ -74,7 +64,6 @@ const LEGACY_MOCK_NOTIFICATION_TITLES = new Set([
 
 let initialized = false;
 let initializedUserId: string | null = null;
-let supabaseNotificationChannel: ReturnType<typeof supabase.channel> | null = null;
 let periodicNotificationCheck: ReturnType<typeof setInterval> | null = null;
 
 async function removeLegacyMockNotifications() {
@@ -94,16 +83,16 @@ async function removeLegacyMockNotifications() {
   }
 }
 
-const toLocalNotification = (remote: SupabaseNotificationRow): Notification => ({
+const toLocalNotification = (remote: BackendNotificationRow): Notification => ({
   type: remote.type,
   title: remote.title,
   message: remote.message,
   dueDate: remote.due_date ? new Date(remote.due_date) : undefined,
   isRead: remote.is_read,
-  relatedId: remote.related_id ?? undefined,
+  relatedId: remote.related_id ? Number(remote.related_id) || undefined : undefined,
   createdAt: new Date(remote.created_at),
   userId: remote.user_id,
-  remoteId: String(remote.id),
+  remoteId: remote.id,
   source: 'supabase',
 });
 
@@ -120,10 +109,6 @@ async function getActiveUserId() {
     const { data } = await supabase.auth.getUser();
     return data.user?.id;
   } catch (error) {
-    if (isSupabaseConnectivityError(error)) {
-      markSupabaseTemporarilyUnavailable(error);
-      return null;
-    }
     throw error;
   }
 }
@@ -199,10 +184,10 @@ async function upsertLocalNotification(notification: Notification) {
   return db.notifications.add(notification);
 }
 
-async function syncRemoteNotification(row: SupabaseNotificationRow, notifyUser = false) {
+async function syncRemoteNotification(row: BackendNotificationRow, notifyUser = false) {
   const localNotification = toLocalNotification(row);
   const existing = row.id
-    ? await db.notifications.filter((item) => item.remoteId === String(row.id)).first()
+    ? await db.notifications.filter((item) => item.remoteId === row.id).first()
     : undefined;
 
   await upsertLocalNotification(localNotification);
@@ -212,114 +197,32 @@ async function syncRemoteNotification(row: SupabaseNotificationRow, notifyUser =
   }
 }
 
-async function syncSupabaseNotifications() {
-  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
-
+async function syncBackendNotifications() {
   const userId = await getActiveUserId();
   if (!userId) return;
-  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
 
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error || !data) {
-    if (error) {
-      if (rememberMissingSupabaseTable('notifications', error)) {
-        return;
-      }
-      if (isSupabaseConnectivityError(error)) {
-        markSupabaseTemporarilyUnavailable(error);
-        return;
-      }
-      console.info('ℹ️ Supabase notifications sync skipped:', error.message);
-    }
+  let data: BackendNotificationRow[] = [];
+  try {
+    const response = await apiClient.get<BackendNotificationRow[]>('/notifications?limit=100', {
+      showErrorToast: false,
+    });
+    data = Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.info('ℹ️ Backend notifications sync skipped:', error instanceof Error ? error.message : String(error));
     return;
   }
 
-  clearSupabaseTemporaryUnavailable();
-  for (const row of data as SupabaseNotificationRow[]) {
+  for (const row of data) {
     await syncRemoteNotification(row, false);
   }
 }
 
-async function subscribeToSupabaseNotifications() {
-  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
-
-  const userId = await getActiveUserId();
-  if (!userId || typeof (supabase as any).channel !== 'function') return;
-  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
-
-  if (supabaseNotificationChannel) {
-    await (supabase as any).removeChannel?.(supabaseNotificationChannel);
-  }
-
-  supabaseNotificationChannel = supabase
-    .channel(`notifications-${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      async (payload) => {
-        if (payload.eventType === 'DELETE') {
-          const previous = payload.old as SupabaseNotificationRow;
-          await db.notifications.where('remoteId').equals(String(previous.id)).delete();
-          return;
-        }
-
-        const next = payload.new as SupabaseNotificationRow;
-        await syncRemoteNotification(next, payload.eventType === 'INSERT');
-      },
-    )
-    .subscribe();
-}
-
 async function createRemoteNotification(notification: Notification) {
-  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
   if (!notification.userId || !SYNCABLE_NOTIFICATION_TYPES.has(notification.type)) {
     return;
   }
-  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) {
-    return;
-  }
-
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert({
-      user_id: notification.userId,
-      type: notification.type,
-      title: notification.title,
-      message: notification.message,
-      due_date: notification.dueDate?.toISOString() ?? null,
-      is_read: notification.isRead,
-      related_id: notification.relatedId ?? null,
-    })
-    .select('*')
-    .single();
-
-  if (error || !data) {
-    if (error) {
-      if (rememberMissingSupabaseTable('notifications', error)) {
-        return;
-      }
-      if (isSupabaseConnectivityError(error)) {
-        markSupabaseTemporarilyUnavailable(error);
-        return;
-      }
-      console.info('ℹ️ Supabase notification insert skipped:', error.message);
-    }
-    return;
-  }
-
-  clearSupabaseTemporaryUnavailable();
-  await syncRemoteNotification(data as SupabaseNotificationRow, false);
+  // User/device-derived reminder notifications stay local-only.
+  // Server-origin notifications are read back through /api/v1/notifications.
 }
 
 export const showNotification = (
@@ -361,22 +264,13 @@ export const markNotificationAsRead = async (id: number) => {
     readAt: new Date(),
   });
 
-  if (DIRECT_CLOUD_SYNC_ENABLED && notification.remoteId) {
-    if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('id', Number(notification.remoteId));
-
-    if (rememberMissingSupabaseTable('notifications', error)) {
-      return;
-    }
-
-    if (error && isSupabaseConnectivityError(error)) {
-      markSupabaseTemporarilyUnavailable(error);
+  if (notification.remoteId) {
+    try {
+      await apiClient.put(`/notifications/${notification.remoteId}/read`, undefined, {
+        showErrorToast: false,
+      });
+    } catch (error) {
+      console.info('ℹ️ Failed to mark backend notification as read:', error instanceof Error ? error.message : String(error));
     }
   }
 };
@@ -394,22 +288,13 @@ export const deleteNotificationRecord = async (id: number) => {
 
   await db.notifications.delete(id);
 
-  if (DIRECT_CLOUD_SYNC_ENABLED && notification.remoteId) {
-    if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) {
-      return;
-    }
-
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', Number(notification.remoteId));
-
-    if (rememberMissingSupabaseTable('notifications', error)) {
-      return;
-    }
-
-    if (error && isSupabaseConnectivityError(error)) {
-      markSupabaseTemporarilyUnavailable(error);
+  if (notification.remoteId) {
+    try {
+      await apiClient.delete(`/notifications/${notification.remoteId}`, {
+        showErrorToast: false,
+      });
+    } catch (error) {
+      console.info('ℹ️ Failed to delete backend notification:', error instanceof Error ? error.message : String(error));
     }
   }
 };
@@ -424,20 +309,14 @@ export const clearNotificationRecords = async () => {
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value));
 
-  if (!DIRECT_CLOUD_SYNC_ENABLED || remoteIds.length === 0) return;
-  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
-
-  const { error } = await supabase
-    .from('notifications')
-    .delete()
-    .in('id', remoteIds);
-
-  if (rememberMissingSupabaseTable('notifications', error)) {
-    return;
-  }
-
-  if (error && isSupabaseConnectivityError(error)) {
-    markSupabaseTemporarilyUnavailable(error);
+  if (remoteIds.length > 0) {
+    try {
+      await apiClient.delete('/notifications', {
+        showErrorToast: false,
+      });
+    } catch (error) {
+      console.info('ℹ️ Failed to clear backend notifications:', error instanceof Error ? error.message : String(error));
+    }
   }
 };
 
@@ -503,22 +382,14 @@ export const initializeNotifications = async () => {
   await removeLegacyMockNotifications();
 
   if (initialized && initializedUserId === userId) {
-    await syncSupabaseNotifications();
+    await syncBackendNotifications();
     return;
-  }
-
-  if (initialized) {
-    if (supabaseNotificationChannel) {
-      await (supabase as any).removeChannel?.(supabaseNotificationChannel);
-      supabaseNotificationChannel = null;
-    }
   }
 
   initialized = true;
   initializedUserId = userId ?? null;
   await checkAndCreateNotifications();
-  await syncSupabaseNotifications();
-  await subscribeToSupabaseNotifications();
+  await syncBackendNotifications();
 
   if (periodicNotificationCheck) {
     clearInterval(periodicNotificationCheck);
@@ -526,6 +397,6 @@ export const initializeNotifications = async () => {
 
   periodicNotificationCheck = setInterval(() => {
     void checkAndCreateNotifications();
-    void syncSupabaseNotifications();
+    void syncBackendNotifications();
   }, 60 * 60 * 1000);
 };

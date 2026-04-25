@@ -3,6 +3,7 @@ import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { resolveAvatarSelection } from '@/lib/avatar-gallery';
+import { api } from '@/lib/api';
 
 interface OnboardingCompleteStepProps {
   data: {
@@ -106,41 +107,12 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('user_setup_date', new Date().toISOString());
 
     try {
-      // Step 1: Try to save profile to Supabase & Backend
+      // Step 1: Save profile through backend API only
       setProgress(15);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const profileData = {
-            id: user.id,
-            email: user.email,
-            full_name: data.displayName,
-            first_name: firstName,
-            last_name: lastName,
-            gender: data.gender || null,
-            date_of_birth: data.dateOfBirth || null,
-            job_type: data.jobType?.toLowerCase() || null,
-            annual_income: parseFloat(data.salary) || null,
-            monthly_income: Math.round(parseFloat(data.salary) / 12) || null,
-            country: data.country || null,
-            state: data.state || null,
-            city: data.city || null,
-            avatar_url: resolvedAvatar.url,
-            updated_at: new Date().toISOString(),
-          };
-
-          // Supabase sync
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert(profileData, { onConflict: 'id' });
-
-          if (profileError) {
-            console.warn('Supabase profile save failed:', profileError.message);
-          }
-
-          // Backend API sync
           try {
-            const { api } = await import('@/lib/api');
             await api.auth.updateProfile({
               firstName,
               lastName,

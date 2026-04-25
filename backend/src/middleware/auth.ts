@@ -38,6 +38,14 @@ interface UserAuthSnapshot {
   status: string;
 }
 
+const normalizeAppRole = (value: unknown): string => {
+  if (value === 'admin' || value === 'advisor' || value === 'user' || value === 'customer') {
+    return value === 'customer' ? 'user' : value;
+  }
+
+  return 'user';
+};
+
 const getUserAuthSnapshot = async (userId: string): Promise<UserAuthSnapshot | null> => {
   if (process.env.NODE_ENV === 'test' || AUTH_STATUS_LOOKUP_TIMEOUT_MS <= 0) {
     return null;
@@ -113,7 +121,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
         req.user = {
           id: userId,
           email: authSnapshot?.email || (typeof decoded.email === 'string' ? decoded.email : ''),
-          role: authSnapshot?.role || (ALLOW_TEST_ROLE_FALLBACK && typeof decoded.role === 'string' ? decoded.role : 'user'),
+          role: authSnapshot?.role || (ALLOW_TEST_ROLE_FALLBACK ? normalizeAppRole(decoded.role) : 'user'),
           isApproved: authSnapshot?.isApproved ?? (ALLOW_TEST_ROLE_FALLBACK
             ? (typeof decoded.isApproved === 'boolean' ? decoded.isApproved : true)
             : false),
@@ -142,7 +150,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
           req.user = {
             id: userId,
             email: authSnapshot?.email || supabaseDecoded.email || '',
-            role: authSnapshot?.role || 'user',
+            role: authSnapshot?.role || normalizeAppRole(supabaseDecoded.user_metadata?.role || supabaseDecoded.app_metadata?.role),
             isApproved: authSnapshot?.isApproved ?? false,
             name: authSnapshot?.name || supabaseDecoded.user_metadata?.full_name,
           };
@@ -168,7 +176,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
           req.user = {
             id: user.id,
             email: authSnapshot?.email || user.email || '',
-            role: authSnapshot?.role || 'user',
+            role: authSnapshot?.role || normalizeAppRole(user.user_metadata?.role || user.app_metadata?.role),
             isApproved: authSnapshot?.isApproved ?? false,
             name: authSnapshot?.name || user.user_metadata?.full_name,
           };
@@ -196,7 +204,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
           req.user = {
             id: userId,
             email: unverified.email || '',
-            role: 'user',
+            role: normalizeAppRole(unverified.user_metadata?.role || unverified.app_metadata?.role),
             isApproved: false,
             name: unverified.user_metadata?.full_name,
           };

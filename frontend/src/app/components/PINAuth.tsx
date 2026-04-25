@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, Fingerprint, Shield } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
 import { isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
-import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
+import { isPinMissing, pinService } from '@/services/pinService';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
@@ -18,28 +18,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [showPin, setShowPin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
-  const isConfirmingPin = isCreating && pin.length === 6;
-  const activePinValue = isConfirmingPin ? confirmPin : pin;
-  const pinInputId = isConfirmingPin ? 'finora-pin-confirm' : 'finora-pin-entry';
-  const pinInputLabel = isCreating
-    ? (isConfirmingPin ? 'Confirm 6-digit PIN' : 'Create 6-digit PIN')
-    : 'Enter PIN';
   const pinMismatch = isCreating && confirmPin.length > 0 && pin !== confirmPin;
-  const pinProgressMessage = isCreating
-    ? (
-      pin.length === 0
-        ? 'Enter a 6-digit PIN'
-        : pin.length < 6
-          ? `${pin.length}/6 digits entered`
-          : confirmPin.length === 0
-            ? 'Now confirm your PIN'
-            : pinMismatch
-              ? 'PINs do not match'
-              : confirmPin.length < 6
-                ? `${confirmPin.length}/6 digits confirmed`
-                : 'PIN confirmed'
-    )
-    : '';
 
   const finalizeAuthentication = async (key: string, successMessage: string) => {
     if (Capacitor.isNativePlatform()) {
@@ -51,33 +30,6 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
     toast.success(successMessage);
     onAuthenticated(key);
-  };
-
-  const syncPendingPinToServer = async (pinValue: string) => {
-    if (!pinService.hasPendingServerSync()) {
-      return;
-    }
-
-    const createResult = await pinService.createPin(pinValue);
-    if (!createResult.success) {
-      if (/already exists/i.test(createResult.message)) {
-        pinService.clearPendingServerSync();
-        return;
-      }
-
-      if (!isPinServiceUnavailable(createResult)) {
-        console.warn('PIN sync to server failed:', createResult.message);
-      }
-      return;
-    }
-
-    const backup = backupPINKeys();
-    if (backup.hash && backup.salt) {
-      const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
-      if (!backupResult.success) {
-        console.warn('PIN key backup refresh failed after deferred PIN sync:', backupResult.message);
-      }
-    }
   };
 
   useEffect(() => {
@@ -101,7 +53,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         if (isMounted) {
-          const shouldCreatePin = !hasLocalPin && (isPinMissing(status) || isPinServiceUnavailable(status));
+          const shouldCreatePin = !hasLocalPin && isPinMissing(status);
           setIsCreating(shouldCreatePin);
           setIsLoading(false);
         }
@@ -132,11 +84,13 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
   const handlePINInput = (value: string) => {
     if (value.length <= 6 && /^\d*$/.test(value)) {
-      if (isCreating && pin.length === 6) {
-        setConfirmPin(value);
-      } else {
-        setPin(value);
-      }
+      setPin(value);
+    }
+  };
+
+  const handleConfirmPINInput = (value: string) => {
+    if (value.length <= 6 && /^\d*$/.test(value)) {
+      setConfirmPin(value);
     }
   };
 
@@ -167,21 +121,13 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         const createResult = await pinService.createPin(pin);
-        if (!createResult.success && !isPinServiceUnavailable(createResult)) {
+        if (!createResult.success) {
           toast.error(createResult.message || 'Failed to create PIN');
           setIsLoading(false);
           return;
         }
 
         const key = storeMasterKey(pin);
-
-        if (!createResult.success) {
-          const expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-          pinService.markPinCreatedLocally(expiresAt);
-          pinService.markPendingServerSync();
-          await finalizeAuthentication(key, 'PIN created on this device. Server sync is pending.');
-          return;
-        }
 
         const backup = backupPINKeys();
         if (backup.hash && backup.salt) {
@@ -200,14 +146,14 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         const verifyResult = await pinService.verifyPin({ pin });
-        const localResult = verifyPIN(pin);
-
-        if (!verifyResult.success && !(localResult.isValid && (isPinServiceUnavailable(verifyResult) || pinService.hasPendingServerSync() || isPinMissing(verifyResult)))) {
+        if (!verifyResult.success) {
           toast.error(verifyResult.message || 'Invalid PIN');
           setPin('');
           setIsLoading(false);
           return;
         }
+
+        const localResult = verifyPIN(pin);
 
         if (verifyResult.success && !isPINSet()) {
           const keyBackupResult = await pinService.getKeyBackup();
@@ -223,10 +169,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           ? localResult.key
           : storeMasterKey(pin);
 
-        if (!verifyResult.success && localResult.isValid) {
-          pinService.markPinVerifiedLocally();
-          void syncPendingPinToServer(pin);
-        } else if (!localResult.isValid) {
+        if (!localResult.isValid) {
           const backup = backupPINKeys();
           if (backup.hash && backup.salt) {
             const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
@@ -270,60 +213,119 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* PIN Input */}
             <div>
-              <label htmlFor={pinInputId} className="block text-sm font-medium text-gray-700 mb-2">
-                {pinInputLabel}
-              </label>
-              <div className="relative">
-                <input
-                  id={pinInputId}
-                  type={showPin ? 'text' : 'password'}
-                  value={activePinValue}
-                  onChange={(e) => handlePINInput(e.target.value)}
-                  className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
-                  placeholder="••••••"
-                  maxLength={6}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  aria-label={pinInputLabel}
-                  aria-describedby={isCreating ? 'pin-progress' : undefined}
-                  aria-invalid={pinMismatch}
-                  aria-required="true"
-                  autoComplete={isCreating ? 'new-password' : 'current-password'}
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPin(!showPin)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showPin ? 'Hide PIN value' : 'Show PIN value'}
-                >
-                  {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+              {isCreating ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="finora-pin-entry" className="block text-sm font-medium text-gray-700 mb-2">
+                      Enter 6-digit PIN
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="finora-pin-entry"
+                        type={showPin ? 'text' : 'password'}
+                        value={pin}
+                        onChange={(e) => handlePINInput(e.target.value)}
+                        className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
+                        placeholder="••••••"
+                        maxLength={6}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        aria-label="Enter 6-digit PIN"
+                        aria-required="true"
+                        autoComplete="new-password"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="finora-pin-confirm" className="block text-sm font-medium text-gray-700 mb-2">
+                      Confirm 6-digit PIN
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="finora-pin-confirm"
+                        type={showPin ? 'text' : 'password'}
+                        value={confirmPin}
+                        onChange={(e) => handleConfirmPINInput(e.target.value)}
+                        className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
+                        placeholder="••••••"
+                        maxLength={6}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        aria-label="Confirm 6-digit PIN"
+                        aria-invalid={pinMismatch}
+                        aria-required="true"
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPin(!showPin)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        aria-label={showPin ? 'Hide PIN value' : 'Show PIN value'}
+                      >
+                        {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="finora-pin-entry" className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter PIN
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="finora-pin-entry"
+                      type={showPin ? 'text' : 'password'}
+                      value={pin}
+                      onChange={(e) => handlePINInput(e.target.value)}
+                      className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
+                      placeholder="••••••"
+                      maxLength={6}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      aria-label="Enter PIN"
+                      aria-required="true"
+                      autoComplete="current-password"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      aria-label={showPin ? 'Hide PIN value' : 'Show PIN value'}
+                    >
+                      {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-center gap-2" aria-hidden="true">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-3 h-3 rounded-full transition-all ${pin.length > i ? 'bg-blue-600 scale-110' : 'bg-gray-300'}`}
+                  />
+                ))}
               </div>
+              {isCreating && (
+                <div className="flex justify-center gap-2" aria-hidden="true">
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-3 h-3 rounded-full transition-all ${confirmPin.length > i ? 'bg-green-600 scale-110' : 'bg-gray-300'}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* PIN Dots Indicator */}
-            <div className="flex justify-center gap-2" aria-hidden="true">
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-3 h-3 rounded-full transition-all ${activePinValue.length > i
-                      ? 'bg-blue-600 scale-110'
-                      : 'bg-gray-300'
-                    }`}
-                />
-              ))}
-            </div>
-
-            {/* Progress indicator for PIN creation */}
             {isCreating && (
-              <div
-                id="pin-progress"
-                className="text-center text-sm text-gray-600"
-                role="status"
-                aria-live="polite"
-              >
-                {pinProgressMessage}
+              <div className="text-center text-sm text-gray-600" role="status" aria-live="polite">
+                {pinMismatch ? 'PINs do not match' : 'Create and confirm the same 6-digit PIN to continue'}
               </div>
             )}
 

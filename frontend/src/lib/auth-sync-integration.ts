@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
+import { apiClient } from '@/lib/api';
 import {
   clearSupabaseTemporaryUnavailable,
   filterAvailableSupabaseTables,
@@ -13,6 +14,8 @@ import {
 
 const DIRECT_CLOUD_SYNC_ENABLED =
   import.meta.env.VITE_ENABLE_DIRECT_CLOUD_SYNC === 'true';
+
+const isBackendFirstSyncMode = () => !DIRECT_CLOUD_SYNC_ENABLED;
 
 type SyncedTableName =
   | 'accounts'
@@ -154,6 +157,8 @@ const toIsoString = (value?: Date | string | null) => {
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
 };
+
+const toArray = <T,>(value: T[] | undefined | null): T[] => (Array.isArray(value) ? value : []);
 
 const supportsDeletedAt = (table: SyncedTableName) =>
   deletedAtSupport.get(table) ?? DEFAULT_DELETED_AT_SUPPORT[table] ?? true;
@@ -1179,10 +1184,404 @@ async function mergeRemoteTable(table: SyncedTableName, remoteRows: any[], nextR
   }
 }
 
+const resolveLocalBackendId = (cloudId: string | undefined, existingRows: any[], matcher?: () => any) => {
+  if (cloudId) {
+    const byCloudId = existingRows.find((row) => row.cloudId === cloudId);
+    if (byCloudId?.id) return Number(byCloudId.id);
+  }
+
+  const matched = matcher?.();
+  if (matched?.id) return Number(matched.id);
+
+  return undefined;
+};
+
+const mergeBackendTable = async (table: SyncedTableName, backendRows: any[], nextRows: any[], existingRows: any[]) => {
+  const backendCloudIds = new Set(
+    backendRows
+      .map((row) => String(row.id || '').trim())
+      .filter(Boolean),
+  );
+
+  const staleLocalIds = existingRows
+    .filter((row) => row.cloudId && !backendCloudIds.has(String(row.cloudId)))
+    .map((row) => Number(row.id))
+    .filter(Number.isFinite);
+
+  const localTable: any = getLocalTable(table);
+
+  if (nextRows.length > 0) {
+    await localTable.bulkPut(nextRows);
+  }
+
+  if (staleLocalIds.length > 0) {
+    await localTable.bulkDelete(staleLocalIds);
+  }
+};
+
+async function fetchBackendRows(path: string) {
+  const response = await apiClient.get<any[]>(path, { showErrorToast: false });
+  return toArray(response.data);
+}
+
+async function syncUserDataFromBackend(
+  requestedTables: SyncedTableName[] = CORE_SYNC_TABLES,
+) {
+  initializeBackendSync();
+
+  const targetTables = requestedTables.length > 0 ? requestedTables : CORE_SYNC_TABLES;
+  const expandedTables = expandTablesForSync(targetTables);
+  const mergeTargets = new Set<SyncedTableName>(targetTables);
+  const shouldFetch = (table: SyncedTableName) => expandedTables.includes(table);
+
+  const [
+    backendAccounts,
+    backendFriends,
+    backendTransactions,
+    backendLoans,
+    backendGoals,
+    backendInvestments,
+    backendGroups,
+    localAccounts,
+    localFriends,
+    localTransactions,
+    localLoans,
+    localGoals,
+    localInvestments,
+    localGroups,
+  ] = await Promise.all([
+    shouldFetch('accounts') ? fetchBackendRows('/accounts') : Promise.resolve([]),
+    shouldFetch('friends') ? fetchBackendRows('/friends') : Promise.resolve([]),
+    shouldFetch('transactions') ? fetchBackendRows('/transactions?limit=200') : Promise.resolve([]),
+    shouldFetch('loans') ? fetchBackendRows('/loans') : Promise.resolve([]),
+    shouldFetch('goals') ? fetchBackendRows('/goals') : Promise.resolve([]),
+    shouldFetch('investments') ? fetchBackendRows('/investments') : Promise.resolve([]),
+    shouldFetch('group_expenses') ? fetchBackendRows('/groups') : Promise.resolve([]),
+    shouldFetch('accounts') ? db.accounts.toArray() : Promise.resolve([]),
+    shouldFetch('friends') ? db.friends.toArray() : Promise.resolve([]),
+    shouldFetch('transactions') ? db.transactions.toArray() : Promise.resolve([]),
+    shouldFetch('loans') ? db.loans.toArray() : Promise.resolve([]),
+    shouldFetch('goals') ? db.goals.toArray() : Promise.resolve([]),
+    shouldFetch('investments') ? db.investments.toArray() : Promise.resolve([]),
+    shouldFetch('group_expenses') ? db.groupExpenses.toArray() : Promise.resolve([]),
+  ]);
+
+  const accountCloudToLocal = new Map<string, number>();
+  const friendCloudToLocal = new Map<string, number>();
+  const groupCloudToLocal = new Map<string, number>();
+
+  const mappedAccounts = backendAccounts.map((account: any) => {
+    const cloudId = String(account.id);
+    const localId = resolveLocalBackendId(cloudId, localAccounts, () =>
+      localAccounts.find((row) =>
+        !row.cloudId &&
+        normalizeText(row.name) === normalizeText(account.name) &&
+        row.type === account.type &&
+        normalizeText(row.currency) === normalizeText(account.currency),
+      )
+    );
+
+    const next = {
+      id: localId,
+      cloudId,
+      name: account.name,
+      type: account.type,
+      provider: account.provider ?? undefined,
+      country: account.country ?? undefined,
+      balance: Number(account.balance ?? 0),
+      currency: account.currency ?? 'INR',
+      isActive: account.isActive ?? true,
+      createdAt: toDate(account.createdAt) ?? new Date(),
+      updatedAt: toDate(account.updatedAt),
+      deletedAt: toDate(account.deletedAt),
+      syncStatus: 'synced' as const,
+    };
+
+    if (next.id) {
+      accountCloudToLocal.set(cloudId, next.id);
+    }
+
+    return next;
+  });
+
+  mappedAccounts.forEach((account) => {
+    if (account.id && account.cloudId) {
+      accountCloudToLocal.set(account.cloudId, account.id);
+    }
+  });
+
+  const mappedFriends = backendFriends.map((friend: any) => {
+    const cloudId = String(friend.id);
+    const localId = resolveLocalBackendId(cloudId, localFriends, () =>
+      localFriends.find((row) =>
+        !row.cloudId &&
+        normalizeText(row.name) === normalizeText(friend.name) &&
+        normalizeText(row.email) === normalizeText(friend.email) &&
+        normalizeText(row.phone) === normalizeText(friend.phone),
+      )
+    );
+
+    const next = {
+      id: localId,
+      cloudId,
+      name: friend.name,
+      email: friend.email ?? undefined,
+      phone: friend.phone ?? undefined,
+      avatar: friend.avatar ?? undefined,
+      notes: friend.notes ?? undefined,
+      createdAt: toDate(friend.createdAt) ?? new Date(),
+      updatedAt: toDate(friend.updatedAt),
+      deletedAt: toDate(friend.deletedAt),
+      syncStatus: 'synced' as const,
+    };
+
+    if (next.id) {
+      friendCloudToLocal.set(cloudId, next.id);
+    }
+
+    return next;
+  });
+
+  mappedFriends.forEach((friend) => {
+    if (friend.id && friend.cloudId) {
+      friendCloudToLocal.set(friend.cloudId, friend.id);
+    }
+  });
+
+  const mappedGoals = backendGoals.map((goal: any) => ({
+    id: resolveLocalBackendId(String(goal.id), localGoals, () =>
+      localGoals.find((row) =>
+        !row.cloudId &&
+        normalizeText(row.name) === normalizeText(goal.name) &&
+        Number(row.targetAmount ?? 0) === Number(goal.targetAmount ?? 0),
+      )
+    ),
+    cloudId: String(goal.id),
+    name: goal.name,
+    description: goal.description ?? undefined,
+    targetAmount: Number(goal.targetAmount ?? 0),
+    currentAmount: Number(goal.currentAmount ?? 0),
+    targetDate: toDate(goal.targetDate) ?? new Date(),
+    category: goal.category ?? 'other',
+    isGroupGoal: goal.isGroupGoal ?? false,
+    createdAt: toDate(goal.createdAt) ?? new Date(),
+    updatedAt: toDate(goal.updatedAt),
+    deletedAt: toDate(goal.deletedAt),
+    syncStatus: 'synced' as const,
+  }));
+
+  const mappedInvestments = backendInvestments.map((investment: any) => ({
+    id: resolveLocalBackendId(String(investment.id), localInvestments, () =>
+      localInvestments.find((row) =>
+        !row.cloudId &&
+        normalizeText(row.assetName) === normalizeText(investment.assetName) &&
+        row.assetType === investment.assetType &&
+        Number(row.quantity ?? 0) === Number(investment.quantity ?? 0),
+      )
+    ),
+    cloudId: String(investment.id),
+    assetType: investment.assetType,
+    assetName: investment.assetName,
+    quantity: Number(investment.quantity ?? 0),
+    buyPrice: Number(investment.buyPrice ?? 0),
+    currentPrice: Number(investment.currentPrice ?? 0),
+    totalInvested: Number(investment.totalInvested ?? 0),
+    currentValue: Number(investment.currentValue ?? 0),
+    profitLoss: Number(investment.profitLoss ?? 0),
+    purchaseDate: toDate(investment.purchaseDate) ?? new Date(),
+    lastUpdated: toDate(investment.lastUpdated) ?? new Date(),
+    broker: investment.broker ?? undefined,
+    description: investment.description ?? undefined,
+    assetCurrency: investment.assetCurrency ?? undefined,
+    baseCurrency: investment.baseCurrency ?? undefined,
+    buyFxRate: investment.buyFxRate ?? undefined,
+    lastKnownFxRate: investment.lastKnownFxRate ?? undefined,
+    totalInvestedNative: investment.totalInvestedNative ?? undefined,
+    currentValueNative: investment.currentValueNative ?? undefined,
+    valuationVersion: investment.valuationVersion ?? undefined,
+    positionStatus: investment.positionStatus ?? undefined,
+    closedAt: toDate(investment.closedAt),
+    closePrice: investment.closePrice ?? undefined,
+    closeFxRate: investment.closeFxRate ?? undefined,
+    grossSaleValue: investment.grossSaleValue ?? undefined,
+    netSaleValue: investment.netSaleValue ?? undefined,
+    fundingAccountId: investment.fundingAccountId ? accountCloudToLocal.get(String(investment.fundingAccountId)) : undefined,
+    purchaseFees: investment.purchaseFees ?? undefined,
+    purchaseTransactionId: undefined,
+    purchaseFeeTransactionId: undefined,
+    saleTransactionId: undefined,
+    saleFeeTransactionId: undefined,
+    closingFees: investment.closingFees ?? undefined,
+    realizedProfitLoss: investment.realizedProfitLoss ?? undefined,
+    settlementAccountId: investment.settlementAccountId ? accountCloudToLocal.get(String(investment.settlementAccountId)) : undefined,
+    closeNotes: investment.closeNotes ?? undefined,
+    createdAt: toDate(investment.createdAt) ?? new Date(),
+    updatedAt: toDate(investment.updatedAt),
+    deletedAt: toDate(investment.deletedAt),
+    syncStatus: 'synced' as const,
+  }));
+
+  const mappedGroups = backendGroups.map((group: any) => {
+    const cloudId = String(group.id);
+    const localPaidBy = group.paidBy ? accountCloudToLocal.get(String(group.paidBy)) : undefined;
+    const localId = resolveLocalBackendId(cloudId, localGroups, () =>
+      localGroups.find((row) =>
+        !row.cloudId &&
+        normalizeText(row.name) === normalizeText(group.name) &&
+        Number(row.totalAmount ?? 0) === Number(group.totalAmount ?? 0),
+      )
+    );
+
+    const next = {
+      id: localId,
+      cloudId,
+      name: group.name,
+      totalAmount: Number(group.totalAmount ?? 0),
+      paidBy: localPaidBy ?? 0,
+      date: toDate(group.date) ?? new Date(),
+      members: Array.isArray(group.members)
+        ? group.members.map((member: any) => ({
+          ...member,
+          friendId: member?.friendId ? friendCloudToLocal.get(String(member.friendId)) : undefined,
+        }))
+        : [],
+      items: Array.isArray(group.items) ? group.items : [],
+      description: group.description ?? undefined,
+      category: group.category ?? undefined,
+      subcategory: group.subcategory ?? undefined,
+      splitType: group.splitType ?? undefined,
+      yourShare: group.yourShare ?? undefined,
+      expenseTransactionId: undefined,
+      createdBy: group.createdBy ?? undefined,
+      createdByName: group.createdByName ?? undefined,
+      status: group.status ?? undefined,
+      notificationStatus: group.notificationStatus ?? undefined,
+      createdAt: toDate(group.createdAt) ?? new Date(),
+      updatedAt: toDate(group.updatedAt),
+      deletedAt: toDate(group.deletedAt),
+      syncStatus: 'synced' as const,
+    };
+
+    if (next.id) {
+      groupCloudToLocal.set(cloudId, next.id);
+    }
+
+    return next;
+  });
+
+  mappedGroups.forEach((group) => {
+    if (group.id && group.cloudId) {
+      groupCloudToLocal.set(group.cloudId, group.id);
+    }
+  });
+
+  const mappedTransactions = backendTransactions.map((transaction: any) => ({
+    id: resolveLocalBackendId(String(transaction.id), localTransactions, () =>
+      localTransactions.find((row) =>
+        !row.cloudId &&
+        row.type === transaction.type &&
+        Number(row.amount ?? 0) === Number(transaction.amount ?? 0) &&
+        normalizeText(row.category) === normalizeText(transaction.category) &&
+        normalizeText(row.description) === normalizeText(transaction.description) &&
+        sameInstant(row.date, transaction.date),
+      )
+    ),
+    cloudId: String(transaction.id),
+    type: transaction.type,
+    amount: Number(transaction.amount ?? 0),
+    accountId: accountCloudToLocal.get(String(transaction.accountId)) ?? 0,
+    category: transaction.category ?? 'Other',
+    subcategory: transaction.subcategory ?? undefined,
+    description: transaction.description ?? '',
+    merchant: transaction.merchant ?? undefined,
+    date: toDate(transaction.date) ?? new Date(),
+    tags: Array.isArray(transaction.tags) ? transaction.tags : undefined,
+    attachment: transaction.attachment ?? undefined,
+    transferToAccountId: transaction.transferToAccountId ? accountCloudToLocal.get(String(transaction.transferToAccountId)) : undefined,
+    transferType: transaction.transferType ?? undefined,
+    expenseMode: transaction.expenseMode ?? undefined,
+    groupExpenseId: transaction.groupExpenseId ? groupCloudToLocal.get(String(transaction.groupExpenseId)) : undefined,
+    groupName: transaction.groupName ?? undefined,
+    splitType: transaction.splitType ?? undefined,
+    importSource: transaction.importSource ?? undefined,
+    importMetadata: transaction.importMetadata ?? undefined,
+    originalCategory: transaction.originalCategory ?? undefined,
+    importedAt: toDate(transaction.importedAt),
+    createdAt: toDate(transaction.createdAt) ?? new Date(),
+    updatedAt: toDate(transaction.updatedAt),
+    deletedAt: toDate(transaction.deletedAt),
+    syncStatus: 'synced' as const,
+    version: transaction.version ?? undefined,
+  })).filter((transaction) => transaction.accountId > 0);
+
+  const mappedLoans = backendLoans.map((loan: any) => ({
+    id: resolveLocalBackendId(String(loan.id), localLoans, () =>
+      localLoans.find((row) =>
+        !row.cloudId &&
+        normalizeText(row.name) === normalizeText(loan.name) &&
+        row.type === loan.type &&
+        Number(row.principalAmount ?? 0) === Number(loan.principalAmount ?? 0),
+      )
+    ),
+    cloudId: String(loan.id),
+    type: loan.type,
+    name: loan.name,
+    principalAmount: Number(loan.principalAmount ?? 0),
+    outstandingBalance: Number(loan.outstandingBalance ?? 0),
+    interestRate: loan.interestRate ?? undefined,
+    totalPayable: loan.totalPayable ?? undefined,
+    emiAmount: loan.emiAmount ?? undefined,
+    dueDate: toDate(loan.dueDate),
+    loanDate: toDate(loan.loanDate),
+    frequency: loan.frequency ?? undefined,
+    status: loan.status ?? 'active',
+    contactPerson: loan.contactPerson ?? undefined,
+    friendId: loan.friendId ? friendCloudToLocal.get(String(loan.friendId)) : undefined,
+    contactEmail: loan.contactEmail ?? undefined,
+    contactPhone: loan.contactPhone ?? undefined,
+    accountId: loan.accountId ? accountCloudToLocal.get(String(loan.accountId)) : undefined,
+    notes: loan.notes ?? undefined,
+    createdAt: toDate(loan.createdAt) ?? new Date(),
+    updatedAt: toDate(loan.updatedAt),
+    deletedAt: toDate(loan.deletedAt),
+    syncStatus: 'synced' as const,
+    version: loan.version ?? undefined,
+  }));
+
+  await runWithCloudSyncSuppressed(async () => {
+    if (mergeTargets.has('accounts')) {
+      await mergeBackendTable('accounts', backendAccounts, mappedAccounts, localAccounts);
+    }
+    if (mergeTargets.has('friends')) {
+      await mergeBackendTable('friends', backendFriends, mappedFriends, localFriends);
+    }
+    if (mergeTargets.has('transactions')) {
+      await mergeBackendTable('transactions', backendTransactions, mappedTransactions, localTransactions);
+    }
+    if (mergeTargets.has('loans')) {
+      await mergeBackendTable('loans', backendLoans, mappedLoans, localLoans);
+    }
+    if (mergeTargets.has('goals')) {
+      await mergeBackendTable('goals', backendGoals, mappedGoals, localGoals);
+    }
+    if (mergeTargets.has('investments')) {
+      await mergeBackendTable('investments', backendInvestments, mappedInvestments, localInvestments);
+    }
+    if (mergeTargets.has('group_expenses')) {
+      await mergeBackendTable('group_expenses', backendGroups, mappedGroups, localGroups);
+    }
+  });
+}
+
 export async function syncUserDataFromCloud(
   userId: string,
   requestedTables: SyncedTableName[] = CORE_SYNC_TABLES
 ) {
+  if (isBackendFirstSyncMode()) {
+    await syncUserDataFromBackend(requestedTables);
+    return;
+  }
+
   if (!DIRECT_CLOUD_SYNC_ENABLED) return;
 
   if (syncState.syncingFromCloud) return;
@@ -1677,6 +2076,51 @@ export async function handleLogout() {
 export async function saveTransactionWithBackendSync(transaction: any) {
   initializeBackendSync();
 
+  if (isBackendFirstSyncMode() && transaction?.type !== 'transfer') {
+    const sourceAccount = await db.accounts.get(Number(transaction.accountId));
+    if (!sourceAccount?.cloudId) {
+      throw new Error('Account must be synced before creating a backend transaction');
+    }
+
+    const transferTargetAccount = transaction.transferToAccountId
+      ? await db.accounts.get(Number(transaction.transferToAccountId))
+      : null;
+
+    if (transaction.transferToAccountId && !transferTargetAccount?.cloudId) {
+      throw new Error('Transfer destination account must be synced before creating a backend transaction');
+    }
+
+    const response = await apiClient.post('/transactions', {
+      accountId: sourceAccount.cloudId,
+      type: transaction.type,
+      amount: Number(transaction.amount ?? 0),
+      category: transaction.category,
+      subcategory: transaction.subcategory,
+      description: transaction.description,
+      merchant: transaction.merchant,
+      date: toIsoString(transaction.date) ?? new Date().toISOString(),
+      tags: Array.isArray(transaction.tags) ? transaction.tags : [],
+      transferToAccountId: transferTargetAccount?.cloudId,
+      transferType: transaction.transferType,
+    }, {
+      showErrorToast: false,
+    });
+
+    const remote = response.data as any;
+    const now = new Date();
+    const dbTransaction = {
+      ...transaction,
+      cloudId: remote?.id,
+      createdAt: toDate(remote?.createdAt) ?? transaction.createdAt ?? now,
+      updatedAt: toDate(remote?.updatedAt) ?? now,
+      syncStatus: 'synced' as const,
+      version: remote?.version ?? transaction.version,
+    };
+
+    const savedId = await db.transactions.add(dbTransaction);
+    return { ...dbTransaction, id: savedId };
+  }
+
   const now = new Date();
   const dbTransaction = {
     ...transaction,
@@ -1725,6 +2169,34 @@ export async function saveTransactionAndUpdateAccountWithBackendSync(
 export async function saveAccountWithBackendSync(account: any) {
   initializeBackendSync();
 
+  if (isBackendFirstSyncMode()) {
+    const response = await apiClient.post('/accounts', {
+      name: account.name,
+      type: account.type,
+      provider: account.provider ?? undefined,
+      country: account.country ?? undefined,
+      balance: Number(account.balance ?? 0),
+      currency: account.currency,
+    }, {
+      showErrorToast: false,
+    });
+
+    const remote = response.data as any;
+    const dbAccount = {
+      ...account,
+      cloudId: remote?.id,
+      balance: Number(remote?.balance ?? account.balance ?? 0),
+      isActive: remote?.isActive ?? account.isActive ?? true,
+      createdAt: toDate(remote?.createdAt) ?? account.createdAt ?? new Date(),
+      updatedAt: toDate(remote?.updatedAt) ?? new Date(),
+      deletedAt: toDate(remote?.deletedAt),
+      syncStatus: 'synced' as const,
+    };
+
+    const savedId = await db.accounts.add(dbAccount);
+    return { ...dbAccount, id: savedId };
+  }
+
   const now = new Date();
   const dbAccount = {
     ...account,
@@ -1741,6 +2213,45 @@ export async function saveAccountWithBackendSync(account: any) {
 export async function updateAccountWithBackendSync(accountId: number, updates: any) {
   initializeBackendSync();
 
+  if (isBackendFirstSyncMode()) {
+    const existing = await db.accounts.get(accountId);
+    if (!existing) {
+      throw new Error('Account not found');
+    }
+
+    let nextUpdates = {
+      ...updates,
+      updatedAt: new Date(),
+      syncStatus: 'synced' as const,
+    };
+
+    if (existing.cloudId) {
+      const response = await apiClient.put(`/accounts/${existing.cloudId}`, {
+        name: updates.name,
+        type: updates.type,
+        provider: updates.provider,
+        country: updates.country,
+        balance: updates.balance,
+        currency: updates.currency,
+      }, {
+        showErrorToast: false,
+      });
+
+      const remote = response.data as any;
+      nextUpdates = {
+        ...nextUpdates,
+        cloudId: remote?.id ?? existing.cloudId,
+        balance: Number(remote?.balance ?? updates.balance ?? existing.balance),
+        isActive: remote?.isActive ?? updates.isActive ?? existing.isActive,
+        updatedAt: toDate(remote?.updatedAt) ?? new Date(),
+        deletedAt: toDate(remote?.deletedAt) ?? existing.deletedAt,
+      };
+    }
+
+    await db.accounts.update(accountId, nextUpdates);
+    return;
+  }
+
   await db.accounts.update(accountId, {
     ...updates,
     updatedAt: new Date(),
@@ -1751,6 +2262,32 @@ export async function updateAccountWithBackendSync(accountId: number, updates: a
 
 export async function saveGoalWithBackendSync(goal: any) {
   initializeBackendSync();
+
+  if (isBackendFirstSyncMode()) {
+    const response = await apiClient.post('/goals', {
+      name: goal.name,
+      targetAmount: Number(goal.targetAmount ?? 0),
+      targetDate: toIsoString(goal.targetDate) ?? new Date().toISOString(),
+      category: goal.category,
+      isGroupGoal: goal.isGroupGoal ?? false,
+    }, {
+      showErrorToast: false,
+    });
+
+    const remote = response.data as any;
+    const dbGoal = {
+      ...goal,
+      cloudId: remote?.id,
+      currentAmount: Number(remote?.currentAmount ?? goal.currentAmount ?? 0),
+      createdAt: toDate(remote?.createdAt) ?? goal.createdAt ?? new Date(),
+      updatedAt: toDate(remote?.updatedAt) ?? new Date(),
+      deletedAt: toDate(remote?.deletedAt),
+      syncStatus: 'synced' as const,
+    };
+
+    const savedId = await db.goals.add(dbGoal);
+    return { ...dbGoal, id: savedId };
+  }
 
   const now = new Date();
   const dbGoal = {

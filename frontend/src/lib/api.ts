@@ -12,6 +12,15 @@ import type { ApiResponse, ApiError } from '@/types';
 
 const API_BASE_URL = getConfiguredApiBase();
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
+const PROFILE_CACHE_TTL_MS = 5000;
+
+let profileCache:
+  | {
+    expiresAt: number;
+    response: ApiResponse<any>;
+  }
+  | null = null;
+let profileRequestInFlight: Promise<ApiResponse<any>> | null = null;
 
 // ==================== Token Management ====================
 
@@ -336,12 +345,41 @@ export const api = {
         successMessage: 'Registration successful',
       }),
 
-    getProfile: () => apiClient.get('/auth/profile'),
+    getProfile: async (options?: { force?: boolean }) => {
+      const force = options?.force === true;
+
+      if (!force && profileCache && profileCache.expiresAt > Date.now()) {
+        return profileCache.response;
+      }
+
+      if (!force && profileRequestInFlight) {
+        return profileRequestInFlight;
+      }
+
+      const request = apiClient.get('/auth/profile')
+        .then((response) => {
+          profileCache = {
+            expiresAt: Date.now() + PROFILE_CACHE_TTL_MS,
+            response,
+          };
+          return response;
+        })
+        .finally(() => {
+          profileRequestInFlight = null;
+        });
+
+      profileRequestInFlight = request;
+      return request;
+    },
 
     updateProfile: (data: any) =>
       apiClient.put('/auth/profile', data, {
         showSuccessToast: true,
         successMessage: 'Profile updated successfully',
+      }).then((response) => {
+        profileCache = null;
+        profileRequestInFlight = null;
+        return response;
       }),
 
     logout: () =>
