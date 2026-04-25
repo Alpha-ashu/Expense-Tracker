@@ -196,4 +196,24 @@ router.post('/reset', async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * POST /api/v1/pin/self-reset
+ * Reset the authenticated user's own PIN and backup metadata.
+ */
+router.post('/self-reset', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id || '';
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const result = await pinService.forceResetPin(userId);
+    res.json(result);
+  } catch (error) {
+    console.error('Self reset PIN error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export { router as pinRoutes };

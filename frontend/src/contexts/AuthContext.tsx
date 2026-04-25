@@ -13,6 +13,7 @@ import {
   subscribeToUserCloudSync,
   syncUserDataFromCloud,
 } from '@/lib/auth-sync-integration';
+import { shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
 
 interface AuthContextType {
   user: User | null;
@@ -352,6 +353,11 @@ const syncProfileFromBackend = async (user: User) => {
 /** Sync user data from Supabase into local Dexie DB on login */
 const syncFromSupabase = async (user: User) => {
   try {
+    if (shouldSkipOptionalBackendRequests()) {
+      await syncProfileFromBackend(user);
+      return;
+    }
+
     const timeouts = [12000, 30000];
     let lastError: any = null;
 
@@ -364,6 +370,10 @@ const syncFromSupabase = async (user: User) => {
         return;
       } catch (err) {
         lastError = err;
+        if (isTimeoutError(err) && shouldSkipOptionalBackendRequests()) {
+          console.info(`Supabase sync skipped while backend is in degraded mode after ${timeouts[attempt]}ms.`);
+          return;
+        }
         if (isTimeoutError(err) && attempt < timeouts.length - 1) {
           console.info(`Supabase sync timed out after ${timeouts[attempt]}ms. Retrying...`);
           continue;

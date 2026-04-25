@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, Fingerprint, Shield } from 'lucide-react';
+import { Lock, Eye, EyeOff, Fingerprint, Shield, LogOut, KeyRound } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
-import { isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
+import { clearSecurityData, isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 import { isPinMissing, pinService } from '@/services/pinService';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PINAuthProps {
   onAuthenticated: (encryptionKey: string) => void;
 }
 
 export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
+  const { signOut, user } = useAuth();
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [showPin, setShowPin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [isResettingPin, setIsResettingPin] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pinMismatch = isCreating && confirmPin.length > 0 && pin !== confirmPin;
 
   const finalizeAuthentication = async (key: string, successMessage: string) => {
@@ -194,6 +198,49 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     toast.info('Biometric authentication coming soon');
   };
 
+  const handleUseDifferentAccount = async () => {
+    setIsLoggingOut(true);
+    try {
+      pinService.clearPinData();
+      clearSecurityData();
+      await signOut();
+    } catch (error) {
+      console.error('Failed to sign out from PIN screen:', error);
+      toast.error('Failed to sign out. Please try again.');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const handleForgotPin = async () => {
+    const confirmed = window.confirm(
+      'Reset your PIN for this account? You will be signed out and will need to log in again before creating a new PIN.'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsResettingPin(true);
+
+    try {
+      const result = await pinService.resetCurrentUserPin();
+      if (!result.success) {
+        toast.error(result.message || 'Failed to reset PIN');
+        return;
+      }
+
+      clearSecurityData();
+      await signOut();
+      toast.success('PIN reset. Sign in again to create a new PIN.');
+    } catch (error) {
+      console.error('Failed to reset PIN:', error);
+      toast.error('Failed to reset PIN. Please try again.');
+    } finally {
+      setIsResettingPin(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-blue-600 flex items-center justify-center p-4 z-50">
       <div className="w-full max-w-md">
@@ -211,6 +258,16 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         {/* PIN Input Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
+            <input
+              type="text"
+              name="username"
+              value={user?.email || ''}
+              readOnly
+              autoComplete="username"
+              tabIndex={-1}
+              className="sr-only"
+              aria-hidden="true"
+            />
             {/* PIN Input */}
             <div>
               {isCreating ? (
@@ -357,6 +414,29 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                 <Fingerprint size={20} />
                 Use Biometric
               </button>
+            )}
+
+            {!isCreating && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleForgotPin}
+                  disabled={isResettingPin || isLoggingOut || isLoading}
+                  className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center justify-center gap-2"
+                >
+                  <KeyRound size={18} />
+                  {isResettingPin ? 'Resetting PIN...' : 'Forgot PIN'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUseDifferentAccount}
+                  disabled={isResettingPin || isLoggingOut || isLoading}
+                  className="w-full py-3 bg-white text-gray-700 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 disabled:text-gray-400 transition-colors flex items-center justify-center gap-2"
+                >
+                  <LogOut size={18} />
+                  {isLoggingOut ? 'Signing out...' : 'Use different account'}
+                </button>
+              </div>
             )}
           </form>
 

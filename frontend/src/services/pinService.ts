@@ -395,6 +395,14 @@ class PinService {
     return this.delete('key-backup');
   }
 
+  async resetCurrentUserPin(): Promise<PinStatus> {
+    const result = await this.post('self-reset', {});
+    if (result.success) {
+      this.clearPinData();
+    }
+    return result;
+  }
+
   markPinCreatedLocally(expiresAt?: string): void {
     this.persistPinState({
       success: true,
