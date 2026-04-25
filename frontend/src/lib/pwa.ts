@@ -81,6 +81,25 @@ export const isAppInstalled = (): boolean => {
 let deferredPrompt: any = null;
 let installPromptListenersBound = false;
 
+const isPwaInstallPromptSuppressed = (): boolean => {
+  try {
+    const dismissed = localStorage.getItem('pwa_install_dismissed');
+    if (!dismissed) {
+      return false;
+    }
+
+    const dismissedAt = Number(dismissed);
+    if (!Number.isFinite(dismissedAt)) {
+      return false;
+    }
+
+    const daysSinceDismissed = (Date.now() - dismissedAt) / (1000 * 60 * 60 * 24);
+    return daysSinceDismissed < 7;
+  } catch {
+    return false;
+  }
+};
+
 export const setupPWAInstallPrompt = () => {
   if (import.meta.env.DEV || installPromptListenersBound) {
     return;
@@ -89,6 +108,11 @@ export const setupPWAInstallPrompt = () => {
   installPromptListenersBound = true;
 
   window.addEventListener('beforeinstallprompt', (e) => {
+    if (isPwaInstallPromptSuppressed()) {
+      deferredPrompt = null;
+      return;
+    }
+
     // Prevent the mini-infobar from appearing on mobile
     e.preventDefault();
     // Stash the event so it can be triggered later

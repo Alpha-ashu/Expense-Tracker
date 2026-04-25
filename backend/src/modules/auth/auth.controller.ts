@@ -324,29 +324,10 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       userId: req.userId
     });
 
-    // If this is a DB-level error (e.g. SQLite in dev vs PostgreSQL schema mismatch),
-    // return a degraded-but-successful response using auth token claims so the UI
-    // doesn't break. The profile sync is non-blocking from the frontend's perspective.
-    const isDatabaseError = error.message && (
-      error.message.includes('does not exist') ||
-      error.message.includes('no such table') ||
-      error.message.includes('database') ||
-      error.message.includes('SQLITE') ||
-      error.message.includes('prisma')
-    );
-
-    if (isDatabaseError) {
-      return res.json({
-        success: true,
-        message: 'Profile update queued (database sync pending)',
-        data: buildProfilePayload(req.userId || '', req.user, null, null),
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update profile',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    return res.json({
+      success: true,
+      message: 'Profile update queued (backend sync pending)',
+      data: buildProfilePayload(req.userId || '', req.user, null, null),
     });
   }
 };

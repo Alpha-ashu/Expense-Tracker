@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "generate:prisma": "prisma generate",
     "ensure:cloud-sync-schema": "node ./scripts/ensure-cloud-sync-schema.cjs",
+    "ensure:db-integrity": "node ./scripts/ensure-db-integrity.cjs",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "jest",

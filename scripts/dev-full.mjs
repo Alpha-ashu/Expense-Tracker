@@ -277,6 +277,11 @@ const ensureDatabaseReady = async () => {
     cwd: backendDir,
     label: 'ensure cloud sync schema',
   });
+
+  await runCommand('node', ['scripts/ensure-db-integrity.cjs'], {
+    cwd: backendDir,
+    label: 'ensure db integrity',
+  });
 };
 
 const startLongRunningProcess = (command, args, cwd, envOverrides = {}) =>

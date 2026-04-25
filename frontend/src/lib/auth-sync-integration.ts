@@ -12,7 +12,7 @@ import {
 } from '@/lib/supabase-runtime';
 
 const DIRECT_CLOUD_SYNC_ENABLED =
-  import.meta.env.VITE_ENABLE_DIRECT_CLOUD_SYNC === 'true' || !import.meta.env.DEV;
+  import.meta.env.VITE_ENABLE_DIRECT_CLOUD_SYNC === 'true';
 
 type SyncedTableName =
   | 'accounts'

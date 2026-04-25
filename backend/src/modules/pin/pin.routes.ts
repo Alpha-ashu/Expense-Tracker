@@ -91,7 +91,11 @@ router.get('/status', async (req: AuthRequest, res: Response) => {
     res.json(result);
   } catch (error) {
     console.error('Get PIN status error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json({
+      success: false,
+      message: 'PIN service temporarily unavailable',
+      statusCode: 503,
+    });
   }
 });
 
