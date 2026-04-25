@@ -229,6 +229,55 @@ export const rejectBooking = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const rescheduleBooking = async (req: AuthRequest, res: Response) => {
+  try {
+    const advisorId = getUserId(req);
+    const { id } = req.params;
+    const { proposedDate, proposedTime, reason } = req.body;
+
+    if (!proposedDate || !proposedTime) {
+      return res.status(400).json({ error: 'proposedDate and proposedTime are required' });
+    }
+
+    const booking = await prisma.bookingRequest.findUnique({
+      where: { id },
+    });
+
+    if (!booking || booking.advisorId !== advisorId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const nextDate = new Date(`${proposedDate}T${proposedTime}`);
+    if (Number.isNaN(nextDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid proposed date/time' });
+    }
+
+    const updated = await prisma.bookingRequest.update({
+      where: { id },
+      data: {
+        status: 'reschedule',
+        proposedDate: nextDate,
+        proposedTime,
+        rejectionReason: reason || '',
+      },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: booking.clientId,
+        title: 'Booking Reschedule Requested',
+        message: `Your advisor proposed a new time: ${proposedDate} ${proposedTime}${reason ? ` (${reason})` : ''}`,
+        category: 'booking',
+        deepLink: `/bookings/${id}`,
+      },
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to reschedule booking' });
+  }
+};
+
 // Cancel booking (client only)
 export const cancelBooking = async (req: AuthRequest, res: Response) => {
   try {

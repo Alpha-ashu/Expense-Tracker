@@ -37,6 +37,13 @@ router.put(
   BookingController.rejectBooking
 );
 
+router.put(
+  '/:id/reschedule',
+  requireRole('advisor'),
+  requireApproved,
+  BookingController.rescheduleBooking
+);
+
 // Cancel booking (client only - but any authenticated user can call)
 router.put(
   '/:id/cancel',

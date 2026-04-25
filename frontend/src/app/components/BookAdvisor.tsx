@@ -32,7 +32,7 @@ interface BookingForm {
 }
 
 export const BookAdvisor: React.FC = () => {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const [selectedAdvisor, setSelectedAdvisor] = useState<FinanceAdvisor | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingForm, setBookingForm] = useState<BookingForm>({
@@ -78,30 +78,15 @@ export const BookAdvisor: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const nextSequence = Math.max(...userBookings.map((b) => b.sequenceNumber || 0), 0) + 1;
-      const bookingId = await backendService.createBookingRequest({
+      await backendService.createBookingRequest({
         advisorId: bookingForm.advisorId,
-        userId: user.id,
-        advisorName: selectedAdvisor.name,
-        userEmail: user.email || 'unknown@example.com',
         topic: bookingForm.topic,
         message: bookingForm.message,
         sessionType: bookingForm.sessionType,
-        preferredTime: `${bookingForm.preferredDate} ${bookingForm.preferredTime}`,
-        status: 'pending',
-        createdAt: new Date(),
-        sequenceNumber: nextSequence,
-      });
-
-      // Create notification for advisor with deepLink to workspace
-      await backendService.createNotification({
-        type: 'booking',
-        title: 'New Booking Request',
-        message: `You have a new booking request from ${user.email}. Session: ${bookingForm.topic || 'Consultation'}`,
-        isRead: false,
-        userId: bookingForm.advisorId,
-        deepLink: '/advisor?booking=' + bookingId,
-        createdAt: new Date(),
+        proposedDate: bookingForm.preferredDate,
+        proposedTime: bookingForm.preferredTime,
+        duration: 60,
+        amount: selectedAdvisor.hourlyRate,
       });
 
       toast.success('Booking request sent! The advisor will respond soon.');

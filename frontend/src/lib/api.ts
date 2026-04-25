@@ -386,8 +386,16 @@ export const api = {
 
   // Transactions
   transactions: {
-    getAll: (filters?: any) =>
-      apiClient.get('/transactions', { body: JSON.stringify(filters) }),
+    getAll: (filters?: Record<string, string | number | boolean | undefined>) => {
+      const params = new URLSearchParams();
+      Object.entries(filters || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.set(key, String(value));
+        }
+      });
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      return apiClient.get(`/transactions${suffix}`);
+    },
     getById: (id: string) => apiClient.get(`/transactions/${id}`),
     create: (data: any) =>
       apiClient.post('/transactions', data, {
@@ -449,7 +457,7 @@ export const api = {
         successMessage: 'Loan deleted successfully',
       }),
     addPayment: (id: string, data: any) =>
-      apiClient.post(`/loans/${id}/payments`, data),
+      apiClient.post(`/loans/${id}/payment`, data),
   },
 
   // Investments
@@ -475,9 +483,9 @@ export const api = {
 
   // Reports
   reports: {
-    getSummary: (period: string) => apiClient.get(`/reports/summary?period=${period}`),
-    getCategoryBreakdown: () => apiClient.get('/reports/category-breakdown'),
-    getTrends: () => apiClient.get('/reports/trends'),
+    getSummary: (period: string) => apiClient.get(`/dashboard/summary?period=${period}`),
+    getCategoryBreakdown: () => apiClient.get('/dashboard/cashflow'),
+    getTrends: () => apiClient.get('/dashboard/cashflow'),
     export: (format: 'pdf' | 'excel' | 'csv', filters?: any) =>
       apiClient.post('/reports/export', { format, filters }),
   },
@@ -485,10 +493,10 @@ export const api = {
   // Admin
   admin: {
     getUsers: () => apiClient.get('/admin/users'),
-    getFeatureFlags: () => apiClient.get('/admin/feature-flags'),
-    updateFeatureFlag: (id: string, enabled: boolean) =>
-      apiClient.put(`/admin/feature-flags/${id}`, { enabled }),
-    getAnalytics: () => apiClient.get('/admin/analytics'),
+    getFeatureFlags: () => apiClient.get('/admin/features'),
+    updateFeatureFlag: (feature: string, enabled: boolean) =>
+      apiClient.post('/admin/features/toggle', { feature, enabled }),
+    getAnalytics: () => apiClient.get('/admin/stats'),
   },
 };
 

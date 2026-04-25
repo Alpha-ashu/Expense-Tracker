@@ -20,6 +20,13 @@ router.post(
   AdvisorController.setAvailability
 );
 
+router.put(
+  '/availability/status',
+  requireRole('advisor'),
+  requireApproved,
+  AdvisorController.setAvailabilityStatus
+);
+
 router.get(
   '/:id/availability',
   AdvisorController.getAvailability

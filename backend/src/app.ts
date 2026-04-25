@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
+import { docsRoutes } from './routes/docs';
 import { getRedisStatus } from './cache/redis';
 import { rateLimit, authenticatedRateLimit } from './middleware/rateLimit';
 import { getCircuitBreakerStatus } from './utils/circuitBreaker';
@@ -117,6 +118,9 @@ app.get('/health', (req, res) => {
     },
   });
 });
+
+// Public API documentation
+app.use('/api-docs', docsRoutes);
 
 // API v1
 app.use('/api/v1', apiRoutes);

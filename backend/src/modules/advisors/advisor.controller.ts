@@ -53,11 +53,13 @@ export const getAdvisor = async (req: AuthRequest, res: Response) => {
     // Calculate average rating
     const ratings = advisor.sessionsAsAdvisor.map((s: any) => s.rating).filter(Boolean);
     const averageRating = ratings.length > 0 ? ratings.reduce((a: number, b: number) => a + b) / ratings.length : 0;
+    const availability = advisor.advisorAvailability.some((slot: any) => slot.isActive);
 
     res.json({
       ...advisor,
       averageRating,
       reviewCount: ratings.length,
+      availability,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to fetch advisor' });
@@ -105,6 +107,57 @@ export const setAvailability = async (req: AuthRequest, res: Response) => {
     res.json(availability);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to set availability' });
+  }
+};
+
+export const setAvailabilityStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const advisorId = getUserId(req);
+    const { available } = req.body;
+
+    if (typeof available !== 'boolean') {
+      return res.status(400).json({ error: 'available must be a boolean' });
+    }
+
+    const existingSlots = await prisma.advisorAvailability.findMany({
+      where: { advisorId },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+
+    if (!available) {
+      await prisma.advisorAvailability.updateMany({
+        where: { advisorId },
+        data: { isActive: false },
+      });
+    } else if (existingSlots.length === 0) {
+      await prisma.advisorAvailability.createMany({
+        data: [1, 2, 3, 4, 5].map((dayOfWeek) => ({
+          advisorId,
+          dayOfWeek,
+          startTime: '09:00',
+          endTime: '17:00',
+          isActive: true,
+        })),
+      });
+    } else {
+      await prisma.advisorAvailability.updateMany({
+        where: { advisorId },
+        data: { isActive: true },
+      });
+    }
+
+    const slots = await prisma.advisorAvailability.findMany({
+      where: { advisorId },
+      orderBy: { dayOfWeek: 'asc' },
+    });
+
+    res.json({
+      advisorId,
+      availability: slots.some((slot) => slot.isActive),
+      slots,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to update advisor availability status' });
   }
 };
 

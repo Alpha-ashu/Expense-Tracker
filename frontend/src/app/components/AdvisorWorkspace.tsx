@@ -117,33 +117,18 @@ export const AdvisorWorkspace: React.FC = () => {
 
   const handleAcceptBooking = async (bookingId: number, booking: any) => {
     try {
-      const conversationId = `${user?.id}_${booking.userId}`;
-      await backendService.createOrUpdateChatConversation({
-        conversationId,
-        advisorId: user!.id,
-        userId: booking.userId,
-        advisorInitiated: true,
-        createdAt: new Date(),
-      });
-
-      await backendService.updateBookingRequest(String(bookingId), {
+      const result = await backendService.updateBookingRequest(String(bookingId), {
         status: 'accepted',
-        respondedAt: new Date(),
-      });
-
-      await backendService.createNotification({
-        type: 'booking',
-        title: 'Booking Accepted',
-        message: `Your session with ${user!.email} has been accepted! Check your calendar for details.`,
-        isRead: false,
-        userId: booking.userId,
-        deepLink: '/calendar?session=' + bookingId,
-        createdAt: new Date(),
       });
 
       toast.success('Booking accepted! Chat has been unlocked.');
+      if (result?.session?.id) {
+        setSelectedChat(result.session.id);
+        setActiveTab('chat');
+      }
       // Refresh booking requests
-      backendService.getAdvisorBookingRequests(user.id).then(setBookingRequests);
+      if (user?.id) backendService.getAdvisorBookingRequests(user.id).then(setBookingRequests);
+      if (user?.id) backendService.getAdvisorAssignments(user.id).then(setAssignments);
     } catch (error) {
       console.error('Error accepting booking:', error);
       toast.error('Failed to accept booking');
@@ -154,7 +139,6 @@ export const AdvisorWorkspace: React.FC = () => {
     try {
       await backendService.updateBookingRequest(String(bookingId), {
         status: 'rejected',
-        respondedAt: new Date(),
       });
       toast.success('Booking rejected');
       // Refresh booking requests
@@ -172,19 +156,9 @@ export const AdvisorWorkspace: React.FC = () => {
 
       await backendService.updateBookingRequest(String(bookingId), {
         status: 'reschedule',
-        respondedAt: new Date(),
         responseMessage: `Advisor proposed new time: ${newDate} at ${newTime}`,
-        preferredTime: `${newDate} ${newTime}`,
-      });
-
-      await backendService.createNotification({
-        type: 'booking',
-        title: 'Session Rescheduled',
-        message: `Your advisor has proposed a new time: ${newDate} at ${newTime}. Check your calendar to confirm.`,
-        isRead: false,
-        userId: booking.userId,
-        deepLink: '/calendar?session=' + bookingId,
-        createdAt: new Date(),
+        proposedDate: newDate,
+        proposedTime: newTime,
       });
 
       toast.success('Reschedule request sent to user');
@@ -309,7 +283,9 @@ export const AdvisorWorkspace: React.FC = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => {
-                        setSelectedChat(`${user?.id}_${assignment.userId}`);
+                        if (assignment.sessionId) {
+                          setSelectedChat(String(assignment.sessionId));
+                        }
                         setActiveTab('chat');
                       }}
                       className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

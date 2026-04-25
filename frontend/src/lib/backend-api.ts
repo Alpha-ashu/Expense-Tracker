@@ -653,59 +653,117 @@ class BackendService {
 
   // ===== ADVISOR =====
   async getAdvisorProfile(advisorId?: string) {
-    const url = advisorId ? `/advisor/profile/${advisorId}` : '/advisor/profile';
+    const url = advisorId ? `/advisors/${advisorId}` : '/advisors';
     const response = await this.api.get(url);
     return response.data;
   }
 
   async getAdvisorAssignments(advisorId?: string) {
-    const url = advisorId ? `/advisor/assignments/${advisorId}` : '/advisor/assignments';
+    const url = '/advisors/me/sessions';
     const response = await this.api.get(url);
-    return response.data;
+    const sessions = Array.isArray(response.data) ? response.data : [];
+    return sessions.map((session: any) => ({
+      id: session.id,
+      sessionId: session.id,
+      userId: session.client?.id,
+      userName: session.client?.name,
+      userEmail: session.client?.email,
+      status: session.status,
+      notes: session.notes,
+      sessionType: session.sessionType,
+      startTime: session.startTime,
+    }));
   }
 
   async getAdvisorBookingRequests(advisorId?: string) {
-    const url = advisorId ? `/advisor/bookings/${advisorId}` : '/advisor/bookings';
+    const url = '/bookings?role=advisor';
     const response = await this.api.get(url);
-    return response.data;
+    const bookings = Array.isArray(response.data) ? response.data : [];
+    return bookings.map((booking: any) => ({
+      id: booking.id,
+      userId: booking.client?.id,
+      userName: booking.client?.name,
+      userEmail: booking.client?.email,
+      topic: booking.description || '',
+      message: booking.description || '',
+      sessionType: booking.sessionType,
+      preferredDate: booking.proposedDate,
+      preferredTime: `${new Date(booking.proposedDate).toLocaleDateString()} ${booking.proposedTime}`,
+      status: booking.status,
+      responseMessage: booking.rejectionReason || '',
+      amount: booking.amount,
+      duration: booking.duration,
+    }));
   }
 
   async getBookingRequest(id: string) {
-    const response = await this.api.get(`/advisor/bookings/${id}`);
+    const response = await this.api.get(`/bookings/${id}`);
     return response.data;
   }
 
   async updateBookingRequest(id: string, updates: any) {
-    const response = await this.api.put(`/advisor/bookings/${id}`, updates);
-    return response.data;
+    if (updates?.status === 'accepted') {
+      const response = await this.api.put(`/bookings/${id}/accept`, {});
+      return response.data;
+    }
+
+    if (updates?.status === 'rejected') {
+      const response = await this.api.put(`/bookings/${id}/reject`, {
+        reason: updates?.responseMessage || updates?.reason || '',
+      });
+      return response.data;
+    }
+
+    if (updates?.status === 'cancelled') {
+      const response = await this.api.put(`/bookings/${id}/cancel`, {});
+      return response.data;
+    }
+
+    if (updates?.status === 'reschedule') {
+      const response = await this.api.put(`/bookings/${id}/reschedule`, {
+        proposedDate: updates?.proposedDate,
+        proposedTime: updates?.proposedTime,
+        reason: updates?.responseMessage || updates?.reason || '',
+      });
+      return response.data;
+    }
+
+    throw new Error(`Unsupported booking update status: ${String(updates?.status || 'unknown')}`);
   }
 
   async createBookingRequest(booking: any) {
-    const response = await this.api.post('/advisor/bookings', booking);
-    return response.data;
+    const descriptionParts = [booking?.topic, booking?.message].filter(Boolean);
+    const response = await this.api.post('/bookings', {
+      advisorId: booking.advisorId,
+      sessionType: booking.sessionType,
+      description: descriptionParts.join('\n\n').trim(),
+      proposedDate: booking.proposedDate,
+      proposedTime: booking.proposedTime,
+      duration: Number(booking.duration || 60),
+      amount: Number(booking.amount || 0),
+    });
+    return response.data?.id || response.data;
   }
 
   async getChatMessages(conversationId: string, advisorId?: string) {
-    const url = advisorId ? `/advisor/chat/${conversationId}?advisorId=${advisorId}` : `/advisor/chat/${conversationId}`;
+    const url = `/sessions/${conversationId}/messages`;
     const response = await this.api.get(url);
     return response.data;
   }
 
   async sendChatMessage(conversationId: string, message: any, advisorId?: string) {
-    const url = advisorId ? `/advisor/chat/${conversationId}?advisorId=${advisorId}` : `/advisor/chat/${conversationId}`;
-    const response = await this.api.post(url, message);
+    const response = await this.api.post(`/sessions/${conversationId}/messages`, {
+      message: typeof message === 'string' ? message : message?.message,
+    });
     return response.data;
   }
 
   async createOrUpdateChatConversation(conversation: any, advisorId?: string) {
-    const url = advisorId ? `/advisor/chat?advisorId=${advisorId}` : '/advisor/chat';
-    const response = await this.api.post(url, conversation);
-    return response.data;
+    return conversation;
   }
 
   async updateAdvisorAvailability(availability: any, advisorId?: string) {
-    const url = advisorId ? `/advisor/availability/${advisorId}` : '/advisor/availability';
-    const response = await this.api.put(url, availability);
+    const response = await this.api.put('/advisors/availability/status', availability);
     return response.data;
   }
 
