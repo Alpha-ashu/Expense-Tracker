@@ -67,7 +67,7 @@ export const shouldRetryWithLocalApiFallback = (status?: number, error?: unknown
   }
 
   if (typeof status === 'number') {
-    return status >= 500;
+    return status >= 500 || status === 429;
   }
 
   if (!(error instanceof Error)) {

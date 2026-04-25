@@ -66,6 +66,16 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <input
+        type="text"
+        name="username"
+        value=""
+        readOnly
+        autoComplete="username"
+        tabIndex={-1}
+        className="sr-only"
+        aria-hidden="true"
+      />
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           Create App PIN
@@ -94,6 +104,8 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
             }`}
             placeholder="••••••"
             maxLength={6}
+            autoComplete="new-password"
+            inputMode="numeric"
           />
           <button
             type="button"
@@ -126,6 +138,8 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
             }`}
             placeholder="••••••"
             maxLength={6}
+            autoComplete="new-password"
+            inputMode="numeric"
           />
           <button
             type="button"

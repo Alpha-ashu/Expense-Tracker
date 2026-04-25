@@ -26,6 +26,15 @@ export interface PinVerifyRequest {
 
 const PIN_NOT_SET_MESSAGE = /pin not set|no pin key backup found/i;
 const PIN_SERVICE_FAILURE_MESSAGE = /(internal server error|http 5\d\d|network error|failed to fetch|request timeout|pin request failed)/i;
+const PIN_STATUS_CACHE_TTL_MS = 5_000;
+const PIN_STATUS_RATE_LIMIT_BACKOFF_MS = 30_000;
+
+let cachedPinStatus: { value: PinStatus; expiresAt: number } | null = null;
+let pinStatusInFlight: Promise<PinStatus> | null = null;
+
+const clearCachedPinStatus = () => {
+  cachedPinStatus = null;
+};
 
 export const isPinMissing = (status?: PinStatus | null): boolean => {
   if (!status || status.success) {
@@ -343,6 +352,7 @@ class PinService {
    * Create a new PIN for the user
    */
   async createPin(pin: string): Promise<PinStatus> {
+    clearCachedPinStatus();
     const result = await this.post('create', { pin });
     this.persistPinState(result, true);
     return result;
@@ -352,6 +362,7 @@ class PinService {
    * Verify a PIN
    */
   async verifyPin(request: PinVerifyRequest): Promise<PinStatus> {
+    clearCachedPinStatus();
     const result = await this.post('verify', request);
 
     if (result.success) {
@@ -369,6 +380,7 @@ class PinService {
    * Update an existing PIN
    */
   async updatePin(currentPin: string, newPin: string): Promise<PinStatus> {
+    clearCachedPinStatus();
     const result = await this.post('update', { currentPin, newPin });
     if (result.success) {
       this.persistPinState(result, true);
@@ -378,9 +390,34 @@ class PinService {
   }
 
   async getStatus(): Promise<PinStatus> {
-    const result = await this.get('status');
-    this.persistPinState(result, result.success);
-    return result;
+    if (cachedPinStatus && cachedPinStatus.expiresAt > Date.now()) {
+      return cachedPinStatus.value;
+    }
+
+    if (pinStatusInFlight) {
+      return pinStatusInFlight;
+    }
+
+    pinStatusInFlight = (async () => {
+      const result = await this.get('status');
+
+      if (result.statusCode === 429) {
+        markOptionalBackendUnavailable(this.API_URL, PIN_STATUS_RATE_LIMIT_BACKOFF_MS);
+      }
+
+      this.persistPinState(result, result.success);
+      cachedPinStatus = {
+        value: result,
+        expiresAt: Date.now() + PIN_STATUS_CACHE_TTL_MS,
+      };
+      return result;
+    })();
+
+    try {
+      return await pinStatusInFlight;
+    } finally {
+      pinStatusInFlight = null;
+    }
   }
 
   async getKeyBackup(): Promise<PinStatus> {
@@ -396,6 +433,7 @@ class PinService {
   }
 
   async resetCurrentUserPin(): Promise<PinStatus> {
+    clearCachedPinStatus();
     const result = await this.post('self-reset', {});
     if (result.success) {
       this.clearPinData();
@@ -446,6 +484,7 @@ class PinService {
    * Clear all PIN data
    */
   clearPinData(): void {
+    clearCachedPinStatus();
     localStorage.removeItem(this.PIN_SETUP_KEY);
     localStorage.removeItem(this.PIN_CREATED_KEY);
     localStorage.removeItem(this.PIN_EXPIRES_KEY);

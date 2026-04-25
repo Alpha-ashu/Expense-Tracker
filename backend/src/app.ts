@@ -77,9 +77,11 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 
 // Baseline API throttling for abuse protection (IP + optional user identity).
+const defaultGlobalApiRateLimit = process.env.NODE_ENV === 'production' ? 60 : 600;
+
 app.use('/api/v1', rateLimit({
   windowMs: 60_000,
-  max: Number(process.env.API_RATE_LIMIT || 60),
+  max: Number(process.env.API_RATE_LIMIT || defaultGlobalApiRateLimit),
   scope: 'api-global',
   message: 'Too many API requests. Please try again later.',
 }));

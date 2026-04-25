@@ -236,6 +236,16 @@ export const PINSetup: React.FC<PINSetupProps> = ({
 
         {/* PIN Input */}
         <div className="px-6 pb-6">
+          <input
+            type="text"
+            name="username"
+            value=""
+            readOnly
+            autoComplete="username"
+            tabIndex={-1}
+            className="sr-only"
+            aria-hidden="true"
+          />
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-600 text-center">{error}</p>
@@ -254,6 +264,7 @@ export const PINSetup: React.FC<PINSetupProps> = ({
               pattern="[0-9]*"
               autoFocus
               aria-label="PIN input"
+              autoComplete={step === 'enter' ? 'current-password' : 'new-password'}
             />
             <button
               type="button"

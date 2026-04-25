@@ -197,7 +197,7 @@ class HTTPClient {
           const data = await this.parseResponseBody(response);
 
           if (!response.ok) {
-            if (response.status >= 500) {
+            if (response.status >= 500 || response.status === 429) {
               markOptionalBackendUnavailable(apiBase);
             }
 

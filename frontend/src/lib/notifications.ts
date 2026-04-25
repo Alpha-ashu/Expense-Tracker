@@ -66,6 +66,12 @@ const LEGACY_MOCK_NOTIFICATION_TITLES = new Set([
 let initialized = false;
 let initializedUserId: string | null = null;
 let periodicNotificationCheck: ReturnType<typeof setInterval> | null = null;
+let notificationInitPromise: Promise<void> | null = null;
+let notificationSyncPromise: Promise<void> | null = null;
+let nextBackendNotificationSyncAt = 0;
+
+const NOTIFICATION_SYNC_COOLDOWN_MS = 15_000;
+const NOTIFICATION_RATE_LIMIT_COOLDOWN_MS = 30_000;
 
 async function removeLegacyMockNotifications() {
   const allNotifications = await db.notifications.toArray();
@@ -199,24 +205,41 @@ async function syncRemoteNotification(row: BackendNotificationRow, notifyUser = 
 }
 
 async function syncBackendNotifications() {
-  const userId = await getActiveUserId();
-  if (!userId) return;
-  if (shouldSkipOptionalBackendRequests()) return;
-
-  let data: BackendNotificationRow[] = [];
-  try {
-    const response = await apiClient.get<BackendNotificationRow[]>('/notifications?limit=100', {
-      showErrorToast: false,
-    });
-    data = Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    markOptionalBackendUnavailable();
-    console.info('ℹ️ Backend notifications sync skipped:', error instanceof Error ? error.message : String(error));
+  if (notificationSyncPromise) {
+    await notificationSyncPromise;
     return;
   }
 
-  for (const row of data) {
-    await syncRemoteNotification(row, false);
+  const userId = await getActiveUserId();
+  if (!userId) return;
+  if (shouldSkipOptionalBackendRequests()) return;
+  if (nextBackendNotificationSyncAt > Date.now()) return;
+
+  notificationSyncPromise = (async () => {
+    let data: BackendNotificationRow[] = [];
+    try {
+      const response = await apiClient.get<BackendNotificationRow[]>('/notifications?limit=100', {
+        showErrorToast: false,
+      });
+      data = Array.isArray(response.data) ? response.data : [];
+      nextBackendNotificationSyncAt = Date.now() + NOTIFICATION_SYNC_COOLDOWN_MS;
+    } catch (error: any) {
+      const cooldownMs = error?.status === 429 ? NOTIFICATION_RATE_LIMIT_COOLDOWN_MS : NOTIFICATION_SYNC_COOLDOWN_MS;
+      nextBackendNotificationSyncAt = Date.now() + cooldownMs;
+      markOptionalBackendUnavailable(undefined, cooldownMs);
+      console.info('ℹ️ Backend notifications sync skipped:', error instanceof Error ? error.message : String(error));
+      return;
+    }
+
+    for (const row of data) {
+      await syncRemoteNotification(row, false);
+    }
+  })();
+
+  try {
+    await notificationSyncPromise;
+  } finally {
+    notificationSyncPromise = null;
   }
 }
 
@@ -379,6 +402,12 @@ export const checkAndCreateNotifications = async () => {
 };
 
 export const initializeNotifications = async () => {
+  if (notificationInitPromise) {
+    await notificationInitPromise;
+    return;
+  }
+
+  notificationInitPromise = (async () => {
   const userId = await getActiveUserId();
 
   // One-time migration: remove old hardcoded/mock notification records and unsupported legacy types.
@@ -402,4 +431,11 @@ export const initializeNotifications = async () => {
     void checkAndCreateNotifications();
     void syncBackendNotifications();
   }, 60 * 60 * 1000);
+  })();
+
+  try {
+    await notificationInitPromise;
+  } finally {
+    notificationInitPromise = null;
+  }
 };
