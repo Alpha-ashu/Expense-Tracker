@@ -155,6 +155,20 @@ class SocketClient {
     this.setupReconnectionLogic();
   }
 
+  private resolveSocketUrl(): string {
+    const configuredSocketUrl = (import.meta.env.VITE_SOCKET_URL || '').trim().replace(/\/+$/, '');
+    if (configuredSocketUrl) {
+      return configuredSocketUrl;
+    }
+
+    const apiBase = (import.meta.env.VITE_API_URL || '').trim();
+    if (!apiBase || apiBase.startsWith('/')) {
+      return window.location.origin;
+    }
+
+    return apiBase.replace(/\/api\/v1\/?$/i, '').replace(/\/+$/, '');
+  }
+
   /**
    * Connect to the WebSocket server
    */
@@ -165,7 +179,7 @@ class SocketClient {
     }
 
     try {
-      const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
+      const socketUrl = this.resolveSocketUrl();
       
       this.socket = io(socketUrl, {
         auth: {

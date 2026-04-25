@@ -2,6 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 import { smartExpenseImportService } from './smartExpenseImportService';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const fixturesDir = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../../tests/fixtures/imports',
+);
+
+const loadImportFixture = (fileName: string) =>
+    fs.readFileSync(path.join(fixturesDir, fileName), 'utf-8');
 
 // Mock the database
 vi.mock('@/lib/database', () => ({
@@ -33,9 +42,7 @@ vi.mock('@/services/syncService', () => ({
 
 describe('SmartExpenseImportService Integration Test', () => {
     it('correctly parses the 250+ records third-party JSON', async () => {
-        const rootDir = path.resolve(process.cwd(), '..');
-        const filePath = path.join(rootDir, 'tests', 'fixtures', 'imports', 'expense_test_250_records.json');
-        const jsonContent = fs.readFileSync(filePath, 'utf-8');
+        const jsonContent = loadImportFixture('expense_test_250_records.json');
 
         const file = new File([jsonContent], 'expense_test_250_records.json', { type: 'application/json' });
 
@@ -56,9 +63,7 @@ describe('SmartExpenseImportService Integration Test', () => {
     });
 
     it('correctly handles different.json with alternative keys', async () => {
-        const rootDir = path.resolve(process.cwd(), '..');
-        const filePath = path.join(rootDir, 'tests', 'fixtures', 'imports', 'different.json');
-        const jsonContent = fs.readFileSync(filePath, 'utf-8');
+        const jsonContent = loadImportFixture('different.json');
 
         const file = new File([jsonContent], 'different.json', { type: 'application/json' });
 

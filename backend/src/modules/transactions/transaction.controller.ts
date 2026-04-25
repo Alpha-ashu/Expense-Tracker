@@ -11,11 +11,61 @@ interface HttpLikeError {
   message?: string;
 }
 
+type TransactionWithTags = {
+  tags?: string | null;
+  [key: string]: unknown;
+};
+
 /** SHA-256 dedup hash: userId + amount + date(YYYY-MM-DD) + description */
 function generateDedupHash(userId: string, amount: number, date: Date, description?: string): string {
   const dateStr = date.toISOString().slice(0, 10);
   const payload = `${userId}:${amount}:${dateStr}:${description ?? ''}`;
   return createHash('sha256').update(payload).digest('hex');
+}
+
+function serializeTags(tags: unknown): string | null {
+  if (tags == null) return null;
+
+  if (Array.isArray(tags)) {
+    const normalized = tags
+      .map((tag) => String(tag).trim())
+      .filter(Boolean);
+    return normalized.length > 0 ? JSON.stringify(normalized) : null;
+  }
+
+  if (typeof tags === 'string') {
+    const trimmed = tags.trim();
+    return trimmed || null;
+  }
+
+  return null;
+}
+
+function deserializeTags(tags: string | null | undefined): string[] {
+  if (!tags) return [];
+
+  try {
+    const parsed = JSON.parse(tags);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((tag) => String(tag).trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // Fall back to comma-separated parsing for legacy values.
+  }
+
+  return tags
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function normalizeTransaction<T extends TransactionWithTags>(transaction: T): Omit<T, 'tags'> & { tags: string[] } {
+  return {
+    ...transaction,
+    tags: deserializeTags(transaction.tags),
+  };
 }
 
 export const getTransactions = async (req: AuthRequest, res: Response) => {
@@ -51,7 +101,7 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      data: transactions,
+      data: transactions.map(normalizeTransaction),
       pagination: {
         page: pageNum,
         limit: pageSize,
@@ -91,6 +141,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     }
 
     const txDate = new Date(date);
+    const serializedTags = serializeTags(tags);
     const dedupHash = generateDedupHash(userId, numericAmount, txDate, description);
 
     // Check for duplicate transaction
@@ -161,7 +212,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
           description,
           merchant,
           date: txDate,
-          tags: tags || [],
+          tags: serializedTags,
           transferToAccountId,
           transferType,
           dedupHash,
@@ -178,7 +229,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       payload: { userId, transactionId: transaction.id, accountId, amount: numericAmount, category },
     });
 
-    res.status(201).json(transaction);
+    res.status(201).json(normalizeTransaction(transaction));
   } catch (error: unknown) {
     const typedError = error as HttpLikeError;
     if (typedError.statusCode === 403) {
@@ -187,6 +238,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
     if (typedError.statusCode === 400) {
       return res.status(400).json({ error: typedError.message || 'Bad request' });
     }
+    console.error('Create transaction error:', error);
     res.status(500).json({ error: 'Failed to create transaction' });
   }
 };
@@ -209,7 +261,7 @@ export const getTransaction = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    res.json({ success: true, data: transaction });
+    res.json({ success: true, data: normalizeTransaction(transaction) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch transaction' });
   }
@@ -244,6 +296,9 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
     if (updates.date !== undefined) {
       updates.date = new Date(String(updates.date));
     }
+    if (updates.tags !== undefined) {
+      updates.tags = serializeTags(updates.tags);
+    }
 
     // Verify ownership
     const transaction = await prisma.transaction.findFirst({
@@ -271,7 +326,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
 
     eventBus.emit({ type: 'TRANSACTION_UPDATED', payload: { userId, transactionId: id } });
 
-    res.json({ success: true, data: updated });
+    res.json({ success: true, data: normalizeTransaction(updated) });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to update transaction' });
   }
@@ -330,7 +385,7 @@ export const getAccountTransactions = async (req: AuthRequest, res: Response) =>
       orderBy: { date: 'desc' },
     });
 
-    res.json(transactions);
+    res.json(transactions.map(normalizeTransaction));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch account transactions' });
   }

@@ -11,6 +11,9 @@ import {
   shouldSkipDirectSupabaseRequests,
 } from '@/lib/supabase-runtime';
 
+const DIRECT_CLOUD_SYNC_ENABLED =
+  import.meta.env.VITE_ENABLE_DIRECT_CLOUD_SYNC === 'true' || !import.meta.env.DEV;
+
 type SyncedTableName =
   | 'accounts'
   | 'friends'
@@ -19,6 +22,16 @@ type SyncedTableName =
   | 'goals'
   | 'group_expenses'
   | 'investments';
+
+const REMOTE_TABLE_NAMES: Record<SyncedTableName, string> = {
+  accounts: 'accounts',
+  friends: 'friends_sync',
+  transactions: 'transactions',
+  loans: 'loans',
+  goals: 'goals',
+  group_expenses: 'group_expenses_sync',
+  investments: 'investments',
+};
 
 type SyncOperation = 'upsert' | 'delete';
 
@@ -202,6 +215,8 @@ const isMissingRemoteRow = (error: any) =>
   error?.details === 'The result contains 0 rows' ||
   String(error?.message || '').toLowerCase().includes('0 rows');
 
+const getRemoteTableName = (table: SyncedTableName) => REMOTE_TABLE_NAMES[table];
+
 const normalizeArray = <T,>(value: T[] | null | undefined): T[] =>
   Array.isArray(value) ? value : [];
 
@@ -224,7 +239,7 @@ const fetchUserRows = async (table: SyncedTableName, userId: string) => {
   }
 
   const runQuery = async (withDeletedAt: boolean) => {
-    let query = supabase.from(table).select('*').eq('user_id', userId);
+    let query = supabase.from(getRemoteTableName(table)).select('*').eq('user_id', userId);
     if (withDeletedAt) {
       query = query.is('deleted_at', null);
     }
@@ -253,7 +268,6 @@ const fetchUserRows = async (table: SyncedTableName, userId: string) => {
     if (isConnectivityError(error)) {
       markSupabaseTemporarilyUnavailable(error);
     }
-
     throw error;
   }
 
@@ -776,7 +790,7 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
   let payload = buildRemotePayloadForTable(table, mappedPayload);
   // OPTIMIZATION: Only select 'id' to reduce bandwidth (Bug #8 fix)
   let { data: remoteRecord, error } = await supabase
-    .from(table)
+    .from(getRemoteTableName(table))
     .upsert(payload, { onConflict: 'user_id,local_id' })
     .select('id,updated_at')
     .single();
@@ -793,7 +807,7 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
 
     // OPTIMIZATION: Only select 'id' to reduce bandwidth (Bug #8 fix)
     const retry = await supabase
-      .from(table)
+      .from(getRemoteTableName(table))
       .upsert(payload, { onConflict: 'user_id,local_id' })
       .select('id,updated_at')
       .single();
@@ -806,7 +820,6 @@ async function syncLocalRecordToCloud(userId: string, table: SyncedTableName, lo
     if (rememberMissingSupabaseTable(table, error)) {
       return true;
     }
-
     if (isConnectivityError(error)) throw error;
     console.error(`Upsert failed for ${table}:${localId}`, error);
     return false;
@@ -835,7 +848,7 @@ async function deleteRemoteRecord(userId: string, item: SyncQueueItem) {
   if (!remoteId) return true;
 
   const { error } = await supabase
-    .from(item.table)
+    .from(getRemoteTableName(item.table))
     .delete()
     .eq('id', remoteId)
     .eq('user_id', userId);
@@ -857,6 +870,8 @@ async function deleteRemoteRecord(userId: string, item: SyncQueueItem) {
 }
 
 export async function processPendingSyncQueue() {
+  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
+
   initializeBackendSync();
 
   if (syncState.processingQueue || isCloudSyncSuppressed()) return;
@@ -1168,6 +1183,8 @@ export async function syncUserDataFromCloud(
   userId: string,
   requestedTables: SyncedTableName[] = CORE_SYNC_TABLES
 ) {
+  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
+
   if (syncState.syncingFromCloud) return;
   if (shouldSkipDirectSupabaseRequests()) return;
   syncState.syncingFromCloud = true;
@@ -1551,6 +1568,10 @@ function scheduleCloudPull(userId: string, tables: SyncedTableName[] = CORE_SYNC
 }
 
 export function subscribeToUserCloudSync(userId: string) {
+  if (!DIRECT_CLOUD_SYNC_ENABLED) {
+    return () => {};
+  }
+
   initializeBackendSync();
   syncState.activeUserId = userId;
 
@@ -1584,7 +1605,7 @@ export function subscribeToUserCloudSync(userId: string) {
       {
         event: '*',
         schema: 'public',
-        table,
+        table: getRemoteTableName(table),
         filter: `user_id=eq.${userId}`,
       },
       () => {
@@ -1628,6 +1649,7 @@ export function queueTransactionDeleteSync(localId: number, remoteId?: number) {
 
 export async function handleLoginSuccess(userId: string, _token: string) {
   initializeBackendSync();
+  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
   await processPendingSyncQueue();
   await syncUserDataFromCloud(userId);
 }

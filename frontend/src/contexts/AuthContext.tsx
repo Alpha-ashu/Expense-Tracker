@@ -45,6 +45,11 @@ type LocalProfile = {
   updatedAt?: string;
 };
 
+const PROFILE_SYNC_COOLDOWN_MS = 60_000;
+const profileSyncInFlight = new Map<string, Promise<void>>();
+const profileSyncCooldownUntil = new Map<string, number>();
+const profileSyncLastPayload = new Map<string, string>();
+
 const parseNumber = (value: unknown): number | undefined => {
   if (value === null || value === undefined || value === '') return undefined;
   const parsed = Number(value);
@@ -167,157 +172,182 @@ const isTimeoutError = (error: any) =>
   (error?.message && String(error.message).toLowerCase().includes('timeout'));
 
 const syncProfileFromBackend = async (user: User) => {
-  // SECURITY FIX (Bug #1): Route through backend API instead of direct Supabase call
-  let profile: any = null;
-  try {
-    const { apiClient } = await import('@/lib/api');
-    const response = await apiClient.get('/auth/profile');
-    profile = response.success ? response.data : null;
-  } catch (err) {
-    console.warn('Failed to fetch profile from backend:', err);
-  }
-
-  let localProfile = readLocalProfile();
-  const localUpdatedAt = getLocalProfileUpdatedAt(localProfile);
-
-  if (localProfile) {
-    const resolvedAvatar = resolveAvatarSelection({
-      avatarId: localProfile.avatarId,
-      avatarUrl: localProfile.profilePhoto || localProfile.avatarUrl || null,
-    });
-    if (
-      resolvedAvatar.url !== localProfile.profilePhoto ||
-      resolvedAvatar.url !== localProfile.avatarUrl ||
-      resolvedAvatar.id !== localProfile.avatarId
-    ) {
-      const patched = {
-        ...localProfile,
-        profilePhoto: resolvedAvatar.url,
-        avatarUrl: resolvedAvatar.url,
-        avatarId: resolvedAvatar.id,
-      };
-      localStorage.setItem('user_profile', JSON.stringify(patched));
-      localProfile = patched;
-    }
-  }
-
-  const pendingLocalSync = hasPendingLocalProfileSync();
-
-  const hasRealProfile = profile && (
-    profile.full_name ||
-    profile.first_name ||
-    profile.last_name ||
-    profile.phone ||
-    profile.date_of_birth ||
-    profile.job_type ||
-    profile.monthly_income ||
-    profile.annual_income ||
-    profile.avatar_url
-  );
-
-  const remoteUpdatedAt = profile?.updated_at || null;
-  const remoteIsNewer = !!(remoteUpdatedAt && localUpdatedAt && isAfter(remoteUpdatedAt, localUpdatedAt));
-
-  const writeLocalFromRemote = () => {
-    const remoteFirstName = profile.first_name || '';
-    const remoteLastName = profile.last_name || '';
-    const remoteFullName = profile.full_name || `${remoteFirstName} ${remoteLastName}`.trim();
-    const fallbackDisplayName = localProfile?.displayName ||
-      `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim();
-    const displayName = remoteFullName || fallbackDisplayName;
-    const nameParts = displayName.split(/\s+/).filter(Boolean);
-    const firstName = remoteFirstName || localProfile?.firstName || nameParts[0] || '';
-    const lastName = remoteLastName || localProfile?.lastName || nameParts.slice(1).join(' ') || '';
-    const monthlyIncome = profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0);
-    const updatedAt = remoteUpdatedAt || new Date().toISOString();
-    const resolvedAvatar = resolveAvatarSelection({
-      avatarUrl: profile.avatar_url || null,
-      avatarId: (profile as any)?.avatar_id || null,
-    });
-
-    localStorage.setItem('onboarding_completed', 'true');
-    localStorage.setItem('profile_updated_at', updatedAt);
-    localStorage.setItem('user_profile', JSON.stringify({
-      ...localProfile,
-      displayName,
-      firstName,
-      lastName,
-      mobile: profile.phone || '',
-      dateOfBirth: profile.date_of_birth || '',
-      jobType: profile.job_type || '',
-      salary: ((profile.annual_income || (monthlyIncome * 12)) || 0).toString(),
-      monthlyIncome,
-      profilePhoto: resolvedAvatar.url,
-      avatarUrl: resolvedAvatar.url,
-      avatarId: resolvedAvatar.id,
-      updatedAt,
-    }));
-  };
-
-  if (hasRealProfile) {
-    const shouldUseRemote =
-      (!pendingLocalSync &&
-        (!localUpdatedAt || (remoteUpdatedAt && !isAfter(localUpdatedAt, remoteUpdatedAt)))) ||
-      (pendingLocalSync && remoteIsNewer);
-
-    if (shouldUseRemote) {
-      // Cloud profile is the source of truth across devices.
-      // Hydrate local cache from cloud unless we have a newer pending local write.
-      writeLocalFromRemote();
-      localStorage.removeItem('profile_sync_pending');
-      return;
-    }
-  }
-
-  if (!hasLocalProfileData(localProfile)) {
+  const cooldownUntil = profileSyncCooldownUntil.get(user.id) ?? 0;
+  if (cooldownUntil > Date.now()) {
     return;
   }
 
-  const displayName = (localProfile?.displayName || `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim()).trim();
-  const nameParts = displayName.split(/\s+/).filter(Boolean);
-  const firstName = localProfile?.firstName || nameParts[0] || '';
-  const lastName = localProfile?.lastName || nameParts.slice(1).join(' ') || '';
-  const salaryNumber = parseNumber(localProfile?.salary);
-  let monthlyIncome = parseNumber(localProfile?.monthlyIncome);
-  if (monthlyIncome === undefined && salaryNumber !== undefined) {
-    monthlyIncome = Math.round(salaryNumber / 12);
+  const existingSync = profileSyncInFlight.get(user.id);
+  if (existingSync) {
+    await existingSync;
+    return;
   }
-  const annualIncome = salaryNumber ?? (monthlyIncome !== undefined ? Math.round(monthlyIncome * 12) : undefined);
-  const resolvedAvatar = resolveAvatarSelection({
-    avatarId: localProfile?.avatarId || null,
-    avatarUrl: localProfile?.profilePhoto || localProfile?.avatarUrl || null,
-  });
 
-  // SECURITY FIX: Profile updates must route through backend API
-  // Client should never write directly to profiles table
-  const profilePayload = {
-    full_name: displayName || null,
-    first_name: firstName || null,
-    last_name: lastName || null,
-    phone: localProfile?.mobile || null,
-    date_of_birth: localProfile?.dateOfBirth || null,
-    job_type: localProfile?.jobType || null,
-    monthly_income: monthlyIncome ?? null,
-    annual_income: annualIncome ?? null,
-    avatar_url: resolvedAvatar.url,
-  };
+  const run = async () => {
+  // SECURITY FIX (Bug #1): Route through backend API instead of direct Supabase call
+    let profile: any = null;
+    try {
+      const { apiClient } = await import('@/lib/api');
+      const response = await apiClient.get('/auth/profile');
+      profile = response.success ? response.data : null;
+    } catch (err) {
+      console.warn('Failed to fetch profile from backend:', err);
+    }
 
-  try {
-    const { apiClient } = await import('@/lib/api');
-    const response = await apiClient.put('/auth/profile', profilePayload);
+    let localProfile = readLocalProfile();
+    const localUpdatedAt = getLocalProfileUpdatedAt(localProfile);
 
-    if (response.success) {
+    if (localProfile) {
+      const resolvedAvatar = resolveAvatarSelection({
+        avatarId: localProfile.avatarId,
+        avatarUrl: localProfile.profilePhoto || localProfile.avatarUrl || null,
+      });
+      if (
+        resolvedAvatar.url !== localProfile.profilePhoto ||
+        resolvedAvatar.url !== localProfile.avatarUrl ||
+        resolvedAvatar.id !== localProfile.avatarId
+      ) {
+        const patched = {
+          ...localProfile,
+          profilePhoto: resolvedAvatar.url,
+          avatarUrl: resolvedAvatar.url,
+          avatarId: resolvedAvatar.id,
+        };
+        localStorage.setItem('user_profile', JSON.stringify(patched));
+        localProfile = patched;
+      }
+    }
+
+    const pendingLocalSync = hasPendingLocalProfileSync();
+
+    const hasRealProfile = profile && (
+      profile.full_name ||
+      profile.first_name ||
+      profile.last_name ||
+      profile.phone ||
+      profile.date_of_birth ||
+      profile.job_type ||
+      profile.monthly_income ||
+      profile.annual_income ||
+      profile.avatar_url
+    );
+
+    const remoteUpdatedAt = profile?.updated_at || null;
+    const remoteIsNewer = !!(remoteUpdatedAt && localUpdatedAt && isAfter(remoteUpdatedAt, localUpdatedAt));
+
+    const writeLocalFromRemote = () => {
+      const remoteFirstName = profile.first_name || '';
+      const remoteLastName = profile.last_name || '';
+      const remoteFullName = profile.full_name || `${remoteFirstName} ${remoteLastName}`.trim();
+      const fallbackDisplayName = localProfile?.displayName ||
+        `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim();
+      const displayName = remoteFullName || fallbackDisplayName;
+      const nameParts = displayName.split(/\s+/).filter(Boolean);
+      const firstName = remoteFirstName || localProfile?.firstName || nameParts[0] || '';
+      const lastName = remoteLastName || localProfile?.lastName || nameParts.slice(1).join(' ') || '';
+      const monthlyIncome = profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0);
+      const updatedAt = remoteUpdatedAt || new Date().toISOString();
+      const resolvedAvatar = resolveAvatarSelection({
+        avatarUrl: profile.avatar_url || null,
+        avatarId: (profile as any)?.avatar_id || null,
+      });
+
       localStorage.setItem('onboarding_completed', 'true');
-      localStorage.setItem('profile_updated_at', new Date().toISOString());
-      localStorage.removeItem('profile_sync_pending');
-    } else {
-      console.warn('Profile sync to backend failed (local cache retained):', response.message);
+      localStorage.setItem('profile_updated_at', updatedAt);
+      localStorage.setItem('user_profile', JSON.stringify({
+        ...localProfile,
+        displayName,
+        firstName,
+        lastName,
+        mobile: profile.phone || '',
+        dateOfBirth: profile.date_of_birth || '',
+        jobType: profile.job_type || '',
+        salary: ((profile.annual_income || (monthlyIncome * 12)) || 0).toString(),
+        monthlyIncome,
+        profilePhoto: resolvedAvatar.url,
+        avatarUrl: resolvedAvatar.url,
+        avatarId: resolvedAvatar.id,
+        updatedAt,
+      }));
+    };
+
+    if (hasRealProfile) {
+      const shouldUseRemote =
+        (!pendingLocalSync &&
+          (!localUpdatedAt || (remoteUpdatedAt && !isAfter(localUpdatedAt, remoteUpdatedAt)))) ||
+        (pendingLocalSync && remoteIsNewer);
+
+      if (shouldUseRemote) {
+        writeLocalFromRemote();
+        localStorage.removeItem('profile_sync_pending');
+        return;
+      }
+    }
+
+    if (!hasLocalProfileData(localProfile)) {
+      return;
+    }
+
+    const displayName = (localProfile?.displayName || `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim()).trim();
+    const nameParts = displayName.split(/\s+/).filter(Boolean);
+    const firstName = localProfile?.firstName || nameParts[0] || '';
+    const lastName = localProfile?.lastName || nameParts.slice(1).join(' ') || '';
+    const salaryNumber = parseNumber(localProfile?.salary);
+    let monthlyIncome = parseNumber(localProfile?.monthlyIncome);
+    if (monthlyIncome === undefined && salaryNumber !== undefined) {
+      monthlyIncome = Math.round(salaryNumber / 12);
+    }
+    const annualIncome = salaryNumber ?? (monthlyIncome !== undefined ? Math.round(monthlyIncome * 12) : undefined);
+    const resolvedAvatar = resolveAvatarSelection({
+      avatarId: localProfile?.avatarId || null,
+      avatarUrl: localProfile?.profilePhoto || localProfile?.avatarUrl || null,
+    });
+
+    const profilePayload = {
+      full_name: displayName || null,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      phone: localProfile?.mobile || null,
+      date_of_birth: localProfile?.dateOfBirth || null,
+      job_type: localProfile?.jobType || null,
+      monthly_income: monthlyIncome ?? null,
+      annual_income: annualIncome ?? null,
+      avatar_url: resolvedAvatar.url,
+    };
+
+    const payloadKey = JSON.stringify(profilePayload);
+    if (profileSyncLastPayload.get(user.id) === payloadKey && pendingLocalSync) {
+      return;
+    }
+
+    try {
+      const { apiClient } = await import('@/lib/api');
+      const response = await apiClient.put('/auth/profile', profilePayload);
+
+      if (response.success) {
+        profileSyncLastPayload.set(user.id, payloadKey);
+        localStorage.setItem('onboarding_completed', 'true');
+        localStorage.setItem('profile_updated_at', new Date().toISOString());
+        localStorage.removeItem('profile_sync_pending');
+        profileSyncCooldownUntil.delete(user.id);
+      } else {
+        console.warn('Profile sync to backend failed (local cache retained):', response.message);
+        localStorage.setItem('profile_sync_pending', 'true');
+      }
+    } catch (error: any) {
+      if (typeof error?.status === 'number' && error.status === 429) {
+        profileSyncCooldownUntil.set(user.id, Date.now() + PROFILE_SYNC_COOLDOWN_MS);
+      }
+      console.warn('Local profile sync to backend failed (non-blocking):', error);
       localStorage.setItem('profile_sync_pending', 'true');
     }
-  } catch (error) {
-    console.warn('Local profile sync to backend failed (non-blocking):', error);
-    localStorage.setItem('profile_sync_pending', 'true');
-  }
+  };
+
+  const promise = run().finally(() => {
+    profileSyncInFlight.delete(user.id);
+  });
+  profileSyncInFlight.set(user.id, promise);
+  await promise;
 };
 
 /** Sync user data from Supabase into local Dexie DB on login */

@@ -28,6 +28,15 @@ const buildAllowedOrigins = () => {
     .map(origin => origin.trim())
     .filter(Boolean);
 
+  if (process.env.NODE_ENV !== 'production') {
+    origins.push(
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:9002',
+      'http://127.0.0.1:9002',
+    );
+  }
+
   if (process.env.VERCEL_URL) {
     origins.push(`https://${process.env.VERCEL_URL}`);
   }
@@ -72,14 +81,6 @@ app.use('/api/v1', rateLimit({
   max: Number(process.env.API_RATE_LIMIT || 60),
   scope: 'api-global',
   message: 'Too many API requests. Please try again later.',
-}));
-
-// Stricter auth throttling to reduce brute-force risk.
-app.use('/api/v1/auth', rateLimit({
-  windowMs: 60_000,
-  max: Number(process.env.AUTH_RATE_LIMIT || 5),
-  scope: 'api-auth',
-  message: 'Too many authentication attempts. Please wait and try again.',
 }));
 
 // Stricter bill/ocr endpoint throttling to control compute and storage abuse.

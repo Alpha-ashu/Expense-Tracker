@@ -18,6 +18,28 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [showPin, setShowPin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const isConfirmingPin = isCreating && pin.length === 6;
+  const activePinValue = isConfirmingPin ? confirmPin : pin;
+  const pinInputId = isConfirmingPin ? 'finora-pin-confirm' : 'finora-pin-entry';
+  const pinInputLabel = isCreating
+    ? (isConfirmingPin ? 'Confirm 6-digit PIN' : 'Create 6-digit PIN')
+    : 'Enter PIN';
+  const pinMismatch = isCreating && confirmPin.length > 0 && pin !== confirmPin;
+  const pinProgressMessage = isCreating
+    ? (
+      pin.length === 0
+        ? 'Enter a 6-digit PIN'
+        : pin.length < 6
+          ? `${pin.length}/6 digits entered`
+          : confirmPin.length === 0
+            ? 'Now confirm your PIN'
+            : pinMismatch
+              ? 'PINs do not match'
+              : confirmPin.length < 6
+                ? `${confirmPin.length}/6 digits confirmed`
+                : 'PIN confirmed'
+    )
+    : '';
 
   const finalizeAuthentication = async (key: string, successMessage: string) => {
     if (Capacitor.isNativePlatform()) {
@@ -248,25 +270,32 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* PIN Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {isCreating && confirmPin.length === 0 ? 'Create 6-digit PIN' : isCreating ? 'Confirm PIN' : 'Enter PIN'}
+              <label htmlFor={pinInputId} className="block text-sm font-medium text-gray-700 mb-2">
+                {pinInputLabel}
               </label>
               <div className="relative">
                 <input
+                  id={pinInputId}
                   type={showPin ? 'text' : 'password'}
-                  value={isCreating && pin.length === 6 ? confirmPin : pin}
+                  value={activePinValue}
                   onChange={(e) => handlePINInput(e.target.value)}
                   className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
                   placeholder="••••••"
                   maxLength={6}
                   inputMode="numeric"
                   pattern="[0-9]*"
+                  aria-label={pinInputLabel}
+                  aria-describedby={isCreating ? 'pin-progress' : undefined}
+                  aria-invalid={pinMismatch}
+                  aria-required="true"
+                  autoComplete={isCreating ? 'new-password' : 'current-password'}
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPin ? 'Hide PIN value' : 'Show PIN value'}
                 >
                   {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -274,11 +303,11 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
             </div>
 
             {/* PIN Dots Indicator */}
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-2" aria-hidden="true">
               {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
-                  className={`w-3 h-3 rounded-full transition-all ${(isCreating && pin.length === 6 ? confirmPin : pin).length > i
+                  className={`w-3 h-3 rounded-full transition-all ${activePinValue.length > i
                       ? 'bg-blue-600 scale-110'
                       : 'bg-gray-300'
                     }`}
@@ -288,11 +317,13 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
             {/* Progress indicator for PIN creation */}
             {isCreating && (
-              <div className="text-center text-sm text-gray-600">
-                {pin.length === 0 && 'Enter a 6-digit PIN'}
-                {pin.length > 0 && pin.length < 6 && `${pin.length}/6 digits entered`}
-                {pin.length === 6 && confirmPin.length === 0 && 'Now confirm your PIN'}
-                {pin.length === 6 && confirmPin.length > 0 && confirmPin.length < 6 && `${confirmPin.length}/6 digits confirmed`}
+              <div
+                id="pin-progress"
+                className="text-center text-sm text-gray-600"
+                role="status"
+                aria-live="polite"
+              >
+                {pinProgressMessage}
               </div>
             )}
 
@@ -303,7 +334,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
+                <span className="flex items-center justify-center gap-2" role="status" aria-live="polite">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Processing...
                 </span>

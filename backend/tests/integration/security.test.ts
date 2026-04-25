@@ -232,7 +232,8 @@ describe('SECURITY TESTS', () => {
     it('should set CORS headers correctly', async () => {
       const res = await request(app)
         .options(`${API}/auth/login`)
-        .set('Origin', 'http://localhost:5173');
+        .set('Origin', 'http://localhost:5173')
+        .set('Access-Control-Request-Method', 'POST');
       expect(res.headers['access-control-allow-origin']).toBeDefined();
     });
   });

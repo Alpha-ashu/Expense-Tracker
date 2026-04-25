@@ -12,6 +12,9 @@ import {
   shouldSkipDirectSupabaseRequests,
 } from '@/lib/supabase-runtime';
 
+const DIRECT_CLOUD_SYNC_ENABLED =
+  import.meta.env.VITE_ENABLE_DIRECT_CLOUD_SYNC === 'true' || !import.meta.env.DEV;
+
 type NotificationInput = Omit<Notification, 'id' | 'createdAt' | 'isRead'> & {
   createdAt?: Date;
   isRead?: boolean;
@@ -210,6 +213,8 @@ async function syncRemoteNotification(row: SupabaseNotificationRow, notifyUser =
 }
 
 async function syncSupabaseNotifications() {
+  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
+
   const userId = await getActiveUserId();
   if (!userId) return;
   if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
@@ -242,6 +247,8 @@ async function syncSupabaseNotifications() {
 }
 
 async function subscribeToSupabaseNotifications() {
+  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
+
   const userId = await getActiveUserId();
   if (!userId || typeof (supabase as any).channel !== 'function') return;
   if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
@@ -275,6 +282,7 @@ async function subscribeToSupabaseNotifications() {
 }
 
 async function createRemoteNotification(notification: Notification) {
+  if (!DIRECT_CLOUD_SYNC_ENABLED) return;
   if (!notification.userId || !SYNCABLE_NOTIFICATION_TYPES.has(notification.type)) {
     return;
   }
@@ -353,12 +361,22 @@ export const markNotificationAsRead = async (id: number) => {
     readAt: new Date(),
   });
 
-  if (notification.remoteId) {
-    if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('notifications')) {
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', Number(notification.remoteId));
+  if (DIRECT_CLOUD_SYNC_ENABLED && notification.remoteId) {
+    if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', Number(notification.remoteId));
+
+    if (rememberMissingSupabaseTable('notifications', error)) {
+      return;
+    }
+
+    if (error && isSupabaseConnectivityError(error)) {
+      markSupabaseTemporarilyUnavailable(error);
     }
   }
 };
@@ -376,12 +394,22 @@ export const deleteNotificationRecord = async (id: number) => {
 
   await db.notifications.delete(id);
 
-  if (notification.remoteId) {
-    if (!shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('notifications')) {
-      await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', Number(notification.remoteId));
+  if (DIRECT_CLOUD_SYNC_ENABLED && notification.remoteId) {
+    if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', Number(notification.remoteId));
+
+    if (rememberMissingSupabaseTable('notifications', error)) {
+      return;
+    }
+
+    if (error && isSupabaseConnectivityError(error)) {
+      markSupabaseTemporarilyUnavailable(error);
     }
   }
 };
@@ -396,11 +424,20 @@ export const clearNotificationRecords = async () => {
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value));
 
-  if (remoteIds.length > 0 && !shouldSkipDirectSupabaseRequests() && !isSupabaseTableUnavailable('notifications')) {
-    await supabase
-      .from('notifications')
-      .delete()
-      .in('id', remoteIds);
+  if (!DIRECT_CLOUD_SYNC_ENABLED || remoteIds.length === 0) return;
+  if (shouldSkipDirectSupabaseRequests() || isSupabaseTableUnavailable('notifications')) return;
+
+  const { error } = await supabase
+    .from('notifications')
+    .delete()
+    .in('id', remoteIds);
+
+  if (rememberMissingSupabaseTable('notifications', error)) {
+    return;
+  }
+
+  if (error && isSupabaseConnectivityError(error)) {
+    markSupabaseTemporarilyUnavailable(error);
   }
 };
 

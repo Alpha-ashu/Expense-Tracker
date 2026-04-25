@@ -7,32 +7,34 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "auth"]
 }
 
 model Account {
-  id               String             @id @default(uuid())
-  userId           String
-  deviceId         String?
-  name             String
-  type             String             @default("bank")
-  provider         String?
-  country          String?
-  balance          Float              @default(0) // Computed by trigger from transactions
-  currency         String             @default("USD")
-  isActive         Boolean            @default(true)
-  syncStatus       String             @default("synced")
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  deletedAt        DateTime?
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String             @id @default(uuid())
+  userId            String
+  deviceId          String?
+  name              String
+  type              String             @default("bank")
+  provider          String?
+  country           String?
+  balance           Float              @default(0) // Computed by trigger from transactions
+  currency          String             @default("USD")
+  isActive          Boolean            @default(true)
+  syncStatus        String             @default("synced")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   goalContributions GoalContribution[]
-  transactions     Transaction[]
-  groupExpenses    GroupExpense[]
+  transactions      Transaction[]
+  groupExpenses     GroupExpense[]
 
   @@index([isActive])
   @@index([syncStatus])
   @@index([userId])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model AdvisorAvailability {
@@ -47,56 +49,59 @@ model AdvisorAvailability {
   advisor   User     @relation(fields: [advisorId], references: [id], onDelete: Cascade)
 
   @@index([advisorId])
+  @@schema("public")
 }
 
 model AdvisorSession {
-  id                                  String         @id @default(uuid())
-  bookingId                           String         @unique
-  advisorId                           String
-  clientId                            String
-  startTime                           DateTime
-  endTime                             DateTime?
-  sessionType                         String
-  status                              String         @default("scheduled")
-  notes                               String?
-  rating                              Float?
-  feedback                            String?
-  createdAt                           DateTime       @default(now())
-  updatedAt                           DateTime       @updatedAt
-  advisor                             User           @relation("AdvisorSession_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
-  booking                             BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  client                              User           @relation("AdvisorSession_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
-  chatMessages                        ChatMessage[]
-  payment                             Payment?
+  id           String         @id @default(uuid())
+  bookingId    String         @unique
+  advisorId    String
+  clientId     String
+  startTime    DateTime
+  endTime      DateTime?
+  sessionType  String
+  status       String         @default("scheduled")
+  notes        String?
+  rating       Float?
+  feedback     String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  advisor      User           @relation("AdvisorSession_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  booking      BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  client       User           @relation("AdvisorSession_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  chatMessages ChatMessage[]
+  payment      Payment?
 
   @@index([advisorId])
   @@index([clientId])
   @@index([startTime])
   @@index([status])
+  @@schema("public")
 }
 
 model BookingRequest {
-  id                                  String          @id @default(uuid())
-  clientId                            String
-  advisorId                           String
-  sessionType                         String
-  description                         String?
-  proposedDate                        DateTime
-  proposedTime                        String
-  duration                            Int
-  amount                              Float
-  status                              String          @default("pending")
-  rejectionReason                     String?
-  createdAt                           DateTime        @default(now())
-  updatedAt                           DateTime        @updatedAt
-  session                             AdvisorSession?
-  advisor                             User            @relation("BookingRequest_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
-  client                              User            @relation("BookingRequest_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  id              String          @id @default(uuid())
+  clientId        String
+  advisorId       String
+  sessionType     String
+  description     String?
+  proposedDate    DateTime
+  proposedTime    String
+  duration        Int
+  amount          Float
+  status          String          @default("pending")
+  rejectionReason String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  session         AdvisorSession?
+  advisor         User            @relation("BookingRequest_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  client          User            @relation("BookingRequest_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([advisorId])
   @@index([clientId])
   @@index([proposedDate])
   @@index([status])
+  @@schema("public")
 }
 
 model Category {
@@ -115,20 +120,22 @@ model Category {
   @@unique([userId, name, type])
   @@index([type])
   @@index([userId])
+  @@schema("public")
 }
 
 model ChatMessage {
-  id             String         @id @default(uuid())
-  sessionId      String
-  senderId       String
-  message        String
-  timestamp      DateTime       @default(now())
-  sender         User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  session        AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id        String         @id @default(uuid())
+  sessionId String
+  senderId  String
+  message   String
+  timestamp DateTime       @default(now())
+  sender    User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  session   AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([senderId])
   @@index([sessionId])
   @@index([timestamp])
+  @@schema("public")
 }
 
 model Device {
@@ -149,6 +156,7 @@ model Device {
   @@index([deviceId])
   @@index([isActive])
   @@index([userId])
+  @@schema("public")
 }
 
 model ExpenseBill {
@@ -170,6 +178,7 @@ model ExpenseBill {
   @@index([sha256])
   @@index([transactionId])
   @@index([userId])
+  @@schema("public")
 }
 
 model Friend {
@@ -189,29 +198,31 @@ model Friend {
 
   @@index([syncStatus])
   @@index([userId])
+  @@schema("public")
 }
 
 model Goal {
-  id               String             @id @default(uuid())
-  userId           String
-  deviceId         String?
-  name             String
-  description      String?
-  targetAmount     Float
-  currentAmount    Float              @default(0)
-  targetDate       DateTime
-  category         String?
-  isGroupGoal      Boolean            @default(false)
-  syncStatus       String             @default("synced")
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  deletedAt        DateTime?
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String             @id @default(uuid())
+  userId            String
+  deviceId          String?
+  name              String
+  description       String?
+  targetAmount      Float
+  currentAmount     Float              @default(0)
+  targetDate        DateTime
+  category          String?
+  isGroupGoal       Boolean            @default(false)
+  syncStatus        String             @default("synced")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   goalContributions GoalContribution[]
 
   @@index([syncStatus])
   @@index([targetDate])
   @@index([userId])
+  @@schema("public")
 }
 
 model GoalContribution {
@@ -234,6 +245,7 @@ model GoalContribution {
   @@index([date])
   @@index([goalId])
   @@index([userId])
+  @@schema("public")
 }
 
 model ImportLog {
@@ -259,6 +271,7 @@ model ImportLog {
   @@index([createdAt])
   @@index([sourceKind])
   @@index([userId])
+  @@schema("public")
 }
 
 model Investment {
@@ -282,6 +295,7 @@ model Investment {
   @@index([assetType])
   @@index([userId])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model Loan {
@@ -310,6 +324,7 @@ model Loan {
   @@index([syncStatus])
   @@index([userId])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model LoanPayment {
@@ -326,6 +341,7 @@ model LoanPayment {
   @@index([date])
   @@index([loanId])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model Notification {
@@ -346,29 +362,31 @@ model Notification {
   @@index([isRead])
   @@index([userId])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model Payment {
-  id                           String         @id @default(uuid())
-  sessionId                    String         @unique
-  clientId                     String
-  advisorId                    String
-  amount                       Float
-  currency                     String         @default("USD")
-  status                       String         @default("pending")
-  paymentMethod                String?
-  transactionId                String?
-  description                  String?
-  createdAt                    DateTime       @default(now())
-  updatedAt                    DateTime       @updatedAt
-  advisor                      User           @relation("Payment_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
-  client                       User           @relation("Payment_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
-  session                      AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id            String         @id @default(uuid())
+  sessionId     String         @unique
+  clientId      String
+  advisorId     String
+  amount        Float
+  currency      String         @default("USD")
+  status        String         @default("pending")
+  paymentMethod String?
+  transactionId String?
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  advisor       User           @relation("Payment_advisorIdToUser", fields: [advisorId], references: [id], onDelete: Cascade)
+  client        User           @relation("Payment_clientIdToUser", fields: [clientId], references: [id], onDelete: Cascade)
+  session       AdvisorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([advisorId])
   @@index([clientId])
   @@index([createdAt])
   @@index([status])
+  @@schema("public")
 }
 
 model RefreshToken {
@@ -380,6 +398,7 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
 
 model SyncQueue {
@@ -401,6 +420,7 @@ model SyncQueue {
   @@index([entityType])
   @@index([status])
   @@index([userId])
+  @@schema("public")
 }
 
 model Todo {
@@ -413,10 +433,11 @@ model Todo {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
 
 model Transaction {
-  id                  String          @id @default(uuid())
+  id                  String        @id @default(uuid())
   userId              String
   deviceId            String?
   accountId           String
@@ -439,16 +460,16 @@ model Transaction {
   importMetadata      String?
   originalCategory    String?
   importedAt          DateTime?
-  dedupHash           String?         @unique
-  version             Int             @default(1)
-  synced              Boolean         @default(false)
-  syncStatus          String          @default("synced")
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  dedupHash           String?       @unique
+  version             Int           @default(1)
+  synced              Boolean       @default(false)
+  syncStatus          String        @default("synced")
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
   deletedAt           DateTime?
-  account             Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  groupExpense        GroupExpense?   @relation(fields: [groupExpenseId], references: [id])
-  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account             Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  groupExpense        GroupExpense? @relation(fields: [groupExpenseId], references: [id])
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([accountId])
   @@index([category])
@@ -458,60 +479,62 @@ model Transaction {
   @@index([userId])
   @@index([userId, date]) // Composite index for user transaction queries
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model User {
-  id                                            String                @id @default(uuid())
-  email                                         String                @unique
-  name                                          String
-  password                                      String
-  role                                          String                @default("user")
-  status                                        String                @default("verified")
-  isApproved                                    Boolean               @default(false)
-  firstName                                     String?
-  lastName                                      String?
-  salary                                        Float?
-  dateOfBirth                                   DateTime?
-  jobType                                       String?
-  lastSynced                                    DateTime?
-  syncToken                                     String?
-  createdAt                                     DateTime              @default(now())
-  updatedAt                                     DateTime              @updatedAt
-  avatarId                                      String?
-  city                                          String?
-  country                                       String?
-  gender                                        String?
-  state                                         String?
-  accounts                                      Account[]
-  advisorAvailability                           AdvisorAvailability[]
-  sessionsAsAdvisor                             AdvisorSession[]      @relation("AdvisorSession_advisorIdToUser")
-  sessionsAsClient                              AdvisorSession[]      @relation("AdvisorSession_clientIdToUser")
-  bookingsAsAdvisor                             BookingRequest[]      @relation("BookingRequest_advisorIdToUser")
-  bookingsAsClient                              BookingRequest[]      @relation("BookingRequest_clientIdToUser")
-  categories                                    Category[]
-  chatMessages                                  ChatMessage[]
-  devices                                       Device[]
-  expenseBills                                  ExpenseBill[]
-  friends                                       Friend[]
-  goals                                         Goal[]
-  goalContributions                             GoalContribution[]
-  importLogs                                    ImportLog[]
-  investments                                   Investment[]
-  loans                                         Loan[]
-  notifications                                 Notification[]
-  paymentsAsAdvisor                             Payment[]             @relation("Payment_advisorIdToUser")
-  paymentsAsClient                              Payment[]             @relation("Payment_clientIdToUser")
-  refreshTokens                                 RefreshToken[]
-  todos                                         Todo[]
-  transactions                                  Transaction[]
-  userPin                                       UserPin?
-  userSettings                                  UserSettings?
-  otpCodes                                      OtpCode[]
-  aiScans                                       AiScan[]
-  groupExpenses                                 GroupExpense[]
+  id                  String                @id @default(uuid())
+  email               String                @unique
+  name                String
+  password            String
+  role                String                @default("user")
+  status              String                @default("verified")
+  isApproved          Boolean               @default(false)
+  firstName           String?
+  lastName            String?
+  salary              Float?
+  dateOfBirth         DateTime?
+  jobType             String?
+  lastSynced          DateTime?
+  syncToken           String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  avatarId            String?
+  city                String?
+  country             String?
+  gender              String?
+  state               String?
+  accounts            Account[]
+  advisorAvailability AdvisorAvailability[]
+  sessionsAsAdvisor   AdvisorSession[]      @relation("AdvisorSession_advisorIdToUser")
+  sessionsAsClient    AdvisorSession[]      @relation("AdvisorSession_clientIdToUser")
+  bookingsAsAdvisor   BookingRequest[]      @relation("BookingRequest_advisorIdToUser")
+  bookingsAsClient    BookingRequest[]      @relation("BookingRequest_clientIdToUser")
+  categories          Category[]
+  chatMessages        ChatMessage[]
+  devices             Device[]
+  expenseBills        ExpenseBill[]
+  friends             Friend[]
+  goals               Goal[]
+  goalContributions   GoalContribution[]
+  importLogs          ImportLog[]
+  investments         Investment[]
+  loans               Loan[]
+  notifications       Notification[]
+  paymentsAsAdvisor   Payment[]             @relation("Payment_advisorIdToUser")
+  paymentsAsClient    Payment[]             @relation("Payment_clientIdToUser")
+  refreshTokens       RefreshToken[]
+  todos               Todo[]
+  transactions        Transaction[]
+  userPin             UserPin?
+  userSettings        UserSettings?
+  otpCodes            OtpCode[]
+  aiScans             AiScan[]
+  groupExpenses       GroupExpense[]
 
   @@index([isApproved])
   @@index([role])
+  @@schema("public")
 }
 
 model UserPin {
@@ -530,6 +553,7 @@ model UserPin {
   @@index([expiresAt])
   @@index([isActive])
   @@index([userId])
+  @@schema("public")
 }
 
 model UserSettings {
@@ -545,6 +569,7 @@ model UserSettings {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@schema("public")
 }
 
 model OtpCode {
@@ -559,25 +584,27 @@ model OtpCode {
 
   @@index([userId])
   @@index([expiresAt])
+  @@schema("auth")
 }
 
 model AiScan {
-  id             String   @id @default(uuid())
-  userId         String
-  billId         String?
-  transactionId  String?
-  extractedJson  String
-  confidence     Float
-  provider       String   @default("gemini")
-  processingMs   Int?
-  status         String   @default("completed")
-  errorMessage   String?
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  userId        String
+  billId        String?
+  transactionId String?
+  extractedJson String
+  confidence    Float
+  provider      String   @default("gemini")
+  processingMs  Int?
+  status        String   @default("completed")
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([billId])
   @@index([createdAt])
+  @@schema("public")
 }
 
 model ai_events {
@@ -590,6 +617,7 @@ model ai_events {
   @@index([created_at], map: "idx_ai_events_created_at")
   @@index([event_type], map: "idx_ai_events_type")
   @@index([user_id], map: "idx_ai_events_user_id")
+  @@schema("public")
 }
 
 model ai_insights {
@@ -603,6 +631,7 @@ model ai_insights {
   @@index([created_at], map: "idx_ai_insights_created_at")
   @@index([insight_type], map: "idx_ai_insights_type")
   @@index([user_id], map: "idx_ai_insights_user_id")
+  @@schema("public")
 }
 
 model ai_model_runs {
@@ -616,17 +645,18 @@ model ai_model_runs {
 
   @@index([started_at], map: "idx_ai_runs_started_at")
   @@index([run_type], map: "idx_ai_runs_type")
+  @@schema("public")
 }
 
 model GroupExpense {
-  id                   String        @id @default(uuid())
+  id                   String               @id @default(uuid())
   userId               String
   deviceId             String?
   name                 String
   totalAmount          Float
   paidBy               String?
   date                 DateTime
-  members              String?              // DEPRECATED: Use GroupExpenseMember relation instead
+  members              String? // DEPRECATED: Use GroupExpenseMember relation instead
   items                String?
   description          String?
   category             String?
@@ -638,13 +668,13 @@ model GroupExpense {
   createdByName        String?
   status               String?
   notificationStatus   String?
-  syncStatus           String        @default("synced")
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  syncStatus           String               @default("synced")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
   deletedAt            DateTime?
   transactions         Transaction[]
-  paidByAccount        Account?      @relation(fields: [paidBy], references: [id])
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paidByAccount        Account?             @relation(fields: [paidBy], references: [id])
+  user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   groupMembers         GroupExpenseMember[] // New relational structure
 
   @@index([date])
@@ -652,13 +682,14 @@ model GroupExpense {
   @@index([syncStatus])
   @@index([userId])
   @@map("group_expenses")
+  @@schema("public")
 }
 
 model GroupExpenseMember {
   id             String       @id @default(uuid())
   groupExpenseId String
-  userId         String?      // Optional: may be a friend without user account
-  name           String       // Display name
+  userId         String? // Optional: may be a friend without user account
+  name           String // Display name
   email          String?
   phone          String?
   shareAmount    Float        @default(0)
@@ -672,6 +703,7 @@ model GroupExpenseMember {
   @@index([groupExpenseId])
   @@index([userId])
   @@index([deletedAt])
+  @@schema("public")
 }
 
 model user_features {
@@ -684,10 +716,12 @@ model user_features {
   peak_day          String
   feature_data_json Json
   updated_at        DateTime @default(now())
+
+  @@schema("public")
 }
 
 model profiles {
-  id               String   @id @db.Uuid
+  id               String    @id @db.Uuid
   email            String?
   full_name        String?
   first_name       String?
@@ -697,8 +731,8 @@ model profiles {
   phone            String?
   gender           String?
   date_of_birth    DateTime? @db.Timestamptz(6)
-  monthly_income   Decimal? @db.Decimal
-  annual_income    Decimal? @db.Decimal
+  monthly_income   Decimal?  @db.Decimal
+  annual_income    Decimal?  @db.Decimal
   job_type         String?
   country          String?
   state            String?
@@ -708,4 +742,6 @@ model profiles {
   visible_features Json?
   created_at       DateTime? @default(now()) @db.Timestamptz(6)
   updated_at       DateTime? @updatedAt @db.Timestamptz(6)
+
+  @@schema("public")
 }

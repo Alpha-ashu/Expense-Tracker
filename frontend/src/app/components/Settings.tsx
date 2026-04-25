@@ -229,7 +229,7 @@ export const Settings: React.FC = () => {
       if (confirm('Are you ABSOLUTELY sure? This is your last warning!')) {
         try {
           // Clear cloud user-scoped entities first so sync does not restore cleared local records.
-          const cloudTables = ['accounts', 'friends', 'transactions', 'loans', 'goals', 'group_expenses', 'investments'] as const;
+          const cloudTables = ['accounts', 'friends_sync', 'transactions', 'loans', 'goals', 'group_expenses_sync', 'investments'] as const;
           const cloudDeleteErrors: string[] = [];
           if (user?.id) {
             const results = await Promise.allSettled(

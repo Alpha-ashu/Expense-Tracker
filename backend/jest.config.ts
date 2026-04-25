@@ -15,5 +15,5 @@ export default {
     '!src/**/*.d.ts',
     '!src/server.ts',
   ],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  setupFiles: ['<rootDir>/tests/setup.ts'],
 };

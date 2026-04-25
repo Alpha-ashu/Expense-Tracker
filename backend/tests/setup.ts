@@ -1,6 +1,7 @@
+import path from 'path';
 import { config } from 'dotenv';
 
-config({ path: '.env.test' });
+config({ path: path.resolve(__dirname, '../.env.test') });
 
 // API Keys and Credentials
 export const getApiKey = (key: string): string | undefined => {
