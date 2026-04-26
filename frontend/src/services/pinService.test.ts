@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearOptionalBackendUnavailable, markOptionalBackendUnavailable } from '@/lib/apiBase';
 
@@ -20,6 +22,7 @@ describe('pinService', () => {
     getSession.mockReset();
     vi.unstubAllGlobals();
     localStorage.clear();
+    pinService.clearPinData();
     clearOptionalBackendUnavailable();
   });
 
@@ -95,7 +98,7 @@ describe('pinService', () => {
     })).toBe(true);
   });
 
-  it('skips optional backend PIN requests for a short period after the backend is marked unavailable in development', async () => {
+  it('still sends critical PIN reset requests even when optional backend sync is in backoff mode', async () => {
     getSession.mockResolvedValue({
       data: {
         session: {
@@ -104,14 +107,24 @@ describe('pinService', () => {
       },
     });
 
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        message: 'PIN reset successfully',
+      }),
+    });
     vi.stubGlobal('fetch', fetchMock);
     markOptionalBackendUnavailable('/api/v1');
 
-    const result = await pinService.getStatus();
+    const result = await pinService.resetCurrentUserPin();
 
-    expect(result.success).toBe(false);
-    expect(result.statusCode).toBe(503);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/pin/self-reset', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({
+        Authorization: 'Bearer session-token',
+      }),
+    }));
   });
 });

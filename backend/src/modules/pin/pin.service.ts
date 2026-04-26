@@ -4,6 +4,10 @@ import bcrypt from 'bcryptjs';
 export interface CreatePinRequest {
   userId: string;
   pin: string; // 6-digit PIN
+  email?: string;
+  name?: string;
+  role?: string;
+  isApproved?: boolean;
 }
 
 export interface VerifyPinRequest {
@@ -33,6 +37,45 @@ class PinService {
   private readonly MAX_FAILED_ATTEMPTS = 5;
   private readonly LOCKOUT_DURATION_HOURS = 1;
 
+  private normalizeRole(role?: string): 'admin' | 'advisor' | 'user' {
+    if (role === 'admin' || role === 'advisor' || role === 'user') {
+      return role;
+    }
+
+    if (role === 'customer') {
+      return 'user';
+    }
+
+    return 'user';
+  }
+
+  private async ensureLocalUser(request: CreatePinRequest): Promise<void> {
+    const normalizedRole = this.normalizeRole(request.role);
+    const resolvedEmail = request.email?.trim() || `user-${request.userId.slice(0, 8)}@placeholder.finora.app`;
+    const fallbackNameFromEmail = resolvedEmail.split('@')[0]?.replace(/[._-]+/g, ' ').trim() || 'User';
+    const resolvedName = request.name?.trim() || fallbackNameFromEmail || 'User';
+
+    await prisma.user.upsert({
+      where: { id: request.userId },
+      update: {
+        email: resolvedEmail,
+        name: resolvedName,
+        role: normalizedRole,
+        status: 'verified',
+        isApproved: request.isApproved ?? normalizedRole !== 'advisor',
+      },
+      create: {
+        id: request.userId,
+        email: resolvedEmail,
+        name: resolvedName,
+        password: 'supabase-managed-account',
+        role: normalizedRole,
+        status: 'verified',
+        isApproved: request.isApproved ?? normalizedRole !== 'advisor',
+      },
+    });
+  }
+
   /**
    * Create a new PIN for a user
    */
@@ -59,6 +102,8 @@ class PinService {
           message: 'PIN already exists. Use update PIN endpoint instead.',
         };
       }
+
+      await this.ensureLocalUser(request);
 
       // Hash the PIN
       const pinHash = await bcrypt.hash(pin, 10);
@@ -304,13 +349,15 @@ class PinService {
    */
   async forceResetPin(userId: string): Promise<PinResponse> {
     try {
-      await prisma.userPin.delete({
+      const deleted = await prisma.userPin.deleteMany({
         where: { userId },
       });
 
       return {
         success: true,
-        message: 'PIN reset successfully. User must create a new PIN.',
+        message: deleted.count > 0
+          ? 'PIN reset successfully. User must create a new PIN.'
+          : 'PIN already reset. User must create a new PIN.',
       };
     } catch (error) {
       console.error('Force reset PIN error:', error);

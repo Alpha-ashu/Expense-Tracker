@@ -6,6 +6,7 @@ import { permissionService } from '@/services/permissionService';
 import { db } from '@/lib/database';
 import { resolveAvatarSelection } from '@/lib/avatar-gallery';
 import { api } from '@/lib/api';
+import { clearSecurityData } from '@/lib/encryption';
 import {
   handleLogout as handleBackendLogout,
   initializeBackendSync,
@@ -14,6 +15,7 @@ import {
   syncUserDataFromCloud,
 } from '@/lib/auth-sync-integration';
 import { shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
+import { pinService } from '@/services/pinService';
 
 interface AuthContextType {
   user: User | null;
@@ -34,6 +36,7 @@ type LocalProfile = {
   firstName?: string;
   lastName?: string;
   mobile?: string;
+  gender?: string;
   dateOfBirth?: string;
   jobType?: string;
   salary?: string | number;
@@ -42,9 +45,30 @@ type LocalProfile = {
   avatarUrl?: string;
   avatarId?: string;
   country?: string;
+  state?: string;
+  city?: string;
   language?: string;
   createdAt?: string;
   updatedAt?: string;
+};
+
+type RemoteProfileSnapshot = {
+  displayName: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  gender: string;
+  dateOfBirth: string;
+  jobType: string;
+  monthlyIncome: number;
+  annualIncome: number;
+  avatarUrl: string | null;
+  avatarId: string | null;
+  country: string;
+  state: string;
+  city: string;
+  updatedAt: string | null;
+  hasRealProfile: boolean;
 };
 
 const PROFILE_SYNC_COOLDOWN_MS = 60_000;
@@ -102,14 +126,76 @@ const hasLocalProfileData = (profile: LocalProfile | null): boolean => {
     profile.firstName ||
     profile.lastName ||
     profile.mobile ||
+    profile.gender ||
     profile.dateOfBirth ||
     profile.jobType ||
     profile.salary ||
     profile.monthlyIncome ||
     profile.profilePhoto ||
     profile.avatarUrl ||
-    profile.avatarId
+    profile.avatarId ||
+    profile.country ||
+    profile.state ||
+    profile.city
   );
+};
+
+const normalizeRemoteProfile = (profile: any): RemoteProfileSnapshot => {
+  const firstName = String(profile?.first_name ?? profile?.firstName ?? '').trim();
+  const lastName = String(profile?.last_name ?? profile?.lastName ?? '').trim();
+  const displayName = String(
+    profile?.full_name
+    ?? profile?.fullName
+    ?? profile?.name
+    ?? `${firstName} ${lastName}`.trim()
+    ?? '',
+  ).trim();
+  const phone = String(profile?.phone ?? profile?.mobile ?? '').trim();
+  const gender = String(profile?.gender ?? '').trim();
+  const dateOfBirth = String(profile?.date_of_birth ?? profile?.dateOfBirth ?? '').trim();
+  const jobType = String(profile?.job_type ?? profile?.jobType ?? '').trim();
+  const monthlyIncome = parseNumber(profile?.monthly_income ?? profile?.monthlyIncome) ?? 0;
+  const annualIncome = parseNumber(profile?.annual_income ?? profile?.salary) ?? (monthlyIncome > 0 ? Math.round(monthlyIncome * 12) : 0);
+  const avatarUrl = profile?.avatar_url ?? profile?.avatarUrl ?? null;
+  const avatarId = profile?.avatar_id ?? profile?.avatarId ?? null;
+  const country = String(profile?.country ?? '').trim();
+  const state = String(profile?.state ?? '').trim();
+  const city = String(profile?.city ?? '').trim();
+  const updatedAt = profile?.updated_at ?? profile?.updatedAt ?? null;
+
+  return {
+    displayName,
+    firstName,
+    lastName,
+    phone,
+    gender,
+    dateOfBirth,
+    jobType,
+    monthlyIncome,
+    annualIncome,
+    avatarUrl,
+    avatarId,
+    country,
+    state,
+    city,
+    updatedAt,
+    hasRealProfile: Boolean(
+      displayName ||
+      firstName ||
+      lastName ||
+      phone ||
+      gender ||
+      dateOfBirth ||
+      jobType ||
+      monthlyIncome ||
+      annualIncome ||
+      avatarUrl ||
+      avatarId ||
+      country ||
+      state ||
+      city
+    ),
+  };
 };
 
 /**
@@ -141,6 +227,28 @@ const clearLocalUserData = async () => {
   } catch (err) {
     console.error('Failed to clear local DB on login:', err);
   }
+};
+
+const clearLocalAuthPresentationState = () => {
+  [
+    'onboarding_completed',
+    'profile_updated_at',
+    'profile_sync_pending',
+    'user_profile',
+    'user_settings',
+    'user_setup_date',
+    'onboarding_date',
+    'onboarding_refresh_timestamp',
+    'auth_flow_step',
+    'pending_auth_email',
+    'user_email',
+    'user_name',
+    'pin_created_at',
+    'pin_expiry',
+  ].forEach((key) => localStorage.removeItem(key));
+
+  pinService.clearPinData();
+  clearSecurityData();
 };
 
 const fetchWithTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
@@ -195,6 +303,8 @@ const syncProfileFromBackend = async (user: User) => {
       console.warn('Failed to fetch profile from backend:', err);
     }
 
+    const remoteProfile = normalizeRemoteProfile(profile);
+
     let localProfile = readLocalProfile();
     const localUpdatedAt = getLocalProfileUpdatedAt(localProfile);
 
@@ -221,36 +331,24 @@ const syncProfileFromBackend = async (user: User) => {
 
     const pendingLocalSync = hasPendingLocalProfileSync();
 
-    const hasRealProfile = profile && (
-      profile.full_name ||
-      profile.first_name ||
-      profile.last_name ||
-      profile.phone ||
-      profile.date_of_birth ||
-      profile.job_type ||
-      profile.monthly_income ||
-      profile.annual_income ||
-      profile.avatar_url
-    );
-
-    const remoteUpdatedAt = profile?.updated_at || null;
+    const remoteUpdatedAt = remoteProfile.updatedAt;
     const remoteIsNewer = !!(remoteUpdatedAt && localUpdatedAt && isAfter(remoteUpdatedAt, localUpdatedAt));
 
     const writeLocalFromRemote = () => {
-      const remoteFirstName = profile.first_name || '';
-      const remoteLastName = profile.last_name || '';
-      const remoteFullName = profile.full_name || `${remoteFirstName} ${remoteLastName}`.trim();
+      const remoteFirstName = remoteProfile.firstName;
+      const remoteLastName = remoteProfile.lastName;
+      const remoteFullName = remoteProfile.displayName || `${remoteFirstName} ${remoteLastName}`.trim();
       const fallbackDisplayName = localProfile?.displayName ||
         `${localProfile?.firstName || ''} ${localProfile?.lastName || ''}`.trim();
       const displayName = remoteFullName || fallbackDisplayName;
       const nameParts = displayName.split(/\s+/).filter(Boolean);
       const firstName = remoteFirstName || localProfile?.firstName || nameParts[0] || '';
       const lastName = remoteLastName || localProfile?.lastName || nameParts.slice(1).join(' ') || '';
-      const monthlyIncome = profile.monthly_income || (profile.annual_income ? Math.round(profile.annual_income / 12) : 0);
+      const monthlyIncome = remoteProfile.monthlyIncome || (remoteProfile.annualIncome ? Math.round(remoteProfile.annualIncome / 12) : 0);
       const updatedAt = remoteUpdatedAt || new Date().toISOString();
       const resolvedAvatar = resolveAvatarSelection({
-        avatarUrl: profile.avatar_url || null,
-        avatarId: (profile as any)?.avatar_id || null,
+        avatarUrl: remoteProfile.avatarUrl,
+        avatarId: remoteProfile.avatarId,
       });
 
       localStorage.setItem('onboarding_completed', 'true');
@@ -260,19 +358,23 @@ const syncProfileFromBackend = async (user: User) => {
         displayName,
         firstName,
         lastName,
-        mobile: profile.phone || '',
-        dateOfBirth: profile.date_of_birth || '',
-        jobType: profile.job_type || '',
-        salary: ((profile.annual_income || (monthlyIncome * 12)) || 0).toString(),
+        mobile: remoteProfile.phone || '',
+        gender: remoteProfile.gender || '',
+        dateOfBirth: remoteProfile.dateOfBirth || '',
+        jobType: remoteProfile.jobType || '',
+        salary: ((remoteProfile.annualIncome || (monthlyIncome * 12)) || 0).toString(),
         monthlyIncome,
         profilePhoto: resolvedAvatar.url,
         avatarUrl: resolvedAvatar.url,
         avatarId: resolvedAvatar.id,
+        country: remoteProfile.country || localProfile?.country || '',
+        state: remoteProfile.state || localProfile?.state || '',
+        city: remoteProfile.city || localProfile?.city || '',
         updatedAt,
       }));
     };
 
-    if (hasRealProfile) {
+    if (remoteProfile.hasRealProfile) {
       const shouldUseRemote =
         (!pendingLocalSync &&
           (!localUpdatedAt || (remoteUpdatedAt && !isAfter(localUpdatedAt, remoteUpdatedAt)))) ||
@@ -309,6 +411,10 @@ const syncProfileFromBackend = async (user: User) => {
       first_name: firstName || null,
       last_name: lastName || null,
       phone: localProfile?.mobile || null,
+      gender: localProfile?.gender || null,
+      country: localProfile?.country || null,
+      state: localProfile?.state || null,
+      city: localProfile?.city || null,
       date_of_birth: localProfile?.dateOfBirth || null,
       job_type: localProfile?.jobType || null,
       monthly_income: monthlyIncome ?? null,
@@ -515,6 +621,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (isUserSwitch) {
                 // Different user logged in — clear previous user's local data
                 await clearLocalUserData();
+                clearLocalAuthPresentationState();
               }
 
               // Always record the current user so we can detect future switches
@@ -558,6 +665,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await handleBackendLogout();
             // Clear local DB on logout too
             await clearLocalUserData();
+            clearLocalAuthPresentationState();
             initialSyncDone = false; // Reset for next login
             activeSyncUserId.current = null;
             setDataReady(false);
@@ -589,13 +697,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+    } catch (error) {
+      console.error('Error signing out from Supabase, clearing local auth state anyway:', error);
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (localSignOutError) {
+        console.error('Local-only sign out fallback also failed:', localSignOutError);
+      }
+    } finally {
       setUser(null);
       setSession(null);
       setRole('user');
       permissionService.clearPermissions();
-    } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
+      activeSyncUserId.current = null;
+      setDataReady(false);
+      setDataSyncing(false);
+      setDataSyncError(null);
     }
   };
 

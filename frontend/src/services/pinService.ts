@@ -5,7 +5,6 @@ import {
   getConfiguredApiBase,
   markOptionalBackendUnavailable,
   shouldRetryWithLocalApiFallback,
-  shouldSkipOptionalBackendRequests,
 } from '@/lib/apiBase';
 import supabase from '@/utils/supabase/client';
 
@@ -129,14 +128,6 @@ class PinService {
       };
     }
 
-    if (shouldSkipOptionalBackendRequests(this.API_URL)) {
-      return {
-        success: false,
-        message: 'Backend PIN service unavailable in development mode',
-        statusCode: 503,
-      };
-    }
-
     try {
       const apiBases = getApiBaseCandidates(this.API_URL);
 
@@ -216,14 +207,6 @@ class PinService {
       };
     }
 
-    if (shouldSkipOptionalBackendRequests(this.API_URL)) {
-      return {
-        success: false,
-        message: 'Backend PIN service unavailable in development mode',
-        statusCode: 503,
-      };
-    }
-
     try {
       const apiBases = getApiBaseCandidates(this.API_URL);
 
@@ -284,14 +267,6 @@ class PinService {
       return {
         success: false,
         message: 'Session expired. Please sign in again.',
-      };
-    }
-
-    if (shouldSkipOptionalBackendRequests(this.API_URL)) {
-      return {
-        success: false,
-        message: 'Backend PIN service unavailable in development mode',
-        statusCode: 503,
       };
     }
 

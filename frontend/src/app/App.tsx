@@ -408,6 +408,24 @@ const AppContent: React.FC = () => {
   }
 
   // Gate 1: Onboarding (BEFORE PIN)
+  if (user && !dataReady) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
+          <p className="text-white text-base font-medium">
+            {dataSyncing ? 'Syncing your account...' : 'Loading your account...'}
+          </p>
+          {dataSyncError && (
+            <p className="text-white/80 text-xs mt-2 max-w-xs">
+              Having trouble refreshing cloud data. Using the last saved state when available.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!hasCompletedOnboarding && isNewUser) {
     return (
       <Suspense fallback={<PageLoader />}>

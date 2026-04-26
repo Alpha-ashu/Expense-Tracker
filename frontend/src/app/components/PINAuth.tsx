@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, Fingerprint, Shield, LogOut, KeyRound } from 'lucide-react';
+import { Lock, Eye, EyeOff, Fingerprint, LogOut, KeyRound, AlertCircle } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
 import { clearSecurityData, isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 import { isPinMissing, pinService } from '@/services/pinService';
@@ -22,6 +22,8 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [isResettingPin, setIsResettingPin] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
+  const [resetErrorMessage, setResetErrorMessage] = useState<string | null>(null);
   const pinMismatch = isCreating && confirmPin.length > 0 && pin !== confirmPin;
 
   const finalizeAuthentication = async (key: string, successMessage: string) => {
@@ -151,6 +153,28 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
         const verifyResult = await pinService.verifyPin({ pin });
         if (!verifyResult.success) {
+          if (isPinMissing(verifyResult)) {
+            const localResult = verifyPIN(pin);
+
+            if (localResult.isValid) {
+              const repairResult = await pinService.createPin(pin);
+              if (repairResult.success) {
+                const backup = backupPINKeys();
+                if (backup.hash && backup.salt) {
+                  const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
+                  if (!backupResult.success) {
+                    console.warn('PIN key backup refresh failed after server repair:', backupResult.message);
+                  }
+                }
+
+                if (localResult.key) {
+                  await finalizeAuthentication(localResult.key, 'PIN restored successfully');
+                  return;
+                }
+              }
+            }
+          }
+
           toast.error(verifyResult.message || 'Invalid PIN');
           setPin('');
           setIsLoading(false);
@@ -201,6 +225,8 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const handleUseDifferentAccount = async () => {
     setIsLoggingOut(true);
     try {
+      setShowResetConfirmation(false);
+      setResetErrorMessage(null);
       pinService.clearPinData();
       clearSecurityData();
       await signOut();
@@ -213,50 +239,54 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   };
 
   const handleForgotPin = async () => {
-    const confirmed = window.confirm(
-      'Reset your PIN for this account? You will be signed out and will need to log in again before creating a new PIN.'
-    );
+    setResetErrorMessage(null);
+    setShowResetConfirmation(true);
+  };
 
-    if (!confirmed) {
-      return;
-    }
+  const handleCancelReset = () => {
+    setResetErrorMessage(null);
+    setShowResetConfirmation(false);
+  };
 
+  const handleConfirmResetPin = async () => {
     setIsResettingPin(true);
 
     try {
       const result = await pinService.resetCurrentUserPin();
       if (!result.success) {
-        toast.error(result.message || 'Failed to reset PIN');
+        setResetErrorMessage(result.message || 'Failed to reset PIN');
         return;
       }
 
+      setResetErrorMessage(null);
+      setShowResetConfirmation(false);
       clearSecurityData();
       await signOut();
       toast.success('PIN reset. Sign in again to create a new PIN.');
     } catch (error) {
       console.error('Failed to reset PIN:', error);
-      toast.error('Failed to reset PIN. Please try again.');
+      setResetErrorMessage('Failed to reset PIN. Please try again.');
     } finally {
       setIsResettingPin(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-blue-600 flex items-center justify-center p-4 z-50">
-      <div className="w-full max-w-md">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-blue-600 px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-full w-full max-w-[34rem] flex-col justify-center">
         {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full mb-4">
-            <FinoraLogo className="w-12 h-12" />
+        <div className="mb-6 text-center sm:mb-8">
+          <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+            <FinoraLogo className="h-12 w-12" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Finora</h1>
-          <p className="text-blue-100">
+          <h1 className="mb-2 text-3xl font-bold text-white sm:text-[3rem]">Finora</h1>
+          <p className="text-lg text-blue-100 sm:text-xl">
             {isCreating ? 'Create your secure PIN' : 'Enter your PIN to continue'}
           </p>
         </div>
 
         {/* PIN Input Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="rounded-[2rem] bg-white px-6 py-7 shadow-2xl sm:px-8 sm:py-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <input
               type="text"
@@ -273,7 +303,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               {isCreating ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="finora-pin-entry" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="finora-pin-entry" className="mb-2 block text-sm font-medium text-gray-700">
                       Enter 6-digit PIN
                     </label>
                     <div className="relative">
@@ -295,7 +325,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="finora-pin-confirm" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="finora-pin-confirm" className="mb-2 block text-sm font-medium text-gray-700">
                       Confirm 6-digit PIN
                     </label>
                     <div className="relative">
@@ -327,7 +357,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                 </div>
               ) : (
                 <div>
-                  <label htmlFor="finora-pin-entry" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="finora-pin-entry" className="mb-2 block text-sm font-medium text-gray-700">
                     Enter PIN
                   </label>
                   <div className="relative">
@@ -422,7 +452,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                   type="button"
                   onClick={handleForgotPin}
                   disabled={isResettingPin || isLoggingOut || isLoading}
-                  className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400 transition-colors flex items-center justify-center gap-2"
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                 >
                   <KeyRound size={18} />
                   {isResettingPin ? 'Resetting PIN...' : 'Forgot PIN'}
@@ -431,22 +461,58 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                   type="button"
                   onClick={handleUseDifferentAccount}
                   disabled={isResettingPin || isLoggingOut || isLoading}
-                  className="w-full py-3 bg-white text-gray-700 border border-gray-200 rounded-lg font-medium hover:bg-gray-50 disabled:text-gray-400 transition-colors flex items-center justify-center gap-2"
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:text-gray-400"
                 >
                   <LogOut size={18} />
-                  {isLoggingOut ? 'Signing out...' : 'Use different account'}
+                  {isLoggingOut ? 'Signing out...' : 'Different account'}
                 </button>
+              </div>
+            )}
+
+            {!isCreating && showResetConfirmation && (
+              <div className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <div className="text-sm text-amber-900">
+                  <p className="text-base font-semibold">Reset this account PIN?</p>
+                  <p className="mt-1 leading-7 text-amber-800">
+                    This will remove the current PIN, sign you out, and require a fresh login before creating a new PIN.
+                  </p>
+                </div>
+                {resetErrorMessage && (
+                  <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <span>{resetErrorMessage}</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleConfirmResetPin}
+                    disabled={isResettingPin || isLoggingOut || isLoading}
+                    className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-amber-700 disabled:bg-amber-300"
+                  >
+                    <KeyRound size={18} />
+                    {isResettingPin ? 'Resetting PIN...' : 'Confirm reset'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelReset}
+                    disabled={isResettingPin || isLoggingOut || isLoading}
+                    className="min-h-14 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:text-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
           </form>
 
           {/* Security Info */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-6 rounded-2xl bg-blue-50 p-5">
             <div className="flex items-start gap-3">
-              <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <Lock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
               <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Your data is secure</p>
-                <p className="text-blue-700">
+                <p className="mb-1 font-medium">Your data is secure</p>
+                <p className="leading-7 text-blue-700">
                   Financial data stays encrypted on this device, and the server only stores
                   PIN verification data plus encrypted recovery metadata for your devices.
                 </p>
@@ -456,7 +522,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-blue-100 text-sm">
+        <div className="mt-6 text-center text-sm text-blue-100">
           <p>Privacy-first financial management</p>
         </div>
       </div>

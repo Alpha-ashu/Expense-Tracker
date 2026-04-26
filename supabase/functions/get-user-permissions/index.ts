@@ -49,12 +49,12 @@ serve(async (req) => {
 
     // Define admin emails (can be moved to database later)
     const ADMIN_EMAILS = [
-      'shaik.job.details@gmail.com'
+      'superadmin@finora.com'
     ];
 
     // Define advisor emails (can be moved to database later)
     const ADVISOR_EMAILS = [
-      // Add advisor emails here
+      'advisore@finora.com'
     ];
 
     // Determine user role

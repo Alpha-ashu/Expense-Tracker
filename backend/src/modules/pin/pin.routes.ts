@@ -22,6 +22,10 @@ router.post('/create', async (req: AuthRequest, res: Response) => {
     const result = await pinService.createPin({
       userId: req.user?.id || '',
       pin,
+      email: req.user?.email,
+      name: req.user?.name,
+      role: req.user?.role,
+      isApproved: req.user?.isApproved,
     });
 
     res.json(result);
