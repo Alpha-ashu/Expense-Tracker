@@ -8,6 +8,10 @@ import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, Fea
 import type { SyncStats } from '@/lib/offline-sync-engine';
 import { saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { backendSyncService } from '@/lib/backend-sync-service';
+import {
+  mergeStoredUserSettings,
+  readStoredAppPreferences,
+} from '@/lib/userPreferences';
 
 interface AppContextType {
   currentPage: string;
@@ -53,8 +57,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [navigate, location.pathname]);
 
-  const [currency, setCurrency] = useState(() => localStorage.getItem('currency') || 'INR');
-  const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
+  const initialPreferences = readStoredAppPreferences();
+  const [currency, setCurrency] = useState(() => initialPreferences.currency);
+  const [language, setLanguage] = useState(() => initialPreferences.language);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [manualRefreshToken, setManualRefreshToken] = useState(0);
   const [visibleFeatures, setVisibleFeaturesState] = useState<FeatureVisibility>(() => {
@@ -62,13 +67,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const parsed = stored ? JSON.parse(stored) : {};
     return normalizeFeatures(parsed);
   });
-  const { role, user } = useAuth();
+  const { role, user, dataReady } = useAuth();
   const attemptedBalanceRepairKeyRef = useRef<string | null>(null);
   const syncStats = useMemo<SyncStats>(() => ({
     pendingCount: 0,
     lastSyncedAt: null,
     status: isOnline ? 'synced' : 'offline',
   }), [isOnline]);
+
+  const applyStoredPreferences = useCallback(() => {
+    const preferences = readStoredAppPreferences();
+    setCurrency((current) => current === preferences.currency ? current : preferences.currency);
+    setLanguage((current) => current === preferences.language ? current : preferences.language);
+    return preferences;
+  }, []);
 
   const accounts = useLiveQuery(
     () => db.accounts.filter(acc => !acc.deletedAt && acc.isActive !== false).toArray(),
@@ -263,27 +275,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const handleOffline = () => setIsOnline(false);
 
     const handleOnboardingComplete = () => {
+      applyStoredPreferences();
       setManualRefreshToken(prev => prev + 1);
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'onboarding_refresh_timestamp' && e.newValue) {
+      if (
+        e.key
+        && ['onboarding_refresh_timestamp', 'currency', 'language', 'user_settings'].includes(e.key)
+      ) {
+        applyStoredPreferences();
         setManualRefreshToken(prev => prev + 1);
       }
+    };
+
+    const handleSettingsUpdate = () => {
+      applyStoredPreferences();
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     window.addEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete);
+    window.addEventListener('APP_SETTINGS_UPDATED', handleSettingsUpdate);
     window.addEventListener('storage', handleStorageChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('ONBOARDING_COMPLETED', handleOnboardingComplete);
+      window.removeEventListener('APP_SETTINGS_UPDATED', handleSettingsUpdate);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [applyStoredPreferences]);
+
+  useEffect(() => {
+    if (user?.id && dataReady) {
+      applyStoredPreferences();
+    }
+  }, [applyStoredPreferences, dataReady, user?.id]);
 
   const refreshData = useCallback(() => {
     setManualRefreshToken(prev => prev + 1);
@@ -329,14 +358,45 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, []);
 
+  const shouldPersistUserSettings = useCallback(() => {
+    if (localStorage.getItem('user_settings')) {
+      return true;
+    }
+
+    if (localStorage.getItem('user_profile')) {
+      return true;
+    }
+
+    return localStorage.getItem('onboarding_completed') === 'true';
+  }, []);
+
   // Save currency and language to localStorage
   useEffect(() => {
     localStorage.setItem('currency', currency);
-  }, [currency]);
+    if (!shouldPersistUserSettings()) {
+      return;
+    }
+
+    localStorage.setItem('user_settings', JSON.stringify(
+      mergeStoredUserSettings({
+        currency,
+        defaultCurrency: currency,
+      }),
+    ));
+  }, [currency, shouldPersistUserSettings]);
 
   useEffect(() => {
     localStorage.setItem('language', language);
-  }, [language]);
+    if (!shouldPersistUserSettings()) {
+      return;
+    }
+
+    localStorage.setItem('user_settings', JSON.stringify(
+      mergeStoredUserSettings({
+        language,
+      }),
+    ));
+  }, [language, shouldPersistUserSettings]);
 
   useEffect(() => {
     const roleFeatures = getVisibleFeaturesForRole(role, import.meta.env.MODE);

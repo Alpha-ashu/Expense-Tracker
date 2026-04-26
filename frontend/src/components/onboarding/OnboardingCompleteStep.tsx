@@ -3,7 +3,11 @@ import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { resolveAvatarSelection } from '@/lib/avatar-gallery';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
+import {
+  buildOnboardingUserSettings,
+  toSettingsPayload,
+} from '@/lib/userPreferences';
 
 interface OnboardingCompleteStepProps {
   data: {
@@ -67,10 +71,16 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     const nameParts = data.displayName.trim().split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
+    const monthlyBudget = Math.round(parseFloat(data.salary) / 12) || 0;
 
     const resolvedAvatar = resolveAvatarSelection({
       avatarId: data.avatarId,
       avatarUrl: data.avatarUrl,
+    });
+    const userSettings = buildOnboardingUserSettings({
+      country: data.country,
+      language: data.language,
+      monthlyBudget,
     });
 
     const userProfile = {
@@ -81,7 +91,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       dateOfBirth: data.dateOfBirth,
       jobType: data.jobType,
       salary: data.salary,
-      monthlyIncome: Math.round(parseFloat(data.salary) / 12),
+      monthlyIncome: monthlyBudget,
       country: data.country,
       state: data.state,
       city: data.city,
@@ -95,16 +105,14 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('user_profile', JSON.stringify(userProfile));
     localStorage.setItem('profile_updated_at', nowIso);
     localStorage.setItem('profile_sync_pending', 'true');
-
-    const userSettings = {
-      defaultCurrency: 'INR',
-      monthlyBudget: Math.round(parseFloat(data.salary) / 12),
-      language: data.language,
-      country: data.country
-    };
     localStorage.setItem('user_settings', JSON.stringify(userSettings));
+    localStorage.setItem('currency', userSettings.currency || userSettings.defaultCurrency || 'INR');
+    localStorage.setItem('language', userSettings.language || 'en');
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('user_setup_date', new Date().toISOString());
+    window.dispatchEvent(new CustomEvent('APP_SETTINGS_UPDATED', {
+      detail: userSettings,
+    }));
 
     try {
       // Step 1: Save profile through backend API only
@@ -120,13 +128,26 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
               country: data.country,
               state: data.state,
               city: data.city,
-              monthlyIncome: Math.round(parseFloat(data.salary) / 12),
+              monthlyIncome: monthlyBudget,
               dateOfBirth: data.dateOfBirth,
               jobType: data.jobType,
               avatarId: resolvedAvatar.id
             });
           } catch (apiErr) {
             console.warn('Backend API sync failed:', apiErr);
+          }
+
+          try {
+            await apiClient.put('/settings', {
+              currency: userSettings.currency,
+              language: userSettings.language,
+              timezone: userSettings.timezone,
+              settings: toSettingsPayload(userSettings),
+            }, {
+              showErrorToast: false,
+            });
+          } catch (settingsErr) {
+            console.warn('Backend settings sync failed:', settingsErr);
           }
 
           localStorage.removeItem('profile_sync_pending');
@@ -140,7 +161,9 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
         name: `${data.bankName} - ${data.accountHolderName}`,
         type: 'bank' as const,
         balance: parseFloat(data.currentBalance) || 0,
-        currency: 'INR',
+        currency: userSettings.currency || userSettings.defaultCurrency || 'INR',
+        provider: data.bankName,
+        country: data.country,
         isActive: true,
         createdAt: new Date(),
       };
