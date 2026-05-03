@@ -42,14 +42,14 @@ class FinoraIntelligenceEngine {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('🧠 Initializing Finora Intelligence Engine...');
+    console.log('🧠 Initializing Kanakku Intelligence Engine...');
     
     // Load learning data from localStorage (privacy-first - client-side only)
     await this.loadLearningData();
     await this.loadMerchantPatterns();
     
     this.initialized = true;
-    console.log('✅ Finora Intelligence Engine Ready');
+    console.log('✅ Kanakku Intelligence Engine Ready');
   }
 
   // 🔥 CORE AI LOGIC - This is the important layer!

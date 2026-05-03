@@ -26,17 +26,17 @@ export const Terms: React.FC<TermsProps> = ({
     {
       title: "1. Acceptance of Terms",
       icon: <Info className="w-5 h-5 text-blue-500" />,
-      content: "By accessing and using Finora, you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application. Your continued use of the service signifies your agreement to any changes we may make."
+      content: "By accessing and using Kanakku, you accept and agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application. Your continued use of the service signifies your agreement to any changes we may make."
     },
     {
       title: "2. Use of the Service",
       icon: <Scale className="w-5 h-5 text-indigo-500" />,
-      content: "Finora is provided for personal financial management purposes only. You agree to use the service responsibly and not to misuse or attempt to gain unauthorized access to any part of the system. We reserve the right to suspend or terminate access for any violation of these terms."
+      content: "Kanakku is provided for personal financial management purposes only. You agree to use the service responsibly and not to misuse or attempt to gain unauthorized access to any part of the system. We reserve the right to suspend or terminate access for any violation of these terms."
     },
     {
       title: "3. Account Responsibility",
       icon: <Shield className="w-5 h-5 text-green-500" />,
-      content: "You are responsible for maintaining the confidentiality of your account credentials and Security PIN. You are liable for all actions taken under your account. Finora uses bank-grade encryption, but the security of your device remains your responsibility."
+      content: "You are responsible for maintaining the confidentiality of your account credentials and Security PIN. You are liable for all actions taken under your account. Kanakku uses bank-grade encryption, but the security of your device remains your responsibility."
     },
     {
       title: "4. Financial Data Disclaimer",
@@ -131,7 +131,7 @@ export const Terms: React.FC<TermsProps> = ({
       </div>
 
       <footer className="py-10 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400">© {new Date().getFullYear()} Finora. All rights reserved.</p>
+        <p className="text-xs text-gray-400">© {new Date().getFullYear()} Kanakku. All rights reserved.</p>
       </footer>
     </div>
   );

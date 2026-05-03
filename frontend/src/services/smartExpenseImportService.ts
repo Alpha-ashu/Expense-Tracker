@@ -656,7 +656,7 @@ const parseCsvRecords = (text: string): Array<Record<string, unknown>> => {
   });
 };
 
-const isFinoraBackupPayload = (payload: unknown): payload is Record<string, unknown> => {
+const isKanakkuBackupPayload = (payload: unknown): payload is Record<string, unknown> => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false;
   const record = payload as Record<string, unknown>;
   return Array.isArray(record.accounts) && Array.isArray(record.transactions) && typeof record.version === 'string';
@@ -1255,7 +1255,7 @@ class SmartExpenseImportService {
         throw new Error('Invalid JSON file');
       }
 
-      if (isFinoraBackupPayload(payload)) {
+      if (isKanakkuBackupPayload(payload)) {
         this.structuredPayload = null;
         return this.buildBackupPreview(file.name, payload);
       }

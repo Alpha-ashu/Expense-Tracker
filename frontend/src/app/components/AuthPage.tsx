@@ -105,7 +105,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
             <div className="inline-flex items-center justify-center w-20 h-20 mb-4 bg-gray-50 rounded-full p-2 shadow-sm border border-gray-100">
               <FinoraLogo className="w-12 h-12" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Finora</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Kanakku</h1>
             <p className="text-gray-500 mt-2">
               {isLogin ? 'Welcome back!' : 'Create your account'}
             </p>

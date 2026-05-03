@@ -124,7 +124,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Finora…</p>
+          <p className="text-white text-base font-medium">Loading Kanakku…</p>
         </div>
       </div>
     );
@@ -302,15 +302,28 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Finora…</p>
+          <p className="text-white text-base font-medium">Loading Kanakku…</p>
         </div>
       </div>
     );
   }
 
-  const hasCompletedOnboarding = localStorage.getItem('onboarding_completed') === 'true';
+  // Completed flag: check localStorage AND Supabase user_metadata (set by OnboardingCompleteStep)
+  // so existing users on a new device don't lose their onboarding_completed state.
+  const hasCompletedOnboarding =
+    localStorage.getItem('onboarding_completed') === 'true' ||
+    user?.user_metadata?.onboarding_completed === true;
+
   const hasProfileData = localStorage.getItem('user_profile') || localStorage.getItem('user_settings');
-  const isNewUser = !hasCompletedOnboarding && !hasProfileData;
+
+  // A truly new user = account < 15 minutes old AND no local/server flag anywhere.
+  // Existing users logging in on a fresh device have an older created_at, so they always
+  // bypass onboarding even when localStorage is empty.
+  const accountAgeMs = user?.created_at
+    ? Date.now() - new Date(user.created_at).getTime()
+    : Infinity;
+  const isVeryNewAccount = accountAgeMs < 15 * 60 * 1000; // < 15 min
+  const isNewUser = !hasCompletedOnboarding && !hasProfileData && isVeryNewAccount;
 
   if (!user) {
     if (showLanding) {
@@ -444,7 +457,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Finora…</p>
+          <p className="text-white text-base font-medium">Loading Kanakku…</p>
         </div>
       </div>
     );

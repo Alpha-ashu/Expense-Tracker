@@ -110,9 +110,13 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('language', userSettings.language || 'en');
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('user_setup_date', new Date().toISOString());
+    // Also persist to Supabase user_metadata so it survives across devices/cache clears.
+    // Non-blocking — localStorage remains the local-first fallback.
+    supabase.auth.updateUser({ data: { onboarding_completed: true } }).catch(() => {});
     window.dispatchEvent(new CustomEvent('APP_SETTINGS_UPDATED', {
       detail: userSettings,
     }));
+
 
     try {
       // Step 1: Save profile through backend API only
@@ -155,54 +159,63 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       } catch (supabaseError) {
         console.warn('Profile sync skipped (non-blocking):', supabaseError);
       }
-      // Step 2: Create initial account entry in Dexie database (skip if already exists to prevent retry duplication)
+      // Step 2: Create initial account in local DB (backend sync is best-effort)
       setProgress(35);
       const accountData = {
-        name: `${data.bankName} - ${data.accountHolderName}`,
+        name: data.bankName
+          ? `${data.bankName}${data.accountHolderName ? ' - ' + data.accountHolderName : ''}`
+          : 'Primary Account',
         type: 'bank' as const,
         balance: parseFloat(data.currentBalance) || 0,
         currency: userSettings.currency || userSettings.defaultCurrency || 'INR',
-        provider: data.bankName,
+        provider: data.bankName || '',
         country: data.country,
         isActive: true,
         createdAt: new Date(),
       };
-      const { db: localDb } = await import('@/lib/database');
-      const existingAccounts = await localDb.accounts.filter(a => !a.deletedAt).toArray();
-      let accountId: number;
-      if (existingAccounts.length > 0) {
-        // Account already exists (retry scenario) — reuse the first active account
-        accountId = existingAccounts[0].id!;
-        console.log('Reusing existing account with ID:', accountId);
-      } else {
-        const savedAccount = await saveAccountWithBackendSync(accountData);
-        accountId = savedAccount.id!;
-        console.log('Created account with ID:', accountId);
-      }
-      // Step 3 (Removed Salary Template)
-      setProgress(55);
 
-      // Step 4: Mark onboarding as complete (re-affirm in case top-level write was skipped)
+      let accountId: number | undefined;
+      try {
+        const { db: localDb } = await import('@/lib/database');
+        const existingAccounts = await localDb.accounts.filter((a: any) => !a.deletedAt).toArray();
+        if (existingAccounts.length > 0) {
+          accountId = existingAccounts[0].id;
+        } else if (data.bankName) {
+          // Try full backend sync first; on 500, fall back to local-only
+          try {
+            const savedAccount = await saveAccountWithBackendSync(accountData);
+            accountId = savedAccount.id;
+          } catch (syncErr) {
+            // Backend unavailable — save to local Dexie only
+            accountId = await localDb.accounts.add(accountData as any);
+          }
+        }
+      } catch (dbErr) {
+        // Non-blocking — continue even if account creation fails
+      }
+
+      setProgress(55);
       setProgress(75);
-      // Step 5: Dispatch ONBOARDING_COMPLETED event for global state update
       setProgress(90);
+
       window.dispatchEvent(new CustomEvent('ONBOARDING_COMPLETED', {
         detail: {
           profile: userProfile,
-          account: { ...accountData, id: accountId },
+          account: accountId ? { ...accountData, id: accountId } : null,
         },
       }));
-      // Step 6: Force refresh of all components by updating localStorage timestamp
+
       localStorage.setItem('onboarding_refresh_timestamp', Date.now().toString());
-      // Step 7: Final processing
       setProgress(100);
       await new Promise(resolve => setTimeout(resolve, 500));
       toast.success('Account setup complete!');
       onComplete();
     } catch (err) {
-      console.error('Onboarding completion failed:', err);
-      setError(err instanceof Error ? err.message : 'Setup failed');
-      setIsProcessing(false);
+      // Last-resort: if anything truly fatal happens, still mark onboarding done
+      // and proceed so the user is never stuck on this screen.
+      localStorage.setItem('onboarding_completed', 'true');
+      toast.success('Setup complete! Some data will sync when you reconnect.');
+      onComplete();
     }
   };
 

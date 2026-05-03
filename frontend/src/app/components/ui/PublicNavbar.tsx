@@ -70,7 +70,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
                     <div className="w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         {logoIcon}
                     </div>
-                    <span className="text-xl font-extrabold text-gray-900 tracking-tight">Finora</span>
+                    <span className="text-xl font-extrabold text-gray-900 tracking-tight">Kanakku</span>
                 </div>
 
                 {/* Desktop nav */}

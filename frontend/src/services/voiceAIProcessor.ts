@@ -270,7 +270,7 @@ class VoiceAIProcessor {
     // Extract date
     result.date = this.extractDate(chunk);
     
-    // 🧠 Use Finora AI for intelligent categorization
+    // 🧠 Use Kanakku AI for intelligent categorization
     const aiResult = await finoraAI.extractExpenseData(chunk, 'voice', this.userId);
     
     result.category = aiResult.category;

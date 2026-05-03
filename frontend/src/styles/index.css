@@ -218,6 +218,11 @@ html, body, #root {
   background: transparent;
 }
 
+/* Firefox scrollbar hiding */
+* {
+  scrollbar-width: none;
+}
+
 /* IE scrollbar hiding */
 * {
   -ms-overflow-style: none;

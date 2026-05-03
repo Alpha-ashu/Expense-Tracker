@@ -580,9 +580,9 @@ export const UserProfile: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 pb-32 lg:pb-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="px-4 lg:px-0 pt-6 lg:pt-10">
+        <div className="px-4 sm:px-6 lg:px-8 pt-6 lg:pt-10">
           <PageHeader
             title="User Profile"
             subtitle="Manage your personal information"
@@ -593,7 +593,10 @@ export const UserProfile: React.FC = () => {
         </div>
 
         {/* Content */}
-        <div className="px-4 lg:px-0 mt-8 space-y-6">
+        <div className="px-4 sm:px-6 lg:px-8 mt-6 lg:mt-8">
+          <div className="lg:grid lg:grid-cols-[340px_1fr] lg:gap-8 lg:items-start space-y-6 lg:space-y-0">
+            {/* LEFT COLUMN */}
+            <div className="space-y-4">
 
           {/* ── New User Prompt ── Only shown when profile is incomplete */}
           {!profileData.firstName && !isLoading && (
@@ -629,7 +632,7 @@ export const UserProfile: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8 flex flex-col items-center gap-4"
+            className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col items-center gap-4"
           >
             <motion.div
               animate={{ y: [0, -6, 0] }}
@@ -680,7 +683,7 @@ export const UserProfile: React.FC = () => {
             </div>
             {showAvatarGallery && (
               <div className="mt-4 w-full max-w-3xl rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-5 gap-2">
                   {AVATAR_OPTIONS.map((avatar) => (
                     <button
                       key={avatar.id}
@@ -690,7 +693,7 @@ export const UserProfile: React.FC = () => {
                         profilePhoto: avatar.url,
                         avatarId: avatar.id,
                       }))}
-                      className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all ${activeAvatar.id === avatar.id
+                      className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${activeAvatar.id === avatar.id
                         ? 'border-blue-500 ring-2 ring-blue-200'
                         : 'border-transparent hover:border-gray-300'
                         }`}
@@ -707,7 +710,6 @@ export const UserProfile: React.FC = () => {
               </div>
             )}
           </motion.div>
-
           {/* Profile Info Grid */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -779,7 +781,7 @@ export const UserProfile: React.FC = () => {
               ) : (
                 /* Edit mode — form with two-column grid for related fields */
                 <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">First Name</label>
                       <input
@@ -808,7 +810,7 @@ export const UserProfile: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                         <User size={12} className="text-gray-400" /> Gender
@@ -844,7 +846,7 @@ export const UserProfile: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                         <Briefcase size={12} className="text-gray-400" /> Job Type
@@ -945,7 +947,7 @@ export const UserProfile: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                         <MapPin size={12} className="text-gray-400" /> Country
@@ -976,7 +978,7 @@ export const UserProfile: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                         <MapPin size={12} className="text-gray-400" /> City
@@ -1027,6 +1029,11 @@ export const UserProfile: React.FC = () => {
               )}
             </Card>
           </motion.div>
+            </div>{/* end left col */}
+
+            {/* RIGHT COLUMN */}
+            <div className="space-y-6 min-w-0">
+
 
           {/* Restricted Fields - Email & Mobile */}
           <motion.div
@@ -1035,13 +1042,13 @@ export const UserProfile: React.FC = () => {
             transition={{ delay: 0.2 }}
           >
             <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
-              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">
                 <Lock size={20} className="text-orange-600" />
                 Secure Information
               </h3>
 
               {/* Email Section */}
-              <div className="mb-8 pb-8 border-b border-gray-200">
+              <div className="mb-5 pb-5 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Mail size={20} className="text-blue-600" />
@@ -1055,7 +1062,7 @@ export const UserProfile: React.FC = () => {
 
                 {verification.type !== 'email-change' ? (
                   <>
-                    <p className="text-gray-900 font-medium text-lg mb-4">{profileData.email}</p>
+                    <p className="text-gray-900 font-medium text-sm mb-3 break-all">{profileData.email}</p>
                     <button
                       onClick={() =>
                         setVerification({
@@ -1352,44 +1359,51 @@ export const UserProfile: React.FC = () => {
             </Card>
           </motion.div>
 
+
+          {/* Sign Out + Danger Zone — side by side on desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
           {/* Sign Out */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="bg-white border border-gray-200 rounded-2xl p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">Signed in as</p>
-                  <p className="text-sm text-gray-500 mt-0.5">{user?.email}</p>
+            <Card className="bg-white border border-gray-200 rounded-2xl p-6 h-full flex flex-col justify-between">
+              <div className="flex items-start gap-3 mb-5">
+                <div className="w-9 h-9 bg-orange-50 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                  <LogOut size={15} className="text-orange-500" />
                 </div>
-                <button
-                  onClick={handleSignOut}
-                  disabled={isSigningOut}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <LogOut size={18} />
-                  {isSigningOut ? 'Signing Out...' : 'Sign Out'}
-                </button>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm">Signed in as</p>
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">{user?.email}</p>
+                </div>
               </div>
+              <button
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-medium text-sm transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <LogOut size={15} />
+                {isSigningOut ? 'Signing Out...' : 'Sign Out'}
+              </button>
             </Card>
           </motion.div>
-
           {/* Danger Zone */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className="bg-red-50 border border-red-200 rounded-2xl p-6 lg:p-8">
-              <h3 className="text-lg font-bold text-red-900 mb-2 flex items-center gap-2">
-                <ShieldAlert size={20} className="text-red-700" />
-                Danger Zone
-              </h3>
-              <p className="text-sm text-red-800 mb-6">
-                Permanently delete your account and all associated data. This action cannot be undone.
-              </p>
+            <Card className="bg-red-50 border border-red-200 rounded-2xl p-6 h-full flex flex-col justify-between">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-9 h-9 bg-red-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldAlert size={15} className="text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-red-900 text-sm">Danger Zone</h3>
+                  <p className="text-xs text-red-700 mt-0.5 leading-relaxed">Permanently delete your account and all data. This cannot be undone.</p>
+                </div>
+              </div>
 
               <button
                 onClick={() => setIsDeleteModalOpen(true)}
@@ -1400,8 +1414,11 @@ export const UserProfile: React.FC = () => {
               </button>
             </Card>
           </motion.div>
-        </div>
-      </div>
+          </div>{/* end 2-col bottom */}
+            </div>{/* end right col */}
+          </div>{/* end desktop grid */}
+        </div>{/* end px wrapper */}
+      </div>{/* end max-w-7xl */}
 
       {/* Delete Account Modal (Popup) */}
       {isDeleteModalOpen && (
@@ -1429,7 +1446,7 @@ export const UserProfile: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold">Delete Account</h3>
               <p className="text-red-100 text-sm mt-1">
-                You are about to permanently delete your Finora account.
+                You are about to permanently delete your Kanakku account.
                 All your tracked accounts, transactions, and data will be erased.
               </p>
             </div>

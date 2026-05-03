@@ -244,7 +244,7 @@ export class CloudSyncService {
   }
 
   constructor() {
-    this.apiEndpoint = process.env.VITE_API_BASE_URL || 'https://api.Finora.app';
+    this.apiEndpoint = process.env.VITE_API_BASE_URL || 'https://api.Kanakku.app';
     this.authToken = localStorage.getItem('auth_token');
   }
 

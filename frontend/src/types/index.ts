@@ -1,5 +1,5 @@
 /**
- * Global Type Definitions for Finora
+ * Global Type Definitions for Kanakku
  * Centralized type system for consistency across the application
  */
 

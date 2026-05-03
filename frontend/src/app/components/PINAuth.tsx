@@ -1,531 +1,561 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, Eye, EyeOff, Fingerprint, LogOut, KeyRound, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { LogOut, KeyRound, AlertCircle, ChevronLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
 import { clearSecurityData, isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
-import { isPinMissing, pinService } from '@/services/pinService';
+import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
 import { toast } from 'sonner';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/contexts/AuthContext';
+import { isGuestMode } from '@/lib/guestMode';
 
 interface PINAuthProps {
   onAuthenticated: (encryptionKey: string) => void;
 }
 
+/* ─── Digit Box Component ─── */
+const DigitBox: React.FC<{
+  filled: boolean;
+  active: boolean;
+  shake: boolean;
+  revealed?: string;
+  error?: boolean;
+}> = ({ filled, active, shake, revealed, error }) => (
+  <div
+    className={[
+      'relative w-12 h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-150',
+      shake ? 'animate-[shake_0.4s_ease]' : '',
+      error
+        ? 'border-red-400 bg-red-50'
+        : filled
+        ? active
+          ? 'border-blue-500 bg-blue-50 scale-105 shadow-md shadow-blue-100'
+          : 'border-blue-400 bg-white'
+        : active
+        ? 'border-blue-400 bg-blue-50/60 shadow-sm'
+        : 'border-gray-200 bg-gray-50',
+    ].join(' ')}
+  >
+    {filled ? (
+      revealed ? (
+        <span className="text-xl font-bold text-gray-800 font-mono">{revealed}</span>
+      ) : (
+        <div className={`w-3 h-3 rounded-full ${error ? 'bg-red-400' : 'bg-blue-500'}`} />
+      )
+    ) : active ? (
+      <div className="w-0.5 h-6 bg-blue-400 animate-[blink_1s_step-end_infinite] rounded-full" />
+    ) : null}
+  </div>
+);
+
+/* ─── Number Pad Button ─── */
+const PadBtn: React.FC<{
+  label: React.ReactNode;
+  sublabel?: string;
+  onClick: () => void;
+  variant?: 'default' | 'action';
+  disabled?: boolean;
+}> = ({ label, sublabel, onClick, variant = 'default', disabled }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={[
+      'flex flex-col items-center justify-center rounded-2xl h-16 w-full select-none transition-all duration-100 active:scale-95',
+      variant === 'action'
+        ? 'bg-transparent text-blue-600 hover:bg-blue-50 disabled:opacity-30'
+        : 'bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-200 active:bg-blue-100 disabled:opacity-30',
+    ].join(' ')}
+  >
+    <span className={`font-semibold leading-none ${variant === 'action' ? 'text-base' : 'text-2xl text-gray-800'}`}>
+      {label}
+    </span>
+    {sublabel && <span className="text-[10px] text-gray-400 mt-0.5 tracking-widest uppercase">{sublabel}</span>}
+  </button>
+);
+
 export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const { signOut, user } = useAuth();
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+
+  // ── State ──────────────────────────────────────────────────────────────
   const [isCreating, setIsCreating] = useState(false);
-  const [showPin, setShowPin] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [createStage, setCreateStage] = useState<'enter' | 'confirm'>('enter');
+  const [pin, setPin] = useState('');
+  const [firstPin, setFirstPin] = useState(''); // stores first entry during create
+  const [showReveal, setShowReveal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);  // loading while checking server
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
   const [isResettingPin, setIsResettingPin] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
-  const [resetErrorMessage, setResetErrorMessage] = useState<string | null>(null);
-  const pinMismatch = isCreating && confirmPin.length > 0 && pin !== confirmPin;
+  const [resetError, setResetError] = useState('');
 
-  const finalizeAuthentication = async (key: string, successMessage: string) => {
-    if (Capacitor.isNativePlatform()) {
-      await Preferences.set({
-        key: 'user_authenticated',
-        value: 'true',
-      });
-    }
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
 
-    toast.success(successMessage);
-    onAuthenticated(key);
-  };
-
+  // ── Init ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    let isMounted = true;
-
-    const initPin = async () => {
-      setIsLoading(true);
+    let mounted = true;
+    (async () => {
       try {
+        // Guest mode: no server calls — PIN is local only
+        if (isGuestMode()) {
+          if (mounted) {
+            setIsCreating(!isPINSet());
+            setIsLoading(false);
+          }
+          return;
+        }
+
         const status = await pinService.getStatus();
-        const hasServerPin = status.success;
         const hasLocalPin = isPINSet();
 
-        if (hasServerPin && !hasLocalPin) {
-          const keyBackupResult = await pinService.getKeyBackup();
-          if (keyBackupResult.success && keyBackupResult.backup) {
-            const [hash, salt] = keyBackupResult.backup.split('|');
-            if (hash && salt) {
-              restorePINKeys({ hash, salt });
-            }
+        if (status.success && !hasLocalPin) {
+          const kbr = await pinService.getKeyBackup();
+          if (kbr.success && kbr.backup) {
+            const [hash, salt] = kbr.backup.split('|');
+            if (hash && salt) restorePINKeys({ hash, salt });
           }
         }
 
-        if (isMounted) {
-          const shouldCreatePin = !hasLocalPin && isPinMissing(status);
-          setIsCreating(shouldCreatePin);
+        if (mounted) {
+          const serverHasNoPin = isPinMissing(status) || !status.success;
+          setIsCreating(serverHasNoPin && !hasLocalPin);
           setIsLoading(false);
         }
-      } catch (error: any) {
-        console.error('Failed to initialize PIN auth:', error);
-        if (isMounted) {
+      } catch {
+        if (mounted) {
           setIsCreating(!isPINSet());
           setIsLoading(false);
         }
       }
-    };
-
-    initPin();
-
-    // Check biometric availability on native platforms
-    if (Capacitor.isNativePlatform()) {
-      checkBiometricAvailability();
-    }
-
-    return () => { isMounted = false; };
+    })();
+    return () => { mounted = false; };
   }, []);
 
-  const checkBiometricAvailability = async () => {
-    // This will be implemented with native biometric plugin
-    // For now, set to false
-    setBiometricAvailable(false);
+  // Always focus hidden input on mount & when pin changes
+  useEffect(() => {
+    if (!isLoading) hiddenInputRef.current?.focus();
+  }, [isLoading, isCreating, createStage]);
+
+  // ── Helpers ────────────────────────────────────────────────────────────
+  const triggerShake = (msg: string) => {
+    setErrorMsg(msg);
+    setShake(true);
+    setPin('');
+    setTimeout(() => setShake(false), 500);
   };
 
-  const handlePINInput = (value: string) => {
-    if (value.length <= 6 && /^\d*$/.test(value)) {
-      setPin(value);
+  const finalizeAuth = useCallback(async (key: string, msg: string) => {
+    if (Capacitor.isNativePlatform()) {
+      await Preferences.set({ key: 'user_authenticated', value: 'true' });
     }
+    toast.success(msg);
+    onAuthenticated(key);
+  }, [onAuthenticated]);
+
+  // ── PIN input handler (hidden input + numpad both write here) ──────────
+  const appendDigit = (d: string) => {
+    if (isSubmitting) return;
+    setErrorMsg('');
+    setPin(prev => prev.length < 6 ? prev + d : prev);
   };
 
-  const handleConfirmPINInput = (value: string) => {
-    if (value.length <= 6 && /^\d*$/.test(value)) {
-      setConfirmPin(value);
+  const deleteDigit = () => {
+    if (isSubmitting) return;
+    setErrorMsg('');
+    setPin(prev => prev.slice(0, -1));
+  };
+
+  const handleHiddenKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') { e.preventDefault(); deleteDigit(); }
+    else if (/^\d$/.test(e.key)) { e.preventDefault(); appendDigit(e.key); }
+    else if (e.key === 'Enter' && pin.length === 6) { e.preventDefault(); handleSubmit(); }
+  };
+
+  // Auto-submit when 6 digits entered
+  useEffect(() => {
+    if (pin.length === 6 && !isSubmitting) {
+      const t = setTimeout(handleSubmit, 120);
+      return () => clearTimeout(t);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pin]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // ── Submit logic ───────────────────────────────────────────────────────
+  const handleSubmit = async () => {
+    if (pin.length !== 6 || isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       if (isCreating) {
-        // Creating new PIN
-        if (pin.length !== 6) {
-          toast.error('PIN must be 6 digits');
-          setIsLoading(false);
+        if (createStage === 'enter') {
+          // Move to confirm stage
+          setFirstPin(pin);
+          setPin('');
+          setCreateStage('confirm');
+          setIsSubmitting(false);
           return;
         }
 
-        if (confirmPin.length === 0) {
-          toast.info('Please confirm your PIN');
-          setIsLoading(false);
+        // Confirm stage — check match
+        if (pin !== firstPin) {
+          triggerShake("PINs don't match. Try again.");
+          setCreateStage('enter');
+          setFirstPin('');
+          setIsSubmitting(false);
           return;
         }
 
-        if (pin !== confirmPin) {
-          toast.error('PINs do not match');
-          setConfirmPin('');
-          setIsLoading(false);
-          return;
-        }
-
-        const createResult = await pinService.createPin(pin);
-        if (!createResult.success) {
-          toast.error(createResult.message || 'Failed to create PIN');
-          setIsLoading(false);
-          return;
+        // Server sync is best-effort — always proceed after PINs match.
+        // Guest mode: skip server entirely.
+        if (!isGuestMode()) {
+          pinService.createPin(pin)
+            .then(result => {
+              if (result.success) {
+                const backup = backupPINKeys();
+                if (backup.hash && backup.salt) {
+                  pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`).catch(() => {});
+                }
+              }
+            })
+            .catch(() => {});
         }
 
         const key = storeMasterKey(pin);
+        await finalizeAuth(key, 'PIN created! Welcome to Kanakku 🎉');
 
-        const backup = backupPINKeys();
-        if (backup.hash && backup.salt) {
-          const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
-          if (!backupResult.success) {
-            console.warn('PIN key backup refresh failed after PIN creation:', backupResult.message);
-          }
-        }
-        await finalizeAuthentication(key, 'PIN created successfully');
       } else {
-        // Verifying existing PIN
-        if (pin.length !== 6) {
-          toast.error('PIN must be 6 digits');
-          setIsLoading(false);
-          return;
-        }
-
-        const verifyResult = await pinService.verifyPin({ pin });
-        if (!verifyResult.success) {
-          if (isPinMissing(verifyResult)) {
-            const localResult = verifyPIN(pin);
-
-            if (localResult.isValid) {
-              const repairResult = await pinService.createPin(pin);
-              if (repairResult.success) {
-                const backup = backupPINKeys();
-                if (backup.hash && backup.salt) {
-                  const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
-                  if (!backupResult.success) {
-                    console.warn('PIN key backup refresh failed after server repair:', backupResult.message);
-                  }
-                }
-
-                if (localResult.key) {
-                  await finalizeAuthentication(localResult.key, 'PIN restored successfully');
-                  return;
-                }
-              }
-            }
-          }
-
-          toast.error(verifyResult.message || 'Invalid PIN');
-          setPin('');
-          setIsLoading(false);
-          return;
-        }
-
+        // ── Verify existing PIN (local-first) ───────────────────────────────
+        // Guest mode: verify locally only, no server call.
         const localResult = verifyPIN(pin);
 
-        if (verifyResult.success && !isPINSet()) {
-          const keyBackupResult = await pinService.getKeyBackup();
-          if (keyBackupResult.success && keyBackupResult.backup) {
-            const [hash, salt] = keyBackupResult.backup.split('|');
-            if (hash && salt) {
-              restorePINKeys({ hash, salt });
-            }
+        if (localResult.isValid && localResult.key) {
+          // Local PIN correct — in non-guest mode also sync to server background
+          if (!isGuestMode()) {
+            pinService.verifyPin({ pin })
+              .then(async serverResult => {
+                if (!serverResult.success && isPinMissing(serverResult)) {
+                  const repair = await pinService.createPin(pin);
+                  if (repair.success) {
+                    const backup = backupPINKeys();
+                    if (backup.hash && backup.salt) {
+                      pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`).catch(() => {});
+                    }
+                  }
+                }
+              })
+              .catch(() => {});
           }
+
+          await finalizeAuth(localResult.key, 'Welcome back!');
+          return;
         }
 
-        const key = localResult.isValid && localResult.key
-          ? localResult.key
-          : storeMasterKey(pin);
+        // ── Local hash missing or mismatched — fall back to server ──────
+        // (e.g. user cleared storage, or PIN was set on another device)
+        const serverResult = await pinService.verifyPin({ pin });
 
-        if (!localResult.isValid) {
-          const backup = backupPINKeys();
-          if (backup.hash && backup.salt) {
-            const backupResult = await pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`);
-            if (!backupResult.success) {
-              console.warn('PIN key backup refresh failed after fallback key creation:', backupResult.message);
-            }
+        if (!serverResult.success) {
+          if (isPinServiceUnavailable(serverResult)) {
+            // Server down AND local failed → no way to verify
+            triggerShake('Unable to verify PIN right now. Please try again.');
+          } else {
+            triggerShake('Incorrect PIN. Please try again.');
           }
+          setIsSubmitting(false);
+          return;
         }
 
-        if (key) {
-          await finalizeAuthentication(key, 'Authentication successful');
+        // Server verified → restore local keys from backup so future locks work
+        const kbr = await pinService.getKeyBackup();
+        if (kbr.success && kbr.backup) {
+          const [hash, salt] = kbr.backup.split('|');
+          if (hash && salt) restorePINKeys({ hash, salt });
         }
+        const key = storeMasterKey(pin); // re-derive and store locally
+        await finalizeAuth(key, 'Welcome back!');
       }
-    } catch (error) {
-      toast.error('An error occurred');
-      setIsLoading(false);
+    } catch {
+      triggerShake('Something went wrong. Please try again.');
+      setIsSubmitting(false);
     }
   };
 
-  const handleBiometricAuth = async () => {
-    // TODO: Implement biometric authentication
-    toast.info('Biometric authentication coming soon');
-  };
-
-  const handleUseDifferentAccount = async () => {
+  const handleSignOut = async () => {
     setIsLoggingOut(true);
     try {
-      setShowResetConfirmation(false);
-      setResetErrorMessage(null);
+      setShowResetModal(false);
       pinService.clearPinData();
       clearSecurityData();
       await signOut();
-    } catch (error) {
-      console.error('Failed to sign out from PIN screen:', error);
+    } catch {
       toast.error('Failed to sign out. Please try again.');
     } finally {
       setIsLoggingOut(false);
     }
   };
 
-  const handleForgotPin = async () => {
-    setResetErrorMessage(null);
-    setShowResetConfirmation(true);
-  };
+  const handleForgotPin = () => { setResetError(''); setShowResetModal(true); };
 
-  const handleCancelReset = () => {
-    setResetErrorMessage(null);
-    setShowResetConfirmation(false);
-  };
-
-  const handleConfirmResetPin = async () => {
+  const handleConfirmReset = async () => {
     setIsResettingPin(true);
-
     try {
       const result = await pinService.resetCurrentUserPin();
-      if (!result.success) {
-        setResetErrorMessage(result.message || 'Failed to reset PIN');
-        return;
-      }
-
-      setResetErrorMessage(null);
-      setShowResetConfirmation(false);
+      if (!result.success) { setResetError(result.message || 'Failed to reset PIN'); return; }
       clearSecurityData();
       await signOut();
-      toast.success('PIN reset. Sign in again to create a new PIN.');
-    } catch (error) {
-      console.error('Failed to reset PIN:', error);
-      setResetErrorMessage('Failed to reset PIN. Please try again.');
+      toast.success('PIN reset. Sign in again to set a new PIN.');
+    } catch {
+      setResetError('Failed to reset PIN. Please try again.');
     } finally {
       setIsResettingPin(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-blue-600 px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mx-auto flex min-h-full w-full max-w-[34rem] flex-col justify-center">
-        {/* Logo and Header */}
-        <div className="mb-6 text-center sm:mb-8">
-          <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-            <FinoraLogo className="h-12 w-12" />
+  // ── Derived display ────────────────────────────────────────────────────
+  const currentStepLabel = isCreating
+    ? createStage === 'enter' ? 'Create your PIN' : 'Confirm your PIN'
+    : 'Enter your PIN';
+
+  const currentStepSub = isCreating
+    ? createStage === 'enter'
+      ? 'Choose a 6-digit PIN to secure your account'
+      : 'Re-enter the same PIN to confirm'
+    : 'Enter your PIN to access Kanakku';
+
+  // ── Loading skeleton ───────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a56f0]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+            <FinoraLogo className="w-9 h-9" />
           </div>
-          <h1 className="mb-2 text-3xl font-bold text-white sm:text-[3rem]">Finora</h1>
-          <p className="text-lg text-blue-100 sm:text-xl">
-            {isCreating ? 'Create your secure PIN' : 'Enter your PIN to continue'}
-          </p>
-        </div>
-
-        {/* PIN Input Card */}
-        <div className="rounded-[2rem] bg-white px-6 py-7 shadow-2xl sm:px-8 sm:py-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <input
-              type="text"
-              name="username"
-              value={user?.email || ''}
-              readOnly
-              autoComplete="username"
-              tabIndex={-1}
-              className="sr-only"
-              aria-hidden="true"
-            />
-            {/* PIN Input */}
-            <div>
-              {isCreating ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="finora-pin-entry" className="mb-2 block text-sm font-medium text-gray-700">
-                      Enter 6-digit PIN
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="finora-pin-entry"
-                        type={showPin ? 'text' : 'password'}
-                        value={pin}
-                        onChange={(e) => handlePINInput(e.target.value)}
-                        className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
-                        placeholder="••••••"
-                        maxLength={6}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        aria-label="Enter 6-digit PIN"
-                        aria-required="true"
-                        autoComplete="new-password"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="finora-pin-confirm" className="mb-2 block text-sm font-medium text-gray-700">
-                      Confirm 6-digit PIN
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="finora-pin-confirm"
-                        type={showPin ? 'text' : 'password'}
-                        value={confirmPin}
-                        onChange={(e) => handleConfirmPINInput(e.target.value)}
-                        className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
-                        placeholder="••••••"
-                        maxLength={6}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        aria-label="Confirm 6-digit PIN"
-                        aria-invalid={pinMismatch}
-                        aria-required="true"
-                        autoComplete="new-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPin(!showPin)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        aria-label={showPin ? 'Hide PIN value' : 'Show PIN value'}
-                      >
-                        {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label htmlFor="finora-pin-entry" className="mb-2 block text-sm font-medium text-gray-700">
-                    Enter PIN
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="finora-pin-entry"
-                      type={showPin ? 'text' : 'password'}
-                      value={pin}
-                      onChange={(e) => handlePINInput(e.target.value)}
-                      className="w-full px-4 py-3 text-center text-2xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-contacts-auto-fill-button]:hidden [&::-ms-reveal]:hidden"
-                      placeholder="••••••"
-                      maxLength={6}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      aria-label="Enter PIN"
-                      aria-required="true"
-                      autoComplete="current-password"
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPin(!showPin)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      aria-label={showPin ? 'Hide PIN value' : 'Show PIN value'}
-                    >
-                      {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-center gap-2" aria-hidden="true">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-3 h-3 rounded-full transition-all ${pin.length > i ? 'bg-blue-600 scale-110' : 'bg-gray-300'}`}
-                  />
-                ))}
-              </div>
-              {isCreating && (
-                <div className="flex justify-center gap-2" aria-hidden="true">
-                  {[...Array(6)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-3 h-3 rounded-full transition-all ${confirmPin.length > i ? 'bg-green-600 scale-110' : 'bg-gray-300'}`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {isCreating && (
-              <div className="text-center text-sm text-gray-600" role="status" aria-live="polite">
-                {pinMismatch ? 'PINs do not match' : 'Create and confirm the same 6-digit PIN to continue'}
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading || (isCreating ? pin.length !== 6 || confirmPin.length !== 6 : pin.length !== 6)}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2" role="status" aria-live="polite">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Processing...
-                </span>
-              ) : isCreating ? (
-                'Create PIN'
-              ) : (
-                'Unlock'
-              )}
-            </button>
-
-            {/* Biometric Option */}
-            {!isCreating && biometricAvailable && (
-              <button
-                type="button"
-                onClick={handleBiometricAuth}
-                className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-              >
-                <Fingerprint size={20} />
-                Use Biometric
-              </button>
-            )}
-
-            {!isCreating && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleForgotPin}
-                  disabled={isResettingPin || isLoggingOut || isLoading}
-                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
-                >
-                  <KeyRound size={18} />
-                  {isResettingPin ? 'Resetting PIN...' : 'Forgot PIN'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUseDifferentAccount}
-                  disabled={isResettingPin || isLoggingOut || isLoading}
-                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:text-gray-400"
-                >
-                  <LogOut size={18} />
-                  {isLoggingOut ? 'Signing out...' : 'Different account'}
-                </button>
-              </div>
-            )}
-
-            {!isCreating && showResetConfirmation && (
-              <div className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-                <div className="text-sm text-amber-900">
-                  <p className="text-base font-semibold">Reset this account PIN?</p>
-                  <p className="mt-1 leading-7 text-amber-800">
-                    This will remove the current PIN, sign you out, and require a fresh login before creating a new PIN.
-                  </p>
-                </div>
-                {resetErrorMessage && (
-                  <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                    <span>{resetErrorMessage}</span>
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={handleConfirmResetPin}
-                    disabled={isResettingPin || isLoggingOut || isLoading}
-                    className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-amber-700 disabled:bg-amber-300"
-                  >
-                    <KeyRound size={18} />
-                    {isResettingPin ? 'Resetting PIN...' : 'Confirm reset'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelReset}
-                    disabled={isResettingPin || isLoggingOut || isLoading}
-                    className="min-h-14 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:text-gray-400"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </form>
-
-          {/* Security Info */}
-          <div className="mt-6 rounded-2xl bg-blue-50 p-5">
-            <div className="flex items-start gap-3">
-              <Lock className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-              <div className="text-sm text-blue-800">
-                <p className="mb-1 font-medium">Your data is secure</p>
-                <p className="leading-7 text-blue-700">
-                  Financial data stays encrypted on this device, and the server only stores
-                  PIN verification data plus encrypted recovery metadata for your devices.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="mt-6 text-center text-sm text-blue-100">
-          <p>Privacy-first financial management</p>
+          <div className="w-7 h-7 border-3 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       </div>
+    );
+  }
+
+  // ── Main render ────────────────────────────────────────────────────────
+  return (
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-[#1a56f0] flex flex-col"
+      onClick={() => hiddenInputRef.current?.focus()}
+    >
+      {/* Hidden form — captures keyboard input, visually invisible, no aria-hidden (would block focus/keyboard) */}
+      <form
+        style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, overflow: 'hidden' }}
+        autoComplete="off"
+        onSubmit={e => e.preventDefault()}
+      >
+        {/* Hidden username field — required by Chromium password manager heuristics */}
+        <input
+          type="text"
+          name="username"
+          value={user?.email || ''}
+          readOnly
+          autoComplete="username"
+          tabIndex={-1}
+        />
+        {/* Actual PIN capture input — NOT aria-hidden so keyboard events are not blocked */}
+        <input
+          ref={hiddenInputRef}
+          type="password"
+          name="pin"
+          inputMode="numeric"
+          autoComplete="current-password"
+          value={pin}
+          onChange={() => {}}
+          onKeyDown={handleHiddenKeyDown}
+          tabIndex={0}
+        />
+      </form>
+
+      {/* Header */}
+      <div className="flex-none pt-10 pb-6 flex flex-col items-center px-6">
+        {/* Logo */}
+        <div className="w-20 h-20 rounded-[1.5rem] bg-white/15 backdrop-blur-sm flex items-center justify-center mb-5 shadow-lg shadow-blue-900/20">
+          <FinoraLogo className="w-12 h-12" />
+        </div>
+        <h1 className="text-3xl font-bold text-white tracking-tight mb-1">Kanakku</h1>
+        <p className="text-blue-100 text-base text-center">{currentStepSub}</p>
+      </div>
+
+      {/* Card */}
+      <div className="flex-1 flex flex-col">
+        <div className="mx-auto w-full max-w-sm px-4 flex flex-col gap-6">
+
+          {/* Step label + back button for confirm stage */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-0.5">
+                {isCreating ? `Step ${createStage === 'enter' ? '1' : '2'} of 2` : 'Secure Unlock'}
+              </p>
+              <h2 className="text-xl font-bold text-white">{currentStepLabel}</h2>
+            </div>
+            {isCreating && createStage === 'confirm' && (
+              <button
+                type="button"
+                onClick={() => { setCreateStage('enter'); setPin(''); setFirstPin(''); setErrorMsg(''); }}
+                className="flex items-center gap-1 text-blue-200 hover:text-white text-sm font-medium transition-colors"
+              >
+                <ChevronLeft size={16} /> Back
+              </button>
+            )}
+          </div>
+
+          {/* PIN digit boxes */}
+          <div className="flex justify-center gap-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <DigitBox
+                key={i}
+                filled={i < pin.length}
+                active={i === pin.length}
+                shake={shake}
+                error={!!errorMsg && shake}
+                revealed={showReveal && i < pin.length ? pin[i] : undefined}
+              />
+            ))}
+          </div>
+
+          {/* Show/hide toggle + error */}
+          <div className="flex items-center justify-between -mt-2 px-1">
+            <div className="h-5">
+              {errorMsg && (
+                <p className="text-red-300 text-sm font-medium flex items-center gap-1.5">
+                  <AlertCircle size={13} /> {errorMsg}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowReveal(r => !r)}
+              className="flex items-center gap-1 text-blue-200 hover:text-white text-xs font-medium transition-colors"
+            >
+              {showReveal ? <EyeOff size={13} /> : <Eye size={13} />}
+              {showReveal ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          {/* Number pad */}
+          <div className="grid grid-cols-3 gap-3">
+            {[1,2,3,4,5,6,7,8,9].map(n => (
+              <PadBtn key={n} label={n} onClick={() => appendDigit(String(n))} disabled={isSubmitting} />
+            ))}
+            {/* Bottom row */}
+            {!isCreating ? (
+              <PadBtn
+                label={<KeyRound size={20} />}
+                onClick={handleForgotPin}
+                variant="action"
+                disabled={isSubmitting}
+              />
+            ) : (
+              <div /> /* empty cell */
+            )}
+            <PadBtn label={0} onClick={() => appendDigit('0')} disabled={isSubmitting} />
+            <PadBtn
+              label={
+                isSubmitting
+                  ? <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                  : '⌫'
+              }
+              onClick={deleteDigit}
+              variant="action"
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Sign out / different account */}
+          {!isCreating && (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isLoggingOut || isSubmitting}
+              className="flex items-center justify-center gap-2 text-blue-200 hover:text-white text-sm font-medium transition-colors py-1"
+            >
+              <LogOut size={15} />
+              {isLoggingOut ? 'Signing out…' : 'Use a different account'}
+            </button>
+          )}
+
+          {/* Security banner */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex gap-3">
+            <ShieldCheck className="text-blue-200 flex-shrink-0 mt-0.5" size={18} />
+            <div>
+              <p className="text-white text-sm font-semibold mb-0.5">Your data is secure</p>
+              <p className="text-blue-200 text-xs leading-relaxed">
+                Financial data stays encrypted on this device. Only PIN verification metadata is stored on the server.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex-none py-5 text-center">
+        <p className="text-blue-300 text-xs">Privacy-first financial management</p>
+      </div>
+
+      {/* ── Forgot PIN modal ── */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+              <KeyRound className="text-amber-600" size={22} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Reset your PIN?</h3>
+            <p className="text-sm text-gray-500 mb-5 leading-relaxed">
+              This will clear your current PIN, sign you out, and let you create a new one after signing back in.
+            </p>
+
+            {resetError && (
+              <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-700">
+                <AlertCircle size={15} className="mt-0.5 flex-shrink-0" />
+                {resetError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setShowResetModal(false); setResetError(''); }}
+                className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReset}
+                disabled={isResettingPin}
+                className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors disabled:opacity-60"
+              >
+                {isResettingPin ? 'Resetting…' : 'Reset PIN'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Keyframe styles */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          15% { transform: translateX(-8px); }
+          30% { transform: translateX(8px); }
+          45% { transform: translateX(-6px); }
+          60% { transform: translateX(6px); }
+          75% { transform: translateX(-3px); }
+          90% { transform: translateX(3px); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };

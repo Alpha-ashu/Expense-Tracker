@@ -34,10 +34,10 @@ export const NewUserOnboarding: React.FC = () => {
     bankName: '',
     accountHolderName: '',
     currentBalance: '',
-    country: '',
+    country: 'India',   // default country
     state: '',
     city: '',
-    language: '',
+    language: 'English', // default language
     avatarUrl: '',
     avatarId: '',
   });
@@ -45,7 +45,6 @@ export const NewUserOnboarding: React.FC = () => {
   React.useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        // Pre-fill display name from metadata if it exists
         const metaName = user.user_metadata?.first_name
           ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`.trim()
           : user.user_metadata?.full_name || '';
@@ -61,13 +60,11 @@ export const NewUserOnboarding: React.FC = () => {
     setOnboardingData(prev => ({ ...prev, ...data }));
   };
 
-  const nextStep = () => {
-    setCurrentStep(prev => Math.min(prev + 1, 4));
-  };
+  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 4));
+  const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  // Skip: jump directly to the completion step
+  const skipToComplete = () => setCurrentStep(4);
 
   const renderStep = () => {
     switch (currentStep) {
@@ -86,6 +83,7 @@ export const NewUserOnboarding: React.FC = () => {
             onUpdate={updateOnboardingData}
             onNext={nextStep}
             onBack={prevStep}
+            onSkip={skipToComplete}
           />
         );
       case 3:
@@ -95,6 +93,7 @@ export const NewUserOnboarding: React.FC = () => {
             onUpdate={updateOnboardingData}
             onNext={nextStep}
             onBack={prevStep}
+            onSkip={skipToComplete}
           />
         );
       case 4:
@@ -102,12 +101,6 @@ export const NewUserOnboarding: React.FC = () => {
           <OnboardingCompleteStep
             data={onboardingData}
             onComplete={() => {
-              // OnboardingCompleteStep.startProcessing() already:
-              //   • saved the profile to Supabase + localStorage
-              //   • dispatched ONBOARDING_COMPLETED
-              //   • set onboarding_completed = 'true'
-              // All we need to do is reload so App.tsx re-evaluates the flag
-              // and transitions from the onboarding gate to the main app.
               window.location.reload();
             }}
             onBack={prevStep}
@@ -131,8 +124,13 @@ export const NewUserOnboarding: React.FC = () => {
             {[1, 2, 3, 4].map((step) => (
               <div
                 key={step}
-                className={`flex-1 h-2 rounded-full transition-colors ${step <= currentStep ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
+                className={`flex-1 h-2 rounded-full transition-all duration-300 ${
+                  step < currentStep
+                    ? 'bg-blue-600'
+                    : step === currentStep
+                    ? 'bg-blue-500'
+                    : 'bg-gray-200'
+                }`}
               />
             ))}
           </div>
@@ -143,7 +141,9 @@ export const NewUserOnboarding: React.FC = () => {
             <div className="flex justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
-          ) : renderStep()}
+          ) : (
+            renderStep()
+          )}
         </div>
       </div>
     </div>

@@ -40,7 +40,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
     ];
 
     const milestones = [
-        { year: "2024", event: "Finora was born from a simple idea: make personal finance intuitive." },
+        { year: "2024", event: "Kanakku was born from a simple idea: make personal finance intuitive." },
         { year: "2025", event: "Launched AI-powered insights and investment tracking." },
         { year: "2026", event: "Reached 50,000 active users and added group expense splitting." }
     ];
@@ -79,7 +79,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
                         transition={{ delay: 0.1 }}
                         className="text-lg lg:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto"
                     >
-                        Finora started in 2024 with a simple goal: to replace complex spreadsheets and clunky bank apps with a beautiful, AI-powered tool that anyone can use to master their wealth.
+                        Kanakku started in 2024 with a simple goal: to replace complex spreadsheets and clunky bank apps with a beautiful, AI-powered tool that anyone can use to master their wealth.
                     </motion.p>
                 </div>
             </section>
@@ -139,7 +139,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
                         <FinoraLogo className="w-16 h-16 mb-6 mx-auto" />
                         <h2 className="text-3xl lg:text-5xl font-bold mb-6">Join the Revolution</h2>
                         <p className="text-gray-400 max-w-xl mx-auto mb-10 text-lg">
-                            Start managing your wealth smarter today. Join over 50k users who trust Finora for their financial journey.
+                            Start managing your wealth smarter today. Join over 50k users who trust Kanakku for their financial journey.
                         </p>
                         <button
                             onClick={onGetStarted}
@@ -153,7 +153,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
 
             {/* Footer Minimal */}
             <footer className="py-10 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400">© {new Date().getFullYear()} Finora. All rights reserved.</p>
+                <p className="text-xs text-gray-400">© {new Date().getFullYear()} Kanakku. All rights reserved.</p>
             </footer>
         </div>
     );

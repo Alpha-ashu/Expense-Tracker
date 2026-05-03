@@ -90,6 +90,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
             type="email" id="signin-email" name="email"
             value={formData.email} onChange={handleInputChange}
             disabled={isLoading} placeholder="you@example.com"
+            autoComplete="email"
             className={inputBase(!!errors.email)}
           />
         </div>
@@ -107,6 +108,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
             type={showPassword ? 'text' : 'password'} id="signin-password" name="password"
             value={formData.password} onChange={handleInputChange}
             disabled={isLoading} placeholder="••••••••"
+            autoComplete="current-password"
             className={`${inputBase(!!errors.password)} pr-10`}
           />
           <button type="button" onClick={() => setShowPassword(!showPassword)}

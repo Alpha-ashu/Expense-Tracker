@@ -310,7 +310,7 @@ export const Settings: React.FC = () => {
 
     try {
       if (!smsStatus.enabled) {
-        toast.info('Finora reads bank transaction messages only to help track expenses automatically. SMS content stays on this device.');
+        toast.info('Kanakku reads bank transaction messages only to help track expenses automatically. SMS content stays on this device.');
         const result = await enableSmsTransactionDetection(30);
         setSmsStatus(result.status);
 

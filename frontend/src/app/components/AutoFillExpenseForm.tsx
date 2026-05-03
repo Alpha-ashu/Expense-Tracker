@@ -52,10 +52,10 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     setExtractedData(null);
 
     try {
-      console.log('📸 Processing image with Finora AI OCR...');
+      console.log('📸 Processing image with Kanakku AI OCR...');
       const startTime = performance.now();
 
-      // 🧠 Use Tesseract OCR + Finora AI
+      // 🧠 Use Tesseract OCR + Kanakku AI
       const ocrResult = await ocrEngine.extractExpenseData(imageFile);
       
       const processingTime = performance.now() - startTime;
@@ -96,9 +96,9 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     setExtractedData(null);
 
     try {
-      console.log('🎤 Starting voice input with Finora AI...');
+      console.log('🎤 Starting voice input with Kanakku AI...');
       
-      // 🧠 Use Voice AI + Finora Intelligence
+      // 🧠 Use Voice AI + Kanakku Intelligence
       const voiceResults = await voiceProcessor.startListening();
       
       if (voiceResults.length > 0) {
@@ -234,7 +234,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Brain className="w-5 h-5" />
-              <h3 className="font-semibold">Finora AI</h3>
+              <h3 className="font-semibold">Kanakku AI</h3>
             </div>
             <button
               onClick={onClose}
@@ -297,7 +297,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
             <div className="text-center py-8">
               <div className="inline-flex items-center space-x-3">
                 <Zap className="w-6 h-6 text-blue-600 animate-pulse" />
-                <span className="text-gray-600">Processing with Finora AI...</span>
+                <span className="text-gray-600">Processing with Kanakku AI...</span>
               </div>
             </div>
           ) : extractedData ? (

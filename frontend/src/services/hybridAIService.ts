@@ -148,9 +148,9 @@ class HybridAIService {
 
   // 📱 OFFLINE PROCESSING METHODS
   private async processOfflineOCR(imageFile: File): Promise<ExpenseData> {
-    console.log('📱 Processing OCR offline with Tesseract + Finora AI...');
+    console.log('📱 Processing OCR offline with Tesseract + Kanakku AI...');
     
-    // Use Tesseract OCR + Finora AI
+    // Use Tesseract OCR + Kanakku AI
     const result = await ocrEngine.extractExpenseData(imageFile);
     
     console.log(`📊 Offline OCR result:`, result);

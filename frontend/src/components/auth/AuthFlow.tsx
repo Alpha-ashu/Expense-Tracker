@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Shield, Cloud, Smartphone, TrendingUp, Bell, Sparkles, ArrowRight } from 'lucide-react';
+import { Shield, TrendingUp, Sparkles, ArrowRight } from 'lucide-react';
 import { FinoraLogo } from '../../app/components/ui/FinoraLogo';
 import { motion } from 'framer-motion';
 import { SignInForm } from './SignInForm';
@@ -12,6 +12,24 @@ import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
 import { Terms } from '@/app/components/Terms';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { api } from '@/lib/api';
+import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
+import { enableGuestMode, isGuestMode, disableGuestMode, migrateGuestDataToUser, migrateGuestLocalStorage } from '@/lib/guestMode';
+
+/** Internal-only logger — never leaks raw errors to the browser console in production. */
+const internalLog = {
+  warn: (context: string, err?: unknown) => {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn(`[Kanakku/${context}]`, err instanceof Error ? err.message : err);
+    }
+  },
+  error: (context: string, err?: unknown) => {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.error(`[Kanakku/${context}]`, err instanceof Error ? err.message : err);
+    }
+  },
+};
 
 type AuthStep =
   | 'welcome'
@@ -53,8 +71,6 @@ interface AuthFlowProps {
   onGetStarted?: () => void;
 }
 
-import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
-
 export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavigate, onLogin, onGetStarted }) => {
   const [step, setStep] = useState<AuthStep>(initialStep || 'welcome');
   const [email, setEmail] = useState('');
@@ -83,6 +99,30 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
     }
   };
 
+  // ── Guest Mode ────────────────────────────────────────────────────────────
+  const handleGuestMode = () => {
+    enableGuestMode();
+    // Reload so the app opens in guest mode (onboarding_completed = true)
+    window.location.reload();
+  };
+
+  // Migrate any guest data when a guest user signs in / signs up
+  const runGuestMigrationIfNeeded = async (userId: string) => {
+    if (!isGuestMode()) return;
+    try {
+      migrateGuestLocalStorage();
+      const summary = await migrateGuestDataToUser(userId);
+      disableGuestMode();
+      const total = Object.values(summary).reduce((a, b) => a + b, 0);
+      if (total > 0) {
+        toast.success(`${total} item${total > 1 ? 's' : ''} from your guest session have been saved to your account.`);
+      }
+    } catch {
+      // Non-blocking — data stays local and will sync later
+    }
+  };
+
+
   const handleSignIn = async (credentials: { email: string; password: string }) => {
     setIsLoading(true);
     try {
@@ -95,13 +135,37 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
 
       setEmail(credentials.email);
       setIsNewUser(false);
-      setStep('pin-setup');
 
+      // ── Migrate guest data before navigating away ──────────────────────
+      if (data.user) {
+        await runGuestMigrationIfNeeded(data.user.id);
+      }
+
+      // Returning user: if already onboarded, skip PIN-setup and reload
+      const onboardingCompleted = localStorage.getItem('onboarding_completed') === 'true';
+      if (onboardingCompleted) {
+        localStorage.removeItem('auth_flow_step');
+        localStorage.removeItem('pending_auth_email');
+        window.location.reload();
+        return;
+      }
+
+      // First sign-in on this device — walk through PIN setup
+      setStep('pin-setup');
       saveFlowState('pin-setup');
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      const isNetworkError = error?.name === 'AuthRetryableFetchError' || error?.message?.includes('aborted');
-      toast.error(isNetworkError ? 'Cannot connect to server. Please try again later.' : (error.message || 'Failed to sign in'));
+      internalLog.error('handleSignIn', error);
+      const isNetworkError =
+        error?.name === 'AuthRetryableFetchError' ||
+        error?.message?.includes('aborted') ||
+        error?.message?.includes('fetch');
+      const isInvalidCredentials =
+        error?.message?.toLowerCase().includes('invalid login credentials') ||
+        error?.status === 400;
+      let userMessage = 'Sign in failed. Please try again.';
+      if (isNetworkError) userMessage = 'Unable to connect. Please check your internet connection and try again.';
+      else if (isInvalidCredentials) userMessage = 'Incorrect email or password. Please check your details and try again.';
+      toast.error(userMessage);
     } finally {
       setIsLoading(false);
     }
@@ -258,7 +322,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
           await api.auth.updateProfile(profilePayload);
           localStorage.removeItem('profile_sync_pending');
         } catch (profileError) {
-          console.warn('Profile onboarding sync failed; local state retained for retry.', profileError);
+          internalLog.warn('handleSalarySetupComplete/profileSync', profileError);
         }
 
         localStorage.setItem('device_id', localStorage.getItem('device_id') || generateDeviceId());
@@ -267,7 +331,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       setStep('pin-setup');
       saveFlowState('pin-setup');
     } catch (error) {
-      console.error('Failed to save profile:', error);
+      internalLog.error('handleSalarySetupComplete', error);
       toast.error('Failed to save profile. Please try again.');
     } finally {
       setIsLoading(false);
@@ -286,7 +350,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       localStorage.removeItem('auth_flow_step');
       localStorage.removeItem('pending_auth_email');
 
-      toast.success('Setup complete! Welcome to Finora!');
+      toast.success('Setup complete! Welcome to Kanakku!');
 
       // Dispatch global event for other modules
       window.dispatchEvent(new CustomEvent('PROFILE_SETUP_COMPLETED', {
@@ -295,7 +359,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
 
       setStep('complete');
     } catch (error) {
-      console.error('Failed to complete setup:', error);
+      internalLog.error('handlePINComplete', error);
       toast.error('Setup failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -322,7 +386,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       });
       toast.success('Salary account created!');
     } catch (error) {
-      console.error('Auto-provisioning failed:', error);
+      internalLog.error('autoProvisionAccounts', error);
       toast.error('Failed to create account. Please try again.');
     }
   };
@@ -380,7 +444,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-              Finora
+              Kanakku
             </h1>
             <p className="text-base sm:text-lg text-gray-500 font-medium max-w-[280px] sm:max-w-md mx-auto leading-relaxed">
               Experience the future of personal finance. Track, grow, and master your wealth seamlessly.
@@ -429,10 +493,20 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
               Sign In
             </motion.button>
 
+            {/* Continue as Guest */}
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={handleGuestMode}
+              className="w-full text-gray-400 hover:text-gray-600 py-3 text-sm font-medium transition-colors"
+            >
+              Continue as Guest
+            </motion.button>
+
             {onBack && (
               <button
                 onClick={onBack}
-                className="w-full mt-4 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2"
+                className="w-full mt-2 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2"
               >
                 ← Back to Landing Page
               </button>
@@ -759,7 +833,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Back
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
-              <p className="text-gray-500 mt-1 text-sm">Join Finora to start mastering your wealth.</p>
+              <p className="text-gray-500 mt-1 text-sm">Join Kanakku to start mastering your wealth.</p>
             </div>
             <div className="p-6 sm:p-8 pt-6">
               <SignUpForm
