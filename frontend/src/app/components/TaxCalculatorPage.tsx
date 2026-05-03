@@ -88,7 +88,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
 
     const taxableIncome = Math.max(0, totalIncome - deductions);
     let estimatedTax = 0;
-    const breakdown = [];
+    const breakdown: Array<{ bracket: string; tax: number; }> = [];
 
     for (const bracket of brackets) {
       const incomeBracketMin = Math.max(bracket.min, 0);
@@ -98,7 +98,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
         const taxInBracket = (incomeBracketMax - incomeBracketMin) * bracket.rate;
         estimatedTax += taxInBracket;
         breakdown.push({
-          bracket: `${country === 'India' ? '₹' : '$'}${incomeBracketMin.toLocaleString()} - ${incomeBracketMax.toLocaleString()} @ ${(bracket.rate * 100).toFixed(0)}%`,
+          bracket: `${country === 'India' ? '' : '$'}${incomeBracketMin.toLocaleString()} - ${incomeBracketMax.toLocaleString()} @ ${(bracket.rate * 100).toFixed(0)}%`,
           tax: taxInBracket,
         });
       }
@@ -134,7 +134,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
   };
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
+    <div className="w-full min-h-screen overflow-x-hidden bg-white">
       <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
         <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
           <PageHeader 
@@ -160,7 +160,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                 <select
                   value={year}
                   onChange={(e) => setYear(parseInt(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   aria-label="Select tax year"
                 >
                   {[2024, 2023, 2022, 2021].map((y) => (
@@ -180,7 +180,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                     setCountry(e.target.value);
                     setFilingStatus(e.target.value === 'India' ? 'standard' : 'single');
                   }}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   aria-label="Select country"
                 >
                   <option value="India">India</option>
@@ -196,7 +196,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                 <select
                   value={filingStatus}
                   onChange={(e) => setFilingStatus(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   aria-label="Select filing status"
                 >
                   {country === 'India' ? (
@@ -223,7 +223,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                     value={totalIncome || ''}
                     onChange={(e) => setTotalIncome(parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-2">Auto-populated from income transactions</p>
@@ -242,7 +242,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                     value={deductions || ''}
                     onChange={(e) => setDeductions(parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
+                    className="flex-1 px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
                   />
                 </div>
               </div>
@@ -252,7 +252,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-colors font-medium text-gray-700"
+                  className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-xl hover:bg-white transition-colors font-medium text-gray-700"
                 >
                   Cancel
                 </button>
@@ -282,7 +282,7 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
                 <h3 className="font-semibold text-gray-900 mb-4">Breakdown</h3>
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {taxResult.breakdown.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div key={idx} className="flex justify-between items-center p-3 bg-white rounded-lg">
                       <span className="text-xs text-gray-600">{item.bracket}</span>
                       <span className="font-semibold text-gray-900">{formatCurrency(item.tax)}</span>
                     </div>
@@ -323,3 +323,4 @@ export const TaxCalculator: React.FC<{ onBack?: () => void }> = ({ onBack }) => 
 };
 
 export default TaxCalculator;
+

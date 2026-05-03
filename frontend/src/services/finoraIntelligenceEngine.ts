@@ -42,17 +42,17 @@ class FinoraIntelligenceEngine {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log('🧠 Initializing Kanakku Intelligence Engine...');
+    console.log(' Initializing Kanakku Intelligence Engine...');
     
     // Load learning data from localStorage (privacy-first - client-side only)
     await this.loadLearningData();
     await this.loadMerchantPatterns();
     
     this.initialized = true;
-    console.log('✅ Kanakku Intelligence Engine Ready');
+    console.log(' Kanakku Intelligence Engine Ready');
   }
 
-  // 🔥 CORE AI LOGIC - This is the important layer!
+  //  CORE AI LOGIC - This is the important layer!
   async extractExpenseData(
     rawText: string, 
     source: 'ocr' | 'voice',
@@ -64,7 +64,7 @@ class FinoraIntelligenceEngine {
     category?: string;
     confidence: number;
   }> {
-    console.log(`🔍 Extracting expense data from ${source}...`);
+    console.log(` Extracting expense data from ${source}...`);
 
     const result = {
       amount: this.extractAmount(rawText),
@@ -74,13 +74,13 @@ class FinoraIntelligenceEngine {
       confidence: 0.5,
     };
 
-    // 🧠 AI LEARNING: Apply learned patterns
+    //  AI LEARNING: Apply learned patterns
     if (result.merchant) {
       const learnedCategory = await this.predictCategory(result.merchant, userId);
       if (learnedCategory) {
         result.category = learnedCategory.category;
         result.confidence = Math.max(result.confidence, learnedCategory.confidence);
-        console.log(`🎯 Applied learned category: ${learnedCategory.category} (${(learnedCategory.confidence * 100).toFixed(1)}%)`);
+        console.log(` Applied learned category: ${learnedCategory.category} (${(learnedCategory.confidence * 100).toFixed(1)}%)`);
       }
     }
 
@@ -100,15 +100,15 @@ class FinoraIntelligenceEngine {
       source,
     });
 
-    console.log('📋 Extracted data:', result);
+    console.log(' Extracted data:', result);
     return result;
   }
 
   private extractAmount(text: string): number | undefined {
     const amountPatterns = [
-      /(?:total|amount|sum|payable|due|bill|charge|spent|cost)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-      /₹?\s*([\d,]+(?:\.\d{2})?)\s*(?:total|amount|pay|paid)/i,
-      /₹?\s*([\d,]+(?:\.\d{2})?)\s*$/i,
+      /(?:total|amount|sum|payable|due|bill|charge|spent|cost)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i,
+      /INR?\s*([\d,]+(?:\.\d{2})?)\s*(?:total|amount|pay|paid)/i,
+      /INR?\s*([\d,]+(?:\.\d{2})?)\s*$/i,
       /(?:rs|inr|rupees?)\s*([\d,]+(?:\.\d{2})?)/i,
       /(\d+(?:,\d{3})*(?:\.\d{2})?)\s*(?:rupees?|rs)/i,
     ];
@@ -118,7 +118,7 @@ class FinoraIntelligenceEngine {
       if (match) {
         const amount = parseFloat(match[1].replace(/,/g, ''));
         if (!isNaN(amount) && amount > 0) {
-          console.log(`💰 Amount found: ₹${amount}`);
+          console.log(` Amount found: INR${amount}`);
           return amount;
         }
       }
@@ -143,7 +143,7 @@ class FinoraIntelligenceEngine {
     // Check for known merchants first
     for (const merchant of knownMerchants) {
       if (lowerText.includes(merchant)) {
-        console.log(`🏪 Known merchant found: ${merchant}`);
+        console.log(` Known merchant found: ${merchant}`);
         return this.capitalizeWords(merchant);
       }
     }
@@ -162,7 +162,7 @@ class FinoraIntelligenceEngine {
       const words = line.split(/\s+/);
       for (const word of words) {
         if (word.length >= 3 && word.length <= 25 && /^[a-z\s]+$/.test(word)) {
-          console.log(`🏪 Potential merchant: ${word}`);
+          console.log(` Potential merchant: ${word}`);
           return this.capitalizeWords(word);
         }
       }
@@ -194,7 +194,7 @@ class FinoraIntelligenceEngine {
 
         if (!isNaN(date.getTime())) {
           const formattedDate = date.toISOString().split('T')[0];
-          console.log(`📅 Date found: ${formattedDate}`);
+          console.log(` Date found: ${formattedDate}`);
           return formattedDate;
         }
       }
@@ -219,7 +219,7 @@ class FinoraIntelligenceEngine {
     for (const [category, keywords] of Object.entries(categories)) {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {
-          console.log(`📂 Category classified: ${category}`);
+          console.log(` Category classified: ${category}`);
           return category;
         }
       }
@@ -232,7 +232,7 @@ class FinoraIntelligenceEngine {
     return str.replace(/\b\w/g, char => char.toUpperCase());
   }
 
-  // 🧠 AI LEARNING SYSTEM
+  //  AI LEARNING SYSTEM
   async predictCategory(merchant: string, userId: string): Promise<AIMerchantPattern | null> {
     const normalizedMerchant = merchant.toLowerCase().trim();
     const patterns = this.merchantPatterns.get(userId) || [];
@@ -287,7 +287,7 @@ class FinoraIntelligenceEngine {
     this.merchantPatterns.set(userId, patterns);
     await this.saveMerchantPatterns();
     
-    console.log(`🎓 Learned: ${merchant} → ${correctCategory} (${feedback})`);
+    console.log(` Learned: ${merchant}  ${correctCategory} (${feedback})`);
   }
 
   private async storeLearningData(data: AILearningData): Promise<void> {
@@ -310,7 +310,7 @@ class FinoraIntelligenceEngine {
       const stored = localStorage.getItem('finora_learning_data');
       if (stored) {
         this.learningData = JSON.parse(stored);
-        console.log(`📚 Loaded ${this.learningData.length} learning entries`);
+        console.log(` Loaded ${this.learningData.length} learning entries`);
       }
     } catch (error) {
       console.error('Failed to load learning data:', error);
@@ -335,7 +335,7 @@ class FinoraIntelligenceEngine {
           userPatterns.push(pattern);
           this.merchantPatterns.set(pattern.userId, userPatterns);
         });
-        console.log(`🧠 Loaded merchant patterns for ${this.merchantPatterns.size} users`);
+        console.log(` Loaded merchant patterns for ${this.merchantPatterns.size} users`);
       }
     } catch (error) {
       console.error('Failed to load merchant patterns:', error);

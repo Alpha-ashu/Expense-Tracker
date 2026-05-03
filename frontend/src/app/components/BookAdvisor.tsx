@@ -130,8 +130,6 @@ export const BookAdvisor: React.FC = () => {
           title="Book a Financial Advisor"
           subtitle="Connect with verified financial experts"
           icon={<Users size={20} className="sm:w-6 sm:h-6" />}
-          showBack
-          backTo="dashboard"
         />
 
         {/* My Active Bookings */}
@@ -295,7 +293,7 @@ export const BookAdvisor: React.FC = () => {
 
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <p className="font-semibold text-gray-900">₹{advisor.hourlyRate}/hour</p>
+                    <p className="font-semibold text-gray-900">INR{advisor.hourlyRate}/hour</p>
                     <button
                       onClick={() => handleSelectAdvisor(advisor)}
                       className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
@@ -436,7 +434,7 @@ export const BookAdvisor: React.FC = () => {
                 {/* Pricing Info */}
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                   <p className="text-sm text-gray-900 font-medium">
-                    <span className="font-semibold">Rate:</span> ₹{selectedAdvisor.hourlyRate}/hour
+                    <span className="font-semibold">Rate:</span> INR{selectedAdvisor.hourlyRate}/hour
                   </p>
                   <p className="text-xs text-gray-600 mt-1">
                     Final pricing will be confirmed by the advisor based on session duration

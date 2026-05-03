@@ -39,52 +39,52 @@ export const NOTIFICATION_TEMPLATES: Record<NotificationType, {
   booking_request: {
     title: 'New Booking Request',
     message: (data) => `${data.userName} has booked a session for ${data.date} at ${data.time}`,
-    icon: '📅',
+    icon: '',
   },
   booking_accepted: {
     title: 'Booking Confirmed',
     message: (data) => `${data.advisorName} has accepted your booking for ${data.date}`,
-    icon: '✅',
+    icon: '',
   },
   session_ready: {
     title: 'Session Ready',
     message: (data) => `Both parties are ready. Click to start the ${data.sessionType} session`,
-    icon: '🚀',
+    icon: '',
   },
   session_started: {
     title: 'Session Started',
     message: (data) => `Your ${data.sessionType} session with ${data.otherPartyName} has started`,
-    icon: '▶️',
+    icon: '',
   },
   session_completed: {
     title: 'Session Completed',
     message: (data) => `Session with ${data.otherPartyName} completed. Payment processing...`,
-    icon: '🏁',
+    icon: '',
   },
   payment_settled: {
     title: 'Payment Processed',
     message: (data) => `Payment of ${data.amount} for ${data.advisorName} session processed`,
-    icon: '💳',
+    icon: '',
   },
   payment_received: {
     title: 'Payment Received',
     message: (data) => `You received ${data.amount} from ${data.userName} for session on ${data.date}`,
-    icon: '💰',
+    icon: '',
   },
   booking_rejected: {
     title: 'Booking Declined',
     message: (data) => `${data.advisorName} has declined your booking request`,
-    icon: '❌',
+    icon: '',
   },
   role_changed: {
     title: 'Role Updated',
     message: (data) => `Your role has been changed to ${data.newRole}`,
-    icon: '👤',
+    icon: '',
   },
   feature_released: {
     title: 'New Feature Available',
     message: (data) => `${data.featureName} is now available for you to use`,
-    icon: '✨',
+    icon: '',
   },
 };
 

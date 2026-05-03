@@ -29,16 +29,16 @@ const BANK_STATEMENT_PATTERNS = {
     /from\s*(\d{1,2}\/\d{1,2}\/\d{2,4})\s*(?:to|till|-)\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i,
   ],
   balance: [
-    /(?:opening|opening\s*balance|ob)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-    /(?:closing|closing\s*balance|cb)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-    /balance\s*(?:brought\s*forward|brought\s*forward)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-    /balance\s*(?:carried\s*forward|carried\s*forward)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
+    /(?:opening|opening\s*balance|ob)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i,
+    /(?:closing|closing\s*balance|cb)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i,
+    /balance\s*(?:brought\s*forward|brought\s*forward)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i,
+    /balance\s*(?:carried\s*forward|carried\s*forward)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i,
   ],
   transaction: [
     // Date, Description, Amount patterns
-    /(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)?/i,
-    /(\d{1,2}-\d{1,2}-\d{2,4})\s+(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)?/i,
-    /(\d{2,4}\/\d{1,2}\/\d{1,2})\s+(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)?/i,
+    /(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(.+?)\s+INR?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)?/i,
+    /(\d{1,2}-\d{1,2}-\d{2,4})\s+(.+?)\s+INR?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)?/i,
+    /(\d{2,4}\/\d{1,2}\/\d{1,2})\s+(.+?)\s+INR?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)?/i,
   ],
 };
 
@@ -50,7 +50,7 @@ const BANK_KEYWORDS = [
 const HEADER_LINE_PATTERN = /^(period|statement|account|a\/c|customer\s*id|opening\s*balance|closing\s*balance|balance\s*(?:brought|carried)\s*forward)\b/i;
 const TRANSACTION_TABLE_HEADER_PATTERN = /\b(date|value\s*date)\b.*\b(description|particulars|narration|remarks)\b.*\b(debit|credit|withdrawal|deposit|amount|balance)\b/i;
 const DATE_PREFIX_PATTERN = /^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2,4}[/-]\d{1,2}[/-]\d{1,2})\s+(.+)$/i;
-const AMOUNT_TOKEN_PATTERN = /₹?\s*[\d,]+(?:\.\d{2})?/gi;
+const AMOUNT_TOKEN_PATTERN = /INR?\s*[\d,]+(?:\.\d{2})?/gi;
 
 const TRANSACTION_DESCRIPTION_PATTERNS = {
   atm: /atm|cash\s*withdrawal/i,
@@ -65,7 +65,7 @@ const TRANSACTION_DESCRIPTION_PATTERNS = {
 };
 
 function normalizeAmount(amount: string): number {
-  return parseFloat(amount.replace(/[,\s₹]/g, ''));
+  return parseFloat(amount.replace(/[,\sINR]/g, ''));
 }
 
 function normalizeStatementLine(line: string): string {
@@ -148,13 +148,13 @@ function extractBalances(lines: string[]): { opening?: number; closing?: number 
   const balances: { opening?: number; closing?: number } = {};
   
   for (const line of lines) {
-    const openingMatch = line.match(/(?:opening|opening\s*balance|ob|balance\s*brought\s*forward)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i);
+    const openingMatch = line.match(/(?:opening|opening\s*balance|ob|balance\s*brought\s*forward)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i);
     if (openingMatch) {
       balances.opening = normalizeAmount(openingMatch[1]);
       continue;
     }
     
-    const closingMatch = line.match(/(?:closing|closing\s*balance|cb|balance\s*carried\s*forward)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i);
+    const closingMatch = line.match(/(?:closing|closing\s*balance|cb|balance\s*carried\s*forward)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i);
     if (closingMatch) {
       balances.closing = normalizeAmount(closingMatch[1]);
     }
@@ -164,7 +164,7 @@ function extractBalances(lines: string[]): { opening?: number; closing?: number 
 }
 
 function extractTrailingAmountBlock(text: string) {
-  return text.match(/((?:₹?\s*[\d,]+(?:\.\d{2})?\s*){1,3})$/i);
+  return text.match(/((?:INR?\s*[\d,]+(?:\.\d{2})?\s*){1,3})$/i);
 }
 
 function parseTrailingAmountColumns(
@@ -227,7 +227,7 @@ function extractTransactions(lines: string[]): Array<{
     const line = normalizeStatementLine(rawLine);
     if (!line || isStatementHeaderLine(line)) continue;
 
-    let match = line.match(/^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2,4}[/-]\d{1,2}[/-]\d{1,2})\s+(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)\s*(?:₹?\s*([\d,]+(?:\.\d{2})?))?$/i);
+    let match = line.match(/^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2,4}[/-]\d{1,2}[/-]\d{1,2})\s+(.+?)\s+INR?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)\s*(?:INR?\s*([\d,]+(?:\.\d{2})?))?$/i);
     let date = '';
     let description = '';
     let amount = '';
@@ -267,7 +267,7 @@ function extractTransactions(lines: string[]): Array<{
         }
       }
 
-      match = line.match(/^(.+?)\s+₹?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)\s*(?:₹?\s*([\d,]+(?:\.\d{2})?))?$/i);
+      match = line.match(/^(.+?)\s+INR?\s*([\d,]+(?:\.\d{2})?)\s*(CR|DR)\s*(?:INR?\s*([\d,]+(?:\.\d{2})?))?$/i);
       if (!match) continue;
 
       [, description, amount, creditDebit, balance = ''] = match;

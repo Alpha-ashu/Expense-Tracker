@@ -18,9 +18,9 @@ export class SupermarketStrategy implements ParsingStrategy {
 
     if (lines[0]) result.merchantName = lines[0];
 
-    const subtotalMatch = text.match(/sub\s*total\s*:?\s*[₹$]?[\s]*(\d+\.?\d*)/i);
-    const totalMatch = text.match(/grand\s*total\s*:?\s*[₹$]?[\s]*(\d+\.?\d*)/i)
-      || text.match(/total\s*:?\s*[₹$]?[\s]*(\d+\.?\d*)/i);
+    const subtotalMatch = text.match(/sub\s*total\s*:?\s*[INR$]?[\s]*(\d+\.?\d*)/i);
+    const totalMatch = text.match(/grand\s*total\s*:?\s*[INR$]?[\s]*(\d+\.?\d*)/i)
+      || text.match(/total\s*:?\s*[INR$]?[\s]*(\d+\.?\d*)/i);
 
     if (subtotalMatch?.[1]) result.subtotal = Number.parseFloat(subtotalMatch[1]);
     if (totalMatch?.[1]) result.amount = Number.parseFloat(totalMatch[1]);

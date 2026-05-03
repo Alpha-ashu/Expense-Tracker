@@ -11,21 +11,21 @@ export type GoalCategoryKey =
   | 'custom';
 
 export const GOAL_CATEGORIES: Array<{ key: GoalCategoryKey; label: string; icon: string }> = [
-  { key: 'travel', label: 'Travel', icon: '🌴' },
-  { key: 'emergency', label: 'Emergency Fund', icon: '🛟' },
-  { key: 'gadget', label: 'Gadget', icon: '📱' },
-  { key: 'wedding', label: 'Wedding', icon: '💍' },
-  { key: 'education', label: 'Education', icon: '🎓' },
-  { key: 'investment', label: 'Investment', icon: '📈' },
-  { key: 'vehicle', label: 'Vehicle', icon: '🚗' },
-  { key: 'business', label: 'Business', icon: '💼' },
-  { key: 'personal', label: 'Personal', icon: '⭐' },
-  { key: 'custom', label: 'Custom', icon: '🧩' },
+  { key: 'travel', label: 'Travel', icon: '' },
+  { key: 'emergency', label: 'Emergency Fund', icon: '' },
+  { key: 'gadget', label: 'Gadget', icon: '' },
+  { key: 'wedding', label: 'Wedding', icon: '' },
+  { key: 'education', label: 'Education', icon: '' },
+  { key: 'investment', label: 'Investment', icon: '' },
+  { key: 'vehicle', label: 'Vehicle', icon: '' },
+  { key: 'business', label: 'Business', icon: '' },
+  { key: 'personal', label: 'Personal', icon: '' },
+  { key: 'custom', label: 'Custom', icon: '' },
 ];
 
 export const getGoalCategoryMeta = (category?: string) => {
   const found = GOAL_CATEGORIES.find((item) => item.key === category);
-  return found || { key: 'custom', label: 'Custom', icon: '🧩' };
+  return found || { key: 'custom', label: 'Custom', icon: '' };
 };
 
 export const getGoalProgress = (currentAmount: number, targetAmount: number) => {

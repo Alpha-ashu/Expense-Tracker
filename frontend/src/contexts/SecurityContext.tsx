@@ -18,7 +18,7 @@ const SecurityContext = createContext<SecurityContextType | undefined>(undefined
 export const SecurityProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [encryptionKey, setEncryptionKey] = useState<string | null>(null);
-  const [lockTimeout, setLockTimeout] = useState(5); // minutes
+  const [lockTimeout, setLockTimeout] = useState(0); // 0 means disabled (only locks on close)
   const isNativePlatform = Capacitor.isNativePlatform();
 
   useEffect(() => {

@@ -60,6 +60,20 @@ export const Accounts: React.FC = () => {
     isActive: boolean;
   } | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    } else {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
+  }, []);
 
   const handleEditAccount = (account: typeof accounts[0], e: React.MouseEvent) => {
     e.stopPropagation();
@@ -130,7 +144,7 @@ export const Accounts: React.FC = () => {
     selectedAccountIdRef.current = selectedAccountId;
   }, [selectedAccountId]);
 
-  // ── Desktop scroll listener ──
+  // "EUR"EUR Desktop scroll listener "EUR"EUR
   useEffect(() => {
     const carousel = carouselRef.current;
     if (!carousel) return;
@@ -155,7 +169,7 @@ export const Accounts: React.FC = () => {
     return () => { carousel.removeEventListener("scroll", handleScroll); clearTimeout(t); };
   }, [filteredAccounts]);
 
-  // ── Mobile scroll listener (index-based — stride = full clientWidth) ──
+  // "EUR"EUR Mobile scroll listener (index-based EUR" stride = full clientWidth) "EUR"EUR
   useEffect(() => {
     const carousel = mobileCarouselRef.current;
     if (!carousel) return;
@@ -256,7 +270,7 @@ export const Accounts: React.FC = () => {
     const textMd = size === 'sm' ? '11' : '14';
     const textLg = size === 'sm' ? '13' : '16';
 
-    // ── Indian Banks ──
+    // "EUR"EUR Indian Banks "EUR"EUR
     if (n.includes('sbi') || n.includes('state bank')) {
       return (
         <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex flex-col items-center justify-center rounded-lg overflow-hidden bg-[#22408C]")}>
@@ -392,7 +406,7 @@ export const Accounts: React.FC = () => {
       );
     }
 
-    // ── International Banks ──
+    // "EUR"EUR International Banks "EUR"EUR
     if (n.includes('chase') || n.includes('jpmorgan')) {
       return (
         <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#117ACA]")}>
@@ -466,7 +480,7 @@ export const Accounts: React.FC = () => {
       );
     }
 
-    // ── Card Networks ──
+    // "EUR"EUR Card Networks "EUR"EUR
     if (n.includes('visa')) {
       return (
         <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#1A1F71]")}>
@@ -511,7 +525,7 @@ export const Accounts: React.FC = () => {
       );
     }
 
-    // ── Digital Wallets ──
+    // "EUR"EUR Digital Wallets "EUR"EUR
     if (n.includes('phonepe') || n.includes('phone pe')) {
       return (
         <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#5F259F]")}>
@@ -582,14 +596,14 @@ export const Accounts: React.FC = () => {
         <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-br from-emerald-500 to-green-700")}>
           <svg viewBox="0 0 60 36" width={w} height={h}>
             <rect width="60" height="36" fill="transparent" />
-            <text x="30" y="15" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={textSm} fontFamily="Arial">💵</text>
+            <text x="30" y="15" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={textSm} fontFamily="Arial">'</text>
             <text x="30" y="28" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">CASH</text>
           </svg>
         </div>
       );
     }
 
-    // ── Fallback: beautiful initials logo ──
+    // "EUR"EUR Fallback: beautiful initials logo "EUR"EUR
     const initials = name.trim().split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').slice(0, 2).join('');
     const fallbackThemes = [
       { bgClass: 'bg-[#1e3a5f]', textClass: 'text-[#4a9ede]' },
@@ -623,7 +637,7 @@ export const Accounts: React.FC = () => {
   }, [transactions, selectedAccountId]);
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50">
+    <div className="w-full min-h-screen overflow-x-hidden bg-white">
       <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full">
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-4 lg:pb-6">
           <PageHeader
@@ -651,7 +665,7 @@ export const Accounts: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as AssetType)}
                 className={`relative flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base ${isActive
                   ? "text-white shadow-lg shadow-pink-200"
-                  : "bg-white text-gray-500 hover:bg-gray-50"
+                  : "bg-white text-gray-500 hover:bg-white"
                   }`}
               >
                 {isActive && (
@@ -673,7 +687,7 @@ export const Accounts: React.FC = () => {
           })}
         </div>
 
-        {/* ── New User Prompt ── Only shown when no accounts exist */}
+        {/* --- New User Prompt --- Only shown when no accounts exist */}
         {accounts.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: -12 }}
@@ -683,16 +697,16 @@ export const Accounts: React.FC = () => {
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-lg">
-                  🏦 Set up your first account
+                  Set up your first account
                 </p>
                 <p className="text-sm text-purple-100 mt-1">
                   Add your bank account, wallet, or cash to start tracking your
                   finances.
                 </p>
                 <ul className="mt-3 space-y-1 text-sm text-purple-100">
-                  <li>• Salary / Savings bank account</li>
-                  <li>• Credit / Debit card</li>
-                  <li>• UPI wallet or Cash</li>
+                  <li>- Salary / Savings bank account</li>
+                  <li>- Credit / Debit card</li>
+                  <li>- UPI wallet or Cash</li>
                 </ul>
               </div>
               <button
@@ -705,8 +719,9 @@ export const Accounts: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Mobile carousel — w-screen slot pattern */}
-        <div className="lg:hidden">
+        
+        {!isDesktop && (
+          <>
           <div
             ref={mobileCarouselRef}
             className="flex overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide touch-scroll"
@@ -714,7 +729,6 @@ export const Accounts: React.FC = () => {
             {filteredAccounts.map((account) => {
               const isActive = selectedAccountId === account.id;
               return (
-                /* Each slot is exactly one viewport width — card fills slot with px-4 padding */
                 <div
                   key={account.id}
                   ref={(el) => { if (el) mobileCardRefs.current[account.id!] = el; }}
@@ -779,7 +793,7 @@ export const Accounts: React.FC = () => {
                                   animate={{ opacity: 1, scale: 1 }}
                                   className="text-[9px] font-bold tracking-widest text-emerald-300 border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 rounded-full"
                                 >
-                                  ● ACTIVE
+                                  - ACTIVE
                                 </motion.span>
                                 <button
                                   onClick={(e) => handleEditAccount(account, e)}
@@ -861,7 +875,7 @@ export const Accounts: React.FC = () => {
             })}
           </div>
           
-          {/* Swipe Guide & Dot Indicators (Mobile) */}
+          
           {filteredAccounts.length > 1 && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
@@ -886,24 +900,26 @@ export const Accounts: React.FC = () => {
                 ))}
               </div>
               <div className="flex items-center text-[10px] text-gray-400 font-medium tracking-[0.22em] uppercase">
-                <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2">←</span> 
+                <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2"></span> 
                 Swipe to explore 
-                <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">→</span>
+                <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">'</span>
               </div>
             </motion.div>
           )}
 
-        </div>
+          </>
+        )}
 
-        {/* Desktop: Original carousel layout */}
-        <div className="hidden lg:block">
+        
+        {isDesktop && (
+          <>
           <div className="relative">
             {/* Carousel Container */}
             <div
               ref={carouselRef}
               className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth touch-scroll [scroll-padding-left:50%] [scroll-padding-right:50%]"
             >
-              {/* Left spacer — allows first card to snap to center */}
+              {/* Left spacer EUR" allows first card to snap to center */}
               <div
                 className="shrink-0 w-[calc(50%-210px)] min-w-8"
                 aria-hidden
@@ -975,7 +991,7 @@ export const Accounts: React.FC = () => {
                                         animate={{ opacity: 1, scale: 1 }}
                                         className="text-[10px] font-bold tracking-widest text-emerald-300 border border-emerald-400/40 bg-emerald-500/10 px-2.5 py-1 rounded-full"
                                       >
-                                        ● ACTIVE
+                                        - ACTIVE
                                       </motion.span>
                                       <button
                                         onClick={(e) => handleEditAccount(account, e)}
@@ -1054,7 +1070,7 @@ export const Accounts: React.FC = () => {
                       </div>
                     );
                   })}
-              {/* Right spacer — allows last card to snap to center */}
+              {/* Right spacer EUR" allows last card to snap to center */}
               <div
                 className="shrink-0 w-[calc(50%-210px)] min-w-8"
                 aria-hidden
@@ -1086,9 +1102,9 @@ export const Accounts: React.FC = () => {
               ))}
             </div>
             <div className="flex items-center text-[10px] sm:text-xs text-gray-400 font-medium tracking-[0.22em] uppercase">
-              <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2">←</span> 
+              <span className="animate-[pulse_2s_ease-in-out_infinite] mr-2"></span> 
               Swipe to explore 
-              <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">→</span>
+              <span className="animate-[pulse_2s_ease-in-out_infinite] ml-2">'</span>
             </div>
           </motion.div>
         )}
@@ -1100,12 +1116,12 @@ export const Accounts: React.FC = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  className="mt-4 max-w-5xl mx-auto px-2 sm:px-0"
+                  className="mt-4 w-full px-2 sm:px-0"
                 >
                   <Card className="bg-white/80 backdrop-blur-xl border-white/60 overflow-hidden shadow-2xl">
                     <div className="max-h-[400px] sm:max-h-[500px] overflow-y-auto">
                       <table className="w-full">
-                        <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                        <thead className="bg-white/80 sticky top-0 z-10 backdrop-blur-sm">
                           <tr>
                             <th className="px-3 sm:px-4 md:px-8 py-3 sm:py-4 md:py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                               Date
@@ -1181,9 +1197,9 @@ export const Accounts: React.FC = () => {
               )}
             </AnimatePresence>
           </div>
-        </div>
-
-        {/* Mobile Transaction History */}
+        </>
+        )}
+        
         <div className="lg:hidden px-4 sm:px-6 lg:px-8 xl:px-12 mt-6">
           {selectedAccount && (
             <Card className="bg-white/80 backdrop-blur-xl border-white/60 overflow-hidden shadow-2xl">
@@ -1193,7 +1209,7 @@ export const Accounts: React.FC = () => {
                     accountTransactions.slice(0, 10).map((t) => (
                       <div
                         key={t.id}
-                        className="flex items-center justify-between gap-3 p-4 border-b border-gray-100 last:border-none hover:bg-gray-50 transition-colors"
+                        className="flex items-center justify-between gap-3 p-4 border-b border-gray-100 last:border-none hover:bg-white transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div
@@ -1210,7 +1226,7 @@ export const Accounts: React.FC = () => {
                               {t.description}
                             </p>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              {t.category} •{" "}
+                              {t.category} EUR{" "}
                               {formatLocalDate(t.date, "en-US", {
                                 day: "numeric",
                                 month: "short",
@@ -1325,16 +1341,16 @@ export const Accounts: React.FC = () => {
                     aria-label="Account type"
                     title="Account type"
                   >
-                    <option value="bank">🏦 Bank Account</option>
-                    <option value="card">💳 Credit / Debit Card</option>
-                    <option value="wallet">📱 Digital Wallet</option>
-                    <option value="cash">💵 Cash</option>
+                    <option value="bank"> Bank Account</option>
+                    <option value="card">' Credit / Debit Card</option>
+                    <option value="wallet">" Digital Wallet</option>
+                    <option value="cash">' Cash</option>
                   </select>
                 </div>
 
                 {/* Balance */}
                 <div>
-                  <label htmlFor="edit-account-balance" className="block text-xs font-semibold text-gray-600 mb-1.5">Current Balance (₹)</label>
+                  <label htmlFor="edit-account-balance" className="block text-xs font-semibold text-gray-600 mb-1.5">Current Balance ()</label>
                   <input
                     id="edit-account-balance"
                     type="number"
@@ -1347,7 +1363,7 @@ export const Accounts: React.FC = () => {
                 </div>
 
                 {/* Active toggle */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between p-3 bg-white rounded-xl">
                   <div>
                     <p className="text-sm font-semibold text-gray-800">Active Account</p>
                     <p className="text-xs text-gray-500">Show this account in your portfolio</p>
@@ -1374,7 +1390,7 @@ export const Accounts: React.FC = () => {
                 <div className="flex gap-3 pt-1">
                   <button
                     onClick={() => { setEditModalOpen(false); setEditingAccount(null); }}
-                    className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-white transition-colors"
                   >
                     Cancel
                   </button>
@@ -1471,4 +1487,5 @@ export const Accounts: React.FC = () => {
     </div>
   );
 };
+
 

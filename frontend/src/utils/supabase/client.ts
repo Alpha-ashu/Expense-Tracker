@@ -9,10 +9,10 @@ let hasWarnedMissingConfig = false;
 // The correct browser key is either sb_publishable_... (new format) or eyJ... (JWT anon key).
 if (supabaseKey && supabaseKey.startsWith('sb_secret_')) {
 	console.error(
-		'❌ SUPABASE KEY ERROR: VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY is set to a server-side ' +
+		' SUPABASE KEY ERROR: VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY is set to a server-side ' +
 		'"secret" key (sb_secret_...). This key must NEVER be used in the browser.\n\n' +
 		'HOW TO FIX:\n' +
-		'1. Go to your Supabase dashboard → Project Settings → API\n' +
+		'1. Go to your Supabase dashboard  Project Settings  API\n' +
 		'2. Copy the "anon / public" key (sb_publishable_... or eyJ...)\n' +
 		'3. Replace VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY in your .env with that key\n' +
 		'4. Restart the dev server (npm run dev)'

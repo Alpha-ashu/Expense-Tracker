@@ -1,18 +1,18 @@
 /**
  * guestMode.ts
- * ─────────────────────────────────────────────────────────────────────────────
+ * 
  * Guest Mode: allows the app to be used without an account.
  * All data is stored locally in Dexie only.
  * When the user later signs up / logs in, ALL local data is migrated to their
- * real account and queued for backend sync — nothing is lost.
+ * real account and queued for backend sync - nothing is lost.
  */
 
-// ── Constants ────────────────────────────────────────────────────────────────
+//  Constants 
 export const GUEST_USER_ID = '__finora_guest__';
 const GUEST_MODE_KEY    = 'finora_guest_mode';
 const GUEST_CREATED_KEY = 'finora_guest_created_at';
 
-// ── State helpers ────────────────────────────────────────────────────────────
+//  State helpers 
 export const isGuestMode = (): boolean =>
   localStorage.getItem(GUEST_MODE_KEY) === 'true';
 
@@ -35,7 +35,7 @@ export const disableGuestMode = (): void => {
 export const getGuestCreatedAt = (): string | null =>
   localStorage.getItem(GUEST_CREATED_KEY);
 
-// ── Data migration ────────────────────────────────────────────────────────────
+//  Data migration 
 /**
  * Called immediately after a guest user successfully signs in / signs up.
  *
@@ -70,7 +70,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
   };
 
   try {
-    // ── accounts ──────────────────────────────────────────────────────────
+    //  accounts 
     const accounts = await db.accounts.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -83,7 +83,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
     }
     summary.accounts = accounts.length;
 
-    // ── transactions ──────────────────────────────────────────────────────
+    //  transactions 
     const txns = await db.transactions.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -96,7 +96,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
     }
     summary.transactions = txns.length;
 
-    // ── goals ─────────────────────────────────────────────────────────────
+    //  goals 
     const goals = await db.goals.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -109,7 +109,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
     }
     summary.goals = goals.length;
 
-    // ── loans ─────────────────────────────────────────────────────────────
+    //  loans 
     const loans = await db.loans.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -122,7 +122,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
     }
     summary.loans = loans.length;
 
-    // ── investments ───────────────────────────────────────────────────────
+    //  investments 
     const investments = await db.investments.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -135,7 +135,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
     }
     summary.investments = investments.length;
 
-    // ── friends ───────────────────────────────────────────────────────────
+    //  friends 
     const friends = await db.friends.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -148,7 +148,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
     }
     summary.friends = friends.length;
 
-    // ── groupExpenses ─────────────────────────────────────────────────────
+    //  groupExpenses 
     const groups = await db.groupExpenses.filter(
       (r: any) => !r.userId || r.userId === GUEST_USER_ID
     ).toArray();
@@ -176,7 +176,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
  * and marked for backend sync.
  */
 export function migrateGuestLocalStorage(): void {
-  // Preserve onboarding_completed — guest has already "onboarded" locally
+  // Preserve onboarding_completed - guest has already "onboarded" locally
   const profile = localStorage.getItem('user_profile');
   const settings = localStorage.getItem('user_settings');
   if (profile) localStorage.setItem('profile_sync_pending', 'true');

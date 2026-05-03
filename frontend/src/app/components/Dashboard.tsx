@@ -90,7 +90,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
 
   const activeGoals = useMemo(() => goals.filter(g => g.currentAmount < g.targetAmount).slice(0, 3), [goals]);
 
-  // ── Loans & EMI computed data ──────────────────────────────────────────────
+  // "EUR"EUR Loans & EMI computed data "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
   const now = new Date();
   const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -104,7 +104,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     return 'active';
   };
 
-  // ── Calendar / Upcoming Events ──────────────────────────────────────────────
+  // "EUR"EUR Calendar / Upcoming Events "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
   const upcomingEvents = useMemo(() => {
     const events: { label: string; date: Date; type: 'emi' | 'bill' | 'transaction'; amount?: number; timeCategory: 'today' | 'week' | 'month' }[] = [];
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -144,7 +144,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     return events.sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 5);
   }, [loans, transactions]);
 
-  // ── Group Expenses / Borrow / Lend ─────────────────────────────────────────
+  // "EUR"EUR Group Expenses / Borrow / Lend "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
   const groupStats = useMemo(() => {
     const borrowed = loans.filter(l => l.type === 'borrowed' && l.status === 'active').reduce((s, l) => s + l.outstandingBalance, 0);
     const lent = loans.filter(l => l.type === 'lent' && l.status === 'active').reduce((s, l) => s + l.outstandingBalance, 0);
@@ -155,7 +155,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     return { borrowed, lent, pendingSettlements, activeGroups: groupExpenses.length };
   }, [loans, groupExpenses]);
 
-  // ── Investments ────────────────────────────────────────────────────────────
+  // "EUR"EUR Investments "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
   const portfolioSymbols = useMemo(
     () => getRequiredInvestmentQuoteSymbols(openInvestments, currency),
     [currency, openInvestments],
@@ -262,7 +262,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
   const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.35 } };
 
   return (
-    <div className="w-full min-h-screen max-w-[100vw] overflow-x-hidden bg-gray-50">
+    <div className="w-full min-h-screen max-w-[100vw] overflow-x-hidden bg-white">
       <div className="max-w-full mx-auto pb-32 lg:pb-8 w-full overflow-x-hidden">
 
         {/* Header */}
@@ -287,7 +287,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           </div>
         )}
 
-        {/* ── 1. Financial Health Hero ── */}
+        {/* "EUR"EUR 1. Financial Health Hero "EUR"EUR */}
         <div className="flex justify-center px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">
           <Card variant="mesh-pink" className="w-full max-w-md lg:max-w-lg p-6 lg:p-8 relative overflow-hidden">
             <div className="relative z-10">
@@ -321,7 +321,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 </div>
               )}
             </div>
-            {/* Intentionally no decorative absolute element here — blur-3xl with negative margins escapes overflow-hidden on mobile WebKit */}
+            
           </Card>
         </div>
 
@@ -336,7 +336,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={cn(
                   'relative flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
-                  isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-white text-gray-500 hover:bg-white'
                 )}
               >
                 {isActive && (
@@ -354,7 +354,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           })}
         </div>
 
-        {/* ── 2. Accounts ── */}
+        {/* "EUR"EUR 2. Accounts "EUR"EUR */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Accounts" onViewAll={() => setCurrentPage?.('accounts')} />
           <AnimatePresence mode="wait">
@@ -384,19 +384,19 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
               </motion.div>
             ) : (
               <Card className="p-8 text-center cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('add-account')}>
-                <EmptyWidget icon={Wallet} message="No accounts yet — tap to add your first" />
+                <EmptyWidget icon={Wallet} message="No accounts yet - tap to add your first" />
               </Card>
             )}
           </AnimatePresence>
         </motion.div>
 
-        {/* ── 3. Recent Transactions ── */}
+        {/* 3. Recent Transactions */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Recent Transactions" onViewAll={() => setCurrentPage?.('transactions')} />
           {recentTransactions.length > 0 ? (
             <Card className="divide-y divide-gray-100">
               {recentTransactions.map((transaction) => (
-                <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setCurrentPage?.('transactions')}>
+                <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-white transition-colors cursor-pointer" onClick={() => setCurrentPage?.('transactions')}>
                   <div className="flex items-center gap-3">
                     <div className={cn("w-10 h-10 rounded-full flex items-center justify-center",
                       transaction.type === 'income' ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
@@ -419,12 +419,12 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             </Card>
           ) : (
             <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('add-transaction')}>
-              <EmptyWidget icon={CreditCard} message="No transactions — tap to add your first" />
+              <EmptyWidget icon={CreditCard} message="No transactions - tap to add your first" />
             </Card>
           )}
         </motion.div>
 
-        {/* ── 4. Loans & EMI ── */}
+        {/* 4. Loans & EMI */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Loans & EMI" onViewAll={() => setCurrentPage?.('loans')} />
           {activeLoans.length > 0 ? (
@@ -479,12 +479,12 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             </div>
           ) : (
             <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('loans')}>
-              <EmptyWidget icon={Landmark} message="No active loans — click to manage" />
+              <EmptyWidget icon={Landmark} message="No active loans - click to manage" />
             </Card>
           )}
         </motion.div>
 
-        {/* ── 5. Calendar / Upcoming Events ── */}
+        {/* 5. Calendar / Upcoming Events */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Upcoming Events" onViewAll={() => setCurrentPage?.('calendar')} viewLabel="View Calendar" />
           {upcomingEvents.length > 0 ? (
@@ -500,7 +500,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                   : <AlertCircle size={16} className="text-orange-600" />;
                 const typeBg = event.type === 'emi' ? 'bg-purple-50' : 'bg-orange-50';
                 return (
-                  <div key={i} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div key={i} className="p-4 flex items-center justify-between hover:bg-white transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", typeBg)}>
                         {typeIcon}
@@ -533,7 +533,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           )}
         </motion.div>
 
-        {/* ── 6. Group Expenses / Borrow / Lend ── */}
+        {/* 6. Group Expenses / Borrow / Lend */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Borrow, Lend & Groups" onViewAll={() => setCurrentPage?.('groups')} />
           <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setCurrentPage?.('groups')}>
@@ -591,7 +591,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           </Card>
         </motion.div>
 
-        {/* ── 7. Investments ── */}
+        {/* 7. Investments */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Investments" onViewAll={() => setCurrentPage?.('investments')} />
           {investmentStats.count > 0 ? (
@@ -624,7 +624,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                       {investmentStats.totalReturns >= 0 ? '+' : ''}{formatCurrency(investmentStats.totalReturns)}
                     </p>
                   </div>
-                  <div className="bg-gray-50 rounded-2xl p-3">
+                  <div className="bg-white rounded-2xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <BarChart3 size={14} className="text-gray-500" />
                       <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Holdings</span>
@@ -640,7 +640,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                     <div key={inv.id} className="flex items-center justify-between py-2.5">
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{getInvestmentDisplayName(inv.assetName)}</p>
-                        <p className="text-xs text-gray-400 capitalize">{inv.assetType} · {metrics.assetCurrency}</p>
+                        <p className="text-xs text-gray-400 capitalize">{inv.assetType}  {metrics.assetCurrency}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-gray-900">{formatCurrency(metrics.currentValue)}</p>
@@ -660,12 +660,12 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             </Card>
           ) : (
             <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage?.('investments')}>
-              <EmptyWidget icon={BarChart3} message="No investments added yet — click to add" />
+              <EmptyWidget icon={BarChart3} message="No investments added yet - click to add" />
             </Card>
           )}
         </motion.div>
 
-        {/* ── 8. Goals Progress ── */}
+        {/* "EUR"EUR 8. Goals Progress "EUR"EUR */}
         {activeGoals.length > 0 && (
           <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
             <SectionHeader title="Goals Progress" onViewAll={() => setCurrentPage?.('goals')} />
@@ -702,3 +702,4 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
     </div>
   );
 }
+

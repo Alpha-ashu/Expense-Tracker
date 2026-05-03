@@ -1,9 +1,9 @@
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
-  INR: '₹',
-  EUR: '€',
-  GBP: '£',
-  JPY: '¥',
+  INR: 'INR',
+  EUR: 'EUR',
+  GBP: 'GBP',
+  JPY: '',
   AUD: 'A$',
   CAD: 'C$',
   SGD: 'S$',
@@ -12,10 +12,10 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 const SYMBOL_TO_CODE: Record<string, string> = {
   '$': 'USD',
-  '₹': 'INR',
-  '€': 'EUR',
-  '£': 'GBP',
-  '¥': 'JPY',
+  'INR': 'INR',
+  'EUR': 'EUR',
+  'GBP': 'GBP',
+  '': 'JPY',
   'A$': 'AUD',
   'C$': 'CAD',
   'S$': 'SGD',

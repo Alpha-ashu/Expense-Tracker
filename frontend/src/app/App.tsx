@@ -9,7 +9,7 @@ import { HealthChecker } from '@/lib/health';
 import { toast } from 'sonner';
 import { initializeSmsTransactionDetection } from '@/services/smsTransactionDetectionService';
 
-// ── Shell components (always visible — eager load) ──────────────────────────
+//  Shell components (always visible - eager load) 
 import { Sidebar } from '@/app/components/Sidebar';
 import { TopBar } from '@/app/components/ui/TopBar';
 import { BottomNav } from '@/app/components/BottomNav';
@@ -18,7 +18,7 @@ import { PWAInstallPrompt } from '@/app/components/PWAInstallPrompt';
 import { LimitedModeBanner } from '@/components/common/LimitedModeBanner';
 import { OfflineBanner } from '@/app/components/OfflineBanner';
 
-// ── Auth / Security (shown before app shell — eager load) ────────────────────
+//  Auth / Security (shown before app shell - eager load) 
 import { AuthFlow } from '@/components/auth/AuthFlow';
 import { PINAuth } from '@/app/components/PINAuth';
 import { LandingPage } from '@/app/components/LandingPage';
@@ -28,7 +28,7 @@ import { ContactPage } from '@/app/components/ContactPage';
 import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
 import { Terms } from '@/app/components/Terms';
 
-// ── Page components — lazy loaded, each gets its own async chunk ─────────────
+//  Page components - lazy loaded, each gets its own async chunk 
 const Dashboard = lazy(() => import('@/app/components/Dashboard').then(m => ({ default: m.Dashboard })));
 const Accounts = lazy(() => import('@/app/components/Accounts').then(m => ({ default: m.Accounts })));
 const Transactions = lazy(() => import('@/app/components/Transactions').then(m => ({ default: m.Transactions })));
@@ -72,12 +72,12 @@ const Notifications = lazy(() => import('@/app/components/Notifications').then(m
 const SimpleAutoTest = lazy(() => import('@/components/ui/SimpleAutoTest').then(m => ({ default: m.SimpleAutoTest })));
 const NewUserOnboarding = lazy(() => import('@/components/onboarding/NewUserOnboarding').then(m => ({ default: m.NewUserOnboarding })));
 
-// ── Capacitor (native only) ──────────────────────────────────────────────────
+//  Capacitor (native only) 
 import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 
-// ── Minimal page-transition spinner shown while lazy chunk loads ─────────────
+//  Minimal page-transition spinner shown while lazy chunk loads 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-48 w-full pt-12">
     <div className="w-8 h-8 border-2 border-pink-200 border-t-pink-500 rounded-full animate-spin" />
@@ -99,7 +99,7 @@ class PageErrorBoundary extends React.Component<
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
-          <div className="text-4xl">⚠️</div>
+          <div className="text-4xl"></div>
           <h2 className="text-lg font-bold text-gray-900">Something went wrong</h2>
           <p className="text-sm text-gray-500 max-w-sm">{this.state.error.message}</p>
           <button
@@ -124,7 +124,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku…</p>
+          <p className="text-white text-base font-medium">Loading Kanakku...</p>
         </div>
       </div>
     );
@@ -296,13 +296,13 @@ const AppContent: React.FC = () => {
     }
   };
 
-  // ── Loading auth state ──────────────────────────────────────────────────────
+  //  Loading auth state 
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku…</p>
+          <p className="text-white text-base font-medium">Loading Kanakku...</p>
         </div>
       </div>
     );
@@ -457,7 +457,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku…</p>
+          <p className="text-white text-base font-medium">Loading Kanakku...</p>
         </div>
       </div>
     );
@@ -474,7 +474,7 @@ const AppContent: React.FC = () => {
           <div className="text-center">
             <div className="w-10 h-10 border-2 border-pink-200 border-t-pink-500 rounded-full animate-spin mx-auto mb-3" />
             <p className="text-gray-700 font-medium">
-              {dataSyncing ? 'Syncing your data…' : 'Loading your data…'}
+              {dataSyncing ? 'Syncing your data...' : 'Loading your data...'}
             </p>
             {dataSyncError && (
               <p className="text-xs text-gray-500 mt-1">
@@ -546,7 +546,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen flex overflow-x-hidden bg-gray-50 app-container">
-      {/* OfflineBanner is fixed-position — stays outside document flow, never disrupts the flex row */}
+      {/* OfflineBanner is fixed-position - stays outside document flow, never disrupts the flex row */}
       <OfflineBanner />
 
       {/* Desktop Sidebar */}
@@ -560,7 +560,7 @@ const AppContent: React.FC = () => {
         <LimitedModeBanner />
         <TopBar />
         <main className="flex-1 max-w-full overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
-          {/* Global alignment envelope — centers content on wide screens */}
+          {/* Global alignment envelope - centers content on wide screens */}
           <div className="w-full max-w-[1440px] mx-auto overflow-x-hidden isolate">
             {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
@@ -577,7 +577,7 @@ const AppContent: React.FC = () => {
                       disabled={dataSyncing}
                       className="mt-2 inline-flex items-center rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {dataSyncing ? 'Syncing…' : 'Re-sync now'}
+                      {dataSyncing ? 'Syncing...' : 'Re-sync now'}
                     </button>
                   </div>
                 </div>

@@ -20,7 +20,7 @@ export class OnlinePaymentStrategy implements ParsingStrategy {
       result.merchantName = merchantMatch[1].trim();
     }
 
-    const amountMatch = text.match(/(?:rs\.?|inr|₹)\s*(\d+\.?\d*)/i)
+    const amountMatch = text.match(/(?:rs\.?|inr|INR)\s*(\d+\.?\d*)/i)
       || text.match(/amount\s*:?\s*(\d+\.?\d*)/i);
     if (amountMatch?.[1]) {
       result.amount = Number.parseFloat(amountMatch[1]);

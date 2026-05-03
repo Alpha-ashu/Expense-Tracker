@@ -25,7 +25,7 @@ export const LimitedModeBanner: React.FC<LimitedModeBannerProps> = ({ onVerify }
       onVerify();
     } else {
       // Default: navigate to settings
-      toast.info('Navigate to Settings → Security → Verify Email');
+      toast.info('Navigate to Settings  Security  Verify Email');
     }
     setIsVerifying(false);
   };
@@ -102,7 +102,7 @@ export const LimitedModeInfo: React.FC = () => {
           <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
             <span className="text-sm text-gray-700">{feature.name}</span>
             <span className={`text-sm font-medium ${feature.allowed ? 'text-green-600' : 'text-red-500'}`}>
-              {feature.allowed ? '✓ Available' : '✗ Locked'}
+              {feature.allowed ? ' Available' : ' Locked'}
             </span>
           </div>
         ))}

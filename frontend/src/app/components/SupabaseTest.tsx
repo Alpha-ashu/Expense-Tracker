@@ -22,21 +22,21 @@ export default function SupabaseTest() {
         .limit(5);
 
       if (error) {
-        setStatus(`⚠️ Connected, but query error: ${error.message}`);
+        setStatus(` Connected, but query error: ${error.message}`);
         setDetails({ 
           message: 'Connection works! You may need to create the "todos" table.',
           error: error.message,
           hint: error.hint 
         });
       } else {
-        setStatus('✅ Successfully connected to Supabase!');
+        setStatus(' Successfully connected to Supabase!');
         setDetails({ 
           recordCount: data?.length || 0,
           data: data 
         });
       }
     } catch (err: any) {
-      setStatus('❌ Connection failed');
+      setStatus(' Connection failed');
       setDetails({ error: err.message });
     } finally {
       setLoading(false);
@@ -51,14 +51,14 @@ export default function SupabaseTest() {
       borderRadius: '8px',
       backgroundColor: '#f9f9f9'
     }}>
-      <h2>🔌 Supabase Connection Test</h2>
+      <h2> Supabase Connection Test</h2>
       
       <div style={{ marginBottom: '15px' }}>
         <strong>URL:</strong> {import.meta.env.VITE_SUPABASE_URL || 'Not set'}
       </div>
       
       <div style={{ marginBottom: '15px' }}>
-        <strong>Key:</strong> {import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ? '✅ Configured' : '❌ Not set'}
+        <strong>Key:</strong> {import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ? ' Configured' : ' Not set'}
       </div>
 
       <button 

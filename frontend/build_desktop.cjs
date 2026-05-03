@@ -1,0 +1,1 @@
+﻿const fs = require('fs'); const file = 'src/app/components/AddTransaction.tsx'; const lines = fs.readFileSync(file, 'utf8').split('\n'); const before = lines.slice(0, 2389).join('\n'); const after = lines.slice(2796).join('\n'); const newDesktop = fs.readFileSync('new_desktop.txt', 'utf8'); fs.writeFileSync(file, before + '\n' + newDesktop + '\n' + after); console.log('Done');

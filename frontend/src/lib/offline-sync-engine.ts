@@ -4,7 +4,7 @@
  * Architecture:
  *  1. Every CRUD mutation writes to IndexedDB immediately (offline-safe).
  *  2. A SyncQueueItem is appended to the `syncQueue` Dexie table.
- *  3. When online, the engine drains the queue → pushes to Supabase.
+ *  3. When online, the engine drains the queue  pushes to Supabase.
  *  4. A periodic pull fetches cloud changes and merges via "last-write-wins".
  *  5. Conflict resolution: highest `version` (or latest `updatedAt`) wins.
  *
@@ -23,7 +23,7 @@ import { useState, useEffect, useCallback } from 'react';
 // unless the backend schema is upgraded to match.
 const OFFLINE_SYNC_ENABLED = import.meta.env.VITE_ENABLE_OFFLINE_SYNC === 'true';
 
-// ─── Public types ─────────────────────────────────────────────────────────────
+//  Public types 
 
 export type OverallSyncStatus = 'idle' | 'offline' | 'syncing' | 'synced' | 'error';
 
@@ -34,14 +34,14 @@ export interface SyncStats {
   errorMessage?: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+//  Constants 
 
 const SYNC_INTERVAL_MS   = 30_000;  // periodic pull every 30 s
 const MAX_RETRIES        = 3;
 const RETRY_DELAY_MS     = 5_000;
 const BATCH_SIZE         = 50;
 
-// Maps local Dexie table name → Supabase table name
+// Maps local Dexie table name  Supabase table name
 const TABLE_MAP: Record<string, string> = {
   accounts:      'accounts',
   transactions:  'transactions',
@@ -54,7 +54,7 @@ const TABLE_MAP: Record<string, string> = {
   toDoItems:     'todo_items',
 };
 
-// ─── Field transformers (local camelCase → cloud snake_case) ─────────────────
+//  Field transformers (local camelCase  cloud snake_case) 
 
 function toCloud(table: string, local: Record<string, any>, userId: string): Record<string, any> {
   const now = new Date().toISOString();
@@ -326,7 +326,7 @@ function getDexieTable(table: string): any {
   return map[table] ?? null;
 }
 
-// ─── Sync Engine Class ────────────────────────────────────────────────────────
+//  Sync Engine Class 
 
 class OfflineSyncEngine {
   private isOnline   = typeof navigator !== 'undefined' ? navigator.onLine : true;
@@ -336,8 +336,8 @@ class OfflineSyncEngine {
   private lastSyncedAt: Date | null = null;
   private lastError: string | undefined;
   private pendingCount = 0;
-  // Circuit breaker with exponential backoff — persisted to localStorage.
-  // 4xx (schema broken): base 1 h, doubles to 24 h cap after ~5 failures → silent.
+  // Circuit breaker with exponential backoff - persisted to localStorage.
+  // 4xx (schema broken): base 1 h, doubles to 24 h cap after ~5 failures  silent.
   // 5xx (transient):     base 5 min, doubles to 24 h cap.
   private readonly COOLDOWN_STORAGE_KEY = 'sync_table_cooldowns';
   private readonly COOLDOWN_MAX_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -369,7 +369,7 @@ class OfflineSyncEngine {
       const obj: Record<string, { until: number; count: number }> = {};
       map.forEach((v, k) => { obj[k] = v; });
       localStorage.setItem(this.COOLDOWN_STORAGE_KEY, JSON.stringify(obj));
-    } catch { /* quota exceeded — ignore */ }
+    } catch { /* quota exceeded - ignore */ }
   }
 
   private isTableOnCooldown(cloudTable: string): boolean {
@@ -380,8 +380,8 @@ class OfflineSyncEngine {
   /**
    * Record a failure for `cloudTable` and apply exponential backoff.
    * @param httpStatus  HTTP status code from Supabase (400, 500, etc.)
-   *   4xx → base 1 hour  (schema / table missing — won't self-heal)
-   *   5xx → base 5 min   (transient server error)
+   *   4xx  base 1 hour  (schema / table missing - won't self-heal)
+   *   5xx  base 5 min   (transient server error)
    * Each consecutive failure doubles the delay, capped at 24 h.
    */
   private setTableCooldown(cloudTable: string, httpStatus = 400): void {
@@ -404,7 +404,7 @@ class OfflineSyncEngine {
     }
   }
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────────
+  //  Lifecycle 
 
   start() {
     if (!OFFLINE_SYNC_ENABLED) return;
@@ -431,7 +431,7 @@ class OfflineSyncEngine {
     document.removeEventListener('visibilitychange', this.handleVisibility);
   }
 
-  // ── Event listeners ────────────────────────────────────────────────────────
+  //  Event listeners 
 
   subscribe(cb: (stats: SyncStats) => void): () => void {
     this.listeners.add(cb);
@@ -443,7 +443,7 @@ class OfflineSyncEngine {
     this.listeners.forEach(cb => cb(stats));
   }
 
-  // ── Network handlers ───────────────────────────────────────────────────────
+  //  Network handlers 
 
   private handleOnline = () => {
     this.isOnline = true;
@@ -462,7 +462,7 @@ class OfflineSyncEngine {
     }
   };
 
-  // ── Queue management ───────────────────────────────────────────────────────
+  //  Queue management 
 
   /**
    * Enqueue a mutation for sync.  Called by callers after writing to local DB.
@@ -520,7 +520,7 @@ class OfflineSyncEngine {
     }
   }
 
-  // ── Main sync cycle ────────────────────────────────────────────────────────
+  //  Main sync cycle 
 
   async sync(): Promise<void> {
     if (!OFFLINE_SYNC_ENABLED) return;
@@ -556,7 +556,7 @@ class OfflineSyncEngine {
     }
   }
 
-  // ── Push queue → cloud ─────────────────────────────────────────────────────
+  //  Push queue  cloud 
 
   private async processPushQueue(userId: string): Promise<number> {
     const items = await db.syncQueue
@@ -630,7 +630,7 @@ class OfflineSyncEngine {
     }
   }
 
-  // ── Pull cloud → local ─────────────────────────────────────────────────────
+  //  Pull cloud  local 
 
   private async pullFromCloud(userId: string): Promise<number> {
     const rawLastSync = localStorage.getItem('last_sync_at');
@@ -667,7 +667,7 @@ class OfflineSyncEngine {
           continue;
         }
 
-        // Successful response — clear any previous cooldown
+        // Successful response - clear any previous cooldown
         this.clearTableCooldown(cloudTable);
         if (!data?.length) continue;
 
@@ -676,7 +676,7 @@ class OfflineSyncEngine {
           total++;
         }
       } catch (err) {
-        // Unexpected local error — don't suppress, but don't crash the whole pull
+        // Unexpected local error - don't suppress, but don't crash the whole pull
         console.error(`[SyncEngine] pull failed for ${localTable}:`, err);
       }
     }
@@ -691,7 +691,7 @@ class OfflineSyncEngine {
     const cloudId = cloudRecord.id as string;
     const cloudTs = new Date(cloudRecord.updated_at ?? 0).getTime();
 
-    // Try match by cloudId first — use .filter() so no index is required
+    // Try match by cloudId first - use .filter() so no index is required
     let existing: any = cloudId
       ? await dexieTable.filter((r: any) => r.cloudId === cloudId).first().catch(() => undefined)
       : undefined;
@@ -704,7 +704,7 @@ class OfflineSyncEngine {
     const localRecord = toLocal(localTable, cloudRecord);
 
     if (!existing) {
-      // New record from cloud — insert
+      // New record from cloud - insert
       await dexieTable.add(localRecord);
     } else {
       const localTs = new Date(existing.updatedAt ?? 0).getTime();
@@ -716,7 +716,7 @@ class OfflineSyncEngine {
     }
   }
 
-  // ── Utilities ──────────────────────────────────────────────────────────────
+  //  Utilities 
 
   private async updatePendingCount(userId: string): Promise<void> {
     this.pendingCount = await db.syncQueue
@@ -774,7 +774,7 @@ class OfflineSyncEngine {
 
   isNetworkOnline(): boolean { return this.isOnline; }
 
-  // ── Admin: fetch sync logs ─────────────────────────────────────────────────
+  //  Admin: fetch sync logs 
 
   async getSyncLogs(userId: string, limit = 100): Promise<SyncEventLog[]> {
     return db.syncEventLogs
@@ -814,11 +814,11 @@ class OfflineSyncEngine {
   }
 }
 
-// ─── Singleton export ─────────────────────────────────────────────────────────
+//  Singleton export 
 
 export const offlineSyncEngine = new OfflineSyncEngine();
 
-// ─── React hook ───────────────────────────────────────────────────────────────
+//  React hook 
 
 export function useSyncStats(): SyncStats {
   const [stats, setStats] = useState<SyncStats>(offlineSyncEngine.getStats());
@@ -831,7 +831,7 @@ export function useSyncStats(): SyncStats {
   return stats;
 }
 
-// ─── Helper: wrap a local DB write to also enqueue for sync ──────────────────
+//  Helper: wrap a local DB write to also enqueue for sync 
 
 export async function withSync<T>(
   userId: string,
@@ -851,7 +851,7 @@ export async function withSync<T>(
   return result;
 }
 
-// ─── useOfflineSync hook ──────────────────────────────────────────────────────
+//  useOfflineSync hook 
 /**
  * Convenience hook for page components that need to enqueue sync operations.
  *

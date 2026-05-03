@@ -15,7 +15,7 @@
 @import 'tw-animate-css';
 
 @theme {
-  --color-bg-body: #F2F4F7;
+  --color-bg-body: #ffffff;
   --color-bg-card: #FFFFFF;
   --color-bg-header: #1A1A1A;
 
@@ -140,7 +140,7 @@
   .page-shell {
     width: 100%;
     min-height: 100vh;
-    background-color: #F2F4F7;
+    background-color: #ffffff;
     overflow-x: hidden;
   }
 

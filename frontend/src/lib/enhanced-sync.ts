@@ -56,9 +56,9 @@ class EnhancedSyncService {
       // Load any pending sync operations from localStorage
       this.loadSyncQueue();
 
-      console.log('✅ Enhanced sync service initialized');
+      console.log(' Enhanced sync service initialized');
     } catch (error) {
-      console.error('❌ Failed to initialize sync service:', error);
+      console.error(' Failed to initialize sync service:', error);
     }
   }
 
@@ -85,9 +85,9 @@ class EnhancedSyncService {
       }
 
       const result = await response.json();
-      console.log('✅ Device registered:', result.device);
+      console.log(' Device registered:', result.device);
     } catch (error) {
-      console.error('❌ Device registration failed:', error);
+      console.error(' Device registration failed:', error);
       throw error;
     }
   }
@@ -97,7 +97,7 @@ class EnhancedSyncService {
    */
   async pullFromBackend(userId: string): Promise<SyncResponse> {
     try {
-      console.log('🔄 Pulling data from backend...');
+      console.log(' Pulling data from backend...');
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/sync/pull`, {
         method: 'POST',
@@ -123,10 +123,10 @@ class EnhancedSyncService {
         localStorage.setItem('last_sync', this.lastSyncAt);
       }
 
-      console.log('✅ Pull completed:', result);
+      console.log(' Pull completed:', result);
       return result;
     } catch (error) {
-      console.error('❌ Pull failed:', error);
+      console.error(' Pull failed:', error);
       throw error;
     }
   }
@@ -137,11 +137,11 @@ class EnhancedSyncService {
   async pushToBackend(userId: string): Promise<SyncResponse> {
     try {
       if (this.syncQueue.length === 0) {
-        console.log('📤 No changes to push');
+        console.log(' No changes to push');
         return { success: true };
       }
 
-      console.log(`📤 Pushing ${this.syncQueue.length} changes to backend...`);
+      console.log(` Pushing ${this.syncQueue.length} changes to backend...`);
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || '/api/v1'}/sync/push`, {
         method: 'POST',
@@ -165,14 +165,14 @@ class EnhancedSyncService {
         // Clear sync queue on successful push
         this.syncQueue = [];
         this.saveSyncQueue();
-        console.log('✅ Push completed successfully');
+        console.log(' Push completed successfully');
       } else {
-        console.error('⚠️ Push completed with conflicts/errors:', result);
+        console.error(' Push completed with conflicts/errors:', result);
       }
 
       return result;
     } catch (error) {
-      console.error('❌ Push failed:', error);
+      console.error(' Push failed:', error);
       throw error;
     }
   }
@@ -182,7 +182,7 @@ class EnhancedSyncService {
    */
   async fullSync(userId: string): Promise<SyncResponse> {
     if (this.syncInProgress) {
-      console.log('⏳ Sync already in progress');
+      console.log(' Sync already in progress');
       return { success: false, errors: ['Sync already in progress'] };
     }
 
@@ -193,7 +193,7 @@ class EnhancedSyncService {
       const pushResult = await this.pushToBackend(userId);
 
       if (!pushResult.success && pushResult.errors?.length) {
-        console.error('❌ Push failed, aborting pull');
+        console.error(' Push failed, aborting pull');
         return pushResult;
       }
 
@@ -209,7 +209,7 @@ class EnhancedSyncService {
       return pullResult;
     } catch (error) {
       this.syncInProgress = false;
-      console.error('❌ Full sync failed:', error);
+      console.error(' Full sync failed:', error);
       throw error;
     }
   }
@@ -227,7 +227,7 @@ class EnhancedSyncService {
     this.syncQueue.push(entity);
     this.saveSyncQueue();
 
-    console.log(`📝 Queued ${entity.operation} for ${entity.entityType}:${entity.entityId}`);
+    console.log(` Queued ${entity.operation} for ${entity.entityType}:${entity.entityId}`);
   }
 
   /**
@@ -235,7 +235,7 @@ class EnhancedSyncService {
    */
   private async mergeRemoteData(data: any): Promise<void> {
     try {
-      console.log('🔄 Merging remote data into local database...');
+      console.log(' Merging remote data into local database...');
 
       // Note: We use bulkPut instead of clear() + bulkAdd() to preserve local records
       // that might be in the middle of a sync or have different local IDs.
@@ -248,7 +248,7 @@ class EnhancedSyncService {
           updatedAt: new Date(acc.updatedAt),
           deletedAt: acc.deletedAt ? new Date(acc.deletedAt) : null,
         })));
-        console.log(`✅ Synced ${data.accounts.length} accounts`);
+        console.log(` Synced ${data.accounts.length} accounts`);
       }
 
       // Add/Update transactions
@@ -260,7 +260,7 @@ class EnhancedSyncService {
           updatedAt: new Date(txn.updatedAt),
           deletedAt: txn.deletedAt ? new Date(txn.deletedAt) : null,
         })));
-        console.log(`✅ Synced ${data.transactions.length} transactions`);
+        console.log(` Synced ${data.transactions.length} transactions`);
       }
 
       // Add/Update goals
@@ -272,7 +272,7 @@ class EnhancedSyncService {
           updatedAt: new Date(goal.updatedAt),
           deletedAt: goal.deletedAt ? new Date(goal.deletedAt) : null,
         })));
-        console.log(`✅ Synced ${data.goals.length} goals`);
+        console.log(` Synced ${data.goals.length} goals`);
       }
 
       // Add/Update loans
@@ -284,18 +284,18 @@ class EnhancedSyncService {
           updatedAt: new Date(loan.updatedAt),
           deletedAt: loan.deletedAt ? new Date(loan.deletedAt) : null,
         })));
-        console.log(`✅ Synced ${data.loans.length} loans`);
+        console.log(` Synced ${data.loans.length} loans`);
       }
 
       // Store settings
       if (data.settings) {
         localStorage.setItem('user_settings', JSON.stringify(data.settings));
-        console.log('✅ Loaded user settings');
+        console.log(' Loaded user settings');
       }
 
-      console.log('✅ Remote data merged successfully');
+      console.log(' Remote data merged successfully');
     } catch (error) {
-      console.error('❌ Failed to merge remote data:', error);
+      console.error(' Failed to merge remote data:', error);
       throw error;
     }
   }
@@ -304,7 +304,7 @@ class EnhancedSyncService {
    * Handle sync conflicts
    */
   private async handleConflicts(conflicts: any[]): Promise<void> {
-    console.log('⚠️ Handling conflicts:', conflicts);
+    console.log(' Handling conflicts:', conflicts);
 
     for (const conflict of conflicts) {
       // For now, use "latest timestamp wins" strategy
@@ -313,11 +313,11 @@ class EnhancedSyncService {
 
       if (remoteTimestamp > localTimestamp) {
         // Remote is newer, accept remote data
-        console.log(`🔄 Accepting remote data for ${conflict.entityType}:${conflict.entityId}`);
+        console.log(` Accepting remote data for ${conflict.entityType}:${conflict.entityId}`);
         await this.acceptRemoteConflictResolution(conflict);
       } else {
         // Local is newer, push it again
-        console.log(`🔄 Keeping local data for ${conflict.entityType}:${conflict.entityId}`);
+        console.log(` Keeping local data for ${conflict.entityType}:${conflict.entityId}`);
         await this.acceptLocalConflictResolution(conflict);
       }
     }
@@ -373,9 +373,9 @@ class EnhancedSyncService {
     if (saved) {
       try {
         this.syncQueue = JSON.parse(saved);
-        console.log(`📝 Loaded ${this.syncQueue.length} pending sync operations`);
+        console.log(` Loaded ${this.syncQueue.length} pending sync operations`);
       } catch (error) {
-        console.error('❌ Failed to load sync queue:', error);
+        console.error(' Failed to load sync queue:', error);
         this.syncQueue = [];
       }
     }
@@ -412,7 +412,7 @@ class EnhancedSyncService {
     await db.goals.clear();
     await db.loans.clear();
 
-    console.log('✅ All sync data cleared');
+    console.log(' All sync data cleared');
   }
 }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { LogOut, KeyRound, AlertCircle, ChevronLeft, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { LogOut, KeyRound, AlertCircle, ChevronLeft, ShieldCheck, Eye, EyeOff, Lock } from 'lucide-react';
 import { FinoraLogo } from './ui/FinoraLogo';
 import { clearSecurityData, isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
@@ -8,76 +8,17 @@ import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 import { useAuth } from '@/contexts/AuthContext';
 import { isGuestMode } from '@/lib/guestMode';
+import supabase from '@/utils/supabase/client';
 
 interface PINAuthProps {
   onAuthenticated: (encryptionKey: string) => void;
 }
 
-/* ─── Digit Box Component ─── */
-const DigitBox: React.FC<{
-  filled: boolean;
-  active: boolean;
-  shake: boolean;
-  revealed?: string;
-  error?: boolean;
-}> = ({ filled, active, shake, revealed, error }) => (
-  <div
-    className={[
-      'relative w-12 h-14 rounded-2xl border-2 flex items-center justify-center transition-all duration-150',
-      shake ? 'animate-[shake_0.4s_ease]' : '',
-      error
-        ? 'border-red-400 bg-red-50'
-        : filled
-        ? active
-          ? 'border-blue-500 bg-blue-50 scale-105 shadow-md shadow-blue-100'
-          : 'border-blue-400 bg-white'
-        : active
-        ? 'border-blue-400 bg-blue-50/60 shadow-sm'
-        : 'border-gray-200 bg-gray-50',
-    ].join(' ')}
-  >
-    {filled ? (
-      revealed ? (
-        <span className="text-xl font-bold text-gray-800 font-mono">{revealed}</span>
-      ) : (
-        <div className={`w-3 h-3 rounded-full ${error ? 'bg-red-400' : 'bg-blue-500'}`} />
-      )
-    ) : active ? (
-      <div className="w-0.5 h-6 bg-blue-400 animate-[blink_1s_step-end_infinite] rounded-full" />
-    ) : null}
-  </div>
-);
-
-/* ─── Number Pad Button ─── */
-const PadBtn: React.FC<{
-  label: React.ReactNode;
-  sublabel?: string;
-  onClick: () => void;
-  variant?: 'default' | 'action';
-  disabled?: boolean;
-}> = ({ label, sublabel, onClick, variant = 'default', disabled }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className={[
-      'flex flex-col items-center justify-center rounded-2xl h-16 w-full select-none transition-all duration-100 active:scale-95',
-      variant === 'action'
-        ? 'bg-transparent text-blue-600 hover:bg-blue-50 disabled:opacity-30'
-        : 'bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-200 active:bg-blue-100 disabled:opacity-30',
-    ].join(' ')}
-  >
-    <span className={`font-semibold leading-none ${variant === 'action' ? 'text-base' : 'text-2xl text-gray-800'}`}>
-      {label}
-    </span>
-    {sublabel && <span className="text-[10px] text-gray-400 mt-0.5 tracking-widest uppercase">{sublabel}</span>}
-  </button>
-);
 
 export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const { signOut, user } = useAuth();
 
-  // ── State ──────────────────────────────────────────────────────────────
+  //  State 
   const [isCreating, setIsCreating] = useState(false);
   const [createStage, setCreateStage] = useState<'enter' | 'confirm'>('enter');
   const [pin, setPin] = useState('');
@@ -91,15 +32,17 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   const [isResettingPin, setIsResettingPin] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [resetError, setResetError] = useState('');
+  const [resetOtpSent, setResetOtpSent] = useState(false);
+  const [resetOtp, setResetOtp] = useState('');
 
   const hiddenInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Init ───────────────────────────────────────────────────────────────
+  //  Init 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        // Guest mode: no server calls — PIN is local only
+        // Guest mode: no server calls - PIN is local only
         if (isGuestMode()) {
           if (mounted) {
             setIsCreating(!isPINSet());
@@ -120,7 +63,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         if (mounted) {
-          const serverHasNoPin = isPinMissing(status) || !status.success;
+          const serverHasNoPin = isPinMissing(status);
           setIsCreating(serverHasNoPin && !hasLocalPin);
           setIsLoading(false);
         }
@@ -139,7 +82,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     if (!isLoading) hiddenInputRef.current?.focus();
   }, [isLoading, isCreating, createStage]);
 
-  // ── Helpers ────────────────────────────────────────────────────────────
+  //  Helpers 
   const triggerShake = (msg: string) => {
     setErrorMsg(msg);
     setShake(true);
@@ -155,7 +98,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     onAuthenticated(key);
   }, [onAuthenticated]);
 
-  // ── PIN input handler (hidden input + numpad both write here) ──────────
+  //  PIN input handler (hidden input + numpad both write here) 
   const appendDigit = (d: string) => {
     if (isSubmitting) return;
     setErrorMsg('');
@@ -183,7 +126,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
-  // ── Submit logic ───────────────────────────────────────────────────────
+  //  Submit logic 
   const handleSubmit = async () => {
     if (pin.length !== 6 || isSubmitting) return;
     setIsSubmitting(true);
@@ -199,7 +142,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           return;
         }
 
-        // Confirm stage — check match
+        // Confirm stage - check match
         if (pin !== firstPin) {
           triggerShake("PINs don't match. Try again.");
           setCreateStage('enter');
@@ -208,7 +151,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           return;
         }
 
-        // Server sync is best-effort — always proceed after PINs match.
+        // Server sync is best-effort - always proceed after PINs match.
         // Guest mode: skip server entirely.
         if (!isGuestMode()) {
           pinService.createPin(pin)
@@ -224,15 +167,15 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         }
 
         const key = storeMasterKey(pin);
-        await finalizeAuth(key, 'PIN created! Welcome to Kanakku 🎉');
+        await finalizeAuth(key, 'PIN created! Welcome to Kanakku ');
 
       } else {
-        // ── Verify existing PIN (local-first) ───────────────────────────────
+        //  Verify existing PIN (local-first) 
         // Guest mode: verify locally only, no server call.
         const localResult = verifyPIN(pin);
 
         if (localResult.isValid && localResult.key) {
-          // Local PIN correct — in non-guest mode also sync to server background
+          // Local PIN correct - in non-guest mode also sync to server background
           if (!isGuestMode()) {
             pinService.verifyPin({ pin })
               .then(async serverResult => {
@@ -253,13 +196,13 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           return;
         }
 
-        // ── Local hash missing or mismatched — fall back to server ──────
+        //  Local hash missing or mismatched - fall back to server 
         // (e.g. user cleared storage, or PIN was set on another device)
         const serverResult = await pinService.verifyPin({ pin });
 
         if (!serverResult.success) {
           if (isPinServiceUnavailable(serverResult)) {
-            // Server down AND local failed → no way to verify
+            // Server down AND local failed  no way to verify
             triggerShake('Unable to verify PIN right now. Please try again.');
           } else {
             triggerShake('Incorrect PIN. Please try again.');
@@ -268,7 +211,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           return;
         }
 
-        // Server verified → restore local keys from backup so future locks work
+        // Server verified  restore local keys from backup so future locks work
         const kbr = await pinService.getKeyBackup();
         if (kbr.success && kbr.backup) {
           const [hash, salt] = kbr.backup.split('|');
@@ -297,24 +240,66 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     }
   };
 
-  const handleForgotPin = () => { setResetError(''); setShowResetModal(true); };
+  const handleForgotPin = () => { 
+    if (!user?.email) {
+      toast.error('Email not found. Cannot reset PIN.');
+      return;
+    }
+    setResetError(''); 
+    setResetOtpSent(false);
+    setResetOtp('');
+    setShowResetModal(true); 
+  };
 
-  const handleConfirmReset = async () => {
+  const handleSendOtp = async () => {
     setIsResettingPin(true);
+    setResetError('');
     try {
-      const result = await pinService.resetCurrentUserPin();
-      if (!result.success) { setResetError(result.message || 'Failed to reset PIN'); return; }
-      clearSecurityData();
-      await signOut();
-      toast.success('PIN reset. Sign in again to set a new PIN.');
-    } catch {
-      setResetError('Failed to reset PIN. Please try again.');
+      const { error } = await supabase.auth.signInWithOtp({ email: user!.email });
+      if (error) throw error;
+      setResetOtpSent(true);
+      toast.success('Verification code sent to your email.');
+    } catch (err: any) {
+      setResetError(err.message || 'Failed to send verification code.');
     } finally {
       setIsResettingPin(false);
     }
   };
 
-  // ── Derived display ────────────────────────────────────────────────────
+  const handleVerifyOtpAndReset = async () => {
+    setIsResettingPin(true);
+    setResetError('');
+    try {
+      const { error } = await supabase.auth.verifyOtp({ 
+        email: user!.email, 
+        token: resetOtp, 
+        type: 'email' 
+      });
+      if (error) throw error;
+      
+      const result = await pinService.resetCurrentUserPin();
+      if (!result.success) { 
+        setResetError(result.message || 'Failed to reset PIN on server'); 
+        return; 
+      }
+      
+      clearSecurityData();
+      pinService.clearPinData();
+      
+      setShowResetModal(false);
+      setPin('');
+      setFirstPin('');
+      setIsCreating(true);
+      setCreateStage('enter');
+      toast.success('PIN reset successfully. Please create a new PIN.');
+    } catch (err: any) {
+      setResetError(err.message || 'Invalid verification code.');
+    } finally {
+      setIsResettingPin(false);
+    }
+  };
+
+  //  Derived display 
   const currentStepLabel = isCreating
     ? createStage === 'enter' ? 'Create your PIN' : 'Confirm your PIN'
     : 'Enter your PIN';
@@ -325,7 +310,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
       : 'Re-enter the same PIN to confirm'
     : 'Enter your PIN to access Kanakku';
 
-  // ── Loading skeleton ───────────────────────────────────────────────────
+  //  Loading skeleton 
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a56f0]">
@@ -339,19 +324,18 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     );
   }
 
-  // ── Main render ────────────────────────────────────────────────────────
+  //  Main render 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-[#1a56f0] flex flex-col"
+      className="fixed inset-0 z-50 overflow-y-auto bg-gray-50 flex items-center justify-center p-4"
       onClick={() => hiddenInputRef.current?.focus()}
     >
-      {/* Hidden form — captures keyboard input, visually invisible, no aria-hidden (would block focus/keyboard) */}
+      {/* Hidden form - captures keyboard input, visually invisible, no aria-hidden (would block focus/keyboard) */}
       <form
         style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, overflow: 'hidden' }}
         autoComplete="off"
         onSubmit={e => e.preventDefault()}
       >
-        {/* Hidden username field — required by Chromium password manager heuristics */}
         <input
           type="text"
           name="username"
@@ -360,7 +344,6 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           autoComplete="username"
           tabIndex={-1}
         />
-        {/* Actual PIN capture input — NOT aria-hidden so keyboard events are not blocked */}
         <input
           ref={hiddenInputRef}
           type="password"
@@ -374,33 +357,31 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         />
       </form>
 
-      {/* Header */}
-      <div className="flex-none pt-10 pb-6 flex flex-col items-center px-6">
-        {/* Logo */}
-        <div className="w-20 h-20 rounded-[1.5rem] bg-white/15 backdrop-blur-sm flex items-center justify-center mb-5 shadow-lg shadow-blue-900/20">
-          <FinoraLogo className="w-12 h-12" />
+      <div className="bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] w-full max-w-md flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="pt-10 pb-6 flex flex-col items-center px-6">
+          <div className="w-16 h-16 rounded-[20px] bg-gray-900 flex items-center justify-center mb-5 shadow-sm">
+            <Lock className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Kanakku</h1>
+          <p className="text-sm text-gray-500 font-medium text-center">{currentStepSub}</p>
         </div>
-        <h1 className="text-3xl font-bold text-white tracking-tight mb-1">Kanakku</h1>
-        <p className="text-blue-100 text-base text-center">{currentStepSub}</p>
-      </div>
 
-      {/* Card */}
-      <div className="flex-1 flex flex-col">
-        <div className="mx-auto w-full max-w-sm px-4 flex flex-col gap-6">
-
+        {/* Card Content */}
+        <div className="px-8 flex flex-col gap-6">
           {/* Step label + back button for confirm stage */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-0.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
                 {isCreating ? `Step ${createStage === 'enter' ? '1' : '2'} of 2` : 'Secure Unlock'}
               </p>
-              <h2 className="text-xl font-bold text-white">{currentStepLabel}</h2>
+              <h2 className="text-xl font-bold text-gray-900">{currentStepLabel}</h2>
             </div>
             {isCreating && createStage === 'confirm' && (
               <button
                 type="button"
                 onClick={() => { setCreateStage('enter'); setPin(''); setFirstPin(''); setErrorMsg(''); }}
-                className="flex items-center gap-1 text-blue-200 hover:text-white text-sm font-medium transition-colors"
+                className="flex items-center gap-1 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
               >
                 <ChevronLeft size={16} /> Back
               </button>
@@ -409,23 +390,37 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
           {/* PIN digit boxes */}
           <div className="flex justify-center gap-3">
-            {Array.from({ length: 6 }, (_, i) => (
-              <DigitBox
-                key={i}
-                filled={i < pin.length}
-                active={i === pin.length}
-                shake={shake}
-                error={!!errorMsg && shake}
-                revealed={showReveal && i < pin.length ? pin[i] : undefined}
-              />
-            ))}
+            {Array.from({ length: 6 }, (_, i) => {
+              const isActive = i === pin.length;
+              const isFilled = i < pin.length;
+              const hasError = !!errorMsg && shake;
+              const revealed = showReveal && i < pin.length ? pin[i] : undefined;
+              
+              return (
+                <div
+                  key={i}
+                  className={`w-12 h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-bold transition-all ${
+                    hasError
+                      ? 'border-red-400 bg-red-50 text-red-600'
+                      : isActive
+                      ? 'border-gray-900 bg-white ring-4 ring-gray-100'
+                      : isFilled
+                      ? 'border-gray-900 bg-gray-900 text-white'
+                      : 'border-gray-200 bg-gray-50 text-transparent'
+                  } ${shake ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
+                >
+                  {revealed !== undefined ? revealed : isFilled ? '-' : ''}
+                  {isActive && <div className="w-[2px] h-5 bg-gray-900 animate-[blink_1s_infinite]" />}
+                </div>
+              );
+            })}
           </div>
 
           {/* Show/hide toggle + error */}
           <div className="flex items-center justify-between -mt-2 px-1">
             <div className="h-5">
               {errorMsg && (
-                <p className="text-red-300 text-sm font-medium flex items-center gap-1.5">
+                <p className="text-red-500 text-sm font-medium flex items-center gap-1.5">
                   <AlertCircle size={13} /> {errorMsg}
                 </p>
               )}
@@ -433,7 +428,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
             <button
               type="button"
               onClick={() => setShowReveal(r => !r)}
-              className="flex items-center gap-1 text-blue-200 hover:text-white text-xs font-medium transition-colors"
+              className="flex items-center gap-1 text-gray-500 hover:text-gray-900 text-xs font-medium transition-colors"
             >
               {showReveal ? <EyeOff size={13} /> : <Eye size={13} />}
               {showReveal ? 'Hide' : 'Show'}
@@ -443,30 +438,45 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           {/* Number pad */}
           <div className="grid grid-cols-3 gap-3">
             {[1,2,3,4,5,6,7,8,9].map(n => (
-              <PadBtn key={n} label={n} onClick={() => appendDigit(String(n))} disabled={isSubmitting} />
+              <button
+                key={n}
+                type="button"
+                onClick={() => appendDigit(String(n))}
+                disabled={isSubmitting}
+                className="h-14 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 active:scale-95 transition-all text-xl font-semibold text-gray-900 flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {n}
+              </button>
             ))}
             {/* Bottom row */}
-            {!isCreating ? (
-              <PadBtn
-                label={<KeyRound size={20} />}
+            {!isCreating && !isGuestMode() ? (
+              <button
+                type="button"
                 onClick={handleForgotPin}
-                variant="action"
                 disabled={isSubmitting}
-              />
+                className="h-14 rounded-2xl bg-transparent hover:bg-gray-50 active:bg-gray-100 transition-all text-gray-500 hover:text-gray-900 flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+              >
+                <KeyRound size={20} />
+              </button>
             ) : (
               <div /> /* empty cell */
             )}
-            <PadBtn label={0} onClick={() => appendDigit('0')} disabled={isSubmitting} />
-            <PadBtn
-              label={
-                isSubmitting
-                  ? <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                  : '⌫'
-              }
-              onClick={deleteDigit}
-              variant="action"
+            <button
+              type="button"
+              onClick={() => appendDigit('0')}
               disabled={isSubmitting}
-            />
+              className="h-14 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 active:scale-95 transition-all text-xl font-semibold text-gray-900 flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+            >
+              0
+            </button>
+            <button
+              type="button"
+              onClick={deleteDigit}
+              disabled={isSubmitting}
+              className="h-14 rounded-2xl bg-transparent hover:bg-gray-50 active:bg-gray-100 transition-all text-gray-500 hover:text-gray-900 flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {isSubmitting ? <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> : ''}
+            </button>
           </div>
 
           {/* Sign out / different account */}
@@ -475,19 +485,19 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               type="button"
               onClick={handleSignOut}
               disabled={isLoggingOut || isSubmitting}
-              className="flex items-center justify-center gap-2 text-blue-200 hover:text-white text-sm font-medium transition-colors py-1"
+              className="flex items-center justify-center gap-2 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors py-1 mt-2"
             >
               <LogOut size={15} />
-              {isLoggingOut ? 'Signing out…' : 'Use a different account'}
+              {isLoggingOut ? 'Signing out...' : 'Use a different account'}
             </button>
           )}
 
           {/* Security banner */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex gap-3">
-            <ShieldCheck className="text-blue-200 flex-shrink-0 mt-0.5" size={18} />
+          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex gap-3 mt-4 mb-8">
+            <ShieldCheck className="text-gray-500 flex-shrink-0 mt-0.5" size={18} />
             <div>
-              <p className="text-white text-sm font-semibold mb-0.5">Your data is secure</p>
-              <p className="text-blue-200 text-xs leading-relaxed">
+              <p className="text-gray-900 text-sm font-semibold mb-0.5">Your data is secure</p>
+              <p className="text-gray-500 text-xs leading-relaxed">
                 Financial data stays encrypted on this device. Only PIN verification metadata is stored on the server.
               </p>
             </div>
@@ -495,21 +505,16 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex-none py-5 text-center">
-        <p className="text-blue-300 text-xs">Privacy-first financial management</p>
-      </div>
-
-      {/* ── Forgot PIN modal ── */}
+      {/*  Forgot PIN modal  */}
       {showResetModal && (
-        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
               <KeyRound className="text-amber-600" size={22} />
             </div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">Reset your PIN?</h3>
             <p className="text-sm text-gray-500 mb-5 leading-relaxed">
-              This will clear your current PIN, sign you out, and let you create a new one after signing back in.
+              {resetOtpSent ? 'Enter the 6-digit code sent to your email to reset your PIN.' : 'We will send a confirmation code to your email. You can create a new PIN after verification.'}
             </p>
 
             {resetError && (
@@ -519,22 +524,47 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               </div>
             )}
 
+            {resetOtpSent && (
+              <div className="mb-5">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={resetOtp}
+                  onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Enter 6-digit code"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-center tracking-widest text-lg font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 bg-gray-50"
+                  autoFocus
+                />
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => { setShowResetModal(false); setResetError(''); }}
+                onClick={() => setShowResetModal(false)}
                 className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleConfirmReset}
-                disabled={isResettingPin}
-                className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors disabled:opacity-60"
-              >
-                {isResettingPin ? 'Resetting…' : 'Reset PIN'}
-              </button>
+              {resetOtpSent ? (
+                <button
+                  type="button"
+                  onClick={handleVerifyOtpAndReset}
+                  disabled={isResettingPin || resetOtp.length < 6}
+                  className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors disabled:opacity-60"
+                >
+                  {isResettingPin ? 'Verifying...' : 'Verify & Reset'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={isResettingPin}
+                  className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors disabled:opacity-60"
+                >
+                  {isResettingPin ? 'Sending...' : 'Send Code'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -35,14 +35,14 @@ export class IndianRestaurantStrategy implements ParsingStrategy {
 
       result.amount = this.extractTotalAmount(lines);
 
-      const subtotalMatch = text.match(/Sub\s*[-—]?\s*Total\s*:?\s*(?:[₹Rs.]*\s*)?([\d,]+\.?\d*)/i)
-        || text.match(/Food\s*Total\s*:?\s*(?:[₹Rs.]*\s*)?([\d,]+\.?\d*)/i);
+      const subtotalMatch = text.match(/Sub\s*[--]?\s*Total\s*:?\s*(?:[INRRs.]*\s*)?([\d,]+\.?\d*)/i)
+        || text.match(/Food\s*Total\s*:?\s*(?:[INRRs.]*\s*)?([\d,]+\.?\d*)/i);
       if (subtotalMatch?.[1]) {
         result.subtotal = Number.parseFloat(subtotalMatch[1].replace(/,/g, ''));
       }
 
-      // Flexible CGST/SGST/IGST patterns — handle with/without @, %, Rs, various OCR noise
-      const taxComponentPattern = /(?:C\.?G\.?S\.?T|S\.?G\.?S\.?T|I\.?G\.?S\.?T)\s*(?:@\s*)?(?:[\d.]+\s*%?)?\s*:?\s*(?:[₹Rs.]*\s*)?([\d,]+\.?\d*)/gi;
+      // Flexible CGST/SGST/IGST patterns - handle with/without @, %, Rs, various OCR noise
+      const taxComponentPattern = /(?:C\.?G\.?S\.?T|S\.?G\.?S\.?T|I\.?G\.?S\.?T)\s*(?:@\s*)?(?:[\d.]+\s*%?)?\s*:?\s*(?:[INRRs.]*\s*)?([\d,]+\.?\d*)/gi;
       const taxComponents: number[] = [];
       let taxMatch: RegExpExecArray | null;
       while ((taxMatch = taxComponentPattern.exec(text)) !== null) {
@@ -54,7 +54,7 @@ export class IndianRestaurantStrategy implements ParsingStrategy {
         result.taxAmount = Number(taxComponents.reduce((sum, v) => sum + v, 0).toFixed(2));
       } else {
         // Fallback: try plain GST / Tax Amount line
-        const plainTaxMatch = text.match(/(?:gst|tax\s*(?:amount|amt))\s*:?\s*(?:[₹Rs.]*\s*)?([\d,]+\.?\d*)/i);
+        const plainTaxMatch = text.match(/(?:gst|tax\s*(?:amount|amt))\s*:?\s*(?:[INRRs.]*\s*)?([\d,]+\.?\d*)/i);
         if (plainTaxMatch?.[1]) {
           const val = Number.parseFloat(plainTaxMatch[1].replace(/,/g, ''));
           if (Number.isFinite(val) && val > 0) result.taxAmount = val;

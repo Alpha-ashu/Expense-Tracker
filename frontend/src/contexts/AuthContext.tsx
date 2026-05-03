@@ -229,7 +229,7 @@ const clearLocalUserData = async () => {
   }
 };
 
-const clearLocalAuthPresentationState = () => {
+const clearLocalAuthPresentationState = (preservePinKeys = false) => {
   [
     'onboarding_completed',
     'profile_updated_at',
@@ -247,8 +247,10 @@ const clearLocalAuthPresentationState = () => {
     'pin_expiry',
   ].forEach((key) => localStorage.removeItem(key));
 
-  pinService.clearPinData();
-  clearSecurityData();
+  if (!preservePinKeys) {
+    pinService.clearPinData();
+    clearSecurityData();
+  }
 };
 
 const fetchWithTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
@@ -492,11 +494,11 @@ const syncFromSupabase = async (user: User) => {
       throw lastError;
     }
   } catch (err) {
-    // Non-blocking — app works offline with local DB data
+    // Non-blocking - app works offline with local DB data
     const errorDetails = formatSupabaseError(err);
     if (isNetworkError(err)) {
-      // Supabase project is paused or unreachable — expected in offline/dev mode
-      console.info(`ℹ️ Supabase unreachable — running on local data. (${errorDetails})`);
+      // Supabase project is paused or unreachable - expected in offline/dev mode
+      console.info(` Supabase unreachable - running on local data. (${errorDetails})`);
     } else {
       console.error('Supabase sync on login failed (non-blocking):', errorDetails, err);
     }
@@ -535,11 +537,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Pause/resume auto-refresh based on actual network connectivity.
     const handleOffline = () => {
       supabase.auth.stopAutoRefresh();
-      console.info('📴 Offline — Supabase auto-refresh paused.');
+      console.info(' Offline - Supabase auto-refresh paused.');
     };
 
     const handleOnline = async () => {
-      console.info('🌐 Online — probing Supabase before resuming auto-refresh...');
+      console.info(' Online - probing Supabase before resuming auto-refresh...');
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
@@ -574,9 +576,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           })();
         }
         supabase.auth.startAutoRefresh();
-        console.info('✅ Supabase reachable — auto-refresh resumed.');
+        console.info(' Supabase reachable - auto-refresh resumed.');
       } catch {
-        console.warn('Supabase still unreachable after coming online — keeping auto-refresh paused.');
+        console.warn('Supabase still unreachable after coming online - keeping auto-refresh paused.');
       }
     };
 
@@ -606,7 +608,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               subscribedUserId = nextUser.id;
             }
 
-            const isFreshLogin = event === 'SIGNED_IN';
+            const _lastUserId = localStorage.getItem('auth_last_user_id');
+            const _isUserSwitch = _lastUserId !== null && _lastUserId !== nextUser.id;
+            const isFreshLogin = event === 'SIGNED_IN' && (!initialSyncDone || _isUserSwitch);
             const isAppLoad = event === 'INITIAL_SESSION' && !initialSyncDone;
 
             if (isFreshLogin || isAppLoad) {
@@ -619,9 +623,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               const isUserSwitch = lastUserId && lastUserId !== nextUser.id;
 
               if (isUserSwitch) {
-                // Different user logged in — clear previous user's local data
+                // Different user logged in - clear previous user's local data
                 await clearLocalUserData();
-                clearLocalAuthPresentationState();
+                clearLocalAuthPresentationState(false);
               }
 
               // Always record the current user so we can detect future switches
@@ -658,14 +662,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               unsubscribeUserCloudSync = null;
             }
             subscribedUserId = null;
-            // On logout, clear the stored user ID so the next login is treated
-            // as a fresh start (even if same user logs back in).
-            localStorage.removeItem('auth_last_user_id');
+            // On logout, we preserve auth_last_user_id so next login can check if it's the same user.
             permissionService.clearPermissions();
             await handleBackendLogout();
             // Clear local DB on logout too
             await clearLocalUserData();
-            clearLocalAuthPresentationState();
+            clearLocalAuthPresentationState(true); // Preserve PIN keys
             initialSyncDone = false; // Reset for next login
             activeSyncUserId.current = null;
             setDataReady(false);

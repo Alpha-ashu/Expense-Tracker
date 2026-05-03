@@ -107,7 +107,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSwitchToSignUp, onSubm
           <input
             type={showPassword ? 'text' : 'password'} id="signin-password" name="password"
             value={formData.password} onChange={handleInputChange}
-            disabled={isLoading} placeholder="••••••••"
+            disabled={isLoading} placeholder="--------"
             autoComplete="current-password"
             className={`${inputBase(!!errors.password)} pr-10`}
           />

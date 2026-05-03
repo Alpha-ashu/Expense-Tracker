@@ -5,7 +5,7 @@ import { ocrEngine, ExpenseData } from '../../services/tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from '../../services/voiceAIProcessor';
 import { finoraAI } from '../../services/finoraIntelligenceEngine';
 
-// 🔥 AUTO-FILL EXPENSE FORM LOGIC
+//  AUTO-FILL EXPENSE FORM LOGIC
 // This component provides instant UX with AI-powered form filling
 
 interface AutoFillExpenseFormProps {
@@ -45,26 +45,26 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     };
   }, [voiceProcessor]);
 
-  // 📸 CAMERA/OCR PROCESSING
+  //  CAMERA/OCR PROCESSING
   const handleImageCapture = async (imageFile: File) => {
     setIsProcessing(true);
     setError(null);
     setExtractedData(null);
 
     try {
-      console.log('📸 Processing image with Kanakku AI OCR...');
+      console.log(' Processing image with Kanakku AI OCR...');
       const startTime = performance.now();
 
-      // 🧠 Use Tesseract OCR + Kanakku AI
+      //  Use Tesseract OCR + Kanakku AI
       const ocrResult = await ocrEngine.extractExpenseData(imageFile);
       
       const processingTime = performance.now() - startTime;
-      console.log(`⚡ OCR + AI processing completed in ${processingTime.toFixed(2)}ms`);
+      console.log(` OCR + AI processing completed in ${processingTime.toFixed(2)}ms`);
 
       setExtractedData(ocrResult);
       setConfidence(ocrResult.confidence);
 
-      // 🎯 AUTO-FILL FORM if confidence is good
+      //  AUTO-FILL FORM if confidence is good
       if (ocrResult.confidence > 0.7 && ocrResult.amount) {
         const formData = {
           amount: ocrResult.amount!,
@@ -74,7 +74,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
           date: ocrResult.date || new Date().toISOString().split('T')[0],
         };
 
-        console.log('🎯 Auto-filling form with data:', formData);
+        console.log(' Auto-filling form with data:', formData);
         onExpenseData(formData);
         
         // Auto-close after successful fill
@@ -82,23 +82,23 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
       }
 
     } catch (error) {
-      console.error('❌ Image processing failed:', error);
+      console.error(' Image processing failed:', error);
       setError('Failed to process image. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // 🎤 VOICE PROCESSING
+  //  VOICE PROCESSING
   const handleVoiceInput = async () => {
     setIsProcessing(true);
     setError(null);
     setExtractedData(null);
 
     try {
-      console.log('🎤 Starting voice input with Kanakku AI...');
+      console.log(' Starting voice input with Kanakku AI...');
       
-      // 🧠 Use Voice AI + Kanakku Intelligence
+      //  Use Voice AI + Kanakku Intelligence
       const voiceResults = await voiceProcessor.startListening();
       
       if (voiceResults.length > 0) {
@@ -106,7 +106,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
         setExtractedData(result);
         setConfidence(result.confidence);
 
-        // 🎯 AUTO-FILL FORM if confidence is good
+        //  AUTO-FILL FORM if confidence is good
         if (result.confidence > 0.7 && result.amount) {
           const formData = {
             amount: result.amount!,
@@ -116,7 +116,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
             date: result.date || new Date().toISOString().split('T')[0],
           };
 
-          console.log('🎯 Auto-filling form with voice data:', formData);
+          console.log(' Auto-filling form with voice data:', formData);
           onExpenseData(formData);
           
           // Auto-close after successful fill
@@ -125,14 +125,14 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
       }
 
     } catch (error) {
-      console.error('❌ Voice processing failed:', error);
+      console.error(' Voice processing failed:', error);
       setError('Voice recognition failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // 📁 FILE UPLOAD PROCESSING
+  //  FILE UPLOAD PROCESSING
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -147,7 +147,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     await handleImageCapture(file);
   };
 
-  // 🎯 MANUAL CONFIRMATION (for lower confidence results)
+  //  MANUAL CONFIRMATION (for lower confidence results)
   const handleConfirmData = () => {
     if (!extractedData) return;
 
@@ -175,12 +175,12 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
       };
     }
 
-    console.log('✅ Manually confirmed form data:', formData);
+    console.log(' Manually confirmed form data:', formData);
     onExpenseData(formData);
     onClose();
   };
 
-  // 🎓 LEARN FROM FEEDBACK
+  //  LEARN FROM FEEDBACK
   const handleFeedback = async (isCorrect: boolean) => {
     if (!extractedData) return;
 
@@ -322,7 +322,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Amount</span>
                   <span className="font-semibold">
-                    ₹{extractedData.amount?.toLocaleString('en-IN') || 'Not detected'}
+                    INR{extractedData.amount?.toLocaleString('en-IN') || 'Not detected'}
                   </span>
                 </div>
                 

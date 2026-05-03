@@ -143,7 +143,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const handleSubcategoryChange = (value: string) => {
     if (!scanResult) return;
-    // Only use the subcategory text itself for category detection — NOT the merchant name
+    // Only use the subcategory text itself for category detection - NOT the merchant name
     // to avoid the merchant name bleeding into the subcategory field
     const detected = value.trim().length >= 3
       ? detectExpenseCategoryFromText(value)

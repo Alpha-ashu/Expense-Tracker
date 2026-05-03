@@ -49,7 +49,7 @@ export const UserProfile: React.FC = () => {
     if (isSigningOut) return; // Prevent double-clicks
 
     setIsSigningOut(true);
-    console.log('🔐 Starting sign out process...');
+    console.log('" Starting sign out process...');
     toast.info('Signing out...');
 
     try {
@@ -109,14 +109,14 @@ export const UserProfile: React.FC = () => {
         console.warn('IndexedDB delete error (non-blocking):', e);
       }
 
-      console.log('✅ Sign out completed successfully');
+      console.log('... Sign out completed successfully');
       toast.success('Signed out successfully');
 
       // Step 6: Hard redirect immediately
       window.location.href = window.location.origin + '/login?logged_out=1';
 
     } catch (error) {
-      console.error('❌ Sign out failed:', error);
+      console.error(' Sign out failed:', error);
 
       // Force cleanup even on error
       try {
@@ -170,7 +170,7 @@ export const UserProfile: React.FC = () => {
     if (!v) return '';
     if (v.includes('business') || v.includes('self') || v === 'self-employed') return 'businessman';
     if (v.includes('freelance')) return 'freelancer';
-    // Everything else (full-time, part-time, salaried, employment, student, retired, etc.) → salaried
+    // Everything else (full-time, part-time, salaried, employment, student, retired, etc.) ' salaried
     return 'salaried';
   };
 
@@ -180,7 +180,7 @@ export const UserProfile: React.FC = () => {
     if (v === 'female') return 'Female';
     if (v === 'non-binary') return 'Non-binary';
     if (v === 'prefer-not-to-say') return 'Prefer not to say';
-    return '—';
+    return 'EUR"';
   };
 
   /** Human-readable label for a canonical jobType value */
@@ -202,7 +202,7 @@ export const UserProfile: React.FC = () => {
       return;
     }
 
-    // ── SOURCE 0: Supabase auth user_metadata (set during signUp) ────────────
+    // "EUR"EUR SOURCE 0: Supabase auth user_metadata (set during signUp) "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
     // When users sign up, first_name/last_name are stored in user_metadata.
     // This is the most reliable name source even before a profiles row exists.
     const meta = user.user_metadata || {};
@@ -221,7 +221,7 @@ export const UserProfile: React.FC = () => {
       }));
     }
 
-    // ── SOURCE 1: localStorage (written by NewUserOnboarding on completion) ───
+    // "EUR"EUR SOURCE 1: localStorage (written by NewUserOnboarding on completion) "EUR"EUR"EUR
     const localProfile = localStorage.getItem('user_profile');
     if (localProfile) {
       try {
@@ -253,11 +253,11 @@ export const UserProfile: React.FC = () => {
           avatarId: resolveAvatar(p.profilePhoto || prev.profilePhoto, p.avatarId || prev.avatarId).id,
         }));
       } catch {
-        // Corrupt localStorage — fall through to Supabase
+        // Corrupt localStorage EUR" fall through to Supabase
       }
     }
 
-    // ── SOURCE 2: Backend API (authoritative, cloud-synced) ──
+    // "EUR"EUR SOURCE 2: Backend API (authoritative, cloud-synced) "EUR"EUR
     try {
       let finalData: any = null;
       if (!shouldSkipOptionalBackendRequests()) {
@@ -454,9 +454,9 @@ export const UserProfile: React.FC = () => {
         }).then(() => {
           backendSyncService.removePendingOperation(operationId);
           localStorage.removeItem('profile_sync_pending');
-          console.log('✅ Profile synced to backend');
+          console.log('... Profile synced to backend');
         }).catch((error) => {
-          console.warn('⚠️ Backend sync failed, will retry:', error);
+          console.warn(' Backend sync failed, will retry:', error);
         });
       } else {
         console.info('[UserProfile] Skipping immediate backend profile sync while backend is unavailable in development mode.');
@@ -471,7 +471,7 @@ export const UserProfile: React.FC = () => {
     }
   };
 
-  // ── Change PIN ────────────────────────────────────────────────────────────
+  // "EUR"EUR Change PIN "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
   const [pinChangeStep, setPinChangeStep] = useState<'idle' | 'set-new-pin'>('idle');
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -523,7 +523,7 @@ export const UserProfile: React.FC = () => {
     setConfirmNewPin('');
   };
 
-  // Email & mobile change (kept simple for now — uses verification state)
+  // Email & mobile change (kept simple for now EUR" uses verification state)
   const handleChangeEmail = () => {
     if (!verification.newValue) { toast.error('Please enter new email'); return; }
     setVerification({ ...verification, type: 'email-change', step: 'otp-sent' });
@@ -579,7 +579,7 @@ export const UserProfile: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 pb-32 lg:pb-8">
+    <div className="w-full min-h-screen bg-white pb-32 lg:pb-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="px-4 sm:px-6 lg:px-8 pt-6 lg:pt-10">
@@ -598,7 +598,7 @@ export const UserProfile: React.FC = () => {
             {/* LEFT COLUMN */}
             <div className="space-y-4">
 
-          {/* ── New User Prompt ── Only shown when profile is incomplete */}
+          {/* "EUR"EUR New User Prompt "EUR"EUR Only shown when profile is incomplete */}
           {!profileData.firstName && !isLoading && (
             <motion.div
               initial={{ opacity: 0, y: -12 }}
@@ -607,15 +607,15 @@ export const UserProfile: React.FC = () => {
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-lg">👋 Welcome! Complete your profile</p>
+                  <p className="font-bold text-lg">' Welcome! Complete your profile</p>
                   <p className="text-sm text-blue-100 mt-1">
                     Fill in your details so we can personalise your experience.
                   </p>
                   <ul className="mt-3 space-y-1 text-sm text-blue-100">
-                    {!profileData.firstName && <li>• First &amp; Last Name</li>}
-                    {!profileData.mobile && <li>• Mobile Number</li>}
-                    {!profileData.dateOfBirth && <li>• Date of Birth</li>}
-                    {!profileData.jobType && <li>• Job Type &amp; Monthly Income</li>}
+                    {!profileData.firstName && <li>EUR First &amp; Last Name</li>}
+                    {!profileData.mobile && <li>EUR Mobile Number</li>}
+                    {!profileData.dateOfBirth && <li>EUR Date of Birth</li>}
+                    {!profileData.jobType && <li>EUR Job Type &amp; Monthly Income</li>}
                   </ul>
                 </div>
                 <button
@@ -682,7 +682,7 @@ export const UserProfile: React.FC = () => {
               )}
             </div>
             {showAvatarGallery && (
-              <div className="mt-4 w-full max-w-3xl rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="mt-4 w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-4">
                 <div className="grid grid-cols-5 gap-2">
                   {AVATAR_OPTIONS.map((avatar) => (
                     <button
@@ -735,19 +735,19 @@ export const UserProfile: React.FC = () => {
               </div>
 
               {!isEditingBasic ? (
-                /* View mode — clean horizontal info rows */
+                /* View mode EUR" clean horizontal info rows */
                 <div className="divide-y divide-gray-100">
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
                       <User size={14} className="text-gray-400" /> First Name
                     </span>
-                    <span className="text-sm font-semibold text-gray-900">{profileData.firstName || '—'}</span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.firstName || 'EUR"'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
                       <User size={14} className="text-gray-400" /> Last Name
                     </span>
-                    <span className="text-sm font-semibold text-gray-900">{profileData.lastName || '—'}</span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.lastName || 'EUR"'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
@@ -762,7 +762,7 @@ export const UserProfile: React.FC = () => {
                     <span className="text-sm font-semibold text-gray-900">
                       {profileData.dateOfBirth
                         ? new Date(profileData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                        : '—'}
+                        : 'EUR"'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
@@ -773,13 +773,13 @@ export const UserProfile: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <span className="text-gray-400 font-bold text-sm w-3.5 inline-flex justify-center">₹</span> Monthly Income
+                      <span className="text-gray-400 font-bold text-sm w-3.5 inline-flex justify-center"></span> Monthly Income
                     </span>
-                    <span className="text-sm font-semibold text-gray-900">₹ {(profileData.monthlyIncome || 0).toLocaleString()}</span>
+                    <span className="text-sm font-semibold text-gray-900"> {(profileData.monthlyIncome || 0).toLocaleString()}</span>
                   </div>
                 </div>
               ) : (
-                /* Edit mode — form with two-column grid for related fields */
+                /* Edit mode EUR" form with two-column grid for related fields */
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                     <div>
@@ -867,7 +867,7 @@ export const UserProfile: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
-                        <span className="text-gray-400 font-bold text-sm">₹</span> Monthly Income
+                        <span className="text-gray-400 font-bold text-sm"></span> Monthly Income
                       </label>
                       <input
                         type="number"
@@ -892,7 +892,7 @@ export const UserProfile: React.FC = () => {
             </Card>
           </motion.div>
 
-          {/* ── Location & Currency Card ── */}
+          {/* "EUR"EUR Location & Currency Card "EUR"EUR */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -924,19 +924,19 @@ export const UserProfile: React.FC = () => {
                     <span className="text-sm text-gray-500 flex items-center gap-2">
                       <MapPin size={14} className="text-gray-400" /> Country
                     </span>
-                    <span className="text-sm font-semibold text-gray-900">{profileData.country || '—'}</span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.country || 'EUR"'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
                       <MapPin size={14} className="text-gray-400" /> State / Province
                     </span>
-                    <span className="text-sm font-semibold text-gray-900">{profileData.state || '—'}</span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.state || 'EUR"'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
                       <MapPin size={14} className="text-gray-400" /> City
                     </span>
-                    <span className="text-sm font-semibold text-gray-900">{profileData.city || '—'}</span>
+                    <span className="text-sm font-semibold text-gray-900">{profileData.city || 'EUR"'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-gray-500 flex items-center gap-2">
@@ -1005,16 +1005,16 @@ export const UserProfile: React.FC = () => {
                         id="currency"
                         name="currency"
                       >
-                        <option value="USD">USD — US Dollar</option>
-                        <option value="EUR">EUR — Euro</option>
-                        <option value="GBP">GBP — British Pound</option>
-                        <option value="INR">INR — Indian Rupee</option>
-                        <option value="JPY">JPY — Japanese Yen</option>
-                        <option value="AUD">AUD — Australian Dollar</option>
-                        <option value="CAD">CAD — Canadian Dollar</option>
-                        <option value="CHF">CHF — Swiss Franc</option>
-                        <option value="CNY">CNY — Chinese Yuan</option>
-                        <option value="SGD">SGD — Singapore Dollar</option>
+                        <option value="USD">USD EUR" US Dollar</option>
+                        <option value="EUR">EUR EUR" Euro</option>
+                        <option value="GBP">GBP EUR" British Pound</option>
+                        <option value="INR">INR EUR" Indian Rupee</option>
+                        <option value="JPY">JPY EUR" Japanese Yen</option>
+                        <option value="AUD">AUD EUR" Australian Dollar</option>
+                        <option value="CAD">CAD EUR" Canadian Dollar</option>
+                        <option value="CHF">CHF EUR" Swiss Franc</option>
+                        <option value="CNY">CNY EUR" Chinese Yuan</option>
+                        <option value="SGD">SGD EUR" Singapore Dollar</option>
                       </select>
                     </div>
                   </div>
@@ -1035,7 +1035,7 @@ export const UserProfile: React.FC = () => {
             <div className="space-y-6 min-w-0">
 
 
-          {/* Restricted Fields - Email & Mobile */}
+          
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1120,7 +1120,7 @@ export const UserProfile: React.FC = () => {
                       <>
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                           <p className="text-sm text-blue-800">
-                            📱 OTP sent to your registered mobile number
+                            " OTP sent to your registered mobile number
                           </p>
                         </div>
                         <input
@@ -1159,7 +1159,7 @@ export const UserProfile: React.FC = () => {
                 )}
               </div>
 
-              {/* Mobile Section */}
+              
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -1232,7 +1232,7 @@ export const UserProfile: React.FC = () => {
                       <>
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                           <p className="text-sm text-green-800">
-                            📧 OTP sent to your registered email
+                            " OTP sent to your registered email
                           </p>
                         </div>
                         <input
@@ -1289,7 +1289,7 @@ export const UserProfile: React.FC = () => {
 
               <div className="space-y-4">
                 {pinChangeStep === 'idle' ? (
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-200">
                     <div>
                       <p className="font-semibold text-gray-900">Change Secure PIN</p>
                       <p className="text-sm text-gray-500 mt-0.5">Use your current PIN to update your 6-digit access PIN</p>
@@ -1360,7 +1360,7 @@ export const UserProfile: React.FC = () => {
           </motion.div>
 
 
-          {/* Sign Out + Danger Zone — side by side on desktop */}
+          
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
           {/* Sign Out */}
           <motion.div
@@ -1416,7 +1416,7 @@ export const UserProfile: React.FC = () => {
           </motion.div>
           </div>{/* end 2-col bottom */}
             </div>{/* end right col */}
-          </div>{/* end desktop grid */}
+          </div>
         </div>{/* end px wrapper */}
       </div>{/* end max-w-7xl */}
 
@@ -1485,3 +1485,4 @@ export const UserProfile: React.FC = () => {
     </div>
   );
 };
+

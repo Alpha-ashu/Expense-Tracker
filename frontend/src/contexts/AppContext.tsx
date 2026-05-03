@@ -473,7 +473,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           newVisibility[key] = isVisible;
         });
 
-        console.log('🎛️ AppContext applying admin feature settings:', { role, newVisibility });
+        console.log(' AppContext applying admin feature settings:', { role, newVisibility });
         setVisibleFeaturesState(newVisibility as unknown as FeatureVisibility);
       } catch (e) {
         console.error('Failed to apply admin feature settings:', e);
@@ -485,19 +485,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'admin_global_feature_settings' || e.key === 'featureFlagsOverride') {
-        console.log('💾 Storage change detected for feature settings');
+        console.log(' Storage change detected for feature settings');
         applyAdminFeatureSettings();
       }
     };
 
     const handleAdminFeatureUpdate = (event: CustomEvent) => {
-      console.log('📡 Admin feature update event received:', event.detail);
+      console.log(' Admin feature update event received:', event.detail);
       applyAdminFeatureSettings();
     };
 
     const handleBroadcastMessage = (event: MessageEvent) => {
       if (event.data.type === 'FEATURE_UPDATE') {
-        console.log('📡 Broadcast feature update received:', event.data);
+        console.log(' Broadcast feature update received:', event.data);
         applyAdminFeatureSettings();
       }
     };

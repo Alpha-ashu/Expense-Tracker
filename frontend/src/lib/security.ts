@@ -209,7 +209,7 @@ export class CSPManager {
       "frame-ancestors 'none'"
     ].join('; ');
 
-    // CSP is applied via meta tag in index.html — this method is kept for future
+    // CSP is applied via meta tag in index.html - this method is kept for future
     // server-side header configuration reference.
   }
 }
@@ -272,7 +272,7 @@ export class DataIntegrity {
 
   private static async verifyBackupIntegrity(backupData: any): Promise<boolean> {
     try {
-      // Structural integrity checks — verify data is present and well-formed
+      // Structural integrity checks - verify data is present and well-formed
       if (!backupData.timestamp || !Array.isArray(backupData.accounts)) {
         return false;
       }

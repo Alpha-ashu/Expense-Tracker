@@ -442,15 +442,13 @@ export function initializeBackendSync() {
       }
     });
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState !== 'visible') return;
-
-      scheduleQueueProcessing(100);
-
-      if (syncState.activeUserId) {
-        scheduleCloudPull(syncState.activeUserId, CORE_SYNC_TABLES, 350);
-      }
-    });
+    // document.addEventListener('visibilitychange', () => {
+    // if (document.visibilityState !== 'visible') return;
+    // scheduleQueueProcessing(100);
+    // if (syncState.activeUserId) {
+    //   scheduleCloudPull(syncState.activeUserId, CORE_SYNC_TABLES, 350);
+    // }
+    // });
 
     syncState.browserListenersBound = true;
   }
@@ -507,7 +505,7 @@ async function resolveRemoteGroupExpenseId(localId?: number): Promise<number | n
 async function mapGroupMembersToRemote(members: any[] | undefined) {
   if (!Array.isArray(members)) return [];
 
-  const mappedMembers = [];
+  const mappedMembers: any[] = [];
 
   for (const member of members) {
     if (member?.friendId) {
@@ -1047,7 +1045,7 @@ export async function deduplicateLocalData() {
       }
 
       if (toDelete.size > 0) {
-        console.log(`🗑️ Local dedup: deleting ${toDelete.size} duplicates from ${localTable.name}`);
+        console.log(` Local dedup: deleting ${toDelete.size} duplicates from ${localTable.name}`);
         await localTable.bulkDelete(Array.from(toDelete));
       }
     };

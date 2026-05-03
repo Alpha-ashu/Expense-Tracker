@@ -23,7 +23,7 @@ export const restorePINKeys = (backup: { hash: string | null; salt: string | nul
 };
 
 /**
- * Change PIN — verifies old PIN first, then stores the new one.
+ * Change PIN - verifies old PIN first, then stores the new one.
  * Returns true on success, false if oldPin is wrong.
  */
 export const changePIN = (oldPin: string, newPin: string): boolean => {

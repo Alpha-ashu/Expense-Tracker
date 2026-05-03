@@ -157,7 +157,7 @@ export const Notifications: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 pb-32 lg:pb-8">
+    <div className="w-full min-h-screen bg-white pb-32 lg:pb-8">
       <div className="max-w-3xl mx-auto">
         <div className="px-4 lg:px-0 pt-6 lg:pt-10">
           <PageHeader
@@ -261,7 +261,7 @@ export const Notifications: React.FC = () => {
                           {!notification.isRead && (
                             <button
                               onClick={() => notification.id && markNotificationAsRead(notification.id)}
-                              className="bg-white hover:bg-gray-50 text-blue-600 border border-blue-200 px-4 py-2 rounded-lg font-medium transition-colors text-sm"
+                              className="bg-white hover:bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded-lg font-medium transition-colors text-sm"
                             >
                               Mark Read
                             </button>
@@ -299,3 +299,4 @@ export const Notifications: React.FC = () => {
     </div>
   );
 };
+

@@ -206,7 +206,7 @@ export const BillUpload: React.FC<BillUploadProps> = ({ transactionId, onBillsCh
                       {bill.fileName}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {formatFileSize(bill.fileSize)} • {new Date(bill.uploadedAt).toLocaleDateString()}
+                      {formatFileSize(bill.fileSize)} - {new Date(bill.uploadedAt).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

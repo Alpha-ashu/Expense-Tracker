@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { db, Goal, GoalContribution } from '@/lib/database';
 import { useApp } from '@/contexts/AppContext';
-import { PageHeader } from '@/app/components/ui/PageHeader';
 import { Button } from '@/app/components/ui/button';
 import { Card } from '@/app/components/ui/card';
 import { getGoalCategoryMeta, getGoalProgress, getMilestoneLabel, getMonthlySuggestion } from '@/lib/goal-utils';
@@ -166,157 +165,197 @@ export const GoalDetail: React.FC = () => {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-[1200px] mx-auto space-y-6 pb-24">
-      <PageHeader
-        title={`${category.icon} ${goal.name}`}
-        subtitle="Goal overview, contributions, and timeline"
-        icon={<Target size={20} />}
-        showBack
-        backTo="goals"
-      >
-        <Button onClick={() => setCurrentPage('goals')} className="rounded-full">Back to Goals</Button>
-      </PageHeader>
-
-      <Card variant="glass" className="p-6 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-xs text-gray-500 uppercase">Target</p>
-            <p className="text-xl font-bold">{formatCurrency(goal.targetAmount)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 uppercase">Saved</p>
-            <p className="text-xl font-bold">{formatCurrency(goal.currentAmount)}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 uppercase">Remaining</p>
-            <p className="text-xl font-bold">{formatCurrency(Math.max(0, goal.targetAmount - goal.currentAmount))}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 uppercase">Goal Type</p>
-            <p className="text-xl font-bold">{goal.isGroupGoal ? 'Group' : 'Individual'}</p>
-          </div>
-        </div>
-
+    <div className="min-h-screen bg-white pb-[100px] lg:pb-0">
+      
+      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100">
         <div>
-          <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-            <div className={`h-3 bg-black rounded-full transition-all ${getWidthClass(progress)}`} />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            {category.icon} {goal.name}
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Goal overview, contributions, and timeline</p>
+        </div>
+        <button
+          onClick={() => setCurrentPage('goals')}
+          className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-2xl transition-colors"
+        >
+          Back to Goals
+        </button>
+      </div>
+
+      
+      <div className="lg:hidden flex flex-col pt-12 pb-6 px-6 relative z-10">
+        <button 
+          onClick={() => setCurrentPage('goals')}
+          className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 mb-6 hover:bg-gray-200 transition-colors"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
+          <span className="text-4xl">{category.icon}</span> {goal.name}
+        </h1>
+      </div>
+
+      <div className="px-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+        <div className="bg-white rounded-[32px] p-6 lg:p-8 ring-1 ring-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Target</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(goal.targetAmount)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Saved</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(goal.currentAmount)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Remaining</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(Math.max(0, goal.targetAmount - goal.currentAmount))}</p>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 tracking-wider uppercase mb-1">Goal Type</p>
+              <p className="text-2xl font-bold text-gray-900">{goal.isGroupGoal ? 'Group' : 'Individual'}</p>
+            </div>
           </div>
-          <p className="text-sm mt-2 text-gray-600">{progress.toFixed(0)}% completed</p>
-          {milestone && <p className="text-sm font-semibold text-green-700 mt-1">{milestone} 🎉</p>}
-        </div>
 
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-amber-800 text-sm">
-          Suggested Saving: {formatCurrency(monthlySuggestion.monthlyAmount)} / month for {monthlySuggestion.months} month(s)
-        </div>
+          <div>
+            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className={`h-3 bg-gray-900 rounded-full transition-all duration-1000 ${getWidthClass(progress)}`} />
+            </div>
+            <p className="text-sm mt-3 text-gray-600 font-medium">{progress.toFixed(0)}% completed</p>
+            {milestone && <p className="text-sm font-bold text-emerald-600 mt-1">{milestone} </p>}
+          </div>
 
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500">Contribution Info</p>
-          <div className="mt-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-gray-700">
-            <span>
-              Last contribution: {lastContributionDate
-                ? lastContributionDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                : 'No contribution yet'}
-            </span>
-            {completedOnDate && (
-              <span className="font-semibold text-green-700">
-                Completed on: {completedOnDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+          <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 flex items-start gap-3">
+            <Target className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Suggested Saving</p>
+              <p className="text-sm text-gray-500">{formatCurrency(monthlySuggestion.monthlyAmount)} / month for {monthlySuggestion.months} month(s)</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-4">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Timeline Insights</p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+              <span className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                Last contribution: {lastContributionDate
+                  ? lastContributionDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                  : 'No contribution yet'}
               </span>
+              {completedOnDate && (
+                <span className="flex items-center gap-2 font-semibold text-emerald-600">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Completed on: {completedOnDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <div className="bg-white rounded-[32px] p-6 lg:p-8 ring-1 ring-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)]">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Add Contribution</h3>
+              <form onSubmit={addContribution} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Amount</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={amount || ''}
+                    onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3.5 text-gray-900 font-medium text-lg placeholder-gray-400 focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">From Account</label>
+                  <select
+                    value={accountId}
+                    onChange={(e) => setAccountId(parseInt(e.target.value, 10))}
+                    className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3.5 text-gray-900 font-medium focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all appearance-none"
+                  >
+                    {accounts.map((account) => (
+                      <option key={account.id} value={account.id}>{account.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {goal.isGroupGoal && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Group Member</label>
+                    <select
+                      value={memberName}
+                      onChange={(e) => setMemberName(e.target.value)}
+                      className="w-full bg-gray-50 border-0 rounded-2xl px-4 py-3.5 text-gray-900 font-medium focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all appearance-none"
+                    >
+                      {(goal.members || []).map((member) => (
+                        <option key={member.name} value={member.name}>{member.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <button type="submit" className="w-full py-4 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 mt-2">
+                  <Plus size={18} /> Add Contribution
+                </button>
+              </form>
+            </div>
+
+            {goal.isGroupGoal && (
+              <div className="bg-white rounded-[32px] p-6 lg:p-8 ring-1 ring-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)]">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Group Members</h3>
+                  <button className="text-sm font-medium text-gray-500 hover:text-gray-900 flex items-center gap-2">
+                    <MessageSquare size={16} /> Chat
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {memberRows.map((row) => (
+                    <div key={row.name} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                          {row.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm">{row.name}</p>
+                          <p className="text-xs text-gray-500">{row.status === 'paid' ? 'Contributed' : 'Pending'}</p>
+                        </div>
+                      </div>
+                      <span className="font-bold text-gray-900">{formatCurrency(row.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      </Card>
 
-      {goal.isGroupGoal && (
-        <Card variant="glass" className="p-6">
-          <h3 className="text-lg font-bold mb-3">Group Contribution System</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left border-b">
-                  <th className="py-2">Member</th>
-                  <th className="py-2">Contribution</th>
-                  <th className="py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {memberRows.map((row) => (
-                  <tr key={row.name} className="border-b">
-                    <td className="py-2">{row.name}</td>
-                    <td className="py-2">{formatCurrency(row.amount)}</td>
-                    <td className="py-2">{row.status === 'paid' ? 'Paid' : 'Pending'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      <Card variant="glass" className="p-6">
-        <h3 className="text-lg font-bold mb-3">Goal Timeline</h3>
-        <div className="space-y-2">
-          {timeline.length === 0 && <p className="text-sm text-gray-500">No contributions yet.</p>}
-          {timeline.map((item) => (
-            <div key={item.month} className="flex items-center gap-3">
-              <span className="w-10 text-xs text-gray-500">{item.month}</span>
-              <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-3 bg-blue-500 rounded-full ${getWidthClass((item.total / Math.max(goal.targetAmount, 1)) * 100)}`} />
-              </div>
-              <span className="text-xs font-semibold">{formatCurrency(item.total)}</span>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card variant="glass" className="p-6 space-y-4">
-        <h3 className="text-lg font-bold">Add Contribution</h3>
-        <form onSubmit={addContribution} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input
-            type="number"
-            step="0.01"
-            value={amount || ''}
-            onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-            className="px-3 py-2 border border-gray-200 rounded-lg"
-            placeholder="Amount"
-            required
-          />
-          <select
-            value={accountId}
-            onChange={(e) => setAccountId(parseInt(e.target.value, 10))}
-            className="px-3 py-2 border border-gray-200 rounded-lg"
-            aria-label="Contribution account"
-            title="Contribution account"
-          >
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>{account.name}</option>
-            ))}
-          </select>
-          {goal.isGroupGoal && (
-            <select
-              value={memberName}
-              onChange={(e) => setMemberName(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg"
-              aria-label="Group member"
-              title="Group member"
-            >
-              {(goal.members || []).map((member) => (
-                <option key={member.name} value={member.name}>{member.name}</option>
+          <div className="bg-white rounded-[32px] p-6 lg:p-8 ring-1 ring-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] h-fit">
+            <h3 className="text-xl font-bold text-gray-900 mb-6">Contribution History</h3>
+            <div className="space-y-4">
+              {timeline.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Target className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <p className="text-sm text-gray-500 font-medium">No contributions yet</p>
+                </div>
+              )}
+              {timeline.map((item) => (
+                <div key={item.month} className="flex items-center gap-4 group">
+                  <div className="w-12 text-xs font-bold text-gray-400 uppercase tracking-wider">{item.month}</div>
+                  <div className="flex-1 h-3 bg-gray-50 rounded-full overflow-hidden border border-gray-100">
+                    <div 
+                      className={`h-full bg-gray-900 rounded-full transition-all group-hover:bg-gray-800 ${getWidthClass((item.total / Math.max(goal.targetAmount, 1)) * 100)}`} 
+                    />
+                  </div>
+                  <div className="w-24 text-right font-bold text-gray-900 text-sm">{formatCurrency(item.total)}</div>
+                </div>
               ))}
-            </select>
-          )}
-          <button type="submit" className="px-3 py-2 rounded-lg bg-black text-white font-semibold inline-flex items-center justify-center gap-2">
-            <Plus size={14} /> Add
-          </button>
-        </form>
-      </Card>
-
-      <Card variant="glass" className="p-6">
-        <h3 className="text-lg font-bold mb-3">Group Chat</h3>
-        <p className="text-sm text-gray-600 mb-3">Chat support placeholder for group members.</p>
-        <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm">
-          <MessageSquare size={16} /> Open Chat
-        </button>
-      </Card>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

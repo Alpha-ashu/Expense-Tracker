@@ -18,11 +18,11 @@ const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
 const MARKET_TABS: MarketCategory[] = ['all', 'nse', 'bse', 'us', 'forex', 'crypto'];
 
-/* ── Helpers ──────────────────────────────────────────── */
+/*  Helpers  */
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-const fmtCurrency = (n: number, currency: string = '₹') => {
+const fmtCurrency = (n: number, currency: string = 'INR') => {
   if (currency === '$') {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   }
@@ -47,13 +47,13 @@ const PriceTag: React.FC<{ value: number; suffix?: string; size?: 'sm' | 'md' | 
   );
 };
 
-/* ── Stock card (list row) ────────────────────────────── */
+/*  Stock card (list row)  */
 const StockRow: React.FC<{
   quote: StockQuote;
   onClick: (q: StockQuote) => void;
 }> = ({ quote, onClick }) => {
   const positive = quote.change >= 0;
-  const cur = quote.currency || '₹';
+  const cur = quote.currency || 'INR';
   return (
     <motion.button
       layout
@@ -73,7 +73,7 @@ const StockRow: React.FC<{
       {/* Name */}
       <div className="flex-1 min-w-0">
         <p className="font-bold text-gray-900 text-sm truncate">{displaySymbol(quote.symbol)}</p>
-        <p className="text-xs text-gray-400 truncate">{quote.exchange} · {quote.companyName}</p>
+        <p className="text-xs text-gray-400 truncate">{quote.exchange}  {quote.companyName}</p>
       </div>
 
       {/* Price */}
@@ -94,18 +94,18 @@ const StockRow: React.FC<{
   );
 };
 
-/* ── Detail panel ─────────────────────────────────────── */
+/*  Detail panel  */
 const StockDetail: React.FC<{
   quote: StockQuote;
   onClose: () => void;
   onAddToPortfolio: (quote: StockQuote) => void;
 }> = ({ quote, onClose, onAddToPortfolio }) => {
   const positive = quote.change >= 0;
-  const cur = quote.currency || '₹';
+  const cur = quote.currency || 'INR';
   const subtitle = quote.sector && quote.sector !== 'Unknown'
-    ? `${quote.exchange} · ${quote.sector}`
+    ? `${quote.exchange}  ${quote.sector}`
     : quote.marketState
-      ? `${quote.exchange} · ${quote.marketState === 'open' ? 'Market Open' : 'Market Closed'}`
+      ? `${quote.exchange}  ${quote.marketState === 'open' ? 'Market Open' : 'Market Closed'}`
       : quote.exchange;
   const pct52 = quote.yearHigh > 0
     ? ((quote.lastPrice - quote.yearLow) / (quote.yearHigh - quote.yearLow)) * 100
@@ -118,15 +118,15 @@ const StockDetail: React.FC<{
     { label: "Day's Low", value: `${cur}${fmtCurrency(quote.dayLow, cur)}` },
     { label: '52W High', value: `${cur}${fmtCurrency(quote.yearHigh, cur)}` },
     { label: '52W Low', value: `${cur}${fmtCurrency(quote.yearLow, cur)}` },
-    { label: 'P/E Ratio', value: quote.peRatio ? `${fmt(quote.peRatio)}x` : '—' },
-    { label: 'EPS', value: quote.eps ? `${cur}${fmtCurrency(quote.eps, cur)}` : '—' },
-    { label: 'Div Yield', value: quote.dividendYield ? `${fmt(quote.dividendYield)}%` : '—' },
+    { label: 'P/E Ratio', value: quote.peRatio ? `${fmt(quote.peRatio)}x` : '-' },
+    { label: 'EPS', value: quote.eps ? `${cur}${fmtCurrency(quote.eps, cur)}` : '-' },
+    { label: 'Div Yield', value: quote.dividendYield ? `${fmt(quote.dividendYield)}%` : '-' },
     { label: 'Market Cap', value: formatMarketCap(quote.marketCap, cur) },
     {
       label: 'Volume',
       value: new Intl.NumberFormat('en-IN').format(quote.volume)
     },
-    { label: 'Market', value: quote.marketState === 'open' ? '🟢 Open' : quote.marketState === 'closed' ? '🔴 Closed' : '—' },
+    { label: 'Market', value: quote.marketState === 'open' ? ' Open' : quote.marketState === 'closed' ? ' Closed' : '-' },
   ];
 
   return (
@@ -208,7 +208,7 @@ const StockDetail: React.FC<{
           </svg>
         </div>
         <p className="text-xs text-gray-400 mt-1 text-center">
-          {cur}{fmtCurrency(quote.lastPrice, cur)} — {pct52.toFixed(0)}% from 52W low
+          {cur}{fmtCurrency(quote.lastPrice, cur)} - {pct52.toFixed(0)}% from 52W low
         </p>
       </div>
 
@@ -223,14 +223,14 @@ const StockDetail: React.FC<{
           ))}
         </div>
         <p className="text-xs text-gray-400 text-center mt-4">
-          Last updated: {quote.lastUpdate} · Data via backend proxy or Twelve Data
+          Last updated: {quote.lastUpdate}  Data via backend proxy or Twelve Data
         </p>
       </div>
     </motion.div>
   );
 };
 
-/* ── Main component ───────────────────────────────────── */
+/*  Main component  */
 export const LiveMarket: React.FC = () => {
   const { setCurrentPage: setAppPage } = useApp();
   const [quotes, setQuotes] = useState<Record<string, StockQuote | null>>({});
@@ -286,7 +286,7 @@ export const LiveMarket: React.FC = () => {
     return undefined;
   }, [activeMarket]);
 
-  /* ── Online/offline ── */
+  /*  Online/offline  */
   useEffect(() => {
     const on = () => setIsOnline(true);
     const off = () => setIsOnline(false);
@@ -295,7 +295,7 @@ export const LiveMarket: React.FC = () => {
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
-  /* ── Market tab change ── */
+  /*  Market tab change  */
   const handleMarketChange = useCallback((market: MarketCategory) => {
     setActiveMarket(market);
     const newWL = getDefaultWatchlist(market);
@@ -380,7 +380,7 @@ export const LiveMarket: React.FC = () => {
     setCurrentPageIndex(bounded);
   }, [pageInput, totalPages, currentPage]);
 
-  /* ── Fetch quotes ── */
+  /*  Fetch quotes  */
   const loadQuotes = useCallback(async (symbols: string[], isRefresh = false) => {
     const cached = getCachedQuotes(symbols);
     const cachedEntries = Object.entries(cached).filter(([, quote]) => quote);
@@ -424,7 +424,7 @@ export const LiveMarket: React.FC = () => {
     return () => { if (refreshTimer.current) clearInterval(refreshTimer.current); };
   }, [pageSymbols, loadQuotes]);
 
-  /* ── Search debounce ── */
+  /*  Search debounce  */
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     if (!searchQuery.trim()) { setSearchResults([]); return; }
@@ -458,7 +458,7 @@ export const LiveMarket: React.FC = () => {
       symbol: sym,
       companyName: result.companyName,
       exchange: result.exchange,
-      currency: isRupeeMarket ? '₹' : '$',
+      currency: isRupeeMarket ? 'INR' : '$',
       currencyCode: isRupeeMarket ? 'INR' : 'USD',
       marketState: undefined,
       lastPrice: 0,
@@ -480,7 +480,7 @@ export const LiveMarket: React.FC = () => {
     });
   }, [quotes, resolveMarketHint]);
 
-  /* ── Open add-investment with selected stock ── */
+  /*  Open add-investment with selected stock  */
   const handleAddInvestment = async (result: StockSearchResult) => {
     const sym = result.symbol;
     setSearchQuery('');
@@ -506,7 +506,7 @@ export const LiveMarket: React.FC = () => {
     setAppPage('add-investment');
   };
 
-  /* ── Remove from watchlist ── */
+  /*  Remove from watchlist  */
   const handleRemove = (symbol: string) => {
     setWatchlist(prev => prev.filter(s => s !== symbol));
     setQuotes(prev => { const c = { ...prev }; delete c[symbol]; return c; });
@@ -541,16 +541,16 @@ export const LiveMarket: React.FC = () => {
             )}
             <p className="text-[10px] text-gray-400">
               {!isOnline ? (
-                'Offline — cached data'
+                'Offline - cached data'
               ) : usingCache ? (
                 (() => {
                   const age = getCacheAge();
                   if (!age) return 'Cached data';
                   const mins = Math.round(age / 60000);
-                  return mins < 1 ? 'Cached — just now' : `Cached — ${mins}m ago`;
+                  return mins < 1 ? 'Cached - just now' : `Cached - ${mins}m ago`;
                 })()
               ) : (
-                timeSince !== null ? `Updated ${timeSince}s ago · Auto-refresh 8s` : 'Connecting…'
+                timeSince !== null ? `Updated ${timeSince}s ago  Auto-refresh 8s` : 'Connecting...'
               )}
             </p>
             {usingCache && isOnline && (
@@ -598,7 +598,7 @@ export const LiveMarket: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder={`Search ${MARKET_LABELS[activeMarket]} stocks…`}
+            placeholder={`Search ${MARKET_LABELS[activeMarket]} stocks...`}
             className="w-full pl-8 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-300 focus:bg-white transition-colors"
           />
           {searchQuery && (
@@ -625,7 +625,7 @@ export const LiveMarket: React.FC = () => {
             >
               {searching && (
                 <div className="p-3 text-xs text-gray-400 flex items-center gap-2">
-                  <RefreshCw size={11} className="animate-spin" /> Searching…
+                  <RefreshCw size={11} className="animate-spin" /> Searching...
                 </div>
               )}
               {searchResults.slice(0, 8).map(r => {
@@ -642,7 +642,7 @@ export const LiveMarket: React.FC = () => {
                       <p className="text-sm font-bold text-gray-900">
                         {displaySymbol(r.symbol)}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">{r.companyName} · {r.exchange}</p>
+                      <p className="text-xs text-gray-400 truncate">{r.companyName}  {r.exchange}</p>
                     </button>
                     <button
                       type="button"
@@ -674,7 +674,7 @@ export const LiveMarket: React.FC = () => {
               {loading && loadedQuotes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-3">
                   <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin" />
-                  <p className="text-xs text-gray-400">Fetching live prices…</p>
+                  <p className="text-xs text-gray-400">Fetching live prices...</p>
                 </div>
               ) : !loading && loadedQuotes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -744,7 +744,7 @@ export const LiveMarket: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <BarChart2 size={12} className="text-gray-300" />
                   <p className="text-[10px] text-gray-400">
-                    {`Showing ${pageSymbols.length} of ${watchlist.length} symbols · Auto-refresh every 8s`}
+                    {`Showing ${pageSymbols.length} of ${watchlist.length} symbols  Auto-refresh every 8s`}
                   </p>
                 </div>
 

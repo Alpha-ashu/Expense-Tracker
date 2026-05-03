@@ -29,13 +29,13 @@ export const FeatureVisibility: React.FC<FeatureVisibilityProps> = ({
     if (Array.isArray(role)) {
       if (!userRole || !role.includes(userRole)) {
         if (logAccess) {
-          console.log(`🚫 Feature "${feature}" hidden - user role "${userRole}" not in allowed roles:`, role);
+          console.log(` Feature "${feature}" hidden - user role "${userRole}" not in allowed roles:`, role);
         }
         return <>{fallback}</>;
       }
     } else if (userRole !== role) {
       if (logAccess) {
-        console.log(`🚫 Feature "${feature}" hidden - user role "${userRole}" != required role "${role}"`);
+        console.log(` Feature "${feature}" hidden - user role "${userRole}" != required role "${role}"`);
       }
       return <>{fallback}</>;
     }
@@ -44,9 +44,9 @@ export const FeatureVisibility: React.FC<FeatureVisibilityProps> = ({
   // Log access attempts for debugging
   if (logAccess) {
     if (hasAccess) {
-      console.log(`✅ Feature "${feature}" accessible to current user`);
+      console.log(` Feature "${feature}" accessible to current user`);
     } else {
-      console.log(`🚫 Feature "${feature}" hidden - no permission`);
+      console.log(` Feature "${feature}" hidden - no permission`);
     }
   }
 

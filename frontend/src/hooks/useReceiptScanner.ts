@@ -70,7 +70,7 @@ export const useReceiptScanner = () => {
 
     setIsScanning(true);
     setScanProgress(0);
-    setScanStatus('Preparing receipt…');
+    setScanStatus('Preparing receipt...');
 
     let documentId: number | null = null;
 
@@ -100,7 +100,7 @@ export const useReceiptScanner = () => {
         } catch (cloudError: any) {
           const errMsg = cloudError?.message || 'Cloud OCR unavailable';
           toast.warning(`${errMsg}. Falling back to on-device OCR.`, { duration: 5000 });
-          setScanStatus('Cloud OCR unavailable. Trying on-device scan…');
+          setScanStatus('Cloud OCR unavailable. Trying on-device scan...');
           result = await scanWithOnDeviceOcr();
         }
       }

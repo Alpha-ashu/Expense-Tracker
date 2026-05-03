@@ -7,7 +7,7 @@ import { backupPINKeys, restorePINKeys } from './encryption';
 
 /**
  * Unified signout function that handles all logout scenarios consistently.
- * NOTE: This app has no React Router — navigation uses window.location only.
+ * NOTE: This app has no React Router - navigation uses window.location only.
  *
  * PIN PRESERVATION: The user's PIN (hash + salt) is saved before localStorage
  * is cleared and restored immediately after, so they are never asked to
@@ -15,7 +15,7 @@ import { backupPINKeys, restorePINKeys } from './encryption';
  */
 export async function unifiedSignOut(_navigate?: (path: string) => void): Promise<void> {
   try {
-    console.log('🔐 Starting unified signout process...');
+    console.log(' Starting unified signout process...');
 
     // Backup PIN before any clearing
     const pinBackup = backupPINKeys();
@@ -39,13 +39,13 @@ export async function unifiedSignOut(_navigate?: (path: string) => void): Promis
     // Step 6: Delete local IndexedDB (non-blocking)
     try { window.indexedDB.deleteDatabase('FinoraDB'); } catch { }
 
-    console.log('✅ Unified signout completed successfully');
+    console.log(' Unified signout completed successfully');
 
     // Step 7: Hard redirect with cache-bust
     window.location.replace(window.location.origin + '?logged_out=1');
 
   } catch (error) {
-    console.error('❌ Unified signout failed:', error);
+    console.error(' Unified signout failed:', error);
     const pinBackup = backupPINKeys();
     try {
       localStorage.clear();
@@ -62,7 +62,7 @@ export async function unifiedSignOut(_navigate?: (path: string) => void): Promis
  */
 export async function legacySignOut(): Promise<void> {
   try {
-    console.log('🔐 Starting legacy signout process...');
+    console.log(' Starting legacy signout process...');
 
     const pinBackup = backupPINKeys();
 
@@ -84,9 +84,9 @@ export async function legacySignOut(): Promise<void> {
 
     window.location.href = window.location.origin;
 
-    console.log('✅ Legacy signout completed successfully');
+    console.log(' Legacy signout completed successfully');
   } catch (error) {
-    console.error('❌ Legacy signout failed:', error);
+    console.error(' Legacy signout failed:', error);
     const pinBackup = backupPINKeys();
     try {
       localStorage.clear();

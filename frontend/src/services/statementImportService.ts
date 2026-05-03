@@ -599,7 +599,7 @@ class StatementImportService {
       if (!date) continue;
 
       const rawDescription = line.replace(dateMatch[1], '').trim();
-      const amounts = rawDescription.match(/(?:rs\.?|₹|\$|€|£)?\s*[\d,]+(?:\.\d{1,2})?/gi) || [];
+      const amounts = rawDescription.match(/(?:rs\.?|INR|\$|EUR|GBP)?\s*[\d,]+(?:\.\d{1,2})?/gi) || [];
       if (amounts.length === 0) continue;
 
       const numericAmounts = amounts
@@ -612,7 +612,7 @@ class StatementImportService {
       const transactionAmount = numericAmounts[0];
       const isIncome = /\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcr\b/i.test(line);
       const isTransfer = /\btransfer\b/i.test(line);
-      const cleanedDescription = cleanDescription(rawDescription.replace(/(?:rs\.?|₹|\$|€|£)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ').trim());
+      const cleanedDescription = cleanDescription(rawDescription.replace(/(?:rs\.?|INR|\$|EUR|GBP)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ').trim());
       const merchantName = pickMerchantName(cleanedDescription);
       const categoryPrediction = await documentIntelligenceService.predictCategory({
         merchantName,

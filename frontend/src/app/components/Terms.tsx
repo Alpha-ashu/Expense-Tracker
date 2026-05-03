@@ -84,7 +84,7 @@ export const Terms: React.FC<TermsProps> = ({
             transition={{ delay: 0.1 }}
             className="text-gray-500"
           >
-            Last updated: March 2026 • Version 2.0
+            Last updated: March 2026 - Version 2.0
           </motion.p>
         </div>
 
@@ -131,7 +131,7 @@ export const Terms: React.FC<TermsProps> = ({
       </div>
 
       <footer className="py-10 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400">© {new Date().getFullYear()} Kanakku. All rights reserved.</p>
+        <p className="text-xs text-gray-400"> {new Date().getFullYear()} Kanakku. All rights reserved.</p>
       </footer>
     </div>
   );

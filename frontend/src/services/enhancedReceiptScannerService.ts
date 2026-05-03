@@ -13,12 +13,12 @@ export class EnhancedReceiptScannerService {
     userId?: string,
     onProgress?: (status: string, progress: number) => void,
   ): Promise<ReceiptScanResult> {
-    onProgress?.('Scanning receipt…', 10);
+    onProgress?.('Scanning receipt...', 10);
     const parsed = await this.ocrService.scanReceipt(file, userId, (progress) => {
       onProgress?.(progress.status, progress.progress);
     });
 
-    onProgress?.('Validating extracted fields…', 90);
+    onProgress?.('Validating extracted fields...', 90);
     const merged = await this.validateAndCorrect(parsed);
 
     onProgress?.('Validation complete', 100);

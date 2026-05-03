@@ -116,14 +116,14 @@ const isMetadataLine = (line: string) => {
 
 const extractAmounts = (text: string, options?: { allowLooseIntegers?: boolean }) => {
   const allowLooseIntegers = options?.allowLooseIntegers ?? false;
-  const matches = text.match(/(?:rs\.?|inr|₹|€|£|\$)\s*\(?\s*\d[\d,]*(?:\.\d{1,2})?\s*\)?|\b\d[\d,]*\.\d{1,2}\b|\b\d{1,5}\b/gi) || [];
+  const matches = text.match(/(?:rs\.?|inr|INR|EUR|GBP|\$)\s*\(?\s*\d[\d,]*(?:\.\d{1,2})?\s*\)?|\b\d[\d,]*\.\d{1,2}\b|\b\d{1,5}\b/gi) || [];
 
   return matches
     .map((match) => {
-      const hasCurrencySymbol = /rs\.?|inr|₹|€|£|\$/i.test(match);
+      const hasCurrencySymbol = /rs\.?|inr|INR|EUR|GBP|\$/i.test(match);
       const hasDecimalOrGrouping = /[\.,]/.test(match);
       const normalized = match
-        .replace(/rs\.?|inr|₹|€|£|\$/gi, '')
+        .replace(/rs\.?|inr|INR|EUR|GBP|\$/gi, '')
         .replace(/[()\s]/g, '')
         .replace(/,/g, '');
 
@@ -209,7 +209,7 @@ const extractDate = (lines: string[]) => {
         continue;
       }
 
-      // DMY order — try dd/mm/yyyy first, then mm/dd/yyyy if day > 12
+      // DMY order - try dd/mm/yyyy first, then mm/dd/yyyy if day > 12
       const a = Number(match[1]);
       const b = Number(match[2]);
       const year = normalizeYear(match[3]);
@@ -288,7 +288,7 @@ const normalizeTaxLabel = (line: string) => {
 
   const label = normalizeWhitespace(
     line
-      .replace(/\b(?:rs\.?|inr|₹|€|£|\$)\b/gi, ' ')
+      .replace(/\b(?:rs\.?|inr|INR|EUR|GBP|\$)\b/gi, ' ')
       .replace(/\d[\d,.]*(?:\s*%+)?/g, ' ')
       .replace(/[:()@]+/g, ' ')
       .replace(/\s+/g, ' '),
@@ -577,7 +577,7 @@ const extractItems = (lines: string[], totalAmount?: number) => {
     const { itemAmount, quantity, rate } = deriveItemMetrics(amounts);
     if (totalAmount && itemAmount > totalAmount) continue;
 
-    const rawName = line.replace(/(?:rs\.?|₹|€|£|\$|usd|eur|gbp|inr)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ');
+    const rawName = line.replace(/(?:rs\.?|INR|EUR|GBP|\$|usd|eur|gbp|inr)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ');
     const name = normalizeItemName(rawName);
     const normalizedName = normalizeForMatching(name);
     const tokens = name.split(/\s+/).filter(Boolean);
@@ -854,7 +854,7 @@ export async function preprocessReceiptFileVariants(file: File): Promise<Array<{
   const baseCanvas = await loadImageToCanvas(file);
   const trimmed = trimCanvas(baseCanvas);
 
-  // Skip variants derived from tiny trimmed canvases — Tesseract can't handle them
+  // Skip variants derived from tiny trimmed canvases - Tesseract can't handle them
   if (trimmed.width < 32 || trimmed.height < 32) {
     return [];
   }

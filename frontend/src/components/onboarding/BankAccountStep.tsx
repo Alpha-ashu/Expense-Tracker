@@ -23,7 +23,7 @@ interface BankInfo {
   type: string;
 }
 
-/* ─── Per-country bank registry ─── */
+/*  Per-country bank registry  */
 const BANKS_BY_COUNTRY: Record<string, BankInfo[]> = {
   India: [
     { name: 'State Bank of India', shortName: 'SBI', color: '#1a3a6b', textColor: '#fff', initials: 'SBI', type: 'Public Sector' },
@@ -46,7 +46,7 @@ const BANKS_BY_COUNTRY: Record<string, BankInfo[]> = {
     { name: 'Paytm Payments Bank', shortName: 'Paytm', color: '#00BAF2', textColor: '#fff', initials: 'PTM', type: 'Payments Bank' },
     { name: 'Airtel Payments Bank', shortName: 'Airtel', color: '#E40000', textColor: '#fff', initials: 'APB', type: 'Payments Bank' },
     { name: 'Jio Payments Bank', shortName: 'Jio', color: '#0066CC', textColor: '#fff', initials: 'JPB', type: 'Payments Bank' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   'United States': [
     { name: 'Chase Bank', shortName: 'Chase', color: '#117ACA', textColor: '#fff', initials: 'JPM', type: 'National Bank' },
@@ -57,7 +57,7 @@ const BANKS_BY_COUNTRY: Record<string, BankInfo[]> = {
     { name: 'US Bank', shortName: 'USB', color: '#0C2074', textColor: '#fff', initials: 'USB', type: 'National Bank' },
     { name: 'PNC Bank', shortName: 'PNC', color: '#E04B27', textColor: '#fff', initials: 'PNC', type: 'National Bank' },
     { name: 'Goldman Sachs (Marcus)', shortName: 'Marcus', color: '#2C2C2C', textColor: '#fff', initials: 'GS', type: 'National Bank' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   'United Kingdom': [
     { name: 'Barclays', shortName: 'Barclays', color: '#00AEEF', textColor: '#fff', initials: 'BRC', type: 'High Street Bank' },
@@ -67,7 +67,7 @@ const BANKS_BY_COUNTRY: Record<string, BankInfo[]> = {
     { name: 'Santander UK', shortName: 'Santander', color: '#EC0000', textColor: '#fff', initials: 'SAN', type: 'High Street Bank' },
     { name: 'Monzo', shortName: 'Monzo', color: '#FF5F5D', textColor: '#fff', initials: 'MNZ', type: 'Digital Bank' },
     { name: 'Starling Bank', shortName: 'Starling', color: '#6935D3', textColor: '#fff', initials: 'STR', type: 'Digital Bank' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   Canada: [
     { name: 'RBC Royal Bank', shortName: 'RBC', color: '#005DAA', textColor: '#fff', initials: 'RBC', type: 'Major Bank' },
@@ -75,14 +75,14 @@ const BANKS_BY_COUNTRY: Record<string, BankInfo[]> = {
     { name: 'Scotiabank', shortName: 'Scotia', color: '#EC111A', textColor: '#fff', initials: 'BNS', type: 'Major Bank' },
     { name: 'BMO Bank of Montreal', shortName: 'BMO', color: '#0079C1', textColor: '#fff', initials: 'BMO', type: 'Major Bank' },
     { name: 'CIBC', shortName: 'CIBC', color: '#C41F3E', textColor: '#fff', initials: 'CIBC', type: 'Major Bank' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   Australia: [
     { name: 'Commonwealth Bank', shortName: 'CBA', color: '#FFCC00', textColor: '#000', initials: 'CBA', type: 'Big Four' },
     { name: 'Westpac', shortName: 'WBC', color: '#DA1710', textColor: '#fff', initials: 'WBC', type: 'Big Four' },
     { name: 'ANZ Bank', shortName: 'ANZ', color: '#007DC5', textColor: '#fff', initials: 'ANZ', type: 'Big Four' },
     { name: 'NAB', shortName: 'NAB', color: '#E61E2D', textColor: '#fff', initials: 'NAB', type: 'Big Four' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   'United Arab Emirates': [
     { name: 'Emirates NBD', shortName: 'ENBD', color: '#FFD700', textColor: '#000', initials: 'ENBD', type: 'National Bank' },
@@ -90,18 +90,18 @@ const BANKS_BY_COUNTRY: Record<string, BankInfo[]> = {
     { name: 'Abu Dhabi Commercial Bank', shortName: 'ADCB', color: '#E31837', textColor: '#fff', initials: 'ADCB', type: 'National Bank' },
     { name: 'Dubai Islamic Bank', shortName: 'DIB', color: '#006B3F', textColor: '#fff', initials: 'DIB', type: 'Islamic Bank' },
     { name: 'Mashreq Bank', shortName: 'Mashreq', color: '#E31837', textColor: '#fff', initials: 'MBK', type: 'National Bank' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   Singapore: [
     { name: 'DBS Bank', shortName: 'DBS', color: '#E60028', textColor: '#fff', initials: 'DBS', type: 'Local Bank' },
     { name: 'OCBC Bank', shortName: 'OCBC', color: '#ED1C24', textColor: '#fff', initials: 'OCBC', type: 'Local Bank' },
     { name: 'United Overseas Bank', shortName: 'UOB', color: '#003087', textColor: '#fff', initials: 'UOB', type: 'Local Bank' },
-    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#6B7280', textColor: '#fff', initials: '', type: 'Other' },
   ],
   Default: [
     { name: 'Primary Local Bank', shortName: 'Local', color: '#6B7280', textColor: '#fff', initials: 'BNK', type: 'Bank' },
     { name: 'International Bank', shortName: 'Intl', color: '#374151', textColor: '#fff', initials: 'INT', type: 'Bank' },
-    { name: 'Other', shortName: 'Other', color: '#9CA3AF', textColor: '#fff', initials: '···', type: 'Other' },
+    { name: 'Other', shortName: 'Other', color: '#9CA3AF', textColor: '#fff', initials: '', type: 'Other' },
   ],
 };
 
@@ -281,7 +281,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
         </label>
         <div className="relative">
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-sm">
-            {data.country === 'India' ? '₹' : data.country === 'United States' ? '$' : data.country === 'United Kingdom' ? '£' : '₹'}
+            {data.country === 'India' ? 'INR' : data.country === 'United States' ? '$' : data.country === 'United Kingdom' ? 'GBP' : 'INR'}
           </span>
           <input
             type="number"
@@ -324,7 +324,7 @@ export const BankAccountStep: React.FC<BankAccountStepProps> = ({
             className="w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors py-1"
           >
             <SkipForward size={14} />
-            Skip for now — I'll add a bank account later
+            Skip for now - I'll add a bank account later
           </button>
         )}
       </div>

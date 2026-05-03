@@ -227,7 +227,7 @@ async function syncBackendNotifications() {
       const cooldownMs = error?.status === 429 ? NOTIFICATION_RATE_LIMIT_COOLDOWN_MS : NOTIFICATION_SYNC_COOLDOWN_MS;
       nextBackendNotificationSyncAt = Date.now() + cooldownMs;
       markOptionalBackendUnavailable(undefined, cooldownMs);
-      console.info('ℹ️ Backend notifications sync skipped:', error instanceof Error ? error.message : String(error));
+      console.info(' Backend notifications sync skipped:', error instanceof Error ? error.message : String(error));
       return;
     }
 
@@ -296,7 +296,7 @@ export const markNotificationAsRead = async (id: number) => {
         showErrorToast: false,
       });
     } catch (error) {
-      console.info('ℹ️ Failed to mark backend notification as read:', error instanceof Error ? error.message : String(error));
+      console.info(' Failed to mark backend notification as read:', error instanceof Error ? error.message : String(error));
     }
   }
 };
@@ -320,7 +320,7 @@ export const deleteNotificationRecord = async (id: number) => {
         showErrorToast: false,
       });
     } catch (error) {
-      console.info('ℹ️ Failed to delete backend notification:', error instanceof Error ? error.message : String(error));
+      console.info(' Failed to delete backend notification:', error instanceof Error ? error.message : String(error));
     }
   }
 };
@@ -341,7 +341,7 @@ export const clearNotificationRecords = async () => {
         showErrorToast: false,
       });
     } catch (error) {
-      console.info('ℹ️ Failed to clear backend notifications:', error instanceof Error ? error.message : String(error));
+      console.info(' Failed to clear backend notifications:', error instanceof Error ? error.message : String(error));
     }
   }
 };

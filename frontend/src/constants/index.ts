@@ -41,10 +41,10 @@ export const COLORS = {
 // ==================== Account Types ====================
 
 export const ACCOUNT_TYPES = [
-  { value: 'bank', label: 'Bank Account', icon: '🏦', color: COLORS.bank },
-  { value: 'card', label: 'Credit Card', icon: '💳', color: COLORS.card },
-  { value: 'cash', label: 'Cash', icon: '💵', color: COLORS.cash },
-  { value: 'wallet', label: 'Digital Wallet', icon: '📱', color: COLORS.wallet },
+  { value: 'bank', label: 'Bank Account', icon: '', color: COLORS.bank },
+  { value: 'card', label: 'Credit Card', icon: '', color: COLORS.card },
+  { value: 'cash', label: 'Cash', icon: '', color: COLORS.cash },
+  { value: 'wallet', label: 'Digital Wallet', icon: '', color: COLORS.wallet },
 ];
 
 // ==================== Transaction Categories ====================
@@ -53,7 +53,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'food',
     name: 'Food & Dining',
-    icon: '🍔',
+    icon: '',
     color: '#EF4444',
     subcategories: [
       'Groceries',
@@ -66,7 +66,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'transport',
     name: 'Transportation',
-    icon: '🚗',
+    icon: '',
     color: '#3B82F6',
     subcategories: [
       'Fuel',
@@ -79,7 +79,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'shopping',
     name: 'Shopping',
-    icon: '🛍️',
+    icon: '',
     color: '#8B5CF6',
     subcategories: [
       'Clothing',
@@ -92,7 +92,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'bills',
     name: 'Bills & Utilities',
-    icon: '📄',
+    icon: '',
     color: '#F59E0B',
     subcategories: [
       'Electricity',
@@ -105,7 +105,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'health',
     name: 'Health & Fitness',
-    icon: '⚕️',
+    icon: '',
     color: '#10B981',
     subcategories: [
       'Doctor',
@@ -118,7 +118,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'entertainment',
     name: 'Entertainment',
-    icon: '🎬',
+    icon: '',
     color: '#EC4899',
     subcategories: [
       'Movies',
@@ -131,7 +131,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'education',
     name: 'Education',
-    icon: '📚',
+    icon: '',
     color: '#14B8A6',
     subcategories: [
       'Tuition',
@@ -144,7 +144,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'travel',
     name: 'Travel',
-    icon: '✈️',
+    icon: '',
     color: '#F97316',
     subcategories: [
       'Flights',
@@ -157,7 +157,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'personal',
     name: 'Personal',
-    icon: '👤',
+    icon: '',
     color: '#6366F1',
     subcategories: [
       'Clothing',
@@ -170,7 +170,7 @@ export const EXPENSE_CATEGORIES = [
   {
     id: 'other',
     name: 'Other',
-    icon: '📌',
+    icon: '',
     color: '#6B7280',
     subcategories: [
       'Miscellaneous',
@@ -182,49 +182,49 @@ export const INCOME_CATEGORIES = [
   {
     id: 'salary',
     name: 'Salary',
-    icon: '💼',
+    icon: '',
     color: '#10B981',
   },
   {
     id: 'freelance',
     name: 'Freelance',
-    icon: '💻',
+    icon: '',
     color: '#3B82F6',
   },
   {
     id: 'business',
     name: 'Business',
-    icon: '🏢',
+    icon: '',
     color: '#8B5CF6',
   },
   {
     id: 'investment',
     name: 'Investment',
-    icon: '📈',
+    icon: '',
     color: '#F59E0B',
   },
   {
     id: 'rental',
     name: 'Rental Income',
-    icon: '🏠',
+    icon: '',
     color: '#EC4899',
   },
   {
     id: 'refund',
     name: 'Refund',
-    icon: '💰',
+    icon: '',
     color: '#14B8A6',
   },
   {
     id: 'gift',
     name: 'Gift',
-    icon: '🎁',
+    icon: '',
     color: '#F97316',
   },
   {
     id: 'other',
     name: 'Other Income',
-    icon: '💵',
+    icon: '',
     color: '#6B7280',
   },
 ];
@@ -232,20 +232,20 @@ export const INCOME_CATEGORIES = [
 // ==================== Investment Types ====================
 
 export const INVESTMENT_TYPES = [
-  { value: 'stocks', label: 'Stocks', icon: '📈', color: '#3B82F6' },
-  { value: 'crypto', label: 'Cryptocurrency', icon: '₿', color: '#F7931A' },
-  { value: 'gold', label: 'Gold', icon: '🪙', color: '#FFD700' },
-  { value: 'forex', label: 'Forex', icon: '💱', color: '#10B981' },
-  { value: 'mutual_funds', label: 'Mutual Funds', icon: '📊', color: '#8B5CF6' },
-  { value: 'bonds', label: 'Bonds', icon: '📜', color: '#6B7280' },
+  { value: 'stocks', label: 'Stocks', icon: '', color: '#3B82F6' },
+  { value: 'crypto', label: 'Cryptocurrency', icon: '', color: '#F7931A' },
+  { value: 'gold', label: 'Gold', icon: '', color: '#FFD700' },
+  { value: 'forex', label: 'Forex', icon: '', color: '#10B981' },
+  { value: 'mutual_funds', label: 'Mutual Funds', icon: '', color: '#8B5CF6' },
+  { value: 'bonds', label: 'Bonds', icon: '', color: '#6B7280' },
 ];
 
 // ==================== Loan Types ====================
 
 export const LOAN_TYPES = [
-  { value: 'borrowed', label: 'Borrowed (I owe)', icon: '⬇️', color: '#EF4444' },
-  { value: 'lent', label: 'Lent (They owe me)', icon: '⬆️', color: '#10B981' },
-  { value: 'emi', label: 'EMI/Installment', icon: '🔄', color: '#3B82F6' },
+  { value: 'borrowed', label: 'Borrowed (I owe)', icon: '', color: '#EF4444' },
+  { value: 'lent', label: 'Lent (They owe me)', icon: '', color: '#10B981' },
+  { value: 'emi', label: 'EMI/Installment', icon: '', color: '#3B82F6' },
 ];
 
 export const PAYMENT_FREQUENCIES = [
@@ -269,11 +269,11 @@ export const TIME_RANGES = [
 
 export const CURRENCIES = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
-  { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  { code: 'EUR', symbol: 'EUR', name: 'Euro' },
+  { code: 'GBP', symbol: 'GBP', name: 'British Pound' },
+  { code: 'INR', symbol: 'INR', name: 'Indian Rupee' },
+  { code: 'JPY', symbol: '', name: 'Japanese Yen' },
+  { code: 'CNY', symbol: '', name: 'Chinese Yuan' },
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
@@ -441,7 +441,7 @@ export const QUICK_ACTIONS = [
   {
     id: 'add_expense',
     label: 'Add Expense',
-    icon: '💸',
+    icon: '',
     color: COLORS.danger,
     route: 'add-transaction',
     params: { type: 'expense' },
@@ -449,7 +449,7 @@ export const QUICK_ACTIONS = [
   {
     id: 'add_income',
     label: 'Add Income',
-    icon: '💰',
+    icon: '',
     color: COLORS.success,
     route: 'add-transaction',
     params: { type: 'income' },
@@ -457,14 +457,14 @@ export const QUICK_ACTIONS = [
   {
     id: 'transfer',
     label: 'Transfer',
-    icon: '🔄',
+    icon: '',
     color: COLORS.primary,
     route: 'transfer',
   },
   {
     id: 'voice_input',
     label: 'Voice Input',
-    icon: '🎤',
+    icon: '',
     color: COLORS.secondary,
     route: 'voice-input',
   },

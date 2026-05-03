@@ -46,7 +46,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
               )}
               {isDangerous && (
                 <p className="text-red-600 mt-3 text-xs font-medium">
-                  ⚠️ This action cannot be undone.
+                   This action cannot be undone.
                 </p>
               )}
             </div>

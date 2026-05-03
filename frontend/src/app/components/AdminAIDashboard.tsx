@@ -49,13 +49,13 @@ import {
   YAxis,
 } from 'recharts';
 
-// 🧠 FINORA AI ADMIN DASHBOARD
+//  FINORA AI ADMIN DASHBOARD
 // Enhanced with new AI learning metrics and insights
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//  Types 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+//  Helpers 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('en-IN', {
@@ -71,7 +71,7 @@ const formatDateTime = (iso: string | null) => {
   return d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 };
 
-// ─── Risk badge ────────────────────────────────────────────────────────────────
+//  Risk badge 
 const riskBadge = (score: number) => {
   if (score >= 70) return 'bg-red-100 text-red-700';
   if (score >= 40) return 'bg-amber-100 text-amber-700';
@@ -83,7 +83,7 @@ const riskLabel = (score: number) => {
   return 'Low';
 };
 
-// ─── Insight type badge colour ─────────────────────────────────────────────────
+//  Insight type badge colour 
 const insightBadge = (type: string): string => {
   const map: Record<string, string> = {
     spending_spike: 'bg-red-100 text-red-700',
@@ -96,17 +96,17 @@ const insightBadge = (type: string): string => {
   return map[type] ?? 'bg-blue-100 text-blue-700';
 };
 
-// ─── Chart colours ─────────────────────────────────────────────────────────────
+//  Chart colours 
 const CHART_COLORS = ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#ec4899', '#14b8a6'];
 
-// ─── Section card wrapper ──────────────────────────────────────────────────────
+//  Section card wrapper 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div className={`bg-white rounded-2xl border border-gray-200 p-5 shadow-sm ${className}`}>
     {children}
   </div>
 );
 
-// ─── Section heading (matches SyncMonitor style) ───────────────────────────────
+//  Section heading (matches SyncMonitor style) 
 const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; iconColor?: string; badge?: string }> = ({
   icon, title, iconColor = 'text-blue-500', badge,
 }) => (
@@ -119,7 +119,7 @@ const SectionHeading: React.FC<{ icon: React.ReactNode; title: string; iconColor
   </div>
 );
 
-// ─── Stat mini-card (matches SyncMonitor style) ────────────────────────────────
+//  Stat mini-card (matches SyncMonitor style) 
 const StatMini: React.FC<{ icon: React.ReactNode; label: string; value: React.ReactNode; color: string }> = ({
   icon, label, value, color,
 }) => (
@@ -132,7 +132,7 @@ const StatMini: React.FC<{ icon: React.ReactNode; label: string; value: React.Re
   </div>
 );
 
-// ─── Tooltip for charts ────────────────────────────────────────────────────────
+//  Tooltip for charts 
 const ChartTooltip: React.FC<{
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
@@ -151,7 +151,7 @@ const ChartTooltip: React.FC<{
   );
 };
 
-// ─── Main component ────────────────────────────────────────────────────────────
+//  Main component 
 export const AdminAIDashboard: React.FC = () => {
   const { setCurrentPage } = useApp();
   const { role } = useAuth();
@@ -240,7 +240,7 @@ export const AdminAIDashboard: React.FC = () => {
     return insights.filter((i) => i.insightType === insightFilter).slice(0, 15);
   }, [insights, insightFilter]);
 
-  // ── Access guard ───────────────────────────────────────────────────────────
+  //  Access guard 
   if (role !== 'admin') {
     return (
       <CenteredLayout>
@@ -263,7 +263,7 @@ export const AdminAIDashboard: React.FC = () => {
     <CenteredLayout>
       <div className="space-y-6 pb-8">
 
-        {/* ── Header ───────────────────────────────────────────────── */}
+        {/*  Header  */}
         <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div className="flex items-start gap-3">
             <button
@@ -278,7 +278,7 @@ export const AdminAIDashboard: React.FC = () => {
                 <Brain size={22} className="text-indigo-600 shrink-0" />
                 <h2 className="text-xl md:text-2xl font-bold text-gray-900 truncate">AI Intelligence Dashboard</h2>
               </div>
-              <p className="text-gray-500 mt-0.5 text-xs md:text-sm">Backend AI engine · Admin only</p>
+              <p className="text-gray-500 mt-0.5 text-xs md:text-sm">Backend AI engine  Admin only</p>
             </div>
           </div>
           {/* Action buttons */}
@@ -299,7 +299,7 @@ export const AdminAIDashboard: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50"
             >
               <Play size={14} className={runningFeatures ? 'animate-pulse' : ''} />
-              {runningFeatures ? 'Running…' : 'Run Features'}
+              {runningFeatures ? 'Running...' : 'Run Features'}
             </button>
             <button
               id="ai-run-predictions-btn"
@@ -308,22 +308,22 @@ export const AdminAIDashboard: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors disabled:opacity-50"
             >
               <Zap size={14} className={runningPredictions ? 'animate-pulse' : ''} />
-              {runningPredictions ? 'Running…' : 'Run Predictions'}
+              {runningPredictions ? 'Running...' : 'Run Predictions'}
             </button>
           </div>
         </div>
 
-        {/* ── Loading ───────────────────────────────────────────────── */}
+        {/*  Loading  */}
         {state === 'loading' && (
           <Card>
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <div className="w-10 h-10 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
-              <p className="text-sm text-gray-500">Loading AI telemetry…</p>
+              <p className="text-sm text-gray-500">Loading AI telemetry...</p>
             </div>
           </Card>
         )}
 
-        {/* ── Error ─────────────────────────────────────────────────── */}
+        {/*  Error  */}
         {state === 'error' && (
           <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl p-4">
             <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
@@ -334,7 +334,7 @@ export const AdminAIDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* ── Ready ─────────────────────────────────────────────────── */}
+        {/*  Ready  */}
         {state === 'ready' && overview && patterns && accuracy && (
           <>
             {/* KPI overview row */}
@@ -422,7 +422,7 @@ export const AdminAIDashboard: React.FC = () => {
 
               <div className="p-5">
 
-                {/* ── OVERVIEW TAB ── */}
+                {/*  OVERVIEW TAB  */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
 
@@ -455,7 +455,7 @@ export const AdminAIDashboard: React.FC = () => {
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
-                              tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}k`} />
+                              tickFormatter={(v) => `INR${(v / 1000).toFixed(0)}k`} />
                             <Tooltip content={<ChartTooltip />} />
                             <Legend wrapperStyle={{ fontSize: 12 }} />
                             <Area type="monotone" dataKey="income" stroke="#6366f1" strokeWidth={2} fill="url(#incG)" name="Income" />
@@ -538,7 +538,7 @@ export const AdminAIDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {/* ── USERS TAB ── */}
+                {/*  USERS TAB  */}
                 {activeTab === 'users' && (
                   <div className="space-y-5">
                     <div className="overflow-x-auto rounded-xl">
@@ -616,7 +616,7 @@ export const AdminAIDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {/* ── INSIGHTS TAB ── */}
+                {/*  INSIGHTS TAB  */}
                 {activeTab === 'insights' && (
                   <div className="space-y-4">
                     {/* Filter chips */}
@@ -700,7 +700,7 @@ export const AdminAIDashboard: React.FC = () => {
                 {rawLoading && (
                   <div className="flex items-center gap-2 text-sm text-gray-500 py-4">
                     <div className="w-4 h-4 border-2 border-gray-200 border-t-indigo-500 rounded-full animate-spin" />
-                    Loading raw AI data…
+                    Loading raw AI data...
                   </div>
                 )}
 

@@ -214,8 +214,8 @@ export const AdvisorWorkspace: React.FC = () => {
               advisorProfile.availability ? 'text-green-900' : 'text-yellow-900'
             }`}>
               {advisorProfile.availability
-                ? '✓ You are currently visible to users and can receive booking requests'
-                : '⚠ You are hidden from users. Toggle availability to start receiving bookings'}
+                ? ' You are currently visible to users and can receive booking requests'
+                : ' You are hidden from users. Toggle availability to start receiving bookings'}
             </p>
           </div>
         )}
@@ -393,7 +393,7 @@ export const AdvisorWorkspace: React.FC = () => {
                     aria-label="Close Chat"
                     title="Close Chat"
                   >
-                    ✕
+                    
                   </button>
                 </div>
 

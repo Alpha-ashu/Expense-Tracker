@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
-import { Wallet, Landmark, CreditCard, Banknote, Smartphone, CheckCircle2, ArrowRight, Globe2, MapPin } from 'lucide-react';
+import { Wallet, Landmark, CreditCard, Banknote, Smartphone, CheckCircle2, ArrowRight, Globe2, MapPin, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/app/components/ui/card';
 import { PageHeader } from '@/app/components/ui/PageHeader';
@@ -232,7 +232,7 @@ export const AddAccount: React.FC = () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      toast.success('Account created successfully', { icon: '🎉' });
+      toast.success('Account created successfully', { icon: '' });
       refreshData();
       setCurrentPage('accounts');
     } catch (error) {
@@ -292,14 +292,27 @@ export const AddAccount: React.FC = () => {
     <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
       <div className="max-w-[560px] mx-auto px-3 lg:px-4 w-full">
         {/* Header */}
-        <div className="mb-4 lg:mb-5">
-          <PageHeader
-            title="New Account"
-            subtitle="Let's set up a new place to track your money"
-            icon={<Wallet size={24} className="text-blue-600" />}
-            showBack
-            backTo="accounts"
-          />
+        <div className="mb-4 lg:mb-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <button 
+              type="button"
+              onClick={() => setCurrentPage('accounts')}
+              className="lg:hidden w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 mb-4 shadow-sm border border-gray-100"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2 lg:gap-3">
+              <Wallet className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600" /> New Account
+            </h1>
+            <p className="text-xs lg:text-sm text-gray-500 mt-1 lg:mt-2">Let's set up a new place to track your money</p>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setCurrentPage('accounts')}
+            className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Form Card */}

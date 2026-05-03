@@ -1874,7 +1874,7 @@ class SmartExpenseImportService {
         name: row.category,
         type: categoryType,
         color: details?.color ?? (categoryType === 'expense' ? '#64748B' : '#10B981'),
-        icon: details?.icon ?? (categoryType === 'expense' ? '🧾' : '💸'),
+        icon: details?.icon ?? (categoryType === 'expense' ? '' : ''),
         createdAt: timestamp,
         updatedAt: timestamp,
         userId,

@@ -1103,14 +1103,14 @@ export function formatIndianNumber(n: number): string {
   return new Intl.NumberFormat('en-IN').format(Math.round(n));
 }
 
-export function formatPrice(n: number, currency: string = '₹'): string {
+export function formatPrice(n: number, currency: string = 'INR'): string {
   if (currency === '$') {
     return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
   }
   return `${currency}${formatIndianNumber(n)}`;
 }
 
-export function formatMarketCap(n: number, currency: string = '₹'): string {
+export function formatMarketCap(n: number, currency: string = 'INR'): string {
   if (currency === '$') {
     const billion = n / 1e9;
     if (billion >= 1000) return `$${(billion / 1000).toFixed(2)}T`;
@@ -1119,9 +1119,9 @@ export function formatMarketCap(n: number, currency: string = '₹'): string {
   }
 
   const crore = n / 1e7;
-  if (crore >= 1e5) return `₹${(crore / 1e5).toFixed(2)}L Cr`;
-  if (crore >= 1e3) return `₹${(crore / 1e3).toFixed(2)}K Cr`;
-  return `₹${crore.toFixed(0)} Cr`;
+  if (crore >= 1e5) return `INR${(crore / 1e5).toFixed(2)}L Cr`;
+  if (crore >= 1e3) return `INR${(crore / 1e3).toFixed(2)}K Cr`;
+  return `INR${crore.toFixed(0)} Cr`;
 }
 
 export function getDefaultWatchlist(market: MarketCategory): string[] {

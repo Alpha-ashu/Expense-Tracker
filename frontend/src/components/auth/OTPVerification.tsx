@@ -8,7 +8,7 @@ interface OTPVerificationProps {
   onVerified: () => void;
   onBack: () => void;
   isNewUser?: boolean;
-  /** If provided, the OTP step cannot be skipped — user MUST verify email */
+  /** If provided, the OTP step cannot be skipped - user MUST verify email */
   mandatory?: boolean;
 }
 
@@ -128,7 +128,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
       localStorage.setItem('email_verified', 'true');
       localStorage.setItem('user_status', 'verified');
       setVerified(true);
-      toast.success('Email verified successfully! Welcome to Kanakku 🎉');
+      toast.success('Email verified successfully! Welcome to Kanakku ');
 
       // Short delay to show success state before navigating
       setTimeout(() => onVerified(), 800);
@@ -159,7 +159,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
 
       if (resendError) {
         // 422 = user account doesn't exist yet (signup may have failed server-side)
-        // or the email hasn't been confirmed — try with shouldCreateUser: true
+        // or the email hasn't been confirmed - try with shouldCreateUser: true
         if (resendError.status === 422 || resendError.message?.toLowerCase().includes('user')) {
           const { error: createError } = await supabase.auth.signInWithOtp({
             email,
@@ -180,7 +180,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
       const status = err?.status;
       // 429 = Supabase rate limit (max 3 emails/hour on free tier)
       if (status === 429 || err?.message?.toLowerCase().includes('rate limit')) {
-        setError('Email rate limit reached — Supabase allows 3 emails/hour on the free plan. Please wait ~1 hour or configure a custom SMTP provider in your Supabase dashboard.');
+        setError('Email rate limit reached - Supabase allows 3 emails/hour on the free plan. Please wait ~1 hour or configure a custom SMTP provider in your Supabase dashboard.');
         setResendCooldown(300); // 5 min cooldown to stop further attempts
       } else if (status === 500) {
         setError('Email sending is currently unavailable (Supabase server error). Please go back and try signing up again, or check your Supabase SMTP settings.');
@@ -227,7 +227,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
             <p className="text-sm font-semibold text-blue-600 mt-1">{email}</p>
             {mandatory && (
               <p className="text-xs text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-1 inline-block">
-                ⚠️ Email verification is required to continue
+                 Email verification is required to continue
               </p>
             )}
           </div>
@@ -319,10 +319,10 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
               <div className="text-sm">
                 <p className="font-semibold text-blue-800 mb-1">Why verify your email?</p>
                 <ul className="text-xs text-blue-700 space-y-1">
-                  <li>✓ Secure your financial data</li>
-                  <li>✓ Enable cloud sync across devices</li>
-                  <li>✓ Recover your account if you forget PIN</li>
-                  <li>✓ Receive important security alerts</li>
+                  <li> Secure your financial data</li>
+                  <li> Enable cloud sync across devices</li>
+                  <li> Recover your account if you forget PIN</li>
+                  <li> Receive important security alerts</li>
                 </ul>
               </div>
             </div>

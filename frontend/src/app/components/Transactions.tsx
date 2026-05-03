@@ -243,34 +243,79 @@ export const Transactions: React.FC = () => {
     }
   };
 
+  const [isDesktop, setIsDesktop] = React.useState(false);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    } else {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
+  }, []);
+
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
-      {/* App Header */}
-      <PageHeader
-        title="Transactions"
-        subtitle="Track your financial activity"
-        icon={<Wallet size={20} className="sm:w-6 sm:h-6" />}
-      >
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Button
-            variant="secondary"
-            onClick={() => setShowScanModal(true)}
-            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs sm:text-sm h-9 sm:h-10 px-2.5 sm:px-4"
-          >
-            <Camera size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Scan Bill</span>
-            <span className="inline sm:hidden">Scan</span>
-          </Button>
-          <Button
-            onClick={() => setShowTransactionTypeModal(true)}
-            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
-          >
-            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Add Transaction</span>
-            <span className="inline sm:hidden">Add</span>
-          </Button>
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
+      
+      {isDesktop && (
+        <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <Wallet className="w-6 h-6 text-gray-900" />
+              Transactions
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Track your financial activity</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setShowScanModal(true)}
+              className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-10 px-4 rounded-2xl"
+            >
+              <Camera size={18} className="mr-2" />
+              Scan Bill
+            </Button>
+            <Button
+              onClick={() => setShowTransactionTypeModal(true)}
+              className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-10 px-4 rounded-2xl"
+            >
+              <Plus size={18} className="mr-2" />
+              Add Transaction
+            </Button>
+          </div>
         </div>
-      </PageHeader>
+      )}
+
+      
+      {!isDesktop && (
+        <div className="flex items-center justify-between pt-12 pb-6 px-6 relative z-10">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Wallet className="w-8 h-8" />
+            Transactions
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">Track your financial activity</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowScanModal(true)}
+            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 shadow-sm"
+          >
+            <Camera size={20} />
+          </button>
+          <button
+            onClick={() => setShowTransactionTypeModal(true)}
+            className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
+      </div>
+      )}
 
       {/* Time Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -464,7 +509,7 @@ export const Transactions: React.FC = () => {
                           {(attachedDocumentId || attachedTaxAmount > 0) && (
                             <p className="text-[11px] text-gray-500 font-medium mt-1">
                               {attachedTaxAmount > 0 ? `Tax ${formatCurrency(attachedTaxAmount)}` : 'Bill attached'}
-                              {attachedDocumentId && attachedTaxAmount > 0 ? ' • ' : ''}
+                              {attachedDocumentId && attachedTaxAmount > 0 ? ' - ' : ''}
                               {attachedDocumentId ? 'Bill attached' : ''}
                             </p>
                           )}
@@ -661,360 +706,6 @@ export const Transactions: React.FC = () => {
         onClose={() => setShowScanModal(false)}
         onTransactionCreated={() => setShowScanModal(false)}
       />
-    </div>
-  );
-};
-
-interface AddTransactionModalProps {
-  accounts: any[];
-  onClose: () => void;
-}
-
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ accounts, onClose }) => {
-  const [formData, setFormData] = useState({
-    type: 'expense' as 'expense' | 'income',
-    amount: 0,
-    accountId: accounts[0]?.id || 0,
-    category: CATEGORIES.expense[0],
-    subcategory: '',
-    description: '',
-    merchant: '',
-    date: toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0],
-  });
-
-  const subcategories = useMemo(() => {
-    return getSubcategoriesForCategory(formData.category, formData.type);
-  }, [formData.category, formData.type]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const account = accounts.find(a => a.id === formData.accountId);
-    if (!account) {
-      toast.error('Please select an account');
-      return;
-    }
-    const parsedDate = parseDateInputValue(formData.date);
-    if (!parsedDate) {
-      toast.error('Please select a valid date');
-      return;
-    }
-
-    try {
-      await db.transactions.add({
-        ...formData,
-        date: parsedDate,
-        tags: [],
-      });
-
-      const newBalance = formData.type === 'income'
-        ? account.balance + formData.amount
-        : account.balance - formData.amount;
-
-      await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: new Date() });
-
-      // Show detailed success message
-      const typeLabel = formData.type === 'income' ? 'Income' : 'Expense';
-      const icon = formData.type === 'income' ? '📈' : '📉';
-      const message = `${icon} ${typeLabel} ₹${formData.amount.toFixed(2)} added to ${formData.category}`;
-      toast.success(message);
-      onClose();
-    } catch (error) {
-      console.error('Failed to add transaction:', error);
-      toast.error('❌ Failed to add transaction. Please try again.');
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">Add Transaction</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'expense', category: CATEGORIES.expense[0] })}
-                className={`flex-1 py-2 rounded-lg border-2 transition-colors ${formData.type === 'expense'
-                  ? 'border-red-500 bg-red-50 text-red-700'
-                  : 'border-gray-200 text-gray-600'
-                  }`}
-              >
-                Expense
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: 'income', category: CATEGORIES.income[0] })}
-                className={`flex-1 py-2 rounded-lg border-2 transition-colors ${formData.type === 'income'
-                  ? 'border-green-500 bg-green-50 text-green-700'
-                  : 'border-gray-200 text-gray-600'
-                  }`}
-              >
-                Income
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.amount || ''}
-              onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
-              placeholder="0.00"
-              aria-label="Transaction amount"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
-            <select
-              value={formData.accountId}
-              onChange={(e) => setFormData({ ...formData, accountId: parseInt(e.target.value) })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
-              aria-label="Select account"
-              required
-            >
-              {accounts.map(account => (
-                <option key={account.id} value={account.id}>{account.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <CategoryDropdown
-              value={formData.category}
-              onChange={(value) => setFormData({ ...formData, category: value, subcategory: '' })}
-              options={CATEGORIES[formData.type]}
-              label="Category"
-              required
-            />
-          </div>
-
-          {subcategories.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subcategory</label>
-              <select
-                value={formData.subcategory}
-                onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 appearance-none bg-white"
-                aria-label="Select subcategory"
-              >
-                <option value="">Select a subcategory</option>
-                {subcategories.map(subcat => (
-                  <option key={subcat} value={subcat}>{subcat}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
-              placeholder="e.g., Grocery shopping"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Merchant (Optional)</label>
-            <input
-              type="text"
-              value={formData.merchant}
-              onChange={(e) => setFormData({ ...formData, merchant: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
-              placeholder="e.g., Walmart"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
-              aria-label="Transaction date"
-              required
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
-            >
-              Add Transaction
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-interface BillScannerModalProps {
-  accounts: any[];
-  onClose: () => void;
-}
-
-const BillScannerModal: React.FC<BillScannerModalProps> = ({ accounts, onClose }) => {
-  const [scannedData, setScannedData] = useState<any>(null);
-  const [isScanning, setIsScanning] = useState(false);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsScanning(true);
-
-    // Simulate OCR scanning
-    setTimeout(() => {
-      setScannedData({
-        amount: Math.floor(Math.random() * 500) + 10,
-        merchant: ['Walmart', 'Target', 'Starbucks', 'Amazon', 'McDonald\'s'][Math.floor(Math.random() * 5)],
-        date: toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0],
-        category: 'Shopping',
-        items: [
-          { name: 'Item 1', price: 12.99 },
-          { name: 'Item 2', price: 25.49 },
-          { name: 'Item 3', price: 8.99 },
-        ],
-      });
-      setIsScanning(false);
-      toast.success('Bill scanned successfully!');
-    }, 2000);
-  };
-
-  const handleSaveScanned = async () => {
-    if (!scannedData) return;
-
-    try {
-      const parsedScanDate = parseDateInputValue(scannedData.date) ?? new Date(scannedData.date);
-      await db.transactions.add({
-        type: 'expense',
-        amount: scannedData.amount,
-        accountId: accounts[0]?.id || 0,
-        category: scannedData.category,
-        description: `Bill from ${scannedData.merchant}`,
-        merchant: scannedData.merchant,
-        date: parsedScanDate,
-        tags: ['scanned'],
-      });
-
-      const account = accounts[0];
-      if (account) {
-        await db.accounts.update(account.id, {
-          balance: account.balance - scannedData.amount,
-          updatedAt: new Date()
-        });
-      }
-
-      toast.success('Transaction saved successfully');
-      onClose();
-    } catch (error) {
-      console.error('Failed to save scanned transaction:', error);
-      toast.error('Failed to save transaction');
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md">
-        <h3 className="text-xl font-bold mb-4">Scan Bill</h3>
-
-        {!scannedData && !isScanning && (
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Camera className="mx-auto text-gray-400 mb-4" size={48} />
-              <p className="text-gray-600 mb-4">Upload a photo of your bill</p>
-              <label className="inline-block px-6 py-2 bg-purple-600 text-white rounded-lg cursor-pointer hover:bg-purple-700 transition-colors">
-                Choose File
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-            <p className="text-sm text-gray-500 text-center">
-              AI will extract amount, merchant, and items from the bill
-            </p>
-          </div>
-        )}
-
-        {isScanning && (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Scanning bill...</p>
-          </div>
-        )}
-
-        {scannedData && (
-          <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium mb-2">✓ Bill scanned successfully!</p>
-              <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Merchant:</span> {scannedData.merchant}</p>
-                <p><span className="font-medium">Amount:</span> ${scannedData.amount}</p>
-                <p><span className="font-medium">Date:</span> {scannedData.date}</p>
-                <p><span className="font-medium">Category:</span> {scannedData.category}</p>
-              </div>
-            </div>
-
-            <div>
-              <p className="font-medium mb-2">Detected Items:</p>
-              <div className="space-y-1">
-                {scannedData.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                    <span>{item.name}</span>
-                    <span>${item.price}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                onClick={() => setScannedData(null)}
-                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
-              >
-                Scan Again
-              </button>
-              <button
-                onClick={handleSaveScanned}
-                className="flex-1 px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
-              >
-                Save Transaction
-              </button>
-            </div>
-          </div>
-        )}
-
-        {!isScanning && (
-          <button
-            onClick={onClose}
-            className="w-full mt-4 px-4 py-2 border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all font-medium active:scale-95"
-          >
-            Cancel
-          </button>
-        )}
-      </div>
     </div>
   );
 };

@@ -113,7 +113,7 @@ const numberWords: Record<string, number> = {
 const decimalWords: Record<string, number> = { half: 0.5, quarter: 0.25 };
 
 const numericAmountPatterns = [
-  /(?:rs|inr|rupees?|₹)\s*(\d[\d,]*(?:\.\d+)?)/gi,
+  /(?:rs|inr|rupees?|INR)\s*(\d[\d,]*(?:\.\d+)?)/gi,
   /(\d[\d,]*(?:\.\d+)?)\s*(?:rupees?|rs|inr)\b/gi,
   /\b(?:spent|spend|paid|pay|cost|price|amount|received|got|earned|credited|debited|transfer(?:red)?|sent|bought|buy|refund(?:ed)?|cashback|salary)\s+(?:for|of|inr|rs|rupees?)?\s*(\d[\d,]*(?:\.\d+)?)/gi,
 ];
@@ -219,7 +219,7 @@ function extractNumericAmount(text: string): { amount: number | null; matchedTex
 
     const context = text.slice(Math.max(0, start - 18), Math.min(text.length, end + 18)).toLowerCase();
     let score = amount >= 100 ? 1.4 : 1;
-    if (/(rs|inr|₹|rupees?|spent|paid|received|credited|debited|salary|refund|cashback|transfer|bought|cost)/i.test(context)) {
+    if (/(rs|inr|INR|rupees?|spent|paid|received|credited|debited|salary|refund|cashback|transfer|bought|cost)/i.test(context)) {
       score += 1.3;
     }
     if (amount >= 1900 && amount <= 2100 && /\b\d{4}\b/.test(rawValue)) score -= 1.5;

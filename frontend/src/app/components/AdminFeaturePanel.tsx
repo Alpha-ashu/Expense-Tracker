@@ -353,7 +353,7 @@ export const AdminFeaturePanel: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
+    <div className="w-full min-h-screen overflow-x-hidden bg-white">
       <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
         <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
           <PageHeader
@@ -375,7 +375,7 @@ export const AdminFeaturePanel: React.FC = () => {
             </p>
           </div>
 
-          {/* ── Admin Quick Access ─────────────────────────────────────────── */}
+          {/* "EUR"EUR Admin Quick Access "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
             {/* AI Intelligence Dashboard card */}
@@ -429,7 +429,7 @@ export const AdminFeaturePanel: React.FC = () => {
             </div>
           </div>
 
-          {/* ── Divider ──────────────────────────────────────────────────────── */}
+          {/* "EUR"EUR Divider "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">Feature Flags</span>
@@ -472,10 +472,10 @@ export const AdminFeaturePanel: React.FC = () => {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                     >
-                      {status === 'unreleased' ? '🔒 Unreleased' : ''}
-                      {status === 'beta' ? '🧪 Beta' : ''}
-                      {status === 'released' ? '✅ Released' : ''}
-                      {status === 'deprecated' ? '⚠️ Deprecated' : ''}
+                      {status === 'unreleased' ? 'Unreleased' : ''}
+                      {status === 'beta' ? ' Beta' : ''}
+                      {status === 'released' ? 'Released' : ''}
+                      {status === 'deprecated' ? ' Deprecated' : ''}
                     </button>
                   ))}
                 </div>
@@ -489,23 +489,23 @@ export const AdminFeaturePanel: React.FC = () => {
           </div>
 
           {/* Feature Readiness Guide */}
-          <div className="bg-gray-50 rounded-2xl border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Feature Readiness Guide</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="font-medium text-gray-900 mb-1">🔒 Unreleased</p>
+                <p className="font-medium text-gray-900 mb-1">Unreleased</p>
                 <p className="text-gray-600">Only visible to admin for testing</p>
               </div>
               <div>
-                <p className="font-medium text-gray-900 mb-1">🧪 Beta</p>
+                <p className="font-medium text-gray-900 mb-1">Beta</p>
                 <p className="text-gray-600">Visible to admin and advisors for feedback</p>
               </div>
               <div>
-                <p className="font-medium text-gray-900 mb-1">✅ Released</p>
+                <p className="font-medium text-gray-900 mb-1">Released</p>
                 <p className="text-gray-600">Available to all users</p>
               </div>
               <div>
-                <p className="font-medium text-gray-900 mb-1">⚠️ Deprecated</p>
+                <p className="font-medium text-gray-900 mb-1">Deprecated</p>
                 <p className="text-gray-600">Hidden from all users, scheduled for removal</p>
               </div>
             </div>
@@ -517,3 +517,4 @@ export const AdminFeaturePanel: React.FC = () => {
 };
 
 export default AdminFeaturePanel;
+

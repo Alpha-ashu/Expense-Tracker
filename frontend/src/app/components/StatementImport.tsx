@@ -195,7 +195,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
   };
 
   const formatCurrency = (amount: number) => {
-    if (isNaN(amount)) return '₹0.00';
+    if (isNaN(amount)) return 'INR0.00';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR'

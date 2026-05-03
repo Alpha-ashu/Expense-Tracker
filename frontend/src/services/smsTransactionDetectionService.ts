@@ -241,7 +241,7 @@ const buildDraftDescription = (record: SmsDetectedTransaction) => {
   const parts = ['SMS detected transaction'];
   if (record.bankName) parts.push(record.bankName);
   if (record.sourceChannel) parts.push(record.sourceChannel);
-  return parts.join(' • ');
+  return parts.join(' - ');
 };
 
 const buildDraftFromRecord = (record: SmsDetectedTransaction): SmsTransactionDraft => ({

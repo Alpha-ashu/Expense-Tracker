@@ -120,7 +120,7 @@ export class CloudReceiptScanService {
       throw new Error('Cloud receipt scan currently supports image files only');
     }
 
-    onProgress?.({ status: 'Compressing image for upload…', progress: 15 });
+    onProgress?.({ status: 'Compressing image for upload...', progress: 15 });
     const compressedBlob = await compressImageForUpload(file);
 
     const formData = new FormData();
@@ -135,7 +135,7 @@ export class CloudReceiptScanService {
     const finalUrl = `${API_BASE}/receipts/scan`;
     console.log(`[ReceiptScanner] Sending fetch to: ${finalUrl}. Token present: ${!!token}`);
     
-    onProgress?.({ status: 'Running AI financial intelligence engine…', progress: 35 });
+    onProgress?.({ status: 'Running AI financial intelligence engine...', progress: 35 });
     const response = await fetch(finalUrl, {
       method: 'POST',
       headers,
@@ -149,7 +149,7 @@ export class CloudReceiptScanService {
       throw new Error(errorMessage);
     }
 
-    onProgress?.({ status: 'Applying global intelligence & tax extraction…', progress: 80 });
+    onProgress?.({ status: 'Applying global intelligence & tax extraction...', progress: 80 });
 
     const merchantName = typeof payload.merchantName === 'string' ? payload.merchantName : undefined;
     const amount = typeof payload.amount === 'number' && Number.isFinite(payload.amount) ? payload.amount : undefined;

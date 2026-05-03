@@ -217,7 +217,7 @@ export const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({
 
       <div>
         <label htmlFor="salary" className="block text-sm font-medium text-gray-700 mb-1">
-          Annual Salary (₹)
+          Annual Salary (INR)
         </label>
         <input
           type="number"

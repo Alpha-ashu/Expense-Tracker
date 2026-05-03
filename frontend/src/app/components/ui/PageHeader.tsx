@@ -38,7 +38,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                     {showBack && (
                         <button
                             onClick={handleBackClick}
-                            className="p-2 -ml-2 hover:bg-gray-200 rounded-xl transition-colors shrink-0"
+                            className="lg:hidden p-2 -ml-2 hover:bg-gray-200 rounded-xl transition-colors shrink-0"
                             aria-label="Go back"
                         >
                             <ChevronLeft size={24} className="text-gray-900" />

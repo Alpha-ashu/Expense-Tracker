@@ -78,7 +78,7 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
 
   return (
     <CenteredLayout>
-      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
+      <div className="space-y-6 max-w-[480px] lg:max-w-3xl w-full mx-auto pb-8">
         <PageHeader
           title="Edit Account"
           subtitle="Update your account details"

@@ -326,7 +326,7 @@ export const Reports: React.FC = () => {
   };
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
+    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
       <PageHeader
         title="Reports & Analytics"
         subtitle="Track performance, spot trends, and export insights"
@@ -646,7 +646,7 @@ export const Reports: React.FC = () => {
                     <td className={`p-3 text-right font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                       {formatCurrency(t.amount)}
                     </td>
-                    <td className="p-3">{account?.name || '—'}</td>
+                    <td className="p-3">{account?.name || '-'}</td>
                   </tr>
                 );
               })}

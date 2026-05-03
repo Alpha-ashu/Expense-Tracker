@@ -146,7 +146,7 @@ export const EditInvestment: React.FC = () => {
       const purchaseTransaction = {
         type: 'expense' as const,
         amount: assetCostInBaseCurrency,
-        accountId: selectedFundingAccount!.id,
+        accountId: selectedFundingAccount!.id as number,
         category: 'Investment Purchase',
         subcategory: formData.assetType,
         description: `Bought ${investmentLabel}`,
@@ -157,7 +157,7 @@ export const EditInvestment: React.FC = () => {
       const feeTransaction = formData.purchaseFees > 0 ? {
         type: 'expense' as const,
         amount: formData.purchaseFees,
-        accountId: selectedFundingAccount!.id,
+        accountId: selectedFundingAccount!.id as number,
         category: 'Investment Fees',
         subcategory: formData.assetType,
         description: `Purchase fees for ${investmentLabel}`,
@@ -353,7 +353,7 @@ export const EditInvestment: React.FC = () => {
 
   return (
     <CenteredLayout>
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl lg:max-w-4xl mx-auto">
       <PageHeader
         title="Edit Investment"
         subtitle="Update your investment details"

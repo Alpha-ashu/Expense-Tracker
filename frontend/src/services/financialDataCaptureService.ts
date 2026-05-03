@@ -314,7 +314,7 @@ async function ensureCategoryExists(name: string, type: 'expense' | 'income', us
     id: `${type}-${normalizedTarget.replace(/\s+/g, '-')}`,
     name,
     type,
-    icon: details?.icon ?? (type === 'expense' ? '🧾' : '💸'),
+    icon: details?.icon ?? (type === 'expense' ? '' : ''),
     color: details?.color ?? (type === 'expense' ? '#64748B' : '#10B981'),
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -102,7 +102,7 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
             className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.pin ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="••••••"
+            placeholder="------"
             maxLength={6}
             autoComplete="new-password"
             inputMode="numeric"
@@ -136,7 +136,7 @@ export const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
             className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.confirmPin ? 'border-red-500' : 'border-gray-300'
             }`}
-            placeholder="••••••"
+            placeholder="------"
             maxLength={6}
             autoComplete="new-password"
             inputMode="numeric"

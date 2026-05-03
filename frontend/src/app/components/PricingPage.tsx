@@ -18,7 +18,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onBack, onGetStarted, 
     const plans = [
         {
             name: "Free Forever",
-            price: "₹0",
+            price: "INR0",
             desc: "Perfect for secondary accounts and casual tracking.",
             features: [
                 "Unlimited Transactions",
@@ -34,7 +34,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onBack, onGetStarted, 
         },
         {
             name: "Pro Master",
-            price: "₹199",
+            price: "INR199",
             period: "/month",
             desc: "For serious individuals managing complex portfolios.",
             features: [
@@ -52,7 +52,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onBack, onGetStarted, 
         },
         {
             name: "Family Suite",
-            price: "₹499",
+            price: "INR499",
             period: "/month",
             desc: "Shared finances for couples and small households.",
             features: [
@@ -173,7 +173,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onBack, onGetStarted, 
 
             {/* Footer Minimal */}
             <footer className="py-10 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400">© {new Date().getFullYear()} Kanakku. All rights reserved.</p>
+                <p className="text-xs text-gray-400"> {new Date().getFullYear()} Kanakku. All rights reserved.</p>
             </footer>
         </div>
     );

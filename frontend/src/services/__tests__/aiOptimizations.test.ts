@@ -29,7 +29,7 @@ describe('AI Model Optimizations', () => {
 
     it('should handle different amount formats', () => {
       const testCases = [
-        { input: '₹500', expected: 500 },
+        { input: 'INR500', expected: 500 },
         { input: '500 rupees', expected: 500 },
         { input: 'rs 500', expected: 500 },
         { input: 'INR 500', expected: 500 },
@@ -59,12 +59,12 @@ describe('AI Model Optimizations', () => {
         BANK STATEMENT
         Account No: 1234567890
         Period: 01/01/2024 to 31/01/2024
-        Opening Balance: ₹50,000.00
-        Closing Balance: ₹45,000.00
+        Opening Balance: INR50,000.00
+        Closing Balance: INR45,000.00
         
-        01/01/2024 Salary Credit ₹30,000.00 CR
-        02/01/2024 ATM Withdrawal ₹2,000.00 DR
-        03/01/2024 UPI Transfer to John ₹1,500.00 DR
+        01/01/2024 Salary Credit INR30,000.00 CR
+        02/01/2024 ATM Withdrawal INR2,000.00 DR
+        03/01/2024 UPI Transfer to John INR1,500.00 DR
       `;
 
       const start = performance.now();
@@ -82,10 +82,10 @@ describe('AI Model Optimizations', () => {
 
     it('should categorize transactions correctly', async () => {
       const transactions = `
-        01/01/2024 Salary Credit ₹30,000.00 CR
-        02/01/2024 ATM Withdrawal ₹2,000.00 DR
-        03/01/2024 UPI Transfer ₹1,500.00 DR
-        04/01/2024 Card Payment at Amazon ₹5,000.00 DR
+        01/01/2024 Salary Credit INR30,000.00 CR
+        02/01/2024 ATM Withdrawal INR2,000.00 DR
+        03/01/2024 UPI Transfer INR1,500.00 DR
+        04/01/2024 Card Payment at Amazon INR5,000.00 DR
       `;
 
       const result = await parseBankStatement(transactions);
@@ -99,9 +99,9 @@ describe('AI Model Optimizations', () => {
     it('should handle non-bank documents gracefully', async () => {
       const receiptText = `
         RESTAURANT BILL
-        Food Items: ₹500
-        Tax: ₹50
-        Total: ₹550
+        Food Items: INR500
+        Tax: INR50
+        Total: INR550
       `;
 
       const start = performance.now();
@@ -128,7 +128,7 @@ describe('AI Model Optimizations', () => {
 
     it('should process bank statements with many transactions', async () => {
       const manyTransactions = Array(50).fill(0).map((_, i) => 
-        `${String(i + 1).padStart(2, '0')}/01/2024 Transaction ${i + 1} ₹${(i + 1) * 100}.00 DR`
+        `${String(i + 1).padStart(2, '0')}/01/2024 Transaction ${i + 1} INR${(i + 1) * 100}.00 DR`
       ).join('\n');
 
       const start = performance.now();
@@ -146,9 +146,9 @@ describe('Integration Tests', () => {
     const voiceInput = 'Salary 50000 and Food 1000 and Rent 15000';
     const bankStatement = `
       Account No: 9876543210
-      Salary Credit ₹50,000.00 CR
-      Restaurant Payment ₹1,000.00 DR
-      Rent Payment ₹15,000.00 DR
+      Salary Credit INR50,000.00 CR
+      Restaurant Payment INR1,000.00 DR
+      Rent Payment INR15,000.00 DR
     `;
 
     const voiceStart = performance.now();

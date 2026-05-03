@@ -8,6 +8,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Plus, Trash2, Share2, Archive, CheckCircle2, ListTodo } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
+import type { ToDoList } from '@/lib/database';
 
 export const ToDoLists: React.FC = () => {
   const { setCurrentPage } = useApp();
@@ -19,10 +20,10 @@ export const ToDoLists: React.FC = () => {
   const [listToDelete, setListToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Use actual user ID — if not authenticated, show empty state
+  // Use actual user ID - if not authenticated, show empty state
   const currentUserId = user?.id ?? null;
 
-  const toDoLists = useLiveQuery(
+  const toDoLists: ToDoList[] = useLiveQuery(
     () => {
       if (!currentUserId) return Promise.resolve([]);
       return db.toDoLists.filter(list => list.ownerId === currentUserId).toArray();
@@ -40,7 +41,7 @@ export const ToDoLists: React.FC = () => {
       const listId = await db.toDoLists.add({
         name: newListName,
         description: newListDescription || undefined,
-        ownerId: currentUserId,
+        ownerId: currentUserId || 'local',
         createdAt: new Date(),
         archived: false,
       });
@@ -114,8 +115,6 @@ export const ToDoLists: React.FC = () => {
           title="To-Do Lists"
           subtitle="Create and manage your tasks"
           icon={<ListTodo size={20} className="sm:w-6 sm:h-6" />}
-          showBack
-          backTo="dashboard"
         >
           <button
             onClick={() => setShowCreateModal(true)}

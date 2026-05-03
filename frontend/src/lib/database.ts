@@ -925,7 +925,7 @@ export class ProductionDB extends FinoraDB {
   }
 }
 
-// ─── Sync Queue Interface ────────────────────────────────────────────────────
+//  Sync Queue Interface 
 export interface SyncQueueItem {
   id?: number;
   userId: string;
@@ -941,7 +941,7 @@ export interface SyncQueueItem {
   version: number;           // local version counter for conflict resolution
 }
 
-// ─── Sync Event Log Interface (for admin monitoring) ─────────────────────────
+//  Sync Event Log Interface (for admin monitoring) 
 export interface SyncEventLog {
   id?: number;
   userId: string;
@@ -962,7 +962,7 @@ export class OfflineSyncDB extends ProductionDB {
 
     // Version 10: Offline-first sync queue + indexed syncStatus on core tables
     this.version(10).stores({
-      // Core entity tables — add syncStatus index for fast pending-record queries
+      // Core entity tables - add syncStatus index for fast pending-record queries
       accounts:     '++id, remoteId, type, isActive, syncStatus',
       friends:      '++id, remoteId, name, createdAt, syncStatus',
       transactions: '++id, remoteId, type, accountId, category, date, syncStatus',

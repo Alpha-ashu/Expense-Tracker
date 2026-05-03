@@ -222,7 +222,7 @@ const TROY_OUNCE_TO_GRAMS = 31.1034768;
 const GOLD_22K_PURITY_FACTOR = 22 / 24;
 
 function formatIndianCommodityPrice(amount: number, unit: string) {
-  return `₹${new Intl.NumberFormat('en-IN', {
+  return `INR${new Intl.NumberFormat('en-IN', {
     minimumFractionDigits: 0,
     maximumFractionDigits: amount >= 1000 ? 0 : 2,
   }).format(amount)}/${unit}`;
@@ -366,7 +366,7 @@ export function formatFlashPrice(item: FlashItem) {
   }
 
   const currency = item.quote.currency || '$';
-  const locale = currency === '₹' ? 'en-IN' : 'en-US';
+  const locale = currency === 'INR' ? 'en-IN' : 'en-US';
   return `${currency}${new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

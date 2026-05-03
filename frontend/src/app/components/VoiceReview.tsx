@@ -153,9 +153,9 @@ export const VoiceReview: React.FC = () => {
       if (transfers.length === 0) {
         localStorage.removeItem(STORAGE_KEY);
         const feedbackParts = [];
-        if (totalIncome > 0) feedbackParts.push(`💰 Income: ${currency} ${totalIncome.toFixed(2)}`);
-        if (totalExpense > 0) feedbackParts.push(`💸 Expense: ${currency} ${totalExpense.toFixed(2)}`);
-        const message = `✅ Saved ${nonTransfers.length} transactions${feedbackParts.length > 0 ? ' · ' + feedbackParts.join(' · ') : ''}`;
+        if (totalIncome > 0) feedbackParts.push(` Income: ${currency} ${totalIncome.toFixed(2)}`);
+        if (totalExpense > 0) feedbackParts.push(` Expense: ${currency} ${totalExpense.toFixed(2)}`);
+        const message = ` Saved ${nonTransfers.length} transactions${feedbackParts.length > 0 ? '  ' + feedbackParts.join('  ') : ''}`;
         toast.success(message);
         setCurrentPage('transactions');
         return;
@@ -163,13 +163,13 @@ export const VoiceReview: React.FC = () => {
 
       setItems(transfers);
       const feedbackParts = [];
-      if (totalIncome > 0) feedbackParts.push(`💰 Income: ${currency} ${totalIncome.toFixed(2)}`);
-      if (totalExpense > 0) feedbackParts.push(`💸 Expense: ${currency} ${totalExpense.toFixed(2)}`);
-      const message = `✅ Saved ${nonTransfers.length} transactions${feedbackParts.length > 0 ? ' · ' + feedbackParts.join(' · ') : ''} · Review transfers next`;
+      if (totalIncome > 0) feedbackParts.push(` Income: ${currency} ${totalIncome.toFixed(2)}`);
+      if (totalExpense > 0) feedbackParts.push(` Expense: ${currency} ${totalExpense.toFixed(2)}`);
+      const message = ` Saved ${nonTransfers.length} transactions${feedbackParts.length > 0 ? '  ' + feedbackParts.join('  ') : ''}  Review transfers next`;
       toast.success(message);
     } catch (error) {
       console.error('Failed to save reviewed transactions:', error);
-      toast.error('❌ Failed to save transactions. Please try again.');
+      toast.error(' Failed to save transactions. Please try again.');
     } finally {
       setIsSaving(false);
     }

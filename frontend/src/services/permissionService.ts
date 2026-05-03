@@ -298,7 +298,7 @@ class PermissionService {
    */
   hasFeatureAccess(feature: string): boolean {
     if (!this.permissions) {
-      console.warn('⚠️ No permissions loaded, denying access to:', feature);
+      console.warn(' No permissions loaded, denying access to:', feature);
       return false;
     }
     return this.permissions.allowedFeatures.includes(feature);
@@ -309,7 +309,7 @@ class PermissionService {
    */
   canPerformAction(action: string): boolean {
     if (!this.permissions) {
-      console.warn('⚠️ No permissions loaded, denying action:', action);
+      console.warn(' No permissions loaded, denying action:', action);
       return false;
     }
     const permissionKey = `can${action.charAt(0).toUpperCase()}${action.slice(1)}`;
@@ -335,7 +335,7 @@ class PermissionService {
       lastUpdated: new Date().toISOString()
     };
 
-    console.log('🔄 Permissions updated:', this.permissions);
+    console.log(' Permissions updated:', this.permissions);
     this.notifyListeners();
   }
 

@@ -47,10 +47,10 @@ export const Diagnostics: React.FC = () => {
 
   const handleCopyEnvVars = () => {
     const url = import.meta.env.VITE_SUPABASE_URL || '<your-supabase-url>';
-    // Never hardcode keys here — read from env only
+    // Never hardcode keys here - read from env only
     const envVars = `VITE_SUPABASE_URL=${url}\nVITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<your-anon-key>`;
     navigator.clipboard.writeText(envVars);
-    toast.success('Template copied — fill in your actual key from the Supabase dashboard');
+    toast.success('Template copied - fill in your actual key from the Supabase dashboard');
   };
 
   return (
@@ -138,7 +138,7 @@ export const Diagnostics: React.FC = () => {
                     VITE_SUPABASE_URL
                   </code>
                   <span className={`text-xs font-medium ${envStatus.supabaseUrl ? 'text-green-600' : 'text-red-600'}`}>
-                    {envStatus.supabaseUrl ? '✓ Present' : '✗ Missing'}
+                    {envStatus.supabaseUrl ? ' Present' : ' Missing'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -146,7 +146,7 @@ export const Diagnostics: React.FC = () => {
                     VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY
                   </code>
                   <span className={`text-xs font-medium ${envStatus.supabaseKey ? 'text-green-600' : 'text-red-600'}`}>
-                    {envStatus.supabaseKey ? '✓ Present' : '✗ Missing'}
+                    {envStatus.supabaseKey ? ' Present' : ' Missing'}
                   </span>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export const Diagnostics: React.FC = () => {
             <div className="rounded-lg border border-gray-200 p-4 space-y-2">
               <p className="text-sm font-semibold text-gray-900">Setup Steps:</p>
               <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
-                <li>Go to <strong>Vercel Dashboard → Your Project → Settings</strong></li>
+                <li>Go to <strong>Vercel Dashboard  Your Project  Settings</strong></li>
                 <li>Click <strong>Environment Variables</strong></li>
                 <li>Add both variables for <strong>Production, Preview, and Development</strong></li>
                 <li>Click <strong>Save</strong></li>
@@ -173,7 +173,7 @@ export const Diagnostics: React.FC = () => {
             {(!envStatus.supabaseUrl || !envStatus.supabaseKey) && (
               <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
                 <p className="text-sm text-yellow-800">
-                  ⚠️ <strong>Environment variables are missing.</strong> Your app will not work correctly on Vercel without these.
+                   <strong>Environment variables are missing.</strong> Your app will not work correctly on Vercel without these.
                 </p>
               </div>
             )}
@@ -195,7 +195,7 @@ export const Diagnostics: React.FC = () => {
 
           <div className="space-y-3">
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
-              <p className="text-sm font-medium text-amber-900 mb-2">⚠️ Fix "localhost refused to connect" error</p>
+              <p className="text-sm font-medium text-amber-900 mb-2"> Fix "localhost refused to connect" error</p>
               <p className="text-sm text-amber-700">
                 If email confirmation links redirect to localhost in production, configure these URLs in Supabase Dashboard:
               </p>
@@ -231,7 +231,7 @@ export const Diagnostics: React.FC = () => {
             <div className="rounded-lg border border-gray-200 p-4 space-y-2">
               <p className="text-sm font-semibold text-gray-900">Configuration Steps:</p>
               <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
-                <li>Go to <strong>Supabase Dashboard → Authentication → URL Configuration</strong></li>
+                <li>Go to <strong>Supabase Dashboard  Authentication  URL Configuration</strong></li>
                 <li>Set <strong>Site URL</strong> to your production URL</li>
                 <li>Add all redirect URLs listed above</li>
                 <li>Add <code className="text-xs bg-gray-100 px-1">VITE_APP_URL</code> to Vercel environment variables</li>
@@ -242,7 +242,7 @@ export const Diagnostics: React.FC = () => {
 
             <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
               <p className="text-sm text-blue-800">
-                💡 <strong>Tip:</strong> After configuration, the email confirmation link will redirect to your app, which will automatically verify the email and log the user in.
+                 <strong>Tip:</strong> After configuration, the email confirmation link will redirect to your app, which will automatically verify the email and log the user in.
               </p>
             </div>
           </div>

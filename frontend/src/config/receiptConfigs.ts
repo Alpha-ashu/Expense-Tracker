@@ -18,8 +18,8 @@ export const RECEIPT_CONFIGS: ReceiptFormatConfig[] = [
       merchantName: [/^([A-Z\s]+)(?:\n|$)/],
       date: [/Date\s*:?\s*(\d{2}\/\d{2}\/\d{2,4})/i],
       total: [
-        /Food\s*Total\s*:?\s*[₹Rs.]*\s*(\d+\.?\d*)/i,
-        /Grand\s*Total\s*:?\s*[₹Rs.]*\s*(\d+\.?\d*)/i,
+        /Food\s*Total\s*:?\s*[INRRs.]*\s*(\d+\.?\d*)/i,
+        /Grand\s*Total\s*:?\s*[INRRs.]*\s*(\d+\.?\d*)/i,
       ],
       tax: [/CGST.*?(\d+\.?\d*).*?SGST.*?(\d+\.?\d*)/is],
     },

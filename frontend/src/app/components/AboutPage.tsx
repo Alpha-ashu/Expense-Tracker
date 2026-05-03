@@ -145,7 +145,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
                             onClick={onGetStarted}
                             className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold text-sm lg:text-base hover:bg-gray-100 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/20"
                         >
-                            Get Started for Free ↗
+                            Get Started for Free 
                         </button>
                     </div>
                 </div>
@@ -153,7 +153,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
 
             {/* Footer Minimal */}
             <footer className="py-10 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400">© {new Date().getFullYear()} Kanakku. All rights reserved.</p>
+                <p className="text-xs text-gray-400"> {new Date().getFullYear()} Kanakku. All rights reserved.</p>
             </footer>
         </div>
     );

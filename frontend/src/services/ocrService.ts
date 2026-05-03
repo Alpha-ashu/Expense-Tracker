@@ -34,7 +34,7 @@ export class TesseractOCRService implements OCRService {
     onProgress?: (progress: OCRProgress) => void,
   ): Promise<ReceiptScanResult> {
     try {
-      onProgress?.({ status: 'Preparing receipt variants…', progress: 10 });
+      onProgress?.({ status: 'Preparing receipt variants...', progress: 10 });
       const processedVariants = await preprocessReceiptFileVariants(file);
       const variantInputMap = new Map<string, Blob | File>([
         ['original', file],
@@ -51,7 +51,7 @@ export class TesseractOCRService implements OCRService {
 
         const startProgress = 18 + (index * 18);
         onProgress?.({
-          status: `Reading receipt (${variant.label})…`,
+          status: `Reading receipt (${variant.label})...`,
           progress: startProgress,
         });
 
@@ -63,7 +63,7 @@ export class TesseractOCRService implements OCRService {
           });
         }, {
           language: 'eng',
-          statusPrefix: `Reading text (${variant.label})…`,
+          statusPrefix: `Reading text (${variant.label})...`,
         });
 
         const result = await this.parseAndComposeResult(ocr.text, ocr.confidence, userId);
@@ -81,10 +81,10 @@ export class TesseractOCRService implements OCRService {
 
       if (this.needsMultilingualRetry(result)) {
         try {
-          onProgress?.({ status: 'Retrying with multilingual OCR…', progress: 80 });
+          onProgress?.({ status: 'Retrying with multilingual OCR...', progress: 80 });
           const multilingualOcr = await this.extractText(bestInput, onProgress, {
             language: 'eng+hin+spa',
-            statusPrefix: 'Multilingual OCR…',
+            statusPrefix: 'Multilingual OCR...',
           });
           const fallbackResult = await this.parseAndComposeResult(multilingualOcr.text, multilingualOcr.confidence, userId);
           result = this.selectBestResult(result, fallbackResult);
@@ -124,7 +124,7 @@ export class TesseractOCRService implements OCRService {
     options?: { language?: string; statusPrefix?: string },
   ): Promise<{ text: string; confidence: number }> {
     const language = options?.language || 'eng';
-    const statusPrefix = options?.statusPrefix || 'Reading text…';
+    const statusPrefix = options?.statusPrefix || 'Reading text...';
     const worker = await this.createWorkerWithProgress(onProgress, language, statusPrefix);
 
     try {

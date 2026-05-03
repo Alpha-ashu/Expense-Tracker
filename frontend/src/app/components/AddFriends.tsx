@@ -1,586 +1,206 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
+import { db } from '@/lib/database';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
-import { db } from '@/lib/database';
-import styles from './AddFriends.module.css';
 import { backendService } from '@/lib/backend-api';
-import { Users, Mail, Phone, X, Plus } from 'lucide-react';
+import { Users, UserPlus, X, ChevronLeft, Loader2, Check, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-interface Friend {
-  id?: number;
-  name: string;
-  email: string;
-  phone: string;
-  relationship: 'family' | 'friend' | 'colleague' | 'roommate' | 'other';
-  color: string;
-}
-
-const defaultFriendForm = (): Friend => ({
-  name: '',
-  email: '',
-  phone: '',
-  relationship: 'friend',
-  color: '#3b82f6',
-});
-
-const EDITING_FRIEND_ID_KEY = 'editingFriendId';
-const EDITING_FRIEND_BACK_PAGE_KEY = 'editingFriendBackPage';
+const RELATIONSHIPS = ['friend', 'family', 'colleague', 'roommate', 'partner', 'other'];
 
 export const AddFriends: React.FC = () => {
-  const { setCurrentPage, refreshData, friends: savedFriends } = useApp();
-  const [formData, setFormData] = useState<Friend>(defaultFriendForm);
+  const { setCurrentPage, refreshData, friends } = useApp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [queue, setQueue] = useState<{ name: string; email: string; phone: string; relationship: string }[]>([]);
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', relationship: 'friend' });
 
-  const [friends, setFriends] = useState<Friend[]>([]);
-  const [isAddingFriend, setIsAddingFriend] = useState(false);
-  const [editingFriendId, setEditingFriendId] = useState<number | null>(null);
-  const [editingFriendBackPage, setEditingFriendBackPage] = useState('groups');
-  const [isUpdatingFriend, setIsUpdatingFriend] = useState(false);
-  const [isDeletingFriend, setIsDeletingFriend] = useState(false);
+  const selectStyle = { backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' };
 
-  const colors = [
-    '#3b82f6', // blue
-    '#ef4444', // red
-    '#10b981', // green
-    '#f59e0b', // amber
-    '#8b5cf6', // purple
-    '#ec4899', // pink
-    '#06b6d4', // cyan
-    '#f97316', // orange
-  ];
-
-  useEffect(() => {
-    const storedId = localStorage.getItem(EDITING_FRIEND_ID_KEY);
-    if (!storedId) {
-      setEditingFriendId(null);
-      return;
-    }
-
-    const parsedId = Number(storedId);
-    if (!Number.isFinite(parsedId)) {
-      localStorage.removeItem(EDITING_FRIEND_ID_KEY);
-      localStorage.removeItem(EDITING_FRIEND_BACK_PAGE_KEY);
-      setEditingFriendId(null);
-      return;
-    }
-
-    const friendToEdit = savedFriends.find((friend) => friend.id === parsedId);
-    if (!friendToEdit) {
-      localStorage.removeItem(EDITING_FRIEND_ID_KEY);
-      localStorage.removeItem(EDITING_FRIEND_BACK_PAGE_KEY);
-      setEditingFriendId(null);
-      return;
-    }
-
-    setEditingFriendId(parsedId);
-    setEditingFriendBackPage(localStorage.getItem(EDITING_FRIEND_BACK_PAGE_KEY) || 'groups');
-    setFormData({
-      ...defaultFriendForm(),
-      name: friendToEdit.name,
-      email: friendToEdit.email || '',
-      phone: friendToEdit.phone || '',
-    });
-    setFriends([]);
-    setIsAddingFriend(true);
-  }, [savedFriends]);
-
-  const resetForm = () => {
-    setFormData(defaultFriendForm());
+  const addToQueue = () => {
+    if (!formData.name.trim()) { toast.error('Name is required'); return; }
+    if (queue.some((q) => q.name.toLowerCase() === formData.name.trim().toLowerCase())) { toast.error('Already in queue'); return; }
+    setQueue([...queue, { ...formData, name: formData.name.trim() }]);
+    setFormData({ name: '', email: '', phone: '', relationship: 'friend' });
   };
 
-  const clearEditingState = () => {
-    localStorage.removeItem(EDITING_FRIEND_ID_KEY);
-    localStorage.removeItem(EDITING_FRIEND_BACK_PAGE_KEY);
-    setEditingFriendId(null);
-    setEditingFriendBackPage('groups');
-  };
+  const removeFromQueue = (i: number) => setQueue(queue.filter((_, idx) => idx !== i));
 
-  const returnFromEditor = () => {
-    const nextPage = editingFriendBackPage || 'groups';
-    clearEditingState();
-    resetForm();
-    setIsAddingFriend(false);
-    setCurrentPage(nextPage);
-  };
-
-  const handleAddFriend = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name.trim()) {
-      toast.error('Please enter friend name');
-      return;
-    }
-
-    if (!formData.email && !formData.phone) {
-      toast.error('Please enter email or phone number');
-      return;
-    }
-
-    const normalizedName = formData.name.trim().toLowerCase();
-    const normalizedEmail = formData.email.trim().toLowerCase();
-    const normalizedPhone = formData.phone.trim();
-
-    const alreadySaved = savedFriends.some((friend) =>
-      friend.name.trim().toLowerCase() === normalizedName
-      || (!!normalizedEmail && friend.email?.trim().toLowerCase() === normalizedEmail)
-      || (!!normalizedPhone && friend.phone?.trim() === normalizedPhone)
-    );
-
-    if (alreadySaved) {
-      toast.error('This friend is already saved');
-      return;
-    }
-
-    const alreadyQueued = friends.some((friend) =>
-      friend.name.trim().toLowerCase() === normalizedName
-      || (!!normalizedEmail && friend.email.trim().toLowerCase() === normalizedEmail)
-      || (!!normalizedPhone && friend.phone.trim() === normalizedPhone)
-    );
-
-    if (alreadyQueued) {
-      toast.error('This friend is already in the list');
-      return;
-    }
-
-    const newFriend: Friend = {
-      ...formData,
-      id: Date.now(),
-    };
-
-    setFriends([...friends, newFriend]);
-    toast.success(`${formData.name} added to friends list`);
-
-    resetForm();
-    setIsAddingFriend(false);
-  };
-
-  const handleUpdateFriend = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!editingFriendId) return;
-
-    if (!formData.name.trim()) {
-      toast.error('Please enter friend name');
-      return;
-    }
-
-    if (!formData.email && !formData.phone) {
-      toast.error('Please enter email or phone number');
-      return;
-    }
-
-    const normalizedName = formData.name.trim().toLowerCase();
-    const normalizedEmail = formData.email.trim().toLowerCase();
-    const normalizedPhone = formData.phone.trim();
-
-    const duplicateFriend = savedFriends.some((friend) =>
-      friend.id !== editingFriendId && (
-        friend.name.trim().toLowerCase() === normalizedName
-        || (!!normalizedEmail && friend.email?.trim().toLowerCase() === normalizedEmail)
-        || (!!normalizedPhone && friend.phone?.trim() === normalizedPhone)
-      )
-    );
-
-    if (duplicateFriend) {
-      toast.error('Another saved friend already uses these details');
-      return;
-    }
-
-    setIsUpdatingFriend(true);
-
+  const handleSaveAll = async () => {
+    if (queue.length === 0) { toast.error('Add at least one friend'); return; }
+    setIsSubmitting(true);
     try {
-      const updatedAt = new Date();
-      const nextName = formData.name.trim();
-      const nextEmail = formData.email.trim() || undefined;
-      const nextPhone = formData.phone.trim() || undefined;
-
-      await db.transaction('rw', db.friends, db.groupExpenses, async () => {
-        await db.friends.update(editingFriendId, {
-          name: nextName,
-          email: nextEmail,
-          phone: nextPhone,
-          updatedAt,
-        });
-
-        const groups = await db.groupExpenses.toArray();
-        for (const group of groups) {
-          let hasChanges = false;
-          const updatedMembers = group.members.map((member) => {
-            if (member.friendId !== editingFriendId) {
-              return member;
-            }
-
-            hasChanges = true;
-            return {
-              ...member,
-              name: nextName,
-              email: nextEmail,
-              phone: nextPhone,
-            };
-          });
-
-          if (hasChanges && group.id) {
-            await db.groupExpenses.update(group.id, {
-              members: updatedMembers,
-              updatedAt,
-            });
-          }
-        }
-      });
-
-      await refreshData();
-      toast.success('Friend updated successfully');
-      returnFromEditor();
-    } catch (error) {
-      console.error('Failed to update friend:', error);
-      toast.error('Failed to update friend');
-    } finally {
-      setIsUpdatingFriend(false);
-    }
-  };
-
-  const handleDeleteSavedFriend = async () => {
-    if (!editingFriendId) return;
-
-    setIsDeletingFriend(true);
-    try {
-      await db.friends.delete(editingFriendId);
-      await refreshData();
-      toast.success('Friend removed successfully');
-      returnFromEditor();
-    } catch (error) {
-      console.error('Failed to delete friend:', error);
-      toast.error('Failed to delete friend');
-    } finally {
-      setIsDeletingFriend(false);
-    }
-  };
-
-  const handleSaveFriends = async () => {
-    if (friends.length === 0) {
-      toast.error('Please add at least one friend');
-      return;
-    }
-
-    try {
-      for (const friend of friends) {
-        await backendService.createFriend({
-          ...friend,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+      for (const friend of queue) {
+        const now = new Date();
+        const id = await db.friends.add({ name: friend.name, email: friend.email || undefined, phone: friend.phone || undefined, relationship: friend.relationship, createdAt: now, updatedAt: now } as any);
+        try { await backendService.createFriend({ name: friend.name, email: friend.email || undefined, phone: friend.phone || undefined, createdAt: now, updatedAt: now }); } catch {}
       }
-
-      toast.success(`${friends.length} friend(s) added successfully`);
-      setFriends([]);
+      toast.success(`${queue.length} friend${queue.length > 1 ? 's' : ''} added!`);
+      setQueue([]);
       refreshData();
-      setCurrentPage('groups');
+      setCurrentPage('friends');
     } catch (error) {
-      console.error('Failed to add friends:', error);
-      toast.error('Failed to add friends');
-    }
-  };
-
-  const handleRemoveFriend = (id: number | undefined) => {
-    if (id) {
-      setFriends(friends.filter(f => f.id !== id));
-      toast.success('Friend removed');
-    }
+      console.error('Failed to save friends:', error);
+      toast.error('Failed to save friends');
+    } finally { setIsSubmitting(false); }
   };
 
   return (
-    <CenteredLayout>
-      <div className="space-y-6 max-w-[480px] w-full mx-auto pb-8">
-        <PageHeader
-          title={editingFriendId ? 'Edit Friend' : 'Add Friends'}
-          subtitle={editingFriendId ? 'Update saved friend details for future splits' : 'Manage friends for group expenses and bill splitting'}
-          icon={<Users size={20} className="sm:w-6 sm:h-6" />}
-          showBack
-          backTo={editingFriendBackPage || 'groups'}
-          onBack={editingFriendId ? returnFromEditor : undefined}
-        />
-
-        <div className="flex flex-col gap-6">
-          {/* Add Friend Form */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-6">
-              {editingFriendId ? 'Edit Friend Details' : 'Add New Friend'}
-            </h3>
-
-            {!editingFriendId && !isAddingFriend && friends.length > 0 && (
-              <button
-                onClick={() => setIsAddingFriend(true)}
-                className="w-full bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 px-4 py-3 rounded-xl font-semibold transition-colors mb-6 flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                Add Another Friend
-              </button>
-            )}
-
-            {(editingFriendId || isAddingFriend || friends.length === 0) && (
-              <form onSubmit={editingFriendId ? handleUpdateFriend : handleAddFriend} className="space-y-4">
-                {/* Friend Name */}
+    <>
+      
+      <div className="lg:hidden">
+        <CenteredLayout>
+          <div className="space-y-6 max-w-lg w-full mx-auto pb-8">
+            <PageHeader title="Add Friends" subtitle="Manage your contacts" icon={<UserPlus size={20} />} showBack backTo="friends" />
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">Friend Name *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                    placeholder="e.g., John Doe"
-                    required
-                    aria-label="Friend Name"
-                    title="Friend Name"
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., John Doe" />
                 </div>
-
-                {/* Email */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="email@example.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
+                    <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+91..." />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Mail size={16} className="text-gray-500" />
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                    placeholder="john@example.com"
-                    aria-label="Friend Email"
-                    title="Friend Email"
-                  />
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Relationship</label>
+                  <select value={formData.relationship} onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 capitalize">
+                    {RELATIONSHIPS.map(r => <option key={r} value={r} className="capitalize">{r}</option>)}
+                  </select>
                 </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Phone size={16} className="text-gray-500" />
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                    placeholder="+91 98765 43210"
-                    aria-label="Friend Phone"
-                    title="Friend Phone"
-                  />
-                </div>
-
-                {!editingFriendId && (
-                  <>
-                    {/* Relationship */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-3">Relationship</label>
-                      <select
-                        value={formData.relationship}
-                        onChange={(e) => setFormData({ ...formData, relationship: e.target.value as any })}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                        aria-label="Relationship"
-                        title="Relationship"
-                      >
-                        <option value="friend">Friend</option>
-                        <option value="family">Family</option>
-                        <option value="colleague">Colleague</option>
-                        <option value="roommate">Roommate</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-
-                    {/* Color Selection */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">Profile Color</label>
-                      <div className="flex gap-3">
-                        {colors.map((color) => (
-                          <button
-                            key={color}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, color })}
-                            className={
-                              `${styles.colorCircle} ` +
-                              (formData.color === color ? styles.selectedColor : styles.unselectedColor) + ' ' +
-                              (color === '#3b82f6' ? styles.colorBlue :
-                                color === '#ef4444' ? styles.colorRed :
-                                  color === '#10b981' ? styles.colorGreen :
-                                    color === '#f59e0b' ? styles.colorAmber :
-                                      color === '#8b5cf6' ? styles.colorPurple :
-                                        color === '#ec4899' ? styles.colorPink :
-                                          color === '#06b6d4' ? styles.colorCyan :
-                                            color === '#f97316' ? styles.colorOrange :
-                                              '')
-                            }
-                            aria-label={`Select color ${color}`}
-                            title={`Select color ${color}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Submit */}
-                <div className="flex flex-wrap gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={isUpdatingFriend}
-                    className="flex-1 bg-black hover:bg-gray-900 disabled:opacity-60 text-white py-3 rounded-xl font-semibold transition-colors shadow-lg min-w-[160px]"
-                    aria-label={editingFriendId ? 'Save Friend Changes' : 'Add Friend'}
-                    title={editingFriendId ? 'Save Friend Changes' : 'Add Friend'}
-                  >
-                    {editingFriendId ? 'Save Changes' : 'Add Friend'}
+                <button type="button" onClick={addToQueue}
+                  className="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
+                  <UserPlus size={15} /> Add to Queue
+                </button>
+              </div>
+            </div>
+            {queue.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-gray-900">Queue ({queue.length})</p>
+                  <button type="button" onClick={handleSaveAll} disabled={isSubmitting}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-700 disabled:opacity-60">
+                    {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save All
                   </button>
-
-                  {editingFriendId ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleDeleteSavedFriend}
-                        disabled={isDeletingFriend || isUpdatingFriend}
-                        className="flex-1 bg-red-50 border border-red-200 hover:bg-red-100 disabled:opacity-60 text-red-700 py-3 rounded-xl font-semibold transition-colors min-w-[160px]"
-                        aria-label="Delete Friend"
-                        title="Delete Friend"
-                      >
-                        Delete Friend
-                      </button>
-                      <button
-                        type="button"
-                        onClick={returnFromEditor}
-                        disabled={isDeletingFriend || isUpdatingFriend}
-                        className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-60 text-gray-700 py-3 rounded-xl font-semibold transition-colors min-w-[160px]"
-                        aria-label="Cancel Editing"
-                        title="Cancel Editing"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : friends.length > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsAddingFriend(false)}
-                      className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-colors"
-                      aria-label="Done Adding"
-                      title="Done Adding"
-                    >
-                      Done Adding
-                    </button>
-                  ) : null}
                 </div>
-              </form>
-            )}
-          </div>
-
-          {/* Friends List */}
-          {friends.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">
-                Added Friends ({friends.length})
-              </h3>
-
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {friends.map((friend) => (
-                  <div
-                    key={friend.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div
-                      className={
-                        styles.friendAvatar + ' ' +
-                        (friend.color === '#3b82f6' ? styles.colorBlue :
-                          friend.color === '#ef4444' ? styles.colorRed :
-                            friend.color === '#10b981' ? styles.colorGreen :
-                              friend.color === '#f59e0b' ? styles.colorAmber :
-                                friend.color === '#8b5cf6' ? styles.colorPurple :
-                                  friend.color === '#ec4899' ? styles.colorPink :
-                                    friend.color === '#06b6d4' ? styles.colorCyan :
-                                      friend.color === '#f97316' ? styles.colorOrange :
-                                        '')
-                      }
-                    >
-                      {friend.name.charAt(0).toUpperCase()}
-                    </div>
-
+                {queue.map((f, i) => (
+                  <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5">
+                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">{f.name.charAt(0).toUpperCase()}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{friend.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {friend.email || friend.phone || 'No contact info'}
-                      </p>
+                      <p className="text-sm font-semibold text-gray-900 truncate">{f.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{[f.email, f.phone].filter(Boolean).join('  ') || f.relationship}</p>
                     </div>
-
-                    <button
-                      onClick={() => handleRemoveFriend(friend.id)}
-                      className="text-gray-400 hover:text-red-600 transition-colors"
-                      aria-label="Remove Friend"
-                      title="Remove Friend"
-                    >
-                      <X size={18} />
-                    </button>
+                    <button type="button" onClick={() => removeFromQueue(i)} className="text-gray-400 hover:text-rose-600"><X size={14} /></button>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Info Box */}
-        {friends.length === 0 && savedFriends.length === 0 && (
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 max-w-4xl">
-            <p className="text-sm text-gray-700">
-              <span className="font-semibold">💡 Tip:</span> Add friends here to easily split group expenses and track who owes whom. You can add email addresses or phone numbers to send payment reminders.
-            </p>
+            )}
           </div>
-        )}
-
-        {!editingFriendId && savedFriends.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 sm:p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Already Saved ({savedFriends.length})
-            </h3>
-
-            <div className="space-y-3 max-h-72 overflow-y-auto">
-              {savedFriends.map((friend) => (
-                <div
-                  key={friend.id}
-                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-black text-sm font-bold text-white">
-                    {friend.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-gray-900">{friend.name}</p>
-                    <p className="truncate text-xs text-gray-500">
-                      {friend.email || friend.phone || 'No contact info'}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Save Button */}
-        {friends.length > 0 && (
-          <div className="flex gap-3 max-w-4xl">
-            <button
-              onClick={handleSaveFriends}
-              className="flex-1 bg-black hover:bg-gray-900 text-white py-3 rounded-xl font-semibold transition-colors shadow-lg"
-              aria-label="Save Friends and Continue"
-              title="Save Friends and Continue"
-            >
-              Save Friends & Continue
-            </button>
-            <button
-              onClick={() => setCurrentPage('groups')}
-              className="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold transition-colors"
-              aria-label="Cancel"
-              title="Cancel"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
+        </CenteredLayout>
       </div>
-    </CenteredLayout>
+
+      
+      <div className="hidden lg:block">
+        <div className="w-full max-w-6xl mx-auto px-8 py-6">
+          <div className="mb-6 flex items-center gap-3">
+            <button type="button" onClick={() => setCurrentPage('friends')} className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 shadow-sm"><ChevronLeft size={18} /></button>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md"><UserPlus size={16} className="text-white" /></div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Add Friends</h1>
+              <p className="text-xs text-gray-500">Manage your contacts for group expenses and loans</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
+            {/* Primary Row */}
+            <div className="flex items-end gap-4">
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Full Name</label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addToQueue())}
+                  className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none transition-all placeholder:font-medium placeholder:text-gray-400"
+                  placeholder="e.g., John Doe" />
+              </div>
+              <div className="w-[200px] shrink-0">
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Email</label>
+                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none placeholder:font-medium placeholder:text-gray-400"
+                  placeholder="email@example.com" />
+              </div>
+              <div className="w-[160px] shrink-0">
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Phone</label>
+                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none placeholder:font-medium placeholder:text-gray-400"
+                  placeholder="+91..." />
+              </div>
+              <div className="w-[140px] shrink-0">
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Relationship</label>
+                <select value={formData.relationship} onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer capitalize" style={selectStyle}>
+                  {RELATIONSHIPS.map(r => <option key={r} value={r} className="capitalize">{r}</option>)}
+                </select>
+              </div>
+              <div className="shrink-0">
+                <button type="button" onClick={addToQueue}
+                  className="h-14 px-8 rounded-2xl bg-gray-900 text-white font-bold shadow-lg hover:bg-gray-800 transition-all active:scale-95 flex items-center gap-2">
+                  <UserPlus size={16} /> Add
+                </button>
+              </div>
+            </div>
+
+            {/* Queue */}
+            {queue.length > 0 && (
+              <div className="mt-6 border-t border-gray-100 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Queued ({queue.length})</p>
+                  <button type="button" onClick={handleSaveAll} disabled={isSubmitting}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 hover:from-blue-700 hover:to-indigo-700 shadow-lg disabled:opacity-60 transition-all">
+                    {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save All Friends
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {queue.map((f, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                      <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold shrink-0">{f.name.charAt(0).toUpperCase()}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">{f.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{[f.email, f.phone].filter(Boolean).join('  ') || f.relationship}</p>
+                      </div>
+                      <button type="button" onClick={() => removeFromQueue(i)} className="text-gray-400 hover:text-rose-600 transition-colors"><X size={14} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Saved Contacts */}
+            {friends && friends.length > 0 && (
+              <div className="mt-6 border-t border-gray-100 pt-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Saved Contacts ({friends.length})</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {friends.slice(0, 12).map((f) => (
+                    <div key={f.id} className="flex items-center gap-2.5 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                      <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold">{f.name.charAt(0).toUpperCase()}</div>
+                      <span className="text-sm font-medium text-gray-700 truncate">{f.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 };

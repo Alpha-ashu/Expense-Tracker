@@ -11,6 +11,7 @@ import {
   CalendarDays, Wallet, Tag, AlignLeft, Store, Sparkles,
   CreditCard, Banknote, Smartphone,
   Zap, ChevronDown, Search, Check, Users, UserPlus, Mail, Phone, Trash2,
+  Plus, Loader2, ArrowRightLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -30,6 +31,8 @@ import {
 import { ReceiptScanner, type ReceiptScanPayload } from '@/app/components/ReceiptScanner';
 import { getCategoryCartoonIcon } from '@/app/components/ui/CartoonCategoryIcons';
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
+import { AutoSuggestTag } from '@/app/components/ui/AutoSuggestTag';
+import { categorizeText, learnCategorization } from '@/lib/smartCategorization';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
@@ -48,7 +51,7 @@ const DEFAULT_CATEGORY = {
   income: BUILTIN_CATEGORIES.income.includes('Salary') ? 'Salary' : BUILTIN_CATEGORIES.income[0],
 };
 
-/* ─────────────── helpers ─────────────── */
+/*  helpers  */
 const FieldRow: React.FC<{
   icon: React.ReactNode;
   label: string;
@@ -145,7 +148,7 @@ const createDefaultLoanDraft = (baseDate: string): LoanDraft => ({
   notes: '',
 });
 
-/* ─────────────── main component ─────────────── */
+/*  main component  */
 export const AddTransaction: React.FC = () => {
   const { accounts, friends, transactions, setCurrentPage, currency, refreshData } = useApp();
   const { user } = useAuth();
@@ -181,6 +184,8 @@ export const AddTransaction: React.FC = () => {
   const [showGroupFriendPicker, setShowGroupFriendPicker] = useState(false);
   const [manualExpenseCategory, setManualExpenseCategory] = useState(false);
   const [pendingSmsTransactionId, setPendingSmsTransactionId] = useState<number | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<{ category: string; subcategory: string; confidence: number } | null>(null);
+  const aiDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [customExpenseSubcategories, setCustomExpenseSubcategories] = useState<CustomExpenseSubcategory[]>(() =>
     loadCustomExpenseSubcategories(),
   );
@@ -209,7 +214,7 @@ export const AddTransaction: React.FC = () => {
   const loanDateInputRef = useRef<HTMLInputElement | null>(null);
   const loanDueDateInputRef = useRef<HTMLInputElement | null>(null);
 
-  /* ── pre-fill from localStorage ── */
+  /*  pre-fill from localStorage  */
   useEffect(() => {
     const rawFormType = localStorage.getItem('quickFormType');
     const rawExpenseMode = localStorage.getItem('quickExpenseMode');
@@ -243,7 +248,7 @@ export const AddTransaction: React.FC = () => {
     }
   }, []);
 
-  /* ── voice draft ── */
+  /*  voice draft  */
   useEffect(() => {
     const rawDraft = localStorage.getItem('voiceTransactionDraft');
     if (!rawDraft) return;
@@ -471,6 +476,16 @@ export const AddTransaction: React.FC = () => {
     if (!combinedText) return null;
     return detectExpenseCategoryFromText(combinedText, customExpenseSubcategories);
   }, [customExpenseSubcategories, formData.description, formData.merchant, isExpense, isLoanExpense, subcategoryQuery]);
+
+  // Enhanced confidence score from smart categorization engine
+  const smartCatResult = useMemo(() => {
+    if (!isExpense || isLoanExpense) return null;
+    const combinedText = [subcategoryQuery, formData.description, formData.merchant]
+      .filter(Boolean).join(' ').trim();
+    if (!combinedText || combinedText.length < 3) return null;
+    const result = categorizeText(combinedText);
+    return result.confidence >= 0.45 ? result : null;
+  }, [subcategoryQuery, formData.description, formData.merchant, isExpense, isLoanExpense]);
 
   useEffect(() => {
     if (!isExpense || isLoanExpense) return;
@@ -753,7 +768,7 @@ export const AddTransaction: React.FC = () => {
     setManualExpenseCategory(false);
     setShowCategoryPicker(false);
     setShowScanner(false);
-    toast.success('Bill scanned — review and edit the auto-filled fields before saving.');
+    toast.success('Bill scanned - review and edit the auto-filled fields before saving.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1012,7 +1027,7 @@ export const AddTransaction: React.FC = () => {
             friendParticipants,
           );
         } catch (error) {
-          console.info('ℹ️ Group expense notifications skipped:', error);
+          console.info(' Group expense notifications skipped:', error);
           notificationStatus = 'failed';
         }
 
@@ -1034,7 +1049,7 @@ export const AddTransaction: React.FC = () => {
             date: transactionDate,
           });
         } catch (error) {
-          console.info('ℹ️ Group expense backend sync skipped:', error);
+          console.info(' Group expense backend sync skipped:', error);
         }
 
         if (payload.subcategory) {
@@ -1067,7 +1082,7 @@ export const AddTransaction: React.FC = () => {
       if (pendingSmsTransactionId) {
         await markSmsTransactionImported(pendingSmsTransactionId, savedTransaction.id);
       }
-      toast.success(`${isExpense ? '📉' : '📈'} ${isExpense ? 'Expense' : 'Income'} of ${currency} ${formData.amount.toFixed(2)} recorded`);
+      toast.success(`${isExpense ? '' : ''} ${isExpense ? 'Expense' : 'Income'} of ${currency} ${formData.amount.toFixed(2)} recorded`);
       refreshData();
       setCurrentPage(returnPage);
     } catch (err) {
@@ -1078,7 +1093,7 @@ export const AddTransaction: React.FC = () => {
     }
   };
 
-  /* ── color system ── */
+  /*  color system  */
   const accent = isLoanExpense
     ? {
         heroSurface: 'from-sky-50 via-white to-cyan-50',
@@ -1194,7 +1209,7 @@ export const AddTransaction: React.FC = () => {
 
   const formEl = (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-      {/* ── Immersive Header ── */}
+      {/*  Immersive Header  */}
       <div className={cn('relative overflow-hidden border-b border-gray-100 bg-gradient-to-br px-4 pt-4 pb-5', accent.heroSurface)}>
         <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', accent.heroLine)} />
         <div className="absolute -top-10 right-2 h-24 w-24 rounded-full bg-white/70 blur-3xl pointer-events-none" />
@@ -1231,7 +1246,7 @@ export const AddTransaction: React.FC = () => {
               type="button"
               onClick={() => switchType('expense')}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all',
+                'flex flex-1 items-center justify-center gap-1 sm:gap-2 rounded-xl py-2.5 text-[13px] sm:text-sm font-bold transition-all',
                 isExpense ? accent.switchActive : accent.switchInactive,
               )}
             >
@@ -1242,118 +1257,58 @@ export const AddTransaction: React.FC = () => {
               type="button"
               onClick={() => switchType('income')}
               className={cn(
-                'flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold transition-all',
+                'flex flex-1 items-center justify-center gap-1 sm:gap-2 rounded-xl py-2.5 text-[13px] sm:text-sm font-bold transition-all',
                 !isExpense ? accent.switchActive : accent.switchInactive,
               )}
             >
               <ArrowUpRight size={16} />
               <span>Income</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage('transfer')}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1 sm:gap-2 rounded-xl py-2.5 text-[13px] sm:text-sm font-bold transition-all',
+                accent.switchInactive,
+              )}
+            >
+              <ArrowRightLeft size={16} />
+              <span>Transfer</span>
+            </button>
           </div>
 
           {isExpense && (
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-white/90 p-1.5 shadow-sm">
-              <p className="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
-                Expense mode
-              </p>
-              <div className="grid gap-2 md:grid-cols-3">
-                <label
-                  className={cn(
-                    'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
-                    expenseMode === 'individual'
-                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="expense-mode"
-                    className="sr-only"
-                    checked={expenseMode === 'individual'}
-                    onChange={() => switchExpenseMode('individual')}
-                  />
-                  <span
-                    className={cn(
-                      'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                      expenseMode === 'individual'
-                        ? 'border-white bg-white text-gray-900'
-                        : 'border-gray-300 bg-white',
-                    )}
-                  >
-                    {expenseMode === 'individual' && <span className="h-2 w-2 rounded-full bg-current" />}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">Individual</span>
-                    <span className={cn('mt-0.5 block text-xs', expenseMode === 'individual' ? 'text-white/75' : 'text-gray-500')}>
-                      Regular expense for yourself
-                    </span>
-                  </span>
-                </label>
-                <label
-                  className={cn(
-                    'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
-                    expenseMode === 'group'
-                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="expense-mode"
-                    className="sr-only"
-                    checked={expenseMode === 'group'}
-                    onChange={() => switchExpenseMode('group')}
-                  />
-                  <span
-                    className={cn(
-                      'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                      expenseMode === 'group'
-                        ? 'border-white bg-white text-gray-900'
-                        : 'border-gray-300 bg-white',
-                    )}
-                  >
-                    {expenseMode === 'group' && <span className="h-2 w-2 rounded-full bg-current" />}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">Group</span>
-                    <span className={cn('mt-0.5 block text-xs', expenseMode === 'group' ? 'text-white/75' : 'text-gray-500')}>
-                      Split this bill with friends
-                    </span>
-                  </span>
-                </label>
-                <label
-                  className={cn(
-                    'relative flex cursor-pointer items-start gap-3 rounded-2xl border px-3 py-3 transition-all',
-                    expenseMode === 'loan'
-                      ? 'border-gray-900 bg-gray-900 text-white shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="expense-mode"
-                    className="sr-only"
-                    checked={expenseMode === 'loan'}
-                    onChange={() => switchExpenseMode('loan')}
-                  />
-                  <span
-                    className={cn(
-                      'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                      expenseMode === 'loan'
-                        ? 'border-white bg-white text-gray-900'
-                        : 'border-gray-300 bg-white',
-                    )}
-                  >
-                    {expenseMode === 'loan' && <span className="h-2 w-2 rounded-full bg-current" />}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold">Loan</span>
-                    <span className={cn('mt-0.5 block text-xs', expenseMode === 'loan' ? 'text-white/75' : 'text-gray-500')}>
-                      Borrow or lend money
-                    </span>
-                  </span>
-                </label>
-              </div>
+            <div className="mt-3 flex rounded-xl p-1 bg-gray-100/80 border border-gray-200/50">
+              <button
+                type="button"
+                onClick={() => switchExpenseMode('individual')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all',
+                  expenseMode === 'individual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => switchExpenseMode('group')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all',
+                  expenseMode === 'group' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Group
+              </button>
+              <button
+                type="button"
+                onClick={() => switchExpenseMode('loan')}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all',
+                  expenseMode === 'loan' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Loan
+              </button>
             </div>
           )}
 
@@ -1394,7 +1349,7 @@ export const AddTransaction: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Form Fields Card ── */}
+      {/*  Form Fields Card  */}
       <div className="flex-1 bg-white -mt-3 rounded-t-[28px] shadow-xl divide-y divide-gray-100 overflow-hidden">
         {/* Account */}
         {selectedAccount && (
@@ -1570,7 +1525,7 @@ export const AddTransaction: React.FC = () => {
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-sm font-semibold text-gray-900">{friend.name}</p>
                                   <p className="truncate text-xs text-gray-500">
-                                    {[friend.email, friend.phone].filter(Boolean).join(' · ') || 'No contact saved'}
+                                    {[friend.email, friend.phone].filter(Boolean).join('  ') || 'No contact saved'}
                                   </p>
                                 </div>
                               </button>
@@ -1849,7 +1804,7 @@ export const AddTransaction: React.FC = () => {
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-semibold text-gray-900">{friend.name}</p>
                                 <p className="truncate text-xs text-gray-500">
-                                  {[friend.email, friend.phone].filter(Boolean).join(' · ') || 'No contact saved'}
+                                  {[friend.email, friend.phone].filter(Boolean).join('  ') || 'No contact saved'}
                                 </p>
                               </div>
                             </button>
@@ -2047,11 +2002,18 @@ export const AddTransaction: React.FC = () => {
                         {showCategoryPicker ? 'Hide category' : 'Change category'}
                         <DropdownCaret open={showCategoryPicker} size={14} className="h-7 w-7 rounded-lg border-gray-100 text-gray-500 shadow-none" />
                       </button>
-                      {(formData.subcategory || smartExpenseSuggestion) && (
+                      {smartCatResult && !formData.subcategory && (
+                        <AutoSuggestTag
+                          category={smartCatResult.category}
+                          subcategory={smartCatResult.subcategory}
+                          confidence={smartCatResult.confidence}
+                          onDismiss={() => setManualExpenseCategory(true)}
+                          onEdit={() => setShowCategoryPicker(true)}
+                        />
+                      )}
+                      {formData.subcategory && !smartCatResult && (
                         <span className="text-xs text-gray-500">
-                          {formData.subcategory
-                            ? `Auto-mapped from ${formData.subcategory}`
-                            : 'Suggested from text'}
+                          Auto-mapped from {formData.subcategory}
                         </span>
                       )}
                     </div>
@@ -2161,7 +2123,7 @@ export const AddTransaction: React.FC = () => {
                         <div
                           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-inner"
                         >
-                          <span className="text-lg leading-none">{selectedIncomeCategory?.icon ?? '💵'}</span>
+                          <span className="text-lg leading-none">{selectedIncomeCategory?.icon ?? ''}</span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">Income source</p>
@@ -2174,7 +2136,7 @@ export const AddTransaction: React.FC = () => {
                             {formData.subcategory || 'Select a subcategory'}
                           </p>
                           <p className="mt-1 text-xs text-gray-500">
-                            {selectedIncomeCategory?.name ?? 'Income'} · {subcategories.length} options
+                            {selectedIncomeCategory?.name ?? 'Income'}  {subcategories.length} options
                           </p>
                         </div>
                         {subcategories.length > 0 && (
@@ -2346,7 +2308,7 @@ export const AddTransaction: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* ── Fixed Bottom Bar ── */}
+      {/*  Fixed Bottom Bar  */}
       <div className="bg-white border-t border-gray-100 px-4 py-3 flex gap-3 shrink-0">
         <button
           type="button"
@@ -2365,7 +2327,7 @@ export const AddTransaction: React.FC = () => {
           )}
         >
           {isSubmitting
-            ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving…</>
+            ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving...</>
             : <><Zap size={15} /> {
               isLoanExpense
                 ? (loanType === 'borrowed' ? 'Create Borrow Record' : 'Create Lend Record')
@@ -2379,25 +2341,456 @@ export const AddTransaction: React.FC = () => {
     </form>
   );
 
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mediaQuery.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    } else {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
+  }, []);
+
+  if (isDesktop) {
+    return (
+      <>
+        
+        <div className="flex min-h-screen flex-col bg-white">
+        <div className="flex-1 w-full max-w-6xl mx-auto px-6 py-6 overflow-y-auto">
+
+          {/*  Header  */}
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+                {isLoanExpense ? 'Record Loan / Debt' : isGroupExpense ? 'Group Expense' : isExpense ? 'Add Expense' : 'Add Income'}
+              </h1>
+              <p className="text-gray-400 text-sm mt-0.5">
+                {isLoanExpense ? 'Track money borrowed or lent' : isGroupExpense ? 'Split expenses with friends' : 'Fast, smart financial tracking'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {isExpense && !isLoanExpense && (
+                <button type="button" onClick={() => setShowScanner(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
+                  <Camera size={15} /> Scan Receipt
+                </button>
+              )}
+              <button type="button" onClick={() => setCurrentPage(returnPage)}
+                className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-5">
+            {/*  LEFT COLUMN  */}
+            <div className="col-span-8 space-y-4">
+
+              {/* Type + Amount Card */}
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                {/* Expense / Income / Transfer switcher */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 mb-4 w-fit">
+                  <button type="button" onClick={() => switchType('expense')}
+                    className={cn('px-4 py-1.5 rounded-lg text-sm font-bold transition-all',
+                      isExpense ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
+                    Expense
+                  </button>
+                  <button type="button" onClick={() => switchType('income')}
+                    className={cn('px-4 py-1.5 rounded-lg text-sm font-bold transition-all',
+                      !isExpense ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
+                    Income
+                  </button>
+                  <button type="button" onClick={() => setCurrentPage('transfer')}
+                    className="px-4 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-white/70 transition-all">
+                    Transfer
+                  </button>
+                </div>
+
+                {/* Amount input */}
+                <div className={cn('rounded-2xl px-5 py-4 flex items-center bg-gradient-to-r transition-all', accent.amountCard)}>
+                  <span className="text-2xl font-black text-white/80 mr-3">
+                    {isExpense ? '-' : '+'}{currency}
+                  </span>
+                  <input
+                    type="number" step="0.01" min="0"
+                    value={amountStr}
+                    onChange={e => handleAmountChange(e.target.value)}
+                    className="flex-1 bg-transparent text-4xl font-black text-white outline-none placeholder:text-white/40 w-full"
+                    placeholder="0.00"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              {/* Smart Description + Category + Date */}
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Description with AI */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                      Description
+                      {aiSuggestion && !manualExpenseCategory && (
+                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 normal-case tracking-normal">
+                          <Sparkles size={9} />
+                          AI: {aiSuggestion.category}  {aiSuggestion.subcategory}
+                          <span className="text-violet-400">({Math.round(aiSuggestion.confidence * 100)}%)</span>
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.description}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setFormData(prev => ({ ...prev, description: val }));
+                        if (aiDebounceRef.current) clearTimeout(aiDebounceRef.current);
+                        if (val.trim().length >= 3 && !manualExpenseCategory) {
+                          aiDebounceRef.current = setTimeout(() => {
+                            const result = categorizeText(val);
+                            if (result.confidence >= 0.4 && result.category !== 'Miscellaneous') {
+                              setAiSuggestion(result);
+                              setFormData(prev => ({ ...prev, category: result.category, subcategory: result.subcategory }));
+                              setSubcategoryQuery(result.subcategory || result.category);
+                            }
+                          }, 300);
+                        } else if (!val.trim()) {
+                          setAiSuggestion(null);
+                        }
+                      }}
+                      className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                      placeholder="e.g. Pani puri, Petrol, Netflix..."
+                    />
+                  </div>
+
+                  {/* Merchant */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                      {isExpense ? 'Merchant / Store' : 'Source / Payer'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.merchant}
+                      onChange={e => setFormData(prev => ({ ...prev, merchant: e.target.value }))}
+                      className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                      placeholder={isExpense ? 'Amazon, Starbucks...' : 'Employer, client...'}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Category */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Category</label>
+                    {isExpense && !isLoanExpense ? (
+                      <div className="relative">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={subcategoryQuery}
+                          onChange={e => {
+                            const value = e.target.value;
+                            setSubcategoryQuery(value);
+                            setManualExpenseCategory(true);
+                            setAiSuggestion(null);
+                            if (!value.trim()) { setManualExpenseCategory(false); return; }
+                            const exactCat = getCategoryForExpenseSubcategory(value, customExpenseSubcategories);
+                            if (exactCat) {
+                              setFormData(prev => ({ ...prev, category: exactCat, subcategory: value.trim() }));
+                            } else {
+                              const result = categorizeText(value);
+                              if (result.confidence >= 0.3) {
+                                setFormData(prev => ({ ...prev, category: result.category, subcategory: result.subcategory }));
+                              } else {
+                                setFormData(prev => ({ ...prev, subcategory: '' }));
+                              }
+                            }
+                          }}
+                          className="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                          placeholder="Search (e.g. Uber, Netflix)..."
+                        />
+                        {formData.category && (
+                          <div className="mt-2 flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="flex items-center gap-2">
+                              {getCategoryCartoonIcon(resolvedExpenseCategory, 18)}
+                              <span className="text-xs font-bold text-gray-900">{resolvedExpenseCategory}</span>
+                              {formData.subcategory && <span className="text-[10px] text-gray-400"> {formData.subcategory}</span>}
+                            </div>
+                            <button type="button"
+                              onClick={() => {
+                                setSubcategoryQuery('');
+                                setManualExpenseCategory(false);
+                                setAiSuggestion(null);
+                                setFormData(prev => ({ ...prev, category: DEFAULT_CATEGORY.expense, subcategory: '' }));
+                              }}
+                              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-lg">
+                              Clear
+                            </button>
+                          </div>
+                        )}
+                        {visibleExpenseSuggestions.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {visibleExpenseSuggestions.map(s => (
+                              <button key={`${s.name}-${s.category}`} type="button"
+                                onClick={() => {
+                                  setFormData(prev => ({ ...prev, category: s.category, subcategory: s.name }));
+                                  setSubcategoryQuery(s.name);
+                                  setManualExpenseCategory(true);
+                                  setAiSuggestion(null);
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 text-xs font-bold text-gray-600 transition-colors">
+                                {getCategoryCartoonIcon(s.category, 12)} {s.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <select
+                        value={formData.category}
+                        onChange={e => {
+                          setFormData(prev => ({ ...prev, category: e.target.value, subcategory: '' }));
+                          setManualExpenseCategory(true);
+                        }}
+                        className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all appearance-none cursor-pointer">
+                        {liveCategories[formData.type].map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Date</label>
+                    <input
+                      type="date"
+                      value={formData.date}
+                      onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Loan Fields */}
+              {isLoanExpense && (
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Loan Details</h2>
+                  <div className="flex gap-3 mb-4">
+                    <button type="button" onClick={() => setLoanType('borrowed')}
+                      className={cn('flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all flex items-center justify-center gap-2',
+                        loanType === 'borrowed' ? 'border-sky-500 bg-sky-500 text-white shadow-md' : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300')}>
+                      <ArrowDownLeft size={16} /> Borrowed
+                    </button>
+                    <button type="button" onClick={() => setLoanType('lent')}
+                      className={cn('flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all flex items-center justify-center gap-2',
+                        loanType === 'lent' ? 'border-sky-500 bg-sky-500 text-white shadow-md' : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300')}>
+                      <ArrowUpRight size={16} /> Lent
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">{loanType === 'borrowed' ? 'Lender' : 'Borrower'}</p>
+                      <input type="text" value={loanDraft.contactName}
+                        onChange={e => setLoanDraft(prev => ({ ...prev, friendId: undefined, contactName: e.target.value }))}
+                        className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                        placeholder={loanType === 'borrowed' ? 'Who gave you this loan?' : 'Who received this loan?'} required={isLoanExpense} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Due Date</p>
+                      <input type="date" value={loanDraft.dueDate}
+                        onChange={e => setLoanDraft(prev => ({ ...prev, dueDate: e.target.value }))}
+                        className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                        required={isLoanExpense} min={formData.date} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Interest Rate (% p.a.)</p>
+                      <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-black/5 focus-within:bg-white transition-all">
+                        <input type="number" min="0" step="0.01" value={loanDraft.interestRate || ''}
+                          onChange={e => setLoanDraft(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))}
+                          className="flex-1 bg-transparent text-sm font-medium text-gray-900 focus:outline-none" placeholder="0.00" />
+                        <span className="text-gray-400 font-bold ml-2 text-sm">%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Notes</p>
+                      <input type="text" value={loanDraft.notes}
+                        onChange={e => setLoanDraft(prev => ({ ...prev, notes: e.target.value }))}
+                        className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                        placeholder="Optional note..." />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Group Fields */}
+              {isGroupExpense && (
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Group Split Details</h2>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Group Name</p>
+                      <input type="text" value={groupName} onChange={e => setGroupName(e.target.value)}
+                        className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                        placeholder="Dinner, Goa trip..." required={isGroupExpense} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Split Type</p>
+                      <div className="flex gap-2">
+                        {(['equal', 'custom'] as const).map(t => (
+                          <button key={t} type="button" onClick={() => setGroupSplitType(t)}
+                            className={cn('flex-1 py-2.5 rounded-xl border-2 text-sm font-bold transition-all capitalize',
+                              groupSplitType === t ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-100 bg-white text-gray-700')}>
+                            {t} Split
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => addGroupParticipant()}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 text-sm font-bold text-gray-700 hover:bg-gray-100 transition-colors mb-3">
+                    <UserPlus size={14} /> Add Participant
+                  </button>
+                  <div className="space-y-2">
+                    {groupParticipants.map((p, i) => (
+                      <div key={p.id} className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white border border-gray-100 text-xs font-bold text-gray-600">{i + 1}</div>
+                        <input type="text" value={p.name}
+                          onChange={e => updateGroupParticipant(p.id, { name: e.target.value })}
+                          className="flex-1 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none"
+                          placeholder={`Friend ${i + 1} name`} />
+                        {groupSplitType === 'custom' && (
+                          <div className="flex items-center gap-1.5 text-sm">
+                            <span className="text-gray-400 text-xs">{currency}</span>
+                            <input type="number" min="0" step="0.01" value={p.share || ''}
+                              onChange={e => updateGroupParticipant(p.id, { share: parseFloat(e.target.value) || 0 })}
+                              className="w-20 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none text-right" placeholder="0.00" />
+                          </div>
+                        )}
+                        {groupSplitType === 'equal' && (
+                          <span className="text-sm font-semibold text-gray-500 shrink-0">{formatAccountBalance(equalPerPersonShare)}</span>
+                        )}
+                        <button type="button" onClick={() => removeGroupParticipant(p.id)}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/*  RIGHT COLUMN  */}
+            <div className="col-span-4 space-y-4">
+
+              {/* Mode Selector */}
+              {isExpense && (
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Transaction Mode</h2>
+                  <div className="space-y-2">
+                    {(['individual', 'group', 'loan'] as const).map(mode => (
+                      <button key={mode} type="button" onClick={() => switchExpenseMode(mode)}
+                        className={cn('w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 transition-all text-sm',
+                          expenseMode === mode ? 'border-gray-900 bg-gray-900 text-white shadow-md' : 'border-gray-100 bg-white text-gray-700 hover:border-gray-300')}>
+                        <div className="flex items-center gap-2.5">
+                          {mode === 'individual' && <Wallet size={15} />}
+                          {mode === 'group' && <Users size={15} />}
+                          {mode === 'loan' && <Banknote size={15} />}
+                          <span className="font-bold capitalize">{mode === 'loan' ? 'Loan / Debt' : mode}</span>
+                        </div>
+                        {expenseMode === mode && <Check size={15} className="text-white" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Account */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Account</h2>
+                <div className="space-y-2">
+                  {accounts.map(acc => {
+                    const isSelected = formData.accountId === acc.id;
+                    const meta = accountTypeMeta[acc.type ?? 'bank'];
+                    return (
+                      <button key={acc.id} type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, accountId: acc.id || 0 }))}
+                        className={cn('w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all',
+                          isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white hover:border-gray-300')}>
+                        <div className="flex items-center gap-2.5">
+                          <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', meta.shell)}>
+                            <meta.icon size={15} />
+                          </div>
+                          <div className="text-left">
+                            <p className={cn('font-bold text-sm leading-tight', isSelected ? 'text-blue-900' : 'text-gray-900')}>{acc.name}</p>
+                            <p className={cn('text-[11px] font-semibold', isSelected ? 'text-blue-600' : 'text-gray-400')}>
+                              {formatAccountBalance(acc.balance)} available
+                            </p>
+                          </div>
+                        </div>
+                        {isSelected && <div className="h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center"><Check size={10} className="text-white" /></div>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Submit Card */}
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 sticky top-6">
+                <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest mb-1">Total Amount</p>
+                <p className={cn('text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r mb-4', accent.amountCard)}>
+                  {currency}{formData.amount > 0 ? formData.amount.toFixed(2) : '0.00'}
+                </p>
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting || !formData.amount}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    if (formData.description && formData.category) {
+                      learnCategorization(formData.description, formData.category, formData.subcategory);
+                    }
+                  }}
+                  className={cn(
+                    'w-full py-3.5 rounded-xl font-black text-white text-base shadow-lg bg-gradient-to-r transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2',
+                    accent.btn
+                  )}>
+                  {isSubmitting
+                    ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving...</>
+                    : <><Zap size={16} /> {isLoanExpense ? (loanType === 'borrowed' ? 'Create Borrow Record' : 'Create Lend Record') : isGroupExpense ? 'Create Group Expense' : `Add ${isExpense ? 'Expense' : 'Income'}`}</>
+                  }
+                </motion.button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      {/* Modals */}
+      {showScanner && (
+        <ReceiptScanner
+          isOpen={showScanner}
+          onClose={() => setShowScanner(false)}
+          initialAccountId={formData.accountId}
+          expenseMode={expenseMode === 'group' ? 'group' : 'individual'}
+          onApplyScan={handleApplyReceiptScan}
+        />
+      )}
+    </>
+    );
+  }
+
   return (
     <>
-      {/* ─── Mobile: Full page stack ─── */}
-      <div className="lg:hidden flex flex-col min-h-screen bg-white">
+      <div className="flex flex-col min-h-screen bg-white">
         {formEl}
       </div>
-
-      {/* ─── Desktop: Centered card ─── */}
-      <div className="hidden lg:flex items-start justify-center min-h-screen bg-gray-100 py-8 px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-[980px] rounded-3xl overflow-hidden shadow-2xl flex flex-col bg-white"
-          style={{ minHeight: 640 }}
-        >
-          {formEl}
-        </motion.div>
-      </div>
-
       {/* Modals */}
       {showScanner && (
         <ReceiptScanner

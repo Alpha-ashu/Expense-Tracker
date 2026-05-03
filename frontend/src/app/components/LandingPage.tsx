@@ -161,7 +161,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
 
   return (
     <div className="relative min-h-screen bg-white overflow-x-hidden font-sans select-none">
-      {/* ── Background gradients ─────────────────────────────────────────── */}
+      {/*  Background gradients  */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Top-left lavender blob */}
         <div className="absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full bg-violet-100 blur-[120px] opacity-60" />
@@ -179,7 +179,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         currentPage="landing"
       />
 
-      {/* ── Hero ────────────────────────────────────────────────────────── */}
+      {/*  Hero  */}
       <section id="home" className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-40 lg:pt-52 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left: copy */}
@@ -306,7 +306,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         </div>
       </section>
 
-      {/* ── Marquee logos (trust bar) ───────────────────────────────────── */}
+      {/*  Marquee logos (trust bar)  */}
       <div id="about" className="border-y border-gray-100 bg-gray-50/60 py-5 overflow-hidden">
         <div className="flex gap-12 animate-[marquee_20s_linear_infinite] whitespace-nowrap">
           {['Smart Budgets', 'AI Insights', 'Offline First', 'Bank Security', 'Live Markets', 'Group Splits', 'Goal Tracking', 'PDF Reports',
@@ -319,7 +319,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         </div>
       </div>
 
-      {/* ── Features section ────────────────────────────────────────────── */}
+      {/*  Features section  */}
       <section id="features" className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
         <div className="text-center mb-14 space-y-4">
           <p className="text-violet-600 font-semibold text-sm tracking-widest uppercase">
@@ -329,7 +329,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
             AI-Powered Finance Management
           </h2>
           <p className="text-gray-500 max-w-xl mx-auto text-base lg:text-lg leading-relaxed">
-            Everything you need to manage money smarter — from daily expenses to long-term
+            Everything you need to manage money smarter - from daily expenses to long-term
             investments, all in one beautifully designed app.
           </p>
         </div>
@@ -359,7 +359,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         </div>
       </section>
 
-      {/* ── Stats / social proof strip ──────────────────────────────────── */}
+      {/*  Stats / social proof strip  */}
       <section className="bg-gradient-to-br from-gray-900 to-gray-800 py-16">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
@@ -367,7 +367,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
               { value: '50k+', label: 'Active Users' },
               { value: '2M+', label: 'Transactions Tracked' },
               { value: '99%', label: 'Uptime SLA' },
-              { value: '4.9★', label: 'User Rating' },
+              { value: '4.9', label: 'User Rating' },
             ].map((stat, i) => (
               <div key={i} className="space-y-2">
                 <p className="text-3xl lg:text-4xl font-extrabold text-white">{stat.value}</p>
@@ -378,7 +378,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         </div>
       </section>
 
-      {/* ── CTA banner ──────────────────────────────────────────────────── */}
+      {/*  CTA banner  */}
       <section id="pricing" className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-violet-600 via-purple-600 to-pink-500 p-10 lg:p-16 text-center shadow-2xl shadow-purple-300/40">
           {/* Decorative blobs */}
@@ -394,7 +394,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
             Will You Choose?
           </h2>
           <p className="text-white/70 text-base max-w-lg mx-auto mb-8 leading-relaxed">
-            Join thousands who have transformed how they manage money. Sign up free — no credit card required.
+            Join thousands who have transformed how they manage money. Sign up free - no credit card required.
           </p>
 
           <button
@@ -405,12 +405,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
           </button>
 
           <p className="mt-5 text-white/50 text-xs">
-            ✓ Free forever plan &nbsp;·&nbsp; ✓ No credit card &nbsp;·&nbsp; ✓ 2-minute setup
+             Free forever plan &nbsp;&nbsp;  No credit card &nbsp;&nbsp;  2-minute setup
           </p>
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      {/*  Footer  */}
       <footer className="border-t border-gray-100 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -418,7 +418,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
             <span className="text-sm font-bold text-gray-700">Kanakku</span>
           </div>
           <p className="text-xs text-gray-400">
-            © {new Date().getFullYear()} Kanakku. All rights reserved.
+             {new Date().getFullYear()} Kanakku. All rights reserved.
           </p>
           <div className="flex items-center gap-5">
             {[
@@ -438,7 +438,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
         </div>
       </footer>
 
-      {/* ── Keyframe animations (injected via a style tag) ───────────────── */}
+      {/*  Keyframe animations (injected via a style tag)  */}
       <style>{`
         @keyframes morphBlob {
           0%,100% { border-radius: 40% 60% 70% 30% / 45% 45% 55% 55%; }

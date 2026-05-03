@@ -1,9 +1,9 @@
 // -----------------------------------------------------------------------
-// Tax component — one row from the bill's tax section
-// (e.g. CGST 2.5% ₹12.50, VAT 5% ₹25.00)
+// Tax component - one row from the bill's tax section
+// (e.g. CGST 2.5% INR12.50, VAT 5% INR25.00)
 // -----------------------------------------------------------------------
 export interface TaxComponent {
-  name: string;      // "CGST" | "SGST" | "VAT" | "Sales Tax" | …
+  name: string;      // "CGST" | "SGST" | "VAT" | "Sales Tax" | ...
   rate?: number;     // percentage (optional)
   amount: number;    // currency amount
 }
@@ -19,7 +19,7 @@ export interface ReceiptLineItem {
 }
 
 // -----------------------------------------------------------------------
-// Validation result — did items + taxes ≈ total?
+// Validation result - did items + taxes  total?
 // -----------------------------------------------------------------------
 export interface TotalValidationResult {
   isValid: boolean;
@@ -28,7 +28,7 @@ export interface TotalValidationResult {
 }
 
 // -----------------------------------------------------------------------
-// Core scan result — all fields are optional (partial scans are normal)
+// Core scan result - all fields are optional (partial scans are normal)
 // -----------------------------------------------------------------------
 export interface ReceiptScanResult {
   // Core fields
@@ -53,9 +53,9 @@ export interface ReceiptScanResult {
   category?: string;
   subcategory?: string;
   notes?: string;
-  description?: string;        // AI-generated: "Mutton Curry ₹350, Rice ₹50"
+  description?: string;        // AI-generated: "Mutton Curry INR350, Rice INR50"
 
-  // Items — enriched with qty + rate
+  // Items - enriched with qty + rate
   items?: ReceiptLineItem[];
 
   confidence?: number;

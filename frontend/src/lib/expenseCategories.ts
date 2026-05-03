@@ -160,7 +160,7 @@ const EXPENSE_MERCHANT_RULES: Array<{ category: string; subcategory: string; key
 const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   {
     name: 'Housing',
-    icon: '🏠',
+    icon: '',
     color: '#64748B',
     aliases: ['housing', 'housing / rent', 'rent', 'living'],
     subcategories: [
@@ -175,7 +175,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Utilities',
-    icon: '💡',
+    icon: '',
     color: '#FBBF24',
     aliases: ['utilities', 'bills', 'bills & utilities'],
     subcategories: [
@@ -189,7 +189,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Food & Dining',
-    icon: '🍔',
+    icon: '',
     color: '#EF4444',
     aliases: ['food', 'dining', 'restaurant'],
     subcategories: [
@@ -204,7 +204,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Transportation',
-    icon: '🚗',
+    icon: '',
     color: '#F59E0B',
     aliases: ['transport', 'transportation', 'commute'],
     subcategories: [
@@ -221,7 +221,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Vehicle',
-    icon: '🚙',
+    icon: '',
     color: '#F97316',
     aliases: ['vehicle', 'vehicle maintenance', 'vehicle expenses', 'car', 'bike'],
     subcategories: [
@@ -236,7 +236,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Health & Medical',
-    icon: '⚕️',
+    icon: '',
     color: '#06B6D4',
     aliases: ['healthcare', 'health', 'medical'],
     subcategories: [
@@ -251,7 +251,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Shopping',
-    icon: '🛍️',
+    icon: '',
     color: '#EC4899',
     aliases: ['shopping', 'purchase', 'retail'],
     subcategories: [
@@ -264,7 +264,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Subscriptions',
-    icon: '📺',
+    icon: '',
     color: '#8B5CF6',
     aliases: ['subscriptions', 'subscriptions & digital services', 'digital', 'streaming'],
     subcategories: [
@@ -277,7 +277,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Travel',
-    icon: '✈️',
+    icon: '',
     color: '#6366F1',
     aliases: ['travel', 'travel & vacation', 'vacation', 'holiday'],
     subcategories: [
@@ -291,7 +291,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Business Expenses',
-    icon: '💼',
+    icon: '',
     color: '#06B6D4',
     aliases: ['business', 'work', 'office'],
     subcategories: [
@@ -305,7 +305,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Education',
-    icon: '📚',
+    icon: '',
     color: '#3B82F6',
     aliases: ['education', 'study', 'schooling'],
     subcategories: [
@@ -318,7 +318,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Entertainment',
-    icon: '🎬',
+    icon: '',
     color: '#3D5A80',
     aliases: ['entertainment', 'fun', 'leisure'],
     subcategories: [
@@ -331,7 +331,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Gifts & Donations',
-    icon: '🎁',
+    icon: '',
     color: '#A855F7',
     aliases: ['gifts', 'gift', 'donation', 'charity', 'donations & charity'],
     subcategories: [
@@ -343,7 +343,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Miscellaneous',
-    icon: '📌',
+    icon: '',
     color: '#64748B',
     aliases: ['miscellaneous', 'miscellaneous / other', 'misc', 'other'],
     subcategories: [
@@ -355,7 +355,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Family & Kids',
-    icon: '👨‍👩‍👧',
+    icon: '',
     color: '#14B8A6',
     aliases: ['family', 'kids', 'children'],
     subcategories: [
@@ -369,7 +369,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Personal Care',
-    icon: '💅',
+    icon: '',
     color: '#F43F5E',
     aliases: ['personal care', 'self care', 'grooming'],
     subcategories: [
@@ -383,7 +383,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Fitness & Sports',
-    icon: '🏋️',
+    icon: '',
     color: '#10B981',
     aliases: ['fitness', 'sports', 'gym'],
     subcategories: [
@@ -397,7 +397,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Pets',
-    icon: '🐾',
+    icon: '',
     color: '#F59E0B',
     aliases: ['pets', 'pet'],
     subcategories: [
@@ -410,7 +410,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Investments',
-    icon: '📈',
+    icon: '',
     color: '#F59E0B',
     aliases: ['investment', 'investments', 'portfolio'],
     subcategories: [
@@ -423,7 +423,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Taxes & Government',
-    icon: '🏛️',
+    icon: '',
     color: '#7C3AED',
     aliases: ['tax', 'taxes', 'government'],
     subcategories: [
@@ -436,7 +436,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Electronics & Gadgets',
-    icon: '📱',
+    icon: '',
     color: '#2563EB',
     aliases: ['electronics', 'gadgets'],
     subcategories: [
@@ -450,7 +450,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Home Maintenance',
-    icon: '🛠️',
+    icon: '',
     color: '#0F766E',
     aliases: ['home maintenance', 'repairs'],
     subcategories: [
@@ -464,7 +464,7 @@ const EXPENSE_CATEGORY_SEEDS: ExpenseCategorySeed[] = [
   },
   {
     name: 'Loan / Debt Payments',
-    icon: '💳',
+    icon: '',
     color: '#0EA5E9',
     aliases: ['loan', 'loans', 'debt', 'finance'],
     subcategories: [
@@ -518,37 +518,37 @@ export const EXPENSE_CATEGORIES = Object.fromEntries(
 export const INCOME_CATEGORIES = {
   salary: {
     name: 'Salary',
-    icon: '💰',
+    icon: '',
     color: '#10B981',
     subcategories: ['Monthly Salary', 'Bonus', 'Overtime', 'Allowance', 'Advance', 'Backpay', 'Raise', 'Commission'],
   },
   freelance: {
     name: 'Freelance & Side Gigs',
-    icon: '💻',
+    icon: '',
     color: '#3B82F6',
     subcategories: ['Freelance Project', 'Consulting', 'Tutoring', 'Writing', 'Design', 'Photography', 'Transcription', 'Virtual Assistant'],
   },
   investment: {
     name: 'Investment Returns',
-    icon: '📈',
+    icon: '',
     color: '#F59E0B',
     subcategories: ['Dividends', 'Interest', 'Capital Gains', 'Crypto Returns', 'Stock Sale', 'Mutual Funds', 'Bonds', 'Real Estate'],
   },
   business: {
     name: 'Business',
-    icon: '🏢',
+    icon: '',
     color: '#8B5CF6',
     subcategories: ['Sales', 'Service Revenue', 'Rental Income', 'Product Sale', 'Affiliate Commission', 'Sponsorship', 'License Fee', 'Royalty'],
   },
   gift: {
     name: 'Gift & Refund',
-    icon: '🎁',
+    icon: '',
     color: '#EC4899',
     subcategories: ['Gift Received', 'Refund', 'Reimbursement', 'Insurance Payout', 'Lottery', 'Found Money', 'Tax Return', 'Subsidy'],
   },
   other: {
     name: 'Other Income',
-    icon: '💵',
+    icon: '',
     color: '#64748B',
     subcategories: ['Bonus', 'Award', 'Inheritance', 'Settlement', 'Residual Income', 'Stipend', 'Scholarship', 'Pension'],
   },

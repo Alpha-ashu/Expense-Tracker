@@ -91,7 +91,7 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({
           className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             errors.password ? 'border-red-500' : 'border-gray-300'
           }`}
-          placeholder="••••••••"
+          placeholder="--------"
         />
         {errors.password && (
           <p className="mt-1 text-sm text-red-600">{errors.password}</p>
@@ -110,7 +110,7 @@ export const OnboardingStep1: React.FC<OnboardingStep1Props> = ({
           className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
           }`}
-          placeholder="••••••••"
+          placeholder="--------"
         />
         {errors.confirmPassword && (
           <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>

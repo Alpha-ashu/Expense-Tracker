@@ -7,12 +7,12 @@ describe('parseBankStatement', () => {
       'BANK STATEMENT',
       'A/C No: 9876543210',
       'From 01/01/2024 to 31/01/2024',
-      'Balance Brought Forward: ₹50,000.00',
+      'Balance Brought Forward: INR50,000.00',
       'Date Description Debit Credit Balance',
       '01/01/2024 Salary Credit 0.00 30,000.00 80,000.00',
       '02/01/2024 ATM Withdrawal 2,000.00 0.00 78,000.00',
       '03/01/2024 UPI Transfer to John 1,500.00 0.00 76,500.00',
-      'Balance Carried Forward: ₹76,500.00',
+      'Balance Carried Forward: INR76,500.00',
     ].join('\n');
 
     const result = await parseBankStatement(rawStatement);

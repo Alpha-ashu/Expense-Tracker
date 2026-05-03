@@ -17,60 +17,60 @@ interface CountryLanguageStepProps {
 // Location suggestions: City, State, Country
 const LOCATION_SUGGESTIONS = [
   // India
-  { city: 'Chennai', state: 'Tamil Nadu', country: 'India', flag: '🇮🇳' },
-  { city: 'Mumbai', state: 'Maharashtra', country: 'India', flag: '🇮🇳' },
-  { city: 'Delhi', state: 'Delhi', country: 'India', flag: '🇮🇳' },
-  { city: 'Bengaluru', state: 'Karnataka', country: 'India', flag: '🇮🇳' },
-  { city: 'Hyderabad', state: 'Telangana', country: 'India', flag: '🇮🇳' },
-  { city: 'Ahmedabad', state: 'Gujarat', country: 'India', flag: '🇮🇳' },
-  { city: 'Kolkata', state: 'West Bengal', country: 'India', flag: '🇮🇳' },
-  { city: 'Pune', state: 'Maharashtra', country: 'India', flag: '🇮🇳' },
-  { city: 'Jaipur', state: 'Rajasthan', country: 'India', flag: '🇮🇳' },
-  { city: 'Surat', state: 'Gujarat', country: 'India', flag: '🇮🇳' },
-  { city: 'Lucknow', state: 'Uttar Pradesh', country: 'India', flag: '🇮🇳' },
-  { city: 'Coimbatore', state: 'Tamil Nadu', country: 'India', flag: '🇮🇳' },
-  { city: 'Madurai', state: 'Tamil Nadu', country: 'India', flag: '🇮🇳' },
-  { city: 'Kochi', state: 'Kerala', country: 'India', flag: '🇮🇳' },
-  { city: 'Chandigarh', state: 'Chandigarh', country: 'India', flag: '🇮🇳' },
-  { city: 'Nagpur', state: 'Maharashtra', country: 'India', flag: '🇮🇳' },
-  { city: 'Visakhapatnam', state: 'Andhra Pradesh', country: 'India', flag: '🇮🇳' },
-  { city: 'Bhopal', state: 'Madhya Pradesh', country: 'India', flag: '🇮🇳' },
+  { city: 'Chennai', state: 'Tamil Nadu', country: 'India', flag: '' },
+  { city: 'Mumbai', state: 'Maharashtra', country: 'India', flag: '' },
+  { city: 'Delhi', state: 'Delhi', country: 'India', flag: '' },
+  { city: 'Bengaluru', state: 'Karnataka', country: 'India', flag: '' },
+  { city: 'Hyderabad', state: 'Telangana', country: 'India', flag: '' },
+  { city: 'Ahmedabad', state: 'Gujarat', country: 'India', flag: '' },
+  { city: 'Kolkata', state: 'West Bengal', country: 'India', flag: '' },
+  { city: 'Pune', state: 'Maharashtra', country: 'India', flag: '' },
+  { city: 'Jaipur', state: 'Rajasthan', country: 'India', flag: '' },
+  { city: 'Surat', state: 'Gujarat', country: 'India', flag: '' },
+  { city: 'Lucknow', state: 'Uttar Pradesh', country: 'India', flag: '' },
+  { city: 'Coimbatore', state: 'Tamil Nadu', country: 'India', flag: '' },
+  { city: 'Madurai', state: 'Tamil Nadu', country: 'India', flag: '' },
+  { city: 'Kochi', state: 'Kerala', country: 'India', flag: '' },
+  { city: 'Chandigarh', state: 'Chandigarh', country: 'India', flag: '' },
+  { city: 'Nagpur', state: 'Maharashtra', country: 'India', flag: '' },
+  { city: 'Visakhapatnam', state: 'Andhra Pradesh', country: 'India', flag: '' },
+  { city: 'Bhopal', state: 'Madhya Pradesh', country: 'India', flag: '' },
   // US
-  { city: 'New York', state: 'New York', country: 'United States', flag: '🇺🇸' },
-  { city: 'Los Angeles', state: 'California', country: 'United States', flag: '🇺🇸' },
-  { city: 'Chicago', state: 'Illinois', country: 'United States', flag: '🇺🇸' },
-  { city: 'San Francisco', state: 'California', country: 'United States', flag: '🇺🇸' },
-  { city: 'Houston', state: 'Texas', country: 'United States', flag: '🇺🇸' },
+  { city: 'New York', state: 'New York', country: 'United States', flag: '' },
+  { city: 'Los Angeles', state: 'California', country: 'United States', flag: '' },
+  { city: 'Chicago', state: 'Illinois', country: 'United States', flag: '' },
+  { city: 'San Francisco', state: 'California', country: 'United States', flag: '' },
+  { city: 'Houston', state: 'Texas', country: 'United States', flag: '' },
   // UK
-  { city: 'London', state: 'England', country: 'United Kingdom', flag: '🇬🇧' },
-  { city: 'Manchester', state: 'England', country: 'United Kingdom', flag: '🇬🇧' },
-  { city: 'Birmingham', state: 'England', country: 'United Kingdom', flag: '🇬🇧' },
+  { city: 'London', state: 'England', country: 'United Kingdom', flag: '' },
+  { city: 'Manchester', state: 'England', country: 'United Kingdom', flag: '' },
+  { city: 'Birmingham', state: 'England', country: 'United Kingdom', flag: '' },
   // Canada
-  { city: 'Toronto', state: 'Ontario', country: 'Canada', flag: '🇨🇦' },
-  { city: 'Vancouver', state: 'British Columbia', country: 'Canada', flag: '🇨🇦' },
+  { city: 'Toronto', state: 'Ontario', country: 'Canada', flag: '' },
+  { city: 'Vancouver', state: 'British Columbia', country: 'Canada', flag: '' },
   // Australia
-  { city: 'Sydney', state: 'New South Wales', country: 'Australia', flag: '🇦🇺' },
-  { city: 'Melbourne', state: 'Victoria', country: 'Australia', flag: '🇦🇺' },
+  { city: 'Sydney', state: 'New South Wales', country: 'Australia', flag: '' },
+  { city: 'Melbourne', state: 'Victoria', country: 'Australia', flag: '' },
   // UAE
-  { city: 'Dubai', state: 'Dubai', country: 'United Arab Emirates', flag: '🇦🇪' },
-  { city: 'Abu Dhabi', state: 'Abu Dhabi', country: 'United Arab Emirates', flag: '🇦🇪' },
+  { city: 'Dubai', state: 'Dubai', country: 'United Arab Emirates', flag: '' },
+  { city: 'Abu Dhabi', state: 'Abu Dhabi', country: 'United Arab Emirates', flag: '' },
   // Singapore
-  { city: 'Singapore', state: 'Singapore', country: 'Singapore', flag: '🇸🇬' },
+  { city: 'Singapore', state: 'Singapore', country: 'Singapore', flag: '' },
 ];
 
 const LANGUAGES = [
-  { value: 'English', label: 'English', flag: '🇬🇧' },
-  { value: 'Hindi', label: 'हिन्दी (Hindi)', flag: '🇮🇳' },
-  { value: 'Tamil', label: 'தமிழ் (Tamil)', flag: '🇮🇳' },
-  { value: 'Telugu', label: 'తెలుగు (Telugu)', flag: '🇮🇳' },
-  { value: 'Kannada', label: 'ಕನ್ನಡ (Kannada)', flag: '🇮🇳' },
-  { value: 'Malayalam', label: 'മലയാളം (Malayalam)', flag: '🇮🇳' },
-  { value: 'Bengali', label: 'বাংলা (Bengali)', flag: '🇮🇳' },
-  { value: 'Marathi', label: 'मराठी (Marathi)', flag: '🇮🇳' },
-  { value: 'Gujarati', label: 'ગુજરાતી (Gujarati)', flag: '🇮🇳' },
-  { value: 'Spanish', label: 'Español (Spanish)', flag: '🇪🇸' },
-  { value: 'French', label: 'Français (French)', flag: '🇫🇷' },
-  { value: 'Arabic', label: 'العربية (Arabic)', flag: '🇸🇦' },
+  { value: 'English', label: 'English', flag: '' },
+  { value: 'Hindi', label: ' (Hindi)', flag: '' },
+  { value: 'Tamil', label: ' (Tamil)', flag: '' },
+  { value: 'Telugu', label: ' (Telugu)', flag: '' },
+  { value: 'Kannada', label: ' (Kannada)', flag: '' },
+  { value: 'Malayalam', label: ' (Malayalam)', flag: '' },
+  { value: 'Bengali', label: ' (Bengali)', flag: '' },
+  { value: 'Marathi', label: ' (Marathi)', flag: '' },
+  { value: 'Gujarati', label: ' (Gujarati)', flag: '' },
+  { value: 'Spanish', label: 'Espaol (Spanish)', flag: '' },
+  { value: 'French', label: 'Franais (French)', flag: '' },
+  { value: 'Arabic', label: ' (Arabic)', flag: '' },
 ];
 
 export const CountryLanguageStep: React.FC<CountryLanguageStepProps> = ({
@@ -215,9 +215,9 @@ export const CountryLanguageStep: React.FC<CountryLanguageStepProps> = ({
           <div className="mt-2 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
               {selectedLocation.flag} {selectedLocation.city}
-              <span className="text-blue-400">·</span>
+              <span className="text-blue-400"></span>
               {selectedLocation.state}
-              <span className="text-blue-400">·</span>
+              <span className="text-blue-400"></span>
               {selectedLocation.country}
             </span>
           </div>
@@ -271,7 +271,7 @@ export const CountryLanguageStep: React.FC<CountryLanguageStepProps> = ({
             className="w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-gray-600 transition-colors py-1"
           >
             <SkipForward size={14} />
-            Skip for now — I'll set this up later
+            Skip for now - I'll set this up later
           </button>
         )}
       </div>

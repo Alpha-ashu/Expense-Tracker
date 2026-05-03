@@ -38,7 +38,7 @@ describe('ReceiptParserService', () => {
     expect(result.taxAmount).toBe(16);
     expect(result.subtotal).toBe(180);
     expect(result.paymentMethod).toBe('UPI');
-    // confidence = (avg strategy confidence 0.825 × 0.6) + (completeness 0.5 × 0.4) = 0.695
+    // confidence = (avg strategy confidence 0.825  0.6) + (completeness 0.5  0.4) = 0.695
     expect(result.confidence).toBeCloseTo(0.695, 3);
 
     void service;

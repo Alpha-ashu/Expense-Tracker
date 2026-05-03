@@ -181,13 +181,13 @@ export const PINSetup: React.FC<PINSetupProps> = ({
   };
 
   const renderPinDots = (value: string) => (
-    <div className="flex justify-center gap-3 mb-4">
+    <div className="flex justify-center gap-3 mb-6">
       {[...Array(6)].map((_, i) => (
         <div
           key={i}
-          className={`w-4 h-4 rounded-full transition-all duration-200 ${value.length > i
-              ? 'bg-blue-600 scale-110'
-              : 'bg-gray-300 border-2 border-gray-300'
+          className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${value.length > i
+              ? 'bg-gray-900 scale-110'
+              : 'bg-gray-200'
             }`}
         />
       ))}
@@ -197,37 +197,37 @@ export const PINSetup: React.FC<PINSetupProps> = ({
   const getStrengthColor = () => {
     switch (pinStrength) {
       case 'weak': return 'text-red-500';
-      case 'medium': return 'text-yellow-500';
-      case 'strong': return 'text-green-500';
+      case 'medium': return 'text-amber-500';
+      case 'strong': return 'text-emerald-500';
       default: return 'text-gray-400';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] w-full max-w-md">
         {/* Header */}
-        <div className="p-6 text-center">
+        <div className="p-8 pb-6 text-center relative">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="absolute left-4 top-4 text-white/80 hover:text-white"
+              className="absolute left-6 top-6 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
               aria-label="Go back"
               title="Go back"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Lock className="w-8 h-8 text-blue-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-[20px] mb-6 shadow-sm">
+            <Lock className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
             {step === 'create' && 'Create Security PIN'}
             {step === 'confirm' && 'Confirm Your PIN'}
             {step === 'enter' && 'Enter Your PIN'}
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-500 font-medium">
             {step === 'create' && 'Set a 6-digit PIN to secure your app'}
             {step === 'confirm' && 'Re-enter your PIN to confirm'}
             {step === 'enter' && 'Please enter your 6 digit pin'}
@@ -235,7 +235,7 @@ export const PINSetup: React.FC<PINSetupProps> = ({
         </div>
 
         {/* PIN Input */}
-        <div className="px-6 pb-6">
+        <div className="px-8 pb-8">
           <input
             type="text"
             name="username"
@@ -247,18 +247,18 @@ export const PINSetup: React.FC<PINSetupProps> = ({
             aria-hidden="true"
           />
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600 text-center">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
+              <p className="text-sm font-medium text-red-600 text-center">{error}</p>
             </div>
           )}
 
-          <div className="relative mb-4">
+          <div className="relative mb-6">
             <input
               type={showPin ? 'text' : 'password'}
               value={step === 'confirm' ? confirmPin : pin}
               onChange={(e) => handlePinInput(e.target.value)}
-              className="w-full px-4 py-4 text-center text-3xl font-mono tracking-widest border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="••••••"
+              className="w-full px-4 py-4 text-center text-3xl font-mono tracking-[0.5em] border-2 border-gray-100 bg-gray-50 rounded-2xl focus:ring-2 focus:ring-gray-900 focus:border-gray-900 focus:bg-white transition-all outline-none"
+              placeholder="------"
               maxLength={6}
               inputMode="numeric"
               pattern="[0-9]*"
@@ -269,7 +269,7 @@ export const PINSetup: React.FC<PINSetupProps> = ({
             <button
               type="button"
               onClick={() => setShowPin(!showPin)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
             >
               {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -280,29 +280,29 @@ export const PINSetup: React.FC<PINSetupProps> = ({
 
           {/* PIN Strength Indicator (only for create step) */}
           {step === 'create' && pin.length === 6 && (
-            <div className="text-center mb-4">
-              <span className={`text-sm font-medium ${getStrengthColor()}`}>
-                PIN Strength: {pinStrength.charAt(0).toUpperCase() + pinStrength.slice(1)}
+            <div className="text-center mb-6">
+              <span className={`text-sm font-bold tracking-wide uppercase ${getStrengthColor()}`}>
+                PIN Strength: {pinStrength}
               </span>
             </div>
           )}
 
           {/* Progress Steps */}
           {step !== 'enter' && (
-            <div className="flex justify-center gap-2 mb-6">
-              <div className={`w-3 h-3 rounded-full ${step === 'create' ? 'bg-blue-600' : 'bg-green-500'}`} />
-              <div className={`w-3 h-3 rounded-full ${step === 'confirm' ? 'bg-blue-600' : 'bg-gray-300'}`} />
+            <div className="flex justify-center gap-2 mb-8">
+              <div className={`w-2.5 h-2.5 rounded-full transition-colors ${step === 'create' ? 'bg-gray-900' : 'bg-emerald-500'}`} />
+              <div className={`w-2.5 h-2.5 rounded-full transition-colors ${step === 'confirm' ? 'bg-gray-900' : 'bg-gray-200'}`} />
             </div>
           )}
 
           <button
             onClick={step === 'enter' ? handleEnterPin : handleContinue}
             disabled={isLoading || (step === 'confirm' ? confirmPin.length !== 6 : pin.length !== 6)}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="w-full h-14 bg-gray-900 text-white rounded-2xl font-bold hover:bg-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center"
           >
             {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="flex items-center gap-2">
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 Processing...
               </span>
             ) : step === 'enter' ? (
@@ -315,16 +315,16 @@ export const PINSetup: React.FC<PINSetupProps> = ({
           </button>
 
           {/* Info Box */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+          <div className="mt-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
             <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Your PIN is secure</p>
-                <ul className="text-xs text-blue-700 space-y-1">
-                  <li>• Financial data stays encrypted on this device</li>
-                  <li>• Used for app unlock and sensitive actions</li>
-                  <li>• Valid for 90 days, same across all devices</li>
-                  <li>• Server stores PIN verification data and encrypted recovery metadata only</li>
+              <Shield className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-gray-600">
+                <p className="font-bold text-gray-900 mb-1.5">Your PIN is secure</p>
+                <ul className="text-xs space-y-1.5">
+                  <li>- Financial data stays encrypted on this device</li>
+                  <li>- Used for app unlock and sensitive actions</li>
+                  <li>- Valid for 90 days, same across all devices</li>
+                  <li>- Server stores PIN verification data only</li>
                 </ul>
               </div>
             </div>

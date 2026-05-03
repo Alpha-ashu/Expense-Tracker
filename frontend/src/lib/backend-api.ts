@@ -28,7 +28,7 @@ function shouldUseLocalFallback(error: unknown) {
 
   const status = error.response?.status;
   // Only fall back to local data on network errors (no status) or genuine server errors (5xx).
-  // A 404 means the resource does not exist — do NOT silently serve stale local data.
+  // A 404 means the resource does not exist - do NOT silently serve stale local data.
   return status == null || status >= 500;
 }
 
@@ -156,7 +156,7 @@ class BackendService {
       }
 
       const id = await RealtimeDataManager.addGroupExpense(localGroup);
-      console.info('ℹ️ Groups API unavailable — saved group locally.');
+      console.info(' Groups API unavailable - saved group locally.');
       return {
         id,
         ...localGroup,
@@ -254,7 +254,7 @@ class BackendService {
 
       const id = await RealtimeDataManager.addInvestment(localInvestment);
 
-      console.info('ℹ️ Investments API unavailable — saved investment locally.');
+      console.info(' Investments API unavailable - saved investment locally.');
       return {
         id,
         ...localInvestment,
@@ -322,7 +322,7 @@ class BackendService {
           return Promise.reject(wrapWithStatus('Something went wrong. Please try again later.'));
         }
 
-        // 4xx with a server-supplied message — safe to show
+        // 4xx with a server-supplied message - safe to show
         if (serverMessage) {
           return Promise.reject(wrapWithStatus(serverMessage));
         }
@@ -553,7 +553,7 @@ class BackendService {
 
     const saveLocalFriend = async () => {
       const id = await RealtimeDataManager.addFriend(localFriend);
-      console.info('ℹ️ Friends API unavailable — saved friend locally.');
+      console.info(' Friends API unavailable - saved friend locally.');
 
       return {
         id,
@@ -614,7 +614,7 @@ class BackendService {
       }
 
       await RealtimeDataManager.updateInvestment(localId, localUpdates);
-      console.info('ℹ️ Investments API unavailable — updated investment locally.');
+      console.info(' Investments API unavailable - updated investment locally.');
 
       return {
         id: localId,
@@ -632,7 +632,7 @@ class BackendService {
         throw error;
       }
 
-      console.info('ℹ️ Investments API unavailable — removed investment locally only.');
+      console.info(' Investments API unavailable - removed investment locally only.');
     }
   }
 
@@ -802,7 +802,7 @@ class BackendService {
         };
 
         const id = await createNotificationRecord(localNotification);
-        console.info('ℹ️ Notifications API unavailable — saved notification locally.');
+        console.info(' Notifications API unavailable - saved notification locally.');
 
         return {
           id,
@@ -812,7 +812,7 @@ class BackendService {
         };
       }
 
-      console.info('ℹ️ Notifications API unavailable — skipped external notification delivery.');
+      console.info(' Notifications API unavailable - skipped external notification delivery.');
       return {
         storage: 'local' as const,
         delivery: 'skipped' as const,

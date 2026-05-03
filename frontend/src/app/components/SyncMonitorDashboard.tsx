@@ -19,7 +19,7 @@ import { db, SyncQueueItem, SyncEventLog } from '@/lib/database';
 import { offlineSyncEngine, useSyncStats } from '@/lib/offline-sync-engine';
 import { toast } from 'sonner';
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
+//  Status badge 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, string> = {
     pending:    'bg-amber-100 text-amber-700',
@@ -45,7 +45,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-// ─── Queue item row ───────────────────────────────────────────────────────────
+//  Queue item row 
 const QueueRow: React.FC<{ item: SyncQueueItem }> = ({ item }) => (
   <tr className="border-b border-gray-100 hover:bg-gray-50 text-sm">
     <td className="py-2 px-3 font-mono text-xs text-gray-400">{item.id}</td>
@@ -76,15 +76,15 @@ const QueueRow: React.FC<{ item: SyncQueueItem }> = ({ item }) => (
   </tr>
 );
 
-// ─── Event log row ────────────────────────────────────────────────────────────
+//  Event log row 
 const LogRow: React.FC<{ log: SyncEventLog }> = ({ log }) => (
   <tr className="border-b border-gray-100 hover:bg-gray-50 text-sm">
     <td className="py-2 px-3 font-mono text-xs text-gray-400">{log.id}</td>
     <td className="py-2 px-3"><StatusBadge status={log.eventType} /></td>
-    <td className="py-2 px-3 text-xs text-gray-600">{log.affectedTable ?? '—'}</td>
+    <td className="py-2 px-3 text-xs text-gray-600">{log.affectedTable ?? '-'}</td>
     <td className="py-2 px-3 text-xs text-gray-600">{log.recordsProcessed ?? 0}</td>
     <td className="py-2 px-3 text-xs text-gray-500">
-      {log.durationMs != null ? `${log.durationMs} ms` : '—'}
+      {log.durationMs != null ? `${log.durationMs} ms` : '-'}
     </td>
     <td className="py-2 px-3 text-xs text-gray-500">
       {log.timestamp instanceof Date
@@ -99,7 +99,7 @@ const LogRow: React.FC<{ log: SyncEventLog }> = ({ log }) => (
   </tr>
 );
 
-// ─── Main component ───────────────────────────────────────────────────────────
+//  Main component 
 export const SyncMonitorDashboard: React.FC = () => {
   const { setCurrentPage } = useApp();
   const { user, role }     = useAuth();
@@ -161,7 +161,7 @@ export const SyncMonitorDashboard: React.FC = () => {
     setIsForceSyncing(true);
     try {
       await offlineSyncEngine.forceFullResync(user.id);
-      toast.success('Full resync triggered — this may take a moment');
+      toast.success('Full resync triggered - this may take a moment');
     } finally {
       setIsForceSyncing(false);
     }
@@ -290,7 +290,7 @@ export const SyncMonitorDashboard: React.FC = () => {
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60"
           >
             <RefreshCw size={15} className={isForceSyncing ? 'animate-spin' : ''} />
-            {isForceSyncing ? 'Resyncing…' : 'Force Full Resync'}
+            {isForceSyncing ? 'Resyncing...' : 'Force Full Resync'}
           </button>
         </div>
 

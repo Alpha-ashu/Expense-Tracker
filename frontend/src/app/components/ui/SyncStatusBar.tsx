@@ -2,7 +2,7 @@
  * SyncStatusBar
  *
  * A small pill/badge that reflects the current sync status.
- * Renders inline — suitable for the TopBar or any header area.
+ * Renders inline - suitable for the TopBar or any header area.
  */
 
 import React from 'react';
@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<DisplaySyncStatus, Config> = {
   },
   syncing: {
     icon: <RefreshCw size={13} className="shrink-0 animate-spin" />,
-    label: 'Syncing…',
+    label: 'Syncing...',
     className: 'bg-blue-100 text-blue-700 border-blue-200',
   },
   synced: {

@@ -17,7 +17,7 @@ export const useSharedMenu = () => {
   // Listen for admin feature updates to refresh menu
   useEffect(() => {
     const handleAdminUpdate = () => {
-      console.log('🔄 useSharedMenu: Admin feature update detected, refreshing menu');
+      console.log(' useSharedMenu: Admin feature update detected, refreshing menu');
       setUpdateTrigger(prev => prev + 1);
     };
 

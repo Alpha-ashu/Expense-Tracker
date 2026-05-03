@@ -24,9 +24,9 @@ export type ScanFieldUpdater = <K extends keyof ReceiptScanResult>(
   value: ReceiptScanResult[K],
 ) => void;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // FILE SELECTION VIEW
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 
 export const FileSelectionView: React.FC<{
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -112,9 +112,9 @@ const PrivacyNotice: React.FC<{
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // PREVIEW VIEW
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 
 export const PreviewView: React.FC<{
   file: File;
@@ -175,9 +175,9 @@ const ScanningOverlay: React.FC<{ progress: number; status: string }> = ({ progr
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RESULTS VIEW — full intelligence display
-// ─────────────────────────────────────────────────────────────────────────────
+// 
+// RESULTS VIEW - full intelligence display
+// 
 
 export const ResultsView: React.FC<{
   scanResult: ReceiptScanResult;
@@ -300,7 +300,7 @@ export const ResultsView: React.FC<{
         placeholder="Invoice or receipt reference"
       />
 
-      {/* Subcategory — smart dropdown based on selected category */}
+      {/* Subcategory - smart dropdown based on selected category */}
       <SubcategoryField
         category={scanResult.category || ''}
         value={scanResult.subcategory || ''}
@@ -345,21 +345,21 @@ export const ResultsView: React.FC<{
   </div>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // INTELLIGENCE BADGES & PANELS
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 
 const LOCATION_FLAGS: Record<string, string> = {
-  INDIA: '🇮🇳',
-  USA: '🇺🇸',
-  EU: '🇪🇺',
-  UAE: '🇦🇪',
-  UK: '🇬🇧',
-  AUSTRALIA: '🇦🇺',
+  INDIA: '',
+  USA: '',
+  EU: '',
+  UAE: '',
+  UK: '',
+  AUSTRALIA: '',
 };
 
 const LocationBadge: React.FC<{ location: string }> = ({ location }) => {
-  const flag = LOCATION_FLAGS[location] ?? '🌍';
+  const flag = LOCATION_FLAGS[location] ?? '';
   return (
     <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-purple-100 bg-purple-50 px-3 py-2">
       <Globe size={13} className="text-purple-500" />
@@ -388,7 +388,7 @@ const ConfidenceBadge: React.FC<{ confidence: number }> = ({ confidence }) => {
           {isHighConfidence ? 'High confidence scan' : 'Please review the extracted data'}
         </p>
         <p className={cn('text-xs', isHighConfidence ? 'text-emerald-600' : 'text-amber-600')}>
-          Confidence: {(confidence * 100).toFixed(0)}% — edit any field if needed
+          Confidence: {(confidence * 100).toFixed(0)}% - edit any field if needed
         </p>
       </div>
     </div>
@@ -424,7 +424,7 @@ const SmartDescriptionBadge: React.FC<{ description: string }> = ({ description 
   </div>
 );
 
-// ─── Tax Breakdown ────────────────────────────────────────────────────────────
+//  Tax Breakdown 
 
 const TaxBreakdownPanel: React.FC<{
   taxes: TaxComponent[];
@@ -465,7 +465,7 @@ const TaxBreakdownPanel: React.FC<{
   );
 };
 
-// ─── Items Panel ──────────────────────────────────────────────────────────────
+//  Items Panel 
 
 const ItemsPanel: React.FC<{
   items: ReceiptScanResult['items'];
@@ -488,7 +488,7 @@ const ItemsPanel: React.FC<{
               <p className="truncate text-sm font-medium text-gray-800">{item.name}</p>
               {item.quantity !== undefined && item.rate !== undefined && (
                 <p className="text-[11px] text-gray-400">
-                  {item.quantity} × {currency} {item.rate.toFixed(2)}
+                  {item.quantity}  {currency} {item.rate.toFixed(2)}
                 </p>
               )}
             </div>
@@ -502,9 +502,9 @@ const ItemsPanel: React.FC<{
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // FORM FIELD PRIMITIVES
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 
 const AmountField: React.FC<{
   amount?: number;
@@ -651,7 +651,7 @@ const SubcategoryField: React.FC<{
             className="w-full appearance-none bg-transparent text-sm font-medium text-gray-900 focus:outline-none"
             aria-label="Subcategory"
           >
-            <option value="">— Select subcategory —</option>
+            <option value="">- Select subcategory -</option>
             {subcategories.map((sub) => (
               <option key={sub} value={sub}>{sub}</option>
             ))}
@@ -678,15 +678,15 @@ const SubcategoryField: React.FC<{
         />
       )}
       <p className="mt-1 text-xs text-gray-400">
-        Specific expense type — updates automatically with AI or choose from list.
+        Specific expense type - updates automatically with AI or choose from list.
       </p>
     </div>
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 // ACCOUNT SELECTOR & ACTIONS
-// ─────────────────────────────────────────────────────────────────────────────
+// 
 
 const AccountSelector: React.FC<{
   accounts: Account[];

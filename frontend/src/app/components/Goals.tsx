@@ -115,20 +115,41 @@ export const Goals: React.FC = () => {
   const completedGoals = goals.filter((goal) => goal.currentAmount >= goal.targetAmount).length;
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
-      <PageHeader
-        title="Goals & Savings"
-        subtitle="Track and achieve your financial goals"
-        icon={<Target size={20} className="sm:w-6 sm:h-6 lg:w-6 lg:h-6" />}
-      >
-        <Button
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
+      
+      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <Target className="w-6 h-6 text-gray-900" />
+            Goals & Savings
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Track and achieve your financial goals</p>
+        </div>
+        <button
           onClick={() => setCurrentPage('add-goal')}
-          className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
+          className="px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-2xl transition-colors flex items-center gap-2"
         >
-          <Plus size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+          <Plus size={18} />
           Add Goal
-        </Button>
-      </PageHeader>
+        </button>
+      </div>
+
+      
+      <div className="lg:hidden flex items-center justify-between pt-12 pb-6 px-6 relative z-10">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Target className="w-8 h-8" />
+            Goals
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">Track your financial goals</p>
+        </div>
+        <button 
+          onClick={() => setCurrentPage('add-goal')}
+          className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg"
+        >
+          <Plus size={24} />
+        </button>
+      </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -381,12 +402,12 @@ export const Goals: React.FC = () => {
 
                         {milestone && (
                           <div className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700">
-                            {milestone} 🎉
+                            {milestone} 
                           </div>
                         )}
 
                         {progress >= 100 && (
-                          <div className="text-center text-sm font-semibold text-pink-600 animate-bounce">Confetti moment! Goal completed 🎊</div>
+                          <div className="text-center text-sm font-semibold text-pink-600 animate-bounce">Confetti moment! Goal completed </div>
                         )}
                       </div>
 

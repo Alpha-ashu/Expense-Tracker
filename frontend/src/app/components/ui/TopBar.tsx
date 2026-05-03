@@ -251,7 +251,7 @@ export const TopBar: React.FC = () => {
 
                 {/* Right: Bell and Profile */}
                 <div className="flex items-center gap-3 lg:gap-4 flex-shrink-0">
-                    {/* Sync status pill — hidden on very small screens to save space */}
+                    {/* Sync status pill - hidden on very small screens to save space */}
                     <div className="hidden sm:block">
                         <SyncStatusBar compact />
                     </div>

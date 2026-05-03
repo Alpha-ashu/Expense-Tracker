@@ -243,18 +243,18 @@ function detectCurrency(text: string, defaultCurrency: string = 'INR') {
   const t = text.toLowerCase();
   
   // Strong exact string matches win first to prevent hallucination overrides
-  if (t.includes('inr') || t.includes('rs.') || t.includes('₹')) return 'INR';
+  if (t.includes('inr') || t.includes('rs.') || t.includes('INR')) return 'INR';
   if (t.includes('usd') || t.includes('$')) return 'USD';
-  if (t.includes('eur') || t.includes('€')) return 'EUR';
-  if (t.includes('gbp') || t.includes('£')) return 'GBP';
+  if (t.includes('eur') || t.includes('EUR')) return 'EUR';
+  if (t.includes('gbp') || t.includes('GBP')) return 'GBP';
   if (t.includes('aed')) return 'AED';
   
-  // OCR often hallucinates ¥ interchangeably with ₹, or Y for ₹.
+  // OCR often hallucinates  interchangeably with INR, or Y for INR.
   // ONLY use JPY if it explicitly says "JPY". 
   if (t.includes('jpy')) return 'JPY';
   
-  // If the OCR hallucinates "¥" but it's an Indian receipt (has gst/fssai), ignore ¥.
-  if (t.includes('¥')) {
+  // If the OCR hallucinates "" but it's an Indian receipt (has gst/fssai), ignore .
+  if (t.includes('')) {
     if (t.match(/gst|fssai|tin|india|delhi|mumbai|bengaluru|bangalore/i)) {
       return 'INR';
     }

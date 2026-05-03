@@ -339,7 +339,7 @@ export class CloudSyncService {
   // Get changed accounts
   private async getChangedAccounts(since: Date): Promise<AccountSync[]> {
     const accounts = await db.accounts
-      .filter(acc => acc.createdAt > since || acc.updatedAt > since)
+      .filter(acc => !!((acc.createdAt && acc.createdAt > since) || (acc.updatedAt && acc.updatedAt > since)))
       .toArray();
 
     return accounts.map(acc => ({
@@ -349,8 +349,8 @@ export class CloudSyncService {
       balance: acc.balance,
       currency: acc.currency,
       isActive: acc.isActive,
-      createdAt: acc.createdAt,
-      updatedAt: acc.updatedAt || acc.createdAt,
+      createdAt: acc.createdAt || new Date(),
+      updatedAt: acc.updatedAt || acc.createdAt || new Date(),
       deletedAt: acc.deletedAt
     }));
   }
@@ -358,7 +358,7 @@ export class CloudSyncService {
   // Get changed transactions
   private async getChangedTransactions(since: Date): Promise<TransactionSync[]> {
     const transactions = await db.transactions
-      .filter(tx => tx.createdAt > since || tx.updatedAt > since)
+      .filter(tx => !!((tx.createdAt && tx.createdAt > since) || (tx.updatedAt && tx.updatedAt > since)))
       .toArray();
 
     return transactions.map(tx => ({
@@ -373,8 +373,8 @@ export class CloudSyncService {
       date: tx.date,
       tags: tx.tags,
       attachment: tx.attachment,
-      createdAt: tx.createdAt,
-      updatedAt: tx.updatedAt || tx.createdAt,
+      createdAt: tx.createdAt || new Date(),
+      updatedAt: tx.updatedAt || tx.createdAt || new Date(),
       deletedAt: tx.deletedAt
     }));
   }
@@ -382,7 +382,7 @@ export class CloudSyncService {
   // Similar methods for other entities...
   private async getChangedLoans(since: Date): Promise<LoanSync[]> {
     const loans = await db.loans
-      .filter(loan => loan.createdAt > since || (loan.updatedAt && loan.updatedAt > since))
+      .filter(loan => !!((loan.createdAt && loan.createdAt > since) || (loan.updatedAt && loan.updatedAt > since)))
       .toArray();
 
     return loans.map(loan => ({
@@ -398,15 +398,15 @@ export class CloudSyncService {
       status: loan.status,
       contactPerson: loan.contactPerson,
       friendId: loan.friendId?.toString(),
-      createdAt: loan.createdAt,
-      updatedAt: loan.updatedAt || loan.createdAt,
+      createdAt: loan.createdAt || new Date(),
+      updatedAt: loan.updatedAt || loan.createdAt || new Date(),
       deletedAt: loan.deletedAt
     }));
   }
 
   private async getChangedGoals(since: Date): Promise<GoalSync[]> {
     const goals = await db.goals
-      .filter(goal => goal.createdAt > since || (goal.updatedAt && goal.updatedAt > since))
+      .filter(goal => !!((goal.createdAt && goal.createdAt > since) || (goal.updatedAt && goal.updatedAt > since)))
       .toArray();
 
     return goals.map(goal => ({
@@ -417,8 +417,8 @@ export class CloudSyncService {
       targetDate: goal.targetDate,
       category: goal.category,
       isGroupGoal: goal.isGroupGoal,
-      createdAt: goal.createdAt,
-      updatedAt: goal.updatedAt || goal.createdAt,
+      createdAt: goal.createdAt || new Date(),
+      updatedAt: goal.updatedAt || goal.createdAt || new Date(),
       deletedAt: goal.deletedAt
     }));
   }

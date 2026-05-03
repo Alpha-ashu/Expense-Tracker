@@ -188,11 +188,11 @@ export const Calendar: React.FC = () => {
     // Add transactions
     (transactionsByDate[key] || []).forEach((transaction) => {
       const typeColors: { [key: string]: { icon: string; color: string } } = {
-        expense: { icon: '📉', color: 'from-red-500 to-pink-500' },
-        income: { icon: '📈', color: 'from-green-500 to-emerald-500' },
-        transfer: { icon: '🔄', color: 'from-blue-500 to-cyan-500' },
+        expense: { icon: '', color: 'from-red-500 to-pink-500' },
+        income: { icon: '', color: 'from-green-500 to-emerald-500' },
+        transfer: { icon: '', color: 'from-blue-500 to-cyan-500' },
       };
-      const typeInfo = typeColors[transaction.type] || { icon: '💰', color: 'from-gray-500 to-slate-500' };
+      const typeInfo = typeColors[transaction.type] || { icon: '', color: 'from-gray-500 to-slate-500' };
       const account = accounts.find(a => String(a.id) === String(transaction.accountId));
 
       activities.push({
@@ -211,10 +211,10 @@ export const Calendar: React.FC = () => {
     // Add reminders
     (remindersByDate[key] || []).forEach((reminder) => {
       const typeIcons: { [key: string]: string } = {
-        task: '✓',
-        event: '📌',
-        reminder: '🔔',
-        goal: '🎯',
+        task: '',
+        event: '',
+        reminder: '',
+        goal: '',
       };
       const statusColors: { [key: string]: string } = {
         pending: 'from-yellow-500 to-orange-500',
@@ -278,7 +278,7 @@ export const Calendar: React.FC = () => {
   const summaryCardClass = 'rounded-[20px] px-3 py-4 sm:px-4 sm:py-4.5 shadow-sm transition-transform hover:-translate-y-0.5 min-w-0';
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 lg:py-6 max-w-[1600px] mx-auto space-y-4 sm:space-y-5">
+    <div className="px-4 sm:px-6 lg:px-8 py-4 lg:py-6 w-full space-y-4 sm:space-y-5">
       {/* App Header */}
       <PageHeader
         title="Calendar"
@@ -554,7 +554,7 @@ export const Calendar: React.FC = () => {
                             </span>
                           )}
                           {activity.accountName && (
-                            <span className="text-xs text-gray-400">• {activity.accountName}</span>
+                            <span className="text-xs text-gray-400">- {activity.accountName}</span>
                           )}
                         </div>
                       </div>

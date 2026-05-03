@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, TrendingUp, Sparkles, ArrowRight } from 'lucide-react';
+import { Shield, TrendingUp, Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
 import { FinoraLogo } from '../../app/components/ui/FinoraLogo';
 import { motion } from 'framer-motion';
 import { SignInForm } from './SignInForm';
@@ -15,7 +15,7 @@ import { api } from '@/lib/api';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
 import { enableGuestMode, isGuestMode, disableGuestMode, migrateGuestDataToUser, migrateGuestLocalStorage } from '@/lib/guestMode';
 
-/** Internal-only logger — never leaks raw errors to the browser console in production. */
+/** Internal-only logger - never leaks raw errors to the browser console in production. */
 const internalLog = {
   warn: (context: string, err?: unknown) => {
     if (import.meta.env.DEV) {
@@ -78,6 +78,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [salaryAccount, setSalaryAccount] = useState<SalaryAccount | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showGuestCaution, setShowGuestCaution] = useState(false);
+  
   // Check if user is already partially through the flow
   useEffect(() => {
     const checkFlowState = async () => {
@@ -99,8 +101,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
     }
   };
 
-  // ── Guest Mode ────────────────────────────────────────────────────────────
+  //  Guest Mode 
   const handleGuestMode = () => {
+    setShowGuestCaution(true);
+  };
+
+  const confirmGuestMode = () => {
     enableGuestMode();
     // Reload so the app opens in guest mode (onboarding_completed = true)
     window.location.reload();
@@ -118,7 +124,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
         toast.success(`${total} item${total > 1 ? 's' : ''} from your guest session have been saved to your account.`);
       }
     } catch {
-      // Non-blocking — data stays local and will sync later
+      // Non-blocking - data stays local and will sync later
     }
   };
 
@@ -136,23 +142,24 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       setEmail(credentials.email);
       setIsNewUser(false);
 
-      // ── Migrate guest data before navigating away ──────────────────────
+      //  Migrate guest data before navigating away 
       if (data.user) {
         await runGuestMigrationIfNeeded(data.user.id);
       }
 
-      // Returning user: if already onboarded, skip PIN-setup and reload
-      const onboardingCompleted = localStorage.getItem('onboarding_completed') === 'true';
-      if (onboardingCompleted) {
-        localStorage.removeItem('auth_flow_step');
-        localStorage.removeItem('pending_auth_email');
-        window.location.reload();
-        return;
+      // Returning user: We don't do PIN setup in AuthFlow anymore for returning users.
+      // We let PINAuth component handle it directly on the main app screen.
+      localStorage.removeItem('auth_flow_step');
+      localStorage.removeItem('pending_auth_email');
+      
+      // Mark onboarding completed for existing users so they bypass NewUserOnboarding
+      if (data.user) {
+        // If they had an account, assume they onboarded in the past
+        localStorage.setItem('onboarding_completed', 'true');
       }
 
-      // First sign-in on this device — walk through PIN setup
-      setStep('pin-setup');
-      saveFlowState('pin-setup');
+      window.location.reload();
+      return;
     } catch (error: any) {
       internalLog.error('handleSignIn', error);
       const isNetworkError =
@@ -187,9 +194,9 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
         },
       });
 
-      // SMTP misconfigured — account IS created but email failed. Non-fatal.
+      // SMTP misconfigured - account IS created but email failed. Non-fatal.
       const smtpFailed = error?.message?.toLowerCase().includes('sending confirmation email');
-      // 500 server errors during signup — Supabase DB trigger ran but email hook failed
+      // 500 server errors during signup - Supabase DB trigger ran but email hook failed
       const serverError = error?.status === 500 || error?.message?.toLowerCase().includes('internal server error');
       if (error && !smtpFailed && !serverError) throw error;
 
@@ -211,23 +218,23 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       const alreadyConfirmed = !!authData?.user?.email_confirmed_at;
 
       if (alreadyConfirmed) {
-        // Email confirmation disabled in Supabase — go straight to profile setup
+        // Email confirmation disabled in Supabase - go straight to profile setup
         setStep('profile-setup');
         saveFlowState('profile-setup');
         toast.success('Account created! Let\'s set up your profile.');
       } else if (serverError) {
-        // Supabase returned 500 — account may have been created but email sending failed
+        // Supabase returned 500 - account may have been created but email sending failed
         // Route to OTP screen; resend button will recover via signInWithOtp
         setStep('otp-verify');
         saveFlowState('otp-verify');
         toast.warning('Account created, but our email server had an issue. Use \"Resend Code\" below to get your verification email.');
       } else if (smtpFailed) {
-        // Account created but email not sent — go to OTP screen with warning
+        // Account created but email not sent - go to OTP screen with warning
         setStep('otp-verify');
         saveFlowState('otp-verify');
-        toast.warning('Account created! Email delivery failed — fix SMTP in Supabase dashboard, then click Resend Code.');
+        toast.warning('Account created! Email delivery failed - fix SMTP in Supabase dashboard, then click Resend Code.');
       } else {
-        // Normal flow — email sent, user must verify
+        // Normal flow - email sent, user must verify
         setStep('otp-verify');
         saveFlowState('otp-verify');
         toast.success('Verification code sent to your email!');
@@ -508,11 +515,50 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 onClick={onBack}
                 className="w-full mt-2 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2"
               >
-                ← Back to Landing Page
+                 Back to Landing Page
               </button>
             )}
           </div>
         </motion.div>
+
+        {/* Guest Mode Caution Modal */}
+        {showGuestCaution && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center mb-4">
+                <AlertTriangle className="text-amber-600" size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Continue as Guest?</h3>
+              <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                Guest mode stores all your financial data <strong>locally on this device only</strong>. 
+              </p>
+              <div className="bg-red-50 text-red-700 text-xs p-3 rounded-xl mb-6 font-medium border border-red-100">
+                 If you forget your PIN, there is no way to recover it. You will have to reset the app and <strong>all your data will be permanently lost</strong>. Sign in to safely backup your data.
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowGuestCaution(false)}
+                  className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmGuestMode}
+                  className="flex-[1.5] py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors text-sm shadow-md shadow-amber-500/20"
+                >
+                  Proceed as Guest
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
     );
   };
@@ -618,7 +664,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
           </div>
 
           <div>
-            <label htmlFor="ps-income" className="block text-sm font-medium text-gray-700 mb-1">Monthly Income (₹)</label>
+            <label htmlFor="ps-income" className="block text-sm font-medium text-gray-700 mb-1">Monthly Income (INR)</label>
             <input
               type="number"
               id="ps-income"
@@ -695,7 +741,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Opening Balance (₹)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Opening Balance (INR)</label>
             <input
               type="number"
               name="balance"
@@ -798,7 +844,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 onClick={() => setStep('welcome')}
                 className="text-gray-500 hover:text-gray-700 transition-colors mb-5 flex items-center gap-1.5 text-sm font-medium group"
               >
-                <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Back
+                <span className="group-hover:-translate-x-0.5 transition-transform"></span> Back
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
               <p className="text-gray-500 mt-1 text-sm">Sign in to continue your financial journey.</p>
@@ -830,7 +876,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 onClick={() => setStep('welcome')}
                 className="text-gray-500 hover:text-gray-700 transition-colors mb-5 flex items-center gap-1.5 text-sm font-medium group"
               >
-                <span className="group-hover:-translate-x-0.5 transition-transform">←</span> Back
+                <span className="group-hover:-translate-x-0.5 transition-transform"></span> Back
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
               <p className="text-gray-500 mt-1 text-sm">Join Kanakku to start mastering your wealth.</p>

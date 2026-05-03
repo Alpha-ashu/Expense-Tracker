@@ -187,8 +187,8 @@ export const Investments: React.FC = () => {
   };
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-6 lg:py-10 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 pb-24">
-      {/* ── Header ── */}
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
+      {/*  Header  */}
       <PageHeader
         title="Investments"
         subtitle="Track your investment portfolio"
@@ -203,12 +203,12 @@ export const Investments: React.FC = () => {
         </Button>
       </PageHeader>
 
-      {/* ── Live Market Ticker ── */}
+      {/*  Live Market Ticker  */}
       <div className="-mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8">
         <LiveMarketTicker />
       </div>
 
-      {/* ── Tab switcher ── */}
+      {/*  Tab switcher  */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl w-fit">
         {([
           { id: 'portfolio', label: 'My Portfolio', icon: BarChart3 },
@@ -230,21 +230,21 @@ export const Investments: React.FC = () => {
         ))}
       </div>
 
-      {/* ══════════════ LIVE MARKET TAB ══════════════ */}
+      {/*  LIVE MARKET TAB  */}
       {activeTab === 'market' && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full"
         >
-          {/* LiveMarket panel — grows with viewport, min capped so it's usable on short screens */}
+          {/* LiveMarket panel - grows with viewport, min capped so it's usable on short screens */}
           <div className="min-h-[480px] h-auto lg:h-[calc(100svh-22rem)] lg:max-h-[820px]">
             <LiveMarket />
           </div>
         </motion.div>
       )}
 
-      {/* ══════════════ MY PORTFOLIO TAB ══════════════ */}
+      {/*  MY PORTFOLIO TAB  */}
       {activeTab === 'portfolio' && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -340,7 +340,7 @@ export const Investments: React.FC = () => {
                         <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                           <div>
                             <p className="font-display font-bold text-gray-900 text-sm">{getInvestmentDisplayName(inv.assetName)}</p>
-                            <p className="text-xs text-gray-500 capitalize mt-0.5">{inv.assetType} · {metrics.assetCurrency}</p>
+                            <p className="text-xs text-gray-500 capitalize mt-0.5">{inv.assetType}  {metrics.assetCurrency}</p>
                           </div>
                           <div className="text-right">
                             <p className={`font-bold text-sm ${metrics.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -358,14 +358,14 @@ export const Investments: React.FC = () => {
             </div>
           )}
 
-          {/* ── Portfolio Table — desktop only ── */}
+          
           {openInvestments.length > 0 && (
             <Card variant="glass" className="overflow-hidden hidden sm:block">
               <div className="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                   Portfolio Holdings
                   {Object.keys(liveQuotes).length > 0 && (
-                    <span className="ml-2 text-emerald-600 font-normal">● Live</span>
+                    <span className="ml-2 text-emerald-600 font-normal"> Live</span>
                   )}
                 </p>
                 <button
@@ -413,7 +413,7 @@ export const Investments: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                             <div className={cn(metrics.isLive && 'text-emerald-700 font-semibold')}>
                               {formatNativeMoney(metrics.nativeCurrentPrice, metrics.assetCurrency)}
-                              {metrics.isLive && <span className="ml-1 text-[10px] text-emerald-500">●</span>}
+                              {metrics.isLive && <span className="ml-1 text-[10px] text-emerald-500"></span>}
                             </div>
                             {metrics.assetCurrency !== currency && (
                               <div className="text-xs text-gray-400">{formatCurrency(metrics.convertedCurrentPrice)}</div>
@@ -463,7 +463,7 @@ export const Investments: React.FC = () => {
             </Card>
           )}
 
-          {/* ── Portfolio Cards — mobile only ── */}
+          
           {openInvestments.length > 0 && (
             <div className="sm:hidden space-y-3">
               {openInvestments.map(inv => {
@@ -509,7 +509,7 @@ export const Investments: React.FC = () => {
                         <p className="text-sm font-bold text-gray-900">{formatNativeMoney(metrics.nativeBuyPrice, metrics.assetCurrency)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-xl p-3">
-                        <p className="text-xs text-gray-400 mb-0.5">Current Price {metrics.isLive && <span className="text-emerald-500">●</span>}</p>
+                        <p className="text-xs text-gray-400 mb-0.5">Current Price {metrics.isLive && <span className="text-emerald-500"></span>}</p>
                         <p className={cn("text-sm font-bold", metrics.isLive ? "text-emerald-700" : "text-gray-900")}>
                           {formatNativeMoney(metrics.nativeCurrentPrice, metrics.assetCurrency)}
                         </p>

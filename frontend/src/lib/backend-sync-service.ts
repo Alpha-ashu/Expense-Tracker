@@ -42,12 +42,12 @@ class BackendSyncService {
 
   private setupNetworkListeners() {
     window.addEventListener('online', () => {
-      console.log('🌐 Back online - initiating backend sync');
+      console.log(' Back online - initiating backend sync');
       this.syncWithBackend();
     });
 
     window.addEventListener('offline', () => {
-      console.log('📴 Offline - backend sync paused');
+      console.log(' Offline - backend sync paused');
     });
   }
 
@@ -65,7 +65,7 @@ class BackendSyncService {
   // Add operation to pending queue
   addPendingOperation(operationId: string): void {
     this.pendingOperations.add(operationId);
-    console.log(`📝 Added pending operation: ${operationId}`);
+    console.log(` Added pending operation: ${operationId}`);
     
     // Trigger sync after a short delay to batch operations
     setTimeout(() => {
@@ -87,18 +87,18 @@ class BackendSyncService {
     }
 
     if (shouldSkipOptionalBackendRequests(this.apiBase)) {
-      console.info('ℹ️ Backend sync skipped while backend is unavailable in development mode.');
+      console.info(' Backend sync skipped while backend is unavailable in development mode.');
       return false;
     }
 
     this.syncInProgress = true;
-    console.log('🔄 Starting backend sync...');
+    console.log(' Starting backend sync...');
 
     try {
       // Get user authentication
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.warn('❌ Backend sync failed: User not authenticated');
+        console.warn(' Backend sync failed: User not authenticated');
         return false;
       }
 
@@ -130,11 +130,11 @@ class BackendSyncService {
       this.lastSyncTime = new Date();
       this.pendingOperations.clear();
       
-      console.log('✅ Backend sync completed successfully');
+      console.log(' Backend sync completed successfully');
       return true;
 
     } catch (error) {
-      console.error('❌ Backend sync error:', error);
+      console.error(' Backend sync error:', error);
       return false;
     } finally {
       this.syncInProgress = false;
@@ -238,7 +238,7 @@ class BackendSyncService {
 
   // Force manual sync
   async forceSync(): Promise<boolean> {
-    console.log('🔄 Manual backend sync triggered');
+    console.log(' Manual backend sync triggered');
     const success = await this.syncWithBackend();
     
     if (success) {

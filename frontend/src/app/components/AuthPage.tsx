@@ -169,7 +169,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="••••••••"
+                  placeholder="--------"
                   required
                   minLength={6}
                 />
@@ -187,11 +187,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
               </div>
               {!isLogin && (
                 <div className="mt-2 text-xs text-gray-500 space-y-1">
-                  <p className={password.length >= 8 ? "text-green-600" : ""}>✓ At least 8 characters</p>
-                  <p className={/[A-Z]/.test(password) ? "text-green-600" : ""}>✓ Contains uppercase letter</p>
-                  <p className={/[a-z]/.test(password) ? "text-green-600" : ""}>✓ Contains lowercase letter</p>
-                  <p className={/\d/.test(password) ? "text-green-600" : ""}>✓ Contains number</p>
-                  <p className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "text-green-600" : ""}>✓ Contains special character</p>
+                  <p className={password.length >= 8 ? "text-green-600" : ""}> At least 8 characters</p>
+                  <p className={/[A-Z]/.test(password) ? "text-green-600" : ""}> Contains uppercase letter</p>
+                  <p className={/[a-z]/.test(password) ? "text-green-600" : ""}> Contains lowercase letter</p>
+                  <p className={/\d/.test(password) ? "text-green-600" : ""}> Contains number</p>
+                  <p className={/[!@#$%^&*(),.?":{}|<>]/.test(password) ? "text-green-600" : ""}> Contains special character</p>
                 </div>
               )}
             </div>
@@ -256,7 +256,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
 
         {/* Footer */}
         <p className="text-center text-white text-sm mt-6 opacity-90">
-          Powered by Supabase • Secure & Private
+          Powered by Supabase - Secure & Private
         </p>
       </div>
     </div>

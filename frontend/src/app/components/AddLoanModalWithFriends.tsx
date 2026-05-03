@@ -101,9 +101,9 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
             <label className="block text-sm font-semibold text-gray-700 mb-2">Loan Type</label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { value: 'borrowed', label: 'Borrowed', emoji: '📥' },
-                { value: 'lent', label: 'Lent', emoji: '📤' },
-                { value: 'emi', label: 'EMI', emoji: '💳' },
+                { value: 'borrowed', label: 'Borrowed', emoji: '' },
+                { value: 'lent', label: 'Lent', emoji: '' },
+                { value: 'emi', label: 'EMI', emoji: '' },
               ].map((option) => (
                 <button
                   key={option.value}

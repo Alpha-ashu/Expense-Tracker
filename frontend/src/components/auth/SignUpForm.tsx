@@ -216,7 +216,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
           <input
             type={showPassword ? 'text' : 'password'} id="password" name="password"
             value={formData.password} onChange={handleInputChange}
-            disabled={isLoading} placeholder="••••••••"
+            disabled={isLoading} placeholder="--------"
             className={`${inputBase(!!errors.password)} pr-10`}
           />
           <button type="button" onClick={() => setShowPassword(!showPassword)}
@@ -247,7 +247,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn, onSubm
           <input
             type={showConfirmPassword ? 'text' : 'password'} id="confirmPassword" name="confirmPassword"
             value={formData.confirmPassword} onChange={handleInputChange}
-            disabled={isLoading} placeholder="••••••••"
+            disabled={isLoading} placeholder="--------"
             className={`${inputBase(!!errors.confirmPassword)} pr-10`}
           />
           <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}

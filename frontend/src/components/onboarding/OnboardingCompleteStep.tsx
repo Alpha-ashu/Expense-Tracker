@@ -63,10 +63,10 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     setIsProcessing(true);
     setError(null);
 
-    // ── PERSIST TO LOCALSTORAGE FIRST (synchronous, before any await) ─────────
+    //  PERSIST TO LOCALSTORAGE FIRST (synchronous, before any await) 
     // This guarantees profile data is saved even if Supabase calls fail with
     // AbortError, CORS issues, or network timeouts. Supabase is purely a cloud
-    // backup — the source of truth for this session is localStorage.
+    // backup - the source of truth for this session is localStorage.
     const nowIso = new Date().toISOString();
     const nameParts = data.displayName.trim().split(/\s+/).filter(Boolean);
     const firstName = nameParts[0] || '';
@@ -111,7 +111,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('user_setup_date', new Date().toISOString());
     // Also persist to Supabase user_metadata so it survives across devices/cache clears.
-    // Non-blocking — localStorage remains the local-first fallback.
+    // Non-blocking - localStorage remains the local-first fallback.
     supabase.auth.updateUser({ data: { onboarding_completed: true } }).catch(() => {});
     window.dispatchEvent(new CustomEvent('APP_SETTINGS_UPDATED', {
       detail: userSettings,
@@ -186,12 +186,12 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
             const savedAccount = await saveAccountWithBackendSync(accountData);
             accountId = savedAccount.id;
           } catch (syncErr) {
-            // Backend unavailable — save to local Dexie only
+            // Backend unavailable - save to local Dexie only
             accountId = await localDb.accounts.add(accountData as any);
           }
         }
       } catch (dbErr) {
-        // Non-blocking — continue even if account creation fails
+        // Non-blocking - continue even if account creation fails
       }
 
       setProgress(55);
@@ -294,13 +294,13 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
       <div className="bg-gray-50 rounded-lg p-4 text-left">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Setting up:</h4>
         <ul className="text-xs text-gray-600 space-y-1">
-          <li>✓ Profile: {data.displayName}</li>
-          <li>✓ Location: {data.country} ({data.language})</li>
-          <li>✓ Job: {data.jobType}</li>
-          <li>✓ Salary: ₹{parseFloat(data.salary).toLocaleString()}/year</li>
-          <li>✓ Bank: {data.bankName} account</li>
+          <li> Profile: {data.displayName}</li>
+          <li> Location: {data.country} ({data.language})</li>
+          <li> Job: {data.jobType}</li>
+          <li> Salary: INR{parseFloat(data.salary).toLocaleString()}/year</li>
+          <li> Bank: {data.bankName} account</li>
           {data.currentBalance && (
-            <li>✓ Current Balance: ₹{parseFloat(data.currentBalance).toLocaleString()}</li>
+            <li> Current Balance: INR{parseFloat(data.currentBalance).toLocaleString()}</li>
           )}
         </ul>
       </div>
@@ -314,7 +314,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
             </svg>
           </div>
           <h3 className="text-lg font-medium text-green-800 mb-2">
-            All Set! 🎉
+            All Set! 
           </h3>
           <p className="text-green-700 text-sm">
             Your account is ready. You'll be redirected to your dashboard shortly.

@@ -22,26 +22,26 @@ class TesseractOCREngine {
     if (this.initialized) return;
 
     try {
-      console.log('🔧 Initializing Tesseract OCR Engine...');
+      console.log(' Initializing Tesseract OCR Engine...');
       this.worker = await Tesseract.createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
-            console.log(`📝 OCR Progress: ${Math.round(m.progress * 100)}%`);
+            console.log(` OCR Progress: ${Math.round(m.progress * 100)}%`);
           }
         },
       });
 
       // Optimize settings for receipt scanning
       await this.worker.setParameters({
-        tessedit_char_whitelist: '0123456789.,₹$€£ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ',
+        tessedit_char_whitelist: '0123456789.,INR$EURGBPABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ',
         tessedit_pageseg_mode: Tesseract.PSM.SINGLE_COLUMN,
         preserve_interword_spaces: '1',
       });
 
       this.initialized = true;
-      console.log('✅ Tesseract OCR Engine Ready');
+      console.log(' Tesseract OCR Engine Ready');
     } catch (error) {
-      console.error('❌ Failed to initialize Tesseract:', error);
+      console.error(' Failed to initialize Tesseract:', error);
       throw new Error('OCR Engine initialization failed');
     }
   }
@@ -56,21 +56,21 @@ class TesseractOCREngine {
     }
 
     try {
-      console.log('🔍 Starting OCR extraction...');
+      console.log(' Starting OCR extraction...');
       const startTime = performance.now();
 
       const { data } = await this.worker.recognize(imageFile);
       const endTime = performance.now();
 
-      console.log(`⚡ OCR completed in ${(endTime - startTime).toFixed(2)}ms`);
-      console.log(`📊 OCR Confidence: ${(data.confidence * 100).toFixed(1)}%`);
+      console.log(` OCR completed in ${(endTime - startTime).toFixed(2)}ms`);
+      console.log(` OCR Confidence: ${(data.confidence * 100).toFixed(1)}%`);
 
       return {
         text: data.text,
         confidence: data.confidence,
       };
     } catch (error) {
-      console.error('❌ OCR extraction failed:', error);
+      console.error(' OCR extraction failed:', error);
       throw new Error('Failed to extract text from image');
     }
   }
@@ -81,7 +81,7 @@ class TesseractOCREngine {
   }
 
   private parseExpenseData(rawText: string, ocrConfidence: number): ExpenseData {
-    console.log('🧠 Parsing expense data from OCR text...');
+    console.log(' Parsing expense data from OCR text...');
     
     const lines = rawText
       .split('\n')
@@ -112,15 +112,15 @@ class TesseractOCREngine {
     
     result.confidence = ocrConfidence * (dataPoints > 0 ? totalConfidence / dataPoints : 1);
 
-    console.log('📋 Parsed data:', result);
+    console.log(' Parsed data:', result);
     return result;
   }
 
   private extractAmount(lines: string[]): number | undefined {
     const amountPatterns = [
-      /(?:total|amount|sum|payable|due|bill|charge)\s*:?\s*₹?\s*([\d,]+(?:\.\d{2})?)/i,
-      /₹?\s*([\d,]+(?:\.\d{2})?)\s*(?:total|amount|pay|paid)/i,
-      /₹?\s*([\d,]+(?:\.\d{2})?)\s*$/i,
+      /(?:total|amount|sum|payable|due|bill|charge)\s*:?\s*INR?\s*([\d,]+(?:\.\d{2})?)/i,
+      /INR?\s*([\d,]+(?:\.\d{2})?)\s*(?:total|amount|pay|paid)/i,
+      /INR?\s*([\d,]+(?:\.\d{2})?)\s*$/i,
       /(?:rs|inr|rupees?)\s*([\d,]+(?:\.\d{2})?)/i,
     ];
 
@@ -130,7 +130,7 @@ class TesseractOCREngine {
         if (match) {
           const amount = parseFloat(match[1].replace(/,/g, ''));
           if (!isNaN(amount) && amount > 0) {
-            console.log(`💰 Amount found: ₹${amount}`);
+            console.log(` Amount found: INR${amount}`);
             return amount;
           }
         }
@@ -162,7 +162,7 @@ class TesseractOCREngine {
         const match = line.match(hint);
         if (match) {
           const merchant = match[0];
-          console.log(`🏪 Merchant found: ${merchant}`);
+          console.log(` Merchant found: ${merchant}`);
           return this.capitalizeWords(merchant);
         }
       }
@@ -171,7 +171,7 @@ class TesseractOCREngine {
     // Fallback: First line with reasonable length and no numbers
     for (const line of lines) {
       if (line.length >= 3 && line.length <= 40 && !/\d/.test(line)) {
-        console.log(`🏪 Fallback merchant: ${line}`);
+        console.log(` Fallback merchant: ${line}`);
         return this.capitalizeWords(line);
       }
     }
@@ -203,7 +203,7 @@ class TesseractOCREngine {
 
           if (!isNaN(date.getTime())) {
             const formattedDate = date.toISOString().split('T')[0];
-            console.log(`📅 Date found: ${formattedDate}`);
+            console.log(` Date found: ${formattedDate}`);
             return formattedDate;
           }
         }
@@ -222,7 +222,7 @@ class TesseractOCREngine {
       await this.worker.terminate();
       this.worker = null;
       this.initialized = false;
-      console.log('🗑️ OCR Engine destroyed');
+      console.log(' OCR Engine destroyed');
     }
   }
 }

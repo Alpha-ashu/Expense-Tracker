@@ -342,7 +342,7 @@ export const CloseInvestmentModal: React.FC<CloseInvestmentModalProps> = ({
               disabled={submitting}
               className="flex-1 rounded-2xl h-11 bg-black text-white hover:bg-gray-900"
             >
-              {submitting ? 'Completing…' : 'Complete Order'}
+              {submitting ? 'Completing...' : 'Complete Order'}
             </Button>
           </div>
         </form>

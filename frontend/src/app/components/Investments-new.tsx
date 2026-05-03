@@ -87,12 +87,12 @@ export const Investments: React.FC = () => {
         </Button>
       </PageHeader>
 
-      {/* ── Live Market Ticker ── */}
+      {/*  Live Market Ticker  */}
       <div className="-mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8">
         <LiveMarketTicker />
       </div>
 
-      {/* ── Tab switcher ── */}
+      {/*  Tab switcher  */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-2xl w-fit">
         {([
           { id: 'portfolio', label: 'My Portfolio', icon: BarChart3 },
@@ -114,7 +114,7 @@ export const Investments: React.FC = () => {
         ))}
       </div>
 
-      {/* ── Live Market tab ── */}
+      {/*  Live Market tab  */}
       {activeTab === 'market' && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -135,9 +135,9 @@ export const Investments: React.FC = () => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
-                  { label: 'Exchange', value: 'NSE + BSE', icon: '🇮🇳' },
-                  { label: 'Delay', value: '~15 min (after hours)', icon: '⏱️' },
-                  { label: 'Auth Needed', value: 'None — Free', icon: '🔓' },
+                  { label: 'Exchange', value: 'NSE + BSE', icon: '' },
+                  { label: 'Delay', value: '~15 min (after hours)', icon: '' },
+                  { label: 'Auth Needed', value: 'None - Free', icon: '' },
                 ].map(({ label, value, icon }) => (
                   <div key={label} className="bg-gray-50 rounded-xl p-4">
                     <p className="text-2xl mb-2">{icon}</p>
@@ -148,7 +148,7 @@ export const Investments: React.FC = () => {
               </div>
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                 <p className="text-xs text-amber-800">
-                  ⚠️ <strong>Disclaimer:</strong> Prices shown are for informational purposes only and may be delayed.
+                   <strong>Disclaimer:</strong> Prices shown are for informational purposes only and may be delayed.
                   Do not use for real-time trading decisions. Data sourced via Yahoo Finance.
                 </p>
               </div>
@@ -177,7 +177,7 @@ export const Investments: React.FC = () => {
         </motion.div>
       )}
 
-      {/* ── Portfolio tab ── */}
+      {/*  Portfolio tab  */}
       {activeTab === 'portfolio' && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -295,7 +295,7 @@ export const Investments: React.FC = () => {
               </h3>
               
               <div className="space-y-4">
-                {/* Desktop Header row - hidden on small screens */}
+                
                 <div className="hidden lg:flex gap-4 font-bold text-xs text-gray-400 uppercase tracking-wider px-6 mb-2">
                   <div className="flex-[2] min-w-[200px]">Asset</div>
                   <div className="w-24">Type</div>
@@ -318,7 +318,7 @@ export const Investments: React.FC = () => {
                         key={inv.id} 
                         className="flex flex-col lg:flex-row lg:items-center gap-4 bg-white/60 backdrop-blur-sm border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all rounded-2xl p-4 sm:px-6 group"
                       >
-                        {/* 1. Asset Info (Takes up row on mobile, flex-2 on desktop) */}
+                        
                         <div className="flex items-start lg:items-center justify-between lg:flex-[2] lg:min-w-[200px] w-full gap-4">
                           <div className="flex items-center gap-4">
                             <div className={cn(
@@ -333,11 +333,11 @@ export const Investments: React.FC = () => {
                             </div>
                           </div>
                           
-                          {/* Actions mobile only */}
+                          
                           <div className="flex lg:hidden flex-col sm:flex-row gap-1.5 shrink-0">
                             <button
                               onClick={() => {
-                                localStorage.setItem('editingInvestmentId', inv.id.toString());
+                                localStorage.setItem('editingInvestmentId', inv.id!.toString());
                                 setCurrentPage('edit-investment');
                               }}
                               className="bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition-colors p-2 rounded-xl"
@@ -355,7 +355,7 @@ export const Investments: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Middle Content Wrapper for Mobile Grid */}
+                        
                         <div className="grid grid-cols-2 lg:flex lg:flex-1 w-full gap-4 lg:gap-4 items-center">
                           {/* Type Badge */}
                           <div className="lg:w-24">
@@ -395,11 +395,11 @@ export const Investments: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Actions desktop only */}
+                        
                         <div className="hidden lg:flex w-16 justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                           <button
                             onClick={() => {
-                              localStorage.setItem('editingInvestmentId', inv.id.toString());
+                              localStorage.setItem('editingInvestmentId', inv.id!.toString());
                               setCurrentPage('edit-investment');
                             }}
                             className="bg-gray-100 hover:bg-black hover:text-white text-gray-600 transition-colors p-2 rounded-xl"

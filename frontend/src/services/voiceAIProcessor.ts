@@ -66,21 +66,21 @@ class VoiceAIProcessor {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-      console.warn('🎤 Speech Recognition not supported in this browser');
+      console.warn(' Speech Recognition not supported in this browser');
       return;
     }
 
     this.recognition = new SpeechRecognition();
     
-    // 🚀 Optimized settings for expense recognition
+    //  Optimized settings for expense recognition
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US';
   }
 
-  // 🔥 CORE VOICE AI LOGIC
+  //  CORE VOICE AI LOGIC
   async processVoiceInput(audioFile?: File): Promise<VoiceExpenseResult[]> {
-    console.log('🎤 Processing voice input...');
+    console.log(' Processing voice input...');
 
     if (audioFile) {
       // Process audio file (future enhancement with Vosk)
@@ -103,7 +103,7 @@ class VoiceAIProcessor {
         return;
       }
 
-      console.log('🎙️ Starting voice recognition...');
+      console.log(' Starting voice recognition...');
       this.isListening = true;
 
       let finalTranscript = '';
@@ -117,17 +117,17 @@ class VoiceAIProcessor {
           
           if (result.isFinal) {
             finalTranscript += result[0].transcript + ' ';
-            console.log(`📝 Final transcript: ${result[0].transcript}`);
+            console.log(` Final transcript: ${result[0].transcript}`);
           } else {
             interimTranscript += result[0].transcript;
-            console.log(`⏳ Interim: ${result[0].transcript}`);
+            console.log(` Interim: ${result[0].transcript}`);
           }
         }
 
         // Process if we have substantial content
         if (finalTranscript.trim().length > 10) {
           const results = await this.parseVoiceExpenses(finalTranscript.trim());
-          console.log('🎯 Voice processing results:', results);
+          console.log(' Voice processing results:', results);
           
           // Auto-resolve with first result for instant UX
           if (results.length > 0) {
@@ -137,13 +137,13 @@ class VoiceAIProcessor {
       };
 
       this.recognition.onerror = (event) => {
-        console.error('❌ Speech recognition error:', event);
+        console.error(' Speech recognition error:', event);
         this.isListening = false;
         reject(new Error('Speech recognition failed'));
       };
 
       this.recognition.onend = () => {
-        console.log('🔇 Speech recognition ended');
+        console.log(' Speech recognition ended');
         this.isListening = false;
         
         // Process final transcript if available
@@ -167,7 +167,7 @@ class VoiceAIProcessor {
   }
 
   private async processAudioFile(audioFile: File): Promise<VoiceExpenseResult[]> {
-    console.log('📁 Processing voice file input...');
+    console.log(' Processing voice file input...');
 
     const isTranscriptLike = audioFile.type.startsWith('text/')
       || /json/i.test(audioFile.type)
@@ -197,9 +197,9 @@ class VoiceAIProcessor {
     return this.parseVoiceExpenses(transcript);
   }
 
-  // 🧠 VOICE EXPENSE PARSING - This is the important layer!
+  //  VOICE EXPENSE PARSING - This is the important layer!
   private async parseVoiceExpenses(transcript: string): Promise<VoiceExpenseResult[]> {
-    console.log(`🧠 Parsing voice expenses: "${transcript}"`);
+    console.log(` Parsing voice expenses: "${transcript}"`);
 
     const parsedTransactions = parseMultipleTransactions(transcript);
     const baseResults = parsedTransactions.length > 0
@@ -254,7 +254,7 @@ class VoiceAIProcessor {
   }
 
   private async parseSingleExpense(chunk: string): Promise<VoiceExpenseResult | null> {
-    console.log(`🔍 Parsing expense chunk: "${chunk}"`);
+    console.log(` Parsing expense chunk: "${chunk}"`);
     
     const result: VoiceExpenseResult = {
       description: chunk,
@@ -270,7 +270,7 @@ class VoiceAIProcessor {
     // Extract date
     result.date = this.extractDate(chunk);
     
-    // 🧠 Use Kanakku AI for intelligent categorization
+    //  Use Kanakku AI for intelligent categorization
     const aiResult = await finoraAI.extractExpenseData(chunk, 'voice', this.userId);
     
     result.category = aiResult.category;
@@ -283,19 +283,19 @@ class VoiceAIProcessor {
     
     // Validate we have at least an amount
     if (!result.amount) {
-      console.log('❌ No amount found in chunk');
+      console.log(' No amount found in chunk');
       return null;
     }
 
-    console.log('✅ Parsed expense:', result);
+    console.log(' Parsed expense:', result);
     return result;
   }
 
   private extractAmount(text: string): number | undefined {
     const amountPatterns = [
       // Direct currency patterns
-      /(?:spent|paid|cost|price|amount|rupees?|rs|₹)\s*([\d,]+(?:\.\d{2})?)/i,
-      /([\d,]+(?:\.\d{2})?)\s*(?:rupees?|rs|₹)/i,
+      /(?:spent|paid|cost|price|amount|rupees?|rs|INR)\s*([\d,]+(?:\.\d{2})?)/i,
+      /([\d,]+(?:\.\d{2})?)\s*(?:rupees?|rs|INR)/i,
       // Number words
       /(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|lakh|crore)/i,
     ];
@@ -307,14 +307,14 @@ class VoiceAIProcessor {
           // Numeric amount
           const amount = parseFloat(match[1].replace(/,/g, ''));
           if (!isNaN(amount) && amount > 0) {
-            console.log(`💰 Amount found: ₹${amount}`);
+            console.log(` Amount found: INR${amount}`);
             return amount;
           }
         } else {
           // Word amount - convert to number
           const wordAmount = this.wordsToNumber(match[0]);
           if (wordAmount && wordAmount > 0) {
-            console.log(`💰 Amount found from words: ₹${wordAmount}`);
+            console.log(` Amount found from words: INR${wordAmount}`);
             return wordAmount;
           }
         }
@@ -340,7 +340,7 @@ class VoiceAIProcessor {
       const match = lowerText.match(pattern);
       if (match) {
         const merchant = this.capitalizeWords(match[0]);
-        console.log(`🏪 Merchant found: ${merchant}`);
+        console.log(` Merchant found: ${merchant}`);
         return merchant;
       }
     }
@@ -355,7 +355,7 @@ class VoiceAIProcessor {
       if (match) {
         const merchant = this.capitalizeWords(match[1].trim());
         if (!this.isCommonWord(merchant)) {
-          console.log(`🏪 Merchant found from location: ${merchant}`);
+          console.log(` Merchant found from location: ${merchant}`);
           return merchant;
         }
       }
@@ -393,7 +393,7 @@ class VoiceAIProcessor {
 
         if (!isNaN(date.getTime())) {
           const formattedDate = date.toISOString().split('T')[0];
-          console.log(`📅 Date found: ${formattedDate}`);
+          console.log(` Date found: ${formattedDate}`);
           return formattedDate;
         }
       }
@@ -455,13 +455,13 @@ class VoiceAIProcessor {
     return this.isListening;
   }
 
-  // 🎓 LEARNING FROM USER FEEDBACK
+  //  LEARNING FROM USER FEEDBACK
   async learnFromFeedback(
     originalTranscript: string,
     correctedExpense: any,
     feedback: 'positive' | 'negative' = 'positive'
   ): Promise<void> {
-    console.log(`🎓 Learning from feedback: ${feedback}`);
+    console.log(` Learning from feedback: ${feedback}`);
     
     // Extract merchant from corrected data for learning
     if (correctedExpense.merchant || correctedExpense.description) {

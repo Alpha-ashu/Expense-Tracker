@@ -131,7 +131,7 @@ export const AdvisorPanel: React.FC = () => {
     .reduce((sum, b) => sum + b.amount, 0);
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-gray-50 lg:bg-transparent">
+    <div className="w-full min-h-screen overflow-x-hidden bg-white">
       <div className="max-w-[1400px] mx-auto pb-32 lg:pb-24 w-full">
         <div className="px-4 lg:px-8 pt-6 lg:pt-10 pb-4 lg:pb-6">
           <PageHeader 
@@ -169,7 +169,7 @@ export const AdvisorPanel: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-600 text-sm font-medium">Monthly Earnings</p>
-                <p className="text-3xl font-bold text-purple-900 mt-2">₹{totalEarning.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-purple-900 mt-2">{totalEarning.toLocaleString()}</p>
               </div>
               <DollarSign size={32} className="text-purple-300" />
             </div>
@@ -183,7 +183,7 @@ export const AdvisorPanel: React.FC = () => {
             {availability.map((slot, idx) => (
               <div
                 key={slot.day}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-between p-4 bg-white rounded-xl hover:bg-gray-100 transition-colors"
               >
                 <div>
                   <p className="font-medium text-gray-900">{slot.day}</p>
@@ -225,13 +225,13 @@ export const AdvisorPanel: React.FC = () => {
                     <div>
                       <p className="font-semibold text-gray-900">{booking.userName}</p>
                       <p className="text-sm text-gray-600 mt-1">
-                        📅 {booking.date} at {booking.time}
+                        "... {booking.date} at {booking.time}
                       </p>
                       <p className="text-sm text-gray-600">
-                        📝 {booking.topic} ({booking.sessionType})
+                        " {booking.topic} ({booking.sessionType})
                       </p>
                     </div>
-                    <p className="font-bold text-lg text-yellow-900">₹{booking.amount}</p>
+                    <p className="font-bold text-lg text-yellow-900">{booking.amount}</p>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -274,10 +274,10 @@ export const AdvisorPanel: React.FC = () => {
                     <div>
                       <p className="font-semibold text-gray-900">{booking.userName}</p>
                       <p className="text-sm text-gray-600 mt-1">
-                        📅 {booking.date} at {booking.time}
+                        "... {booking.date} at {booking.time}
                       </p>
                       <p className="text-sm text-gray-600">
-                        📝 {booking.topic} ({booking.sessionType})
+                        " {booking.topic} ({booking.sessionType})
                       </p>
                     </div>
                     <button className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 font-medium">
@@ -296,3 +296,4 @@ export const AdvisorPanel: React.FC = () => {
 };
 
 export default AdvisorPanel;
+

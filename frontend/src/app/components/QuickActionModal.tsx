@@ -96,7 +96,7 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({
               </Button>
             </div>
 
-            {/* 4-col × 2-row grid — NO scroll, all 8 fit */}
+            {/* 4-col  2-row grid - NO scroll, all 8 fit */}
             <div className="px-4 pb-8">
               <div className="grid grid-cols-4 gap-3">
                 {quickActions.map((action, i) => {
@@ -133,7 +133,7 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({
                         {action.label}
                       </span>
 
-                      {/* Subtle description — only shown on slightly larger screens */}
+                      {/* Subtle description - only shown on slightly larger screens */}
                       <span className="hidden sm:block text-[10px] text-gray-400 text-center leading-tight truncate w-full px-1">
                         {action.description}
                       </span>

@@ -23,7 +23,7 @@ class DataSyncService {
    */
   async syncDownOnLogin(userId: string) {
     try {
-      console.log('🔄 Syncing data from backend for user:', userId);
+      console.log(' Syncing data from backend for user:', userId);
       this.syncInProgress = true;
 
       // Fetch all user data from backend in parallel
@@ -36,14 +36,14 @@ class DataSyncService {
       ]);
 
       // Clear local database to ensure clean state
-      console.log('🗑️  Clearing local cache...');
+      console.log('  Clearing local cache...');
       await db.accounts.clear();
       await db.transactions.clear();
       await db.goals.clear();
       await db.loans.clear();
 
       // Populate local database with backend data (cache only)
-      console.log('💾 Populating local cache from backend...');
+      console.log(' Populating local cache from backend...');
 
       if (accounts?.length > 0) {
         await db.accounts.bulkAdd(
@@ -54,7 +54,7 @@ class DataSyncService {
             deletedAt: acc.deletedAt ? new Date(acc.deletedAt) : null,
           }))
         );
-        console.log(`✅ Loaded ${accounts.length} accounts`);
+        console.log(` Loaded ${accounts.length} accounts`);
       }
 
       if (transactions?.length > 0) {
@@ -67,7 +67,7 @@ class DataSyncService {
             deletedAt: txn.deletedAt ? new Date(txn.deletedAt) : null,
           }))
         );
-        console.log(`✅ Loaded ${transactions.length} transactions`);
+        console.log(` Loaded ${transactions.length} transactions`);
       }
 
       if (goals?.length > 0) {
@@ -80,7 +80,7 @@ class DataSyncService {
             deletedAt: goal.deletedAt ? new Date(goal.deletedAt) : null,
           }))
         );
-        console.log(`✅ Loaded ${goals.length} goals`);
+        console.log(` Loaded ${goals.length} goals`);
       }
 
       if (loans?.length > 0) {
@@ -93,20 +93,20 @@ class DataSyncService {
             deletedAt: loan.deletedAt ? new Date(loan.deletedAt) : null,
           }))
         );
-        console.log(`✅ Loaded ${loans.length} loans`);
+        console.log(` Loaded ${loans.length} loans`);
       }
 
       // Store settings separately
       if (settings) {
         localStorage.setItem('user_settings', JSON.stringify(settings));
-        console.log('✅ Synced user settings');
+        console.log(' Synced user settings');
       }
 
       // Mark sync as complete
       localStorage.setItem('last_sync', new Date().toISOString());
       localStorage.setItem('user_id', userId);
 
-      console.log('✅ Data sync complete!');
+      console.log(' Data sync complete!');
       this.syncInProgress = false;
 
       // Start automatic sync interval
@@ -114,7 +114,7 @@ class DataSyncService {
 
       return true;
     } catch (error) {
-      console.error('❌ Sync failed:', error);
+      console.error(' Sync failed:', error);
       this.syncInProgress = false;
       throw error;
     }
@@ -126,7 +126,7 @@ class DataSyncService {
    */
   async clearOnLogout() {
     try {
-      console.log('🧹 Clearing local data on logout...');
+      console.log(' Clearing local data on logout...');
 
       // Clear all local data
       await db.accounts.clear();
@@ -142,9 +142,9 @@ class DataSyncService {
       // Stop sync
       this.stopAutoSync();
 
-      console.log('✅ Local data cleared');
+      console.log(' Local data cleared');
     } catch (error) {
-      console.error('❌ Clear failed:', error);
+      console.error(' Clear failed:', error);
     }
   }
 
@@ -204,14 +204,14 @@ class DataSyncService {
       this.syncUpToBackend().catch(console.error);
     }, this.config.syncInterval);
 
-    console.log('⏱️  Auto-sync started');
+    console.log('  Auto-sync started');
   }
 
   private stopAutoSync() {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
       this.syncInterval = null;
-      console.log('⏱️  Auto-sync stopped');
+      console.log('  Auto-sync stopped');
     }
   }
 
@@ -219,9 +219,9 @@ class DataSyncService {
    * Manual full sync
    */
   async performFullSync() {
-    console.log('🔄 Performing full sync...');
+    console.log(' Performing full sync...');
     await this.syncUpToBackend();
-    console.log('✅ Full sync complete');
+    console.log(' Full sync complete');
   }
 
   /**

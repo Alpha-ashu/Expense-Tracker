@@ -85,7 +85,7 @@ export const PayEMI: React.FC = () => {
       await db.loanPayments.add({
         loanId: selectedLoanId,
         amount: paymentAmount,
-        accountId: paymentAccount.id,
+        accountId: paymentAccount.id as number,
         date: new Date(paymentDate),
         notes: notes || 'EMI Payment',
       });
@@ -204,7 +204,7 @@ export const PayEMI: React.FC = () => {
               />
               {selectedLoan && paymentAmount > selectedLoan.outstandingBalance && (
                 <p className="text-red-600 text-sm mt-1">
-                  ⚠️ Amount exceeds outstanding balance
+                   Amount exceeds outstanding balance
                 </p>
               )}
             </div>

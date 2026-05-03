@@ -171,7 +171,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onGetStarted, 
 
             {/* Footer Minimal */}
             <footer className="py-10 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400">© {new Date().getFullYear()} Kanakku. All rights reserved.</p>
+                <p className="text-xs text-gray-400"> {new Date().getFullYear()} Kanakku. All rights reserved.</p>
             </footer>
         </div>
     );

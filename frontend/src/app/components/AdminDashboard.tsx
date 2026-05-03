@@ -164,7 +164,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-          <h3 className="font-semibold text-blue-900 mb-2">💡 How this works:</h3>
+          <h3 className="font-semibold text-blue-900 mb-2"> How this works:</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
             <li>Toggle features for each role independently</li>
             <li>Changes apply instantly in your current browser</li>
@@ -175,7 +175,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-3">🔄 Sync Monitoring</h3>
+          <h3 className="font-semibold text-gray-900 mb-3"> Sync Monitoring</h3>
           <p className="text-sm text-gray-600 mb-4">
             Monitor offline-first sync health, view the sync queue, inspect event logs,
             retry failed items, and trigger force-resyncs.

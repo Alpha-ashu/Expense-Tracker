@@ -2,7 +2,7 @@ import { ocrEngine, ExpenseData } from './tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from './voiceAIProcessor';
 import { finoraAI } from './finoraIntelligenceEngine';
 
-// 🚀 HYBRID OFFLINE/ONLINE AI SUPPORT
+//  HYBRID OFFLINE/ONLINE AI SUPPORT
 // This service provides intelligent fallback between offline and online AI processing
 
 export interface HybridAIConfig {
@@ -38,21 +38,21 @@ class HybridAIService {
     this.voiceProcessor = createVoiceAIProcessor(userId);
   }
 
-  // 📸 HYBRID OCR PROCESSING
+  //  HYBRID OCR PROCESSING
   async processImageOCR(imageFile: File): Promise<HybridAIResult> {
     const startTime = performance.now();
-    console.log('🚀 Starting hybrid OCR processing...');
+    console.log(' Starting hybrid OCR processing...');
 
     try {
       // Step 1: Try offline processing first (fast)
       if (this.config.preferOffline) {
-        console.log('📱 Trying offline OCR first...');
+        console.log(' Trying offline OCR first...');
         const offlineResult = await this.processOfflineOCR(imageFile);
         const offlineTime = performance.now() - startTime;
 
         // If offline result is confident enough, return it
         if (offlineResult.confidence >= this.config.confidenceThreshold) {
-          console.log(`✅ Offline OCR successful (${offlineTime.toFixed(2)}ms)`);
+          console.log(` Offline OCR successful (${offlineTime.toFixed(2)}ms)`);
           return {
             data: offlineResult,
             source: 'offline',
@@ -62,17 +62,17 @@ class HybridAIService {
           };
         }
 
-        console.log(`⚠️ Offline confidence too low (${offlineResult.confidence}), trying online...`);
+        console.log(` Offline confidence too low (${offlineResult.confidence}), trying online...`);
       }
 
       // Step 2: Try online processing as fallback
       if (this.config.enableOnlineFallback) {
-        console.log('🌐 Falling back to online OCR...');
+        console.log(' Falling back to online OCR...');
         const onlineResult = await this.processOnlineOCR(imageFile, startTime);
         
         if (onlineResult) {
           const totalTime = performance.now() - startTime;
-          console.log(`✅ Online OCR successful (${totalTime.toFixed(2)}ms)`);
+          console.log(` Online OCR successful (${totalTime.toFixed(2)}ms)`);
           return {
             data: onlineResult,
             source: 'online',
@@ -84,7 +84,7 @@ class HybridAIService {
       }
 
       // Step 3: Return offline result as last resort
-      console.log('🔄 Using offline result as fallback...');
+      console.log(' Using offline result as fallback...');
       const offlineResult = await this.processOfflineOCR(imageFile);
       const totalTime = performance.now() - startTime;
 
@@ -97,7 +97,7 @@ class HybridAIService {
       };
 
     } catch (error) {
-      console.error('❌ Hybrid OCR processing failed:', error);
+      console.error(' Hybrid OCR processing failed:', error);
       const totalTime = performance.now() - startTime;
       
       // Last resort: try offline only
@@ -116,21 +116,21 @@ class HybridAIService {
     }
   }
 
-  // 🎤 HYBRID VOICE PROCESSING
+  //  HYBRID VOICE PROCESSING
   async processVoiceInput(audioFile?: File): Promise<HybridAIResult[]> {
     const startTime = performance.now();
-    console.log('🚀 Starting hybrid voice processing...');
+    console.log(' Starting hybrid voice processing...');
 
     try {
       // For voice, we primarily use offline processing since Web Speech API is already offline-capable
-      console.log('🎤 Processing voice with offline AI...');
+      console.log(' Processing voice with offline AI...');
       
       const voiceResults = audioFile 
         ? await this.processOfflineVoice(audioFile)
         : await this.voiceProcessor.startListening();
 
       const processingTime = performance.now() - startTime;
-      console.log(`✅ Voice processing completed (${processingTime.toFixed(2)}ms)`);
+      console.log(` Voice processing completed (${processingTime.toFixed(2)}ms)`);
 
       return voiceResults.map(result => ({
         data: result,
@@ -141,36 +141,36 @@ class HybridAIService {
       }));
 
     } catch (error) {
-      console.error('❌ Hybrid voice processing failed:', error);
+      console.error(' Hybrid voice processing failed:', error);
       throw error;
     }
   }
 
-  // 📱 OFFLINE PROCESSING METHODS
+  //  OFFLINE PROCESSING METHODS
   private async processOfflineOCR(imageFile: File): Promise<ExpenseData> {
-    console.log('📱 Processing OCR offline with Tesseract + Kanakku AI...');
+    console.log(' Processing OCR offline with Tesseract + Kanakku AI...');
     
     // Use Tesseract OCR + Kanakku AI
     const result = await ocrEngine.extractExpenseData(imageFile);
     
-    console.log(`📊 Offline OCR result:`, result);
+    console.log(` Offline OCR result:`, result);
     return result;
   }
 
   private async processOfflineVoice(audioFile: File): Promise<VoiceExpenseResult[]> {
-    console.log('📱 Processing voice offline...');
+    console.log(' Processing voice offline...');
 
     return this.voiceProcessor.processVoiceInput(audioFile);
   }
 
-  // 🌐 ONLINE PROCESSING METHODS
+  //  ONLINE PROCESSING METHODS
   private async processOnlineOCR(imageFile: File, startTime: number): Promise<ExpenseData | null> {
     if (!this.config.onlineAPIEndpoint) {
-      console.log('⚠️ No online API endpoint configured');
+      console.log(' No online API endpoint configured');
       return null;
     }
 
-    console.log('🌐 Processing OCR online...');
+    console.log(' Processing OCR online...');
     
     // Create timeout promise
     const timeoutPromise = new Promise<null>((_, reject) => {
@@ -186,7 +186,7 @@ class HybridAIService {
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === 'Online OCR timeout') {
-        console.log('⏰ Online OCR timed out');
+        console.log(' Online OCR timed out');
         return null;
       }
       throw error;
@@ -214,7 +214,7 @@ class HybridAIService {
     return result.data || result;
   }
 
-  // 🧠 INTELLIGENT FALLBACK LOGIC
+  //  INTELLIGENT FALLBACK LOGIC
   private async processWithIntelligentFallback(
     imageFile: File,
     primaryMethod: 'offline' | 'online'
@@ -231,7 +231,7 @@ class HybridAIService {
 
         // If offline result is poor, try online
         if (result.confidence < this.config.confidenceThreshold && this.config.enableOnlineFallback) {
-          console.log('🔄 Offline result poor, trying online fallback...');
+          console.log(' Offline result poor, trying online fallback...');
           const onlineResult = await this.processOnlineOCR(imageFile, startTime);
           
           if (onlineResult && onlineResult.confidence > result.confidence) {
@@ -264,27 +264,27 @@ class HybridAIService {
       };
 
     } catch (error) {
-      console.error('❌ Intelligent fallback failed:', error);
+      console.error(' Intelligent fallback failed:', error);
       throw error;
     }
   }
 
-  // 🔧 CONFIGURATION METHODS
+  //  CONFIGURATION METHODS
   updateConfig(newConfig: Partial<HybridAIConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('🔧 Hybrid AI config updated:', this.config);
+    console.log(' Hybrid AI config updated:', this.config);
   }
 
   getConfig(): HybridAIConfig {
     return { ...this.config };
   }
 
-  // 📊 PERFORMANCE MONITORING
+  //  PERFORMANCE MONITORING
   async benchmarkPerformance(imageFile: File): Promise<{
     offline: { time: number; confidence: number };
     online: { time: number; confidence: number } | null;
   }> {
-    console.log('📊 Running performance benchmark...');
+    console.log(' Running performance benchmark...');
 
     // Benchmark offline
     const offlineStart = performance.now();
@@ -306,7 +306,7 @@ class HybridAIService {
           };
         }
       } catch (error) {
-        console.log('⚠️ Online benchmark failed:', error);
+        console.log(' Online benchmark failed:', error);
       }
     }
 
@@ -318,11 +318,11 @@ class HybridAIService {
       online: onlineBenchmark,
     };
 
-    console.log('📊 Benchmark results:', benchmark);
+    console.log(' Benchmark results:', benchmark);
     return benchmark;
   }
 
-  // 🎯 SMART SELECTION LOGIC
+  //  SMART SELECTION LOGIC
   getOptimalMethod(imageSize: number, networkQuality: 'fast' | 'slow' | 'unknown'): 'offline' | 'online' {
     // For small images, offline is usually faster
     if (imageSize < 1024 * 1024) { // < 1MB
@@ -344,7 +344,7 @@ class HybridAIService {
   }
 }
 
-// 🏭 FACTORY FUNCTION
+//  FACTORY FUNCTION
 export function createHybridAIService(
   userId: string, 
   config: Partial<HybridAIConfig> = {}
@@ -352,7 +352,7 @@ export function createHybridAIService(
   return new HybridAIService(userId, config);
 }
 
-// 🎯 DEFAULT CONFIGURATIONS
+//  DEFAULT CONFIGURATIONS
 export const HYBRID_CONFIGS = {
   // Optimize for speed (offline-first)
   FAST: {

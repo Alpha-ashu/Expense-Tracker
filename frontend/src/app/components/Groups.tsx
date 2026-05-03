@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { PageHeader } from '@/app/components/ui/PageHeader';
 import { db } from '@/lib/database';
 import { queueTransactionDeleteSync } from '@/lib/auth-sync-integration';
 import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
@@ -205,29 +204,58 @@ export const Groups: React.FC = () => {
   };
 
   return (
-    <div className="px-3 sm:px-4 md:px-6 py-6 lg:py-10 max-w-[1080px] mx-auto space-y-6 pb-24">
-      <PageHeader
-        title="Group Expenses"
-        subtitle="Track shared bills and pending collections"
-        icon={<Users size={20} className="sm:w-6 sm:h-6" />}
-      >
-        <div className="flex gap-2">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
+      
+      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <Users className="w-6 h-6 text-gray-900" />
+            Group Expenses
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Track shared bills and pending collections</p>
+        </div>
+        <div className="flex gap-3">
           <Button
             onClick={() => setCurrentPage('add-friends')}
-            className="shadow-sm bg-gray-100 text-gray-800 hover:bg-gray-200 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+            className="shadow-sm bg-gray-100 text-gray-800 hover:bg-gray-200 text-sm font-semibold h-10 px-4 rounded-2xl"
           >
-            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            <Plus size={18} className="mr-2" />
             Add Friend
           </Button>
           <Button
             onClick={openGroupExpenseForm}
-            className="shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
+            className="shadow-lg bg-gray-900 text-white hover:bg-gray-800 text-sm font-semibold h-10 px-4 rounded-2xl transition-colors"
           >
-            <Plus size={14} className="sm:w-[18px] sm:h-[18px] mr-1 sm:mr-2" />
+            <Plus size={18} className="mr-2" />
             Add Group Expense
           </Button>
         </div>
-      </PageHeader>
+      </div>
+
+      
+      <div className="lg:hidden flex flex-col gap-4 pt-12 pb-6 px-6 relative z-10">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            <Users className="w-8 h-8" />
+            Group Expenses
+          </h1>
+          <p className="text-sm text-gray-500 mt-2">Track shared bills and collections</p>
+        </div>
+        <div className="flex gap-2 w-full mt-2">
+          <button 
+            onClick={() => setCurrentPage('add-friends')}
+            className="flex-1 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-900 font-semibold text-sm transition-colors active:scale-95"
+          >
+            <Plus size={18} className="mr-1.5" /> Friend
+          </button>
+          <button 
+            onClick={openGroupExpenseForm}
+            className="flex-1 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white font-semibold text-sm shadow-lg transition-colors active:scale-95"
+          >
+            <Plus size={18} className="mr-1.5" /> Expense
+          </button>
+        </div>
+      </div>
 
       <section className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -472,7 +500,7 @@ export const Groups: React.FC = () => {
                                   <div>
                                     <p className="text-xs font-semibold text-gray-900">{member.name}</p>
                                     <p className={`text-[11px] ${isPaid ? 'text-emerald-700' : 'text-amber-700'}`}>
-                                      {isPaid ? 'Paid' : 'Pending'} · {formatCurrency(member.share)}
+                                      {isPaid ? 'Paid' : 'Pending'}  {formatCurrency(member.share)}
                                     </p>
                                   </div>
                                 </div>

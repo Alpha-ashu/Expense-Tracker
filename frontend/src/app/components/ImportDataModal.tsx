@@ -627,7 +627,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{formatAmount(row.amount)}</p>
-                          <p className="text-xs text-gray-600">{formatDate(row.date)} • {row.transactionType}</p>
+                          <p className="text-xs text-gray-600">{formatDate(row.date)} - {row.transactionType}</p>
                         </div>
                         {getRowStatusBadge(row)}
                       </div>

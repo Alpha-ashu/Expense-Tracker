@@ -62,23 +62,23 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
             <ul className="text-sm text-text-secondary space-y-1">
               {feature === 'bookAdvisor' && (
                 <>
-                  <li>✅ Admin - Can book advisors</li>
-                  <li>❌ Advisor - Cannot book self</li>
-                  <li>✅ User - Can book advisors</li>
+                  <li> Admin - Can book advisors</li>
+                  <li> Advisor - Cannot book self</li>
+                  <li> User - Can book advisors</li>
                 </>
               )}
               {feature === 'adminPanel' && (
                 <>
-                  <li>✅ Admin - Full access</li>
-                  <li>❌ Advisor - No access</li>
-                  <li>❌ User - No access</li>
+                  <li> Admin - Full access</li>
+                  <li> Advisor - No access</li>
+                  <li> User - No access</li>
                 </>
               )}
               {feature === 'advisorPanel' && (
                 <>
-                  <li>❌ Admin - No access</li>
-                  <li>✅ Advisor - Full access</li>
-                  <li>❌ User - No access</li>
+                  <li> Admin - No access</li>
+                  <li> Advisor - Full access</li>
+                  <li> User - No access</li>
                 </>
               )}
               {!['bookAdvisor', 'adminPanel', 'advisorPanel'].includes(feature) && (

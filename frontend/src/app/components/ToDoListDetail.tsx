@@ -67,7 +67,7 @@ export const ToDoListDetail: React.FC = () => {
         completed: false,
         priority: newItemPriority,
         dueDate: newItemDueDate ? new Date(newItemDueDate) : undefined,
-        createdBy: currentUserId,
+        createdBy: currentUserId || 'local',
         createdAt: new Date(),
       });
 
@@ -127,7 +127,7 @@ export const ToDoListDetail: React.FC = () => {
         {/* Header */}
         <PageHeader
           title={toDoList.name}
-          subtitle={`${toDoList.description ? toDoList.description + ' • ' : ''}${completedCount} of ${items.length} tasks completed`}
+          subtitle={`${toDoList.description ? toDoList.description + ' - ' : ''}${completedCount} of ${items.length} tasks completed`}
           icon={<ListTodo size={20} className="sm:w-6 sm:h-6" />}
           showBack
           backTo="todo-lists"

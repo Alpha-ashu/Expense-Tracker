@@ -108,7 +108,7 @@ export const rememberMissingSupabaseTable = (table: string, error: unknown): boo
 
   if (!missingSupabaseTables.has(normalizedTable)) {
     missingSupabaseTables.add(normalizedTable);
-    console.info(`ℹ️ Supabase table '${normalizedTable}' is unavailable. Falling back to local-only mode for that data.`);
+    console.info(` Supabase table '${normalizedTable}' is unavailable. Falling back to local-only mode for that data.`);
   }
 
   return true;
