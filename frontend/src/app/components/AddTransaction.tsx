@@ -58,15 +58,15 @@ const FieldRow: React.FC<{
   children: React.ReactNode;
   accent?: boolean;
 }> = ({ icon, label, children, accent }) => (
-  <div className="flex items-center gap-3 px-4 py-3 group">
+  <div className="flex items-center gap-4 px-5 py-4 group border-b border-gray-50 last:border-b-0">
     <div className={cn(
-      'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
-      accent ? 'bg-black/5' : 'bg-gray-100 group-focus-within:bg-gray-200'
+      'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
+      accent ? 'bg-black/5' : 'bg-gray-50 group-focus-within:bg-gray-100'
     )}>
       {icon}
     </div>
     <div className="flex-1 min-w-0">
-      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.24em] mb-0.5">{label}</p>
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">{label}</p>
       {children}
     </div>
   </div>
@@ -185,6 +185,12 @@ export const AddTransaction: React.FC = () => {
   const [manualExpenseCategory, setManualExpenseCategory] = useState(false);
   const [pendingSmsTransactionId, setPendingSmsTransactionId] = useState<number | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<{ category: string; subcategory: string; confidence: number } | null>(null);
+  const [remoteCategorySuggestion, setRemoteCategorySuggestion] = useState<{
+    text: string;
+    category: string;
+    subcategory: string;
+    confidence: number;
+  } | null>(null);
   const aiDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [customExpenseSubcategories, setCustomExpenseSubcategories] = useState<CustomExpenseSubcategory[]>(() =>
     loadCustomExpenseSubcategories(),
@@ -477,15 +483,52 @@ export const AddTransaction: React.FC = () => {
     return detectExpenseCategoryFromText(combinedText, customExpenseSubcategories);
   }, [customExpenseSubcategories, formData.description, formData.merchant, isExpense, isLoanExpense, subcategoryQuery]);
 
-  // Enhanced confidence score from smart categorization engine
-  const smartCatResult = useMemo(() => {
+  const smartCategoryInput = useMemo(() => {
     if (!isExpense || isLoanExpense) return null;
     const combinedText = [subcategoryQuery, formData.description, formData.merchant]
       .filter(Boolean).join(' ').trim();
-    if (!combinedText || combinedText.length < 3) return null;
-    const result = categorizeText(combinedText);
-    return result.confidence >= 0.45 ? result : null;
+    return combinedText.length >= 3 ? combinedText : null;
   }, [subcategoryQuery, formData.description, formData.merchant, isExpense, isLoanExpense]);
+
+  useEffect(() => {
+    if (!smartCategoryInput) {
+      setRemoteCategorySuggestion(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      backendService.categorizeText(smartCategoryInput)
+        .then((result) => {
+          if (!result || result.confidence < 0.45) {
+            setRemoteCategorySuggestion(null);
+            return;
+          }
+
+          setRemoteCategorySuggestion({
+            text: smartCategoryInput,
+            category: normalizeCategorySelection(result.category, 'expense'),
+            subcategory: result.subcategory || '',
+            confidence: result.confidence,
+          });
+        })
+        .catch(() => {
+          setRemoteCategorySuggestion(null);
+        });
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [smartCategoryInput]);
+
+  // Enhanced confidence score from smart categorization engine
+  const smartCatResult = useMemo(() => {
+    if (!smartCategoryInput) return null;
+    if (remoteCategorySuggestion?.text === smartCategoryInput) {
+      return remoteCategorySuggestion;
+    }
+
+    const result = categorizeText(smartCategoryInput);
+    return result.confidence >= 0.45 ? result : null;
+  }, [remoteCategorySuggestion, smartCategoryInput]);
 
   useEffect(() => {
     if (!isExpense || isLoanExpense) return;
@@ -769,6 +812,21 @@ export const AddTransaction: React.FC = () => {
     setShowCategoryPicker(false);
     setShowScanner(false);
     toast.success('Bill scanned - review and edit the auto-filled fields before saving.');
+  };
+
+  const rememberCategoryChoice = (text: string, category: string, subcategory: string) => {
+    const normalizedText = text.trim();
+    const normalizedCategory = category.trim();
+    if (!normalizedText || !normalizedCategory) return;
+
+    learnCategorization(normalizedText, normalizedCategory, subcategory);
+    void backendService.learnCategorization({
+      text: normalizedText,
+      category: normalizedCategory,
+      subcategory,
+    }).catch(() => {
+      // Local learning is already stored; backend learning will retry on a future correction.
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1055,6 +1113,11 @@ export const AddTransaction: React.FC = () => {
         if (payload.subcategory) {
           noteExpenseSubcategoryUsage(payload.subcategory, payload.category);
         }
+        rememberCategoryChoice(
+          [payload.description, payload.merchant, payload.subcategory].filter(Boolean).join(' '),
+          payload.category,
+          payload.subcategory,
+        );
         if (pendingSmsTransactionId) {
           await markSmsTransactionImported(pendingSmsTransactionId, transactionId);
         }
@@ -1078,6 +1141,11 @@ export const AddTransaction: React.FC = () => {
       await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
       if (payload.type === 'expense' && payload.subcategory) {
         noteExpenseSubcategoryUsage(payload.subcategory, payload.category);
+        rememberCategoryChoice(
+          [payload.description, payload.merchant, payload.subcategory].filter(Boolean).join(' '),
+          payload.category,
+          payload.subcategory,
+        );
       }
       if (pendingSmsTransactionId) {
         await markSmsTransactionImported(pendingSmsTransactionId, savedTransaction.id);
@@ -1278,79 +1346,91 @@ export const AddTransaction: React.FC = () => {
           </div>
 
           {isExpense && (
-            <div className="mt-3 flex rounded-xl p-1 bg-gray-100/80 border border-gray-200/50">
+            <div className="mt-4 grid grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => switchExpenseMode('individual')}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all',
-                  expenseMode === 'individual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 px-2 text-[13px] font-semibold transition-all border',
+                  expenseMode === 'individual'
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-md'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 )}
               >
-                Individual
+                <Users size={18} />
+                <span>Individual</span>
               </button>
               <button
                 type="button"
                 onClick={() => switchExpenseMode('group')}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all',
-                  expenseMode === 'group' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 px-2 text-[13px] font-semibold transition-all border',
+                  expenseMode === 'group'
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-md'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 )}
               >
-                Group
+                <UserPlus size={18} />
+                <span>Group</span>
               </button>
               <button
                 type="button"
                 onClick={() => switchExpenseMode('loan')}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[13px] font-semibold transition-all',
-                  expenseMode === 'loan' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  'flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 px-2 text-[13px] font-semibold transition-all border',
+                  expenseMode === 'loan'
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-md'
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                 )}
               >
-                Loan
+                <CreditCard size={18} />
+                <span>Loan</span>
               </button>
             </div>
           )}
+        </div>
+      </div>
 
-          <div className={cn('mt-4 rounded-[26px] bg-gradient-to-br px-4 py-4 text-white shadow-lg', accent.amountCard)}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">Amount</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="shrink-0 text-lg font-bold text-white/80">{currency}</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={amountStr}
-                    onChange={e => handleAmountChange(e.target.value)}
-                    className="w-full flex-1 bg-transparent text-3xl sm:text-4xl font-display font-bold text-white focus:outline-none placeholder:text-white/35"
-                    placeholder="0.00"
-                    required
-                    autoFocus
-                  />
-                </div>
+      {/* Amount Card */}
+      <div className="px-5 py-4">
+        <div className={cn('rounded-[28px] bg-gradient-to-br px-5 py-5 text-white shadow-xl', accent.amountCard)}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/70">Amount</p>
+              <div className="mt-3 flex items-center gap-2">
+                <span className="shrink-0 text-xl font-bold text-white/80">{currency}</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amountStr}
+                  onChange={e => handleAmountChange(e.target.value)}
+                  className="w-full flex-1 bg-transparent text-4xl sm:text-5xl font-display font-bold text-white focus:outline-none placeholder:text-white/35"
+                  placeholder="0.00"
+                  required
+                  autoFocus
+                />
               </div>
-              {selectedAccount && (
-                <div className={cn('max-w-[46%] rounded-2xl px-3 py-2 text-right backdrop-blur-sm', accent.amountMeta)}>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">
-                    {isGroupExpense ? 'Paid from' : isLoanExpense ? loanAccountLabel : 'Account'}
-                  </p>
-                  <p className="truncate text-xs font-semibold text-white">{selectedAccount.name}</p>
-                </div>
-              )}
             </div>
             {selectedAccount && (
-              <p className="mt-3 text-xs font-medium text-white/80">
-                Available balance {formatAccountBalance(selectedAccount.balance)}
-              </p>
+              <div className={cn('min-w-[120px] max-w-[48%] rounded-2xl px-4 py-3 text-right backdrop-blur-sm', accent.amountMeta)}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">
+                  {isGroupExpense ? 'Paid from' : isLoanExpense ? loanAccountLabel : 'Account'}
+                </p>
+                <p className="truncate text-xs font-semibold text-white">{selectedAccount.name}</p>
+              </div>
             )}
           </div>
+          {selectedAccount && (
+            <p className="mt-4 text-sm font-medium text-white/80">
+              Available balance {formatAccountBalance(selectedAccount.balance)}
+            </p>
+          )}
         </div>
       </div>
 
       {/*  Form Fields Card  */}
-      <div className="flex-1 bg-white -mt-3 rounded-t-[28px] shadow-xl divide-y divide-gray-100 overflow-hidden">
+      <div className="flex-1 -mt-4 rounded-t-[32px] shadow-2xl divide-y divide-gray-100 overflow-hidden">
         {/* Account */}
         {selectedAccount && (
           <FieldRow
@@ -2040,7 +2120,7 @@ export const AddTransaction: React.FC = () => {
                     </AnimatePresence>
 
                     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-3 py-2.5">
+                      <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/80 px-4 py-3">
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
                             {subcategoryQuery.trim() ? 'Best Matches' : 'Recent Picks'}
@@ -2050,27 +2130,27 @@ export const AddTransaction: React.FC = () => {
                           </p>
                         </div>
                         {visibleExpenseSuggestions.length > 0 && (
-                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-gray-500 ring-1 ring-gray-200">
+                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-gray-500 ring-1 ring-gray-200">
                             {visibleExpenseSuggestions.length}
                           </span>
                         )}
                       </div>
 
-                      <div className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                      <div className="max-h-72 overflow-y-auto divide-y divide-gray-100">
                         {visibleExpenseSuggestions.length > 0 ? visibleExpenseSuggestions.map((suggestion) => (
                           <button
                             key={`${suggestion.name}-${suggestion.category}`}
                             type="button"
                             onClick={() => applyExpenseSuggestion(suggestion.name, suggestion.category)}
                             className={cn(
-                              'flex w-full items-center gap-3 px-3 py-3 text-left transition-colors',
+                              'flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors',
                               formData.subcategory === suggestion.name
                                 ? 'bg-gray-50'
                                 : 'hover:bg-gray-50'
                             )}
                           >
                             <div className="shrink-0">
-                              {getCategoryCartoonIcon(suggestion.category, 28)}
+                              {getCategoryCartoonIcon(suggestion.category, 30)}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-semibold text-gray-900">{suggestion.name}</p>
@@ -2090,8 +2170,8 @@ export const AddTransaction: React.FC = () => {
                             )}
                           </button>
                         )) : (
-                          <p className="px-3 py-3 text-xs text-gray-500">
-                            No close matches yet.
+                          <p className="px-4 py-4 text-xs text-gray-500 text-center">
+                            No close matches yet. Type to search or create a custom category.
                           </p>
                         )}
                       </div>
@@ -2100,7 +2180,7 @@ export const AddTransaction: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleSaveCustomSubcategory}
-                          className="mt-2 w-full rounded-xl border border-dashed border-gray-300 bg-white px-3 py-2 text-left transition-colors hover:border-gray-400 hover:bg-gray-100"
+                          className="w-full border-t border-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-50"
                         >
                           <p className="text-xs font-semibold text-gray-900">
                             Save &quot;{subcategoryQuery.trim()}&quot; under {customCategoryCandidate}
@@ -2236,12 +2316,12 @@ export const AddTransaction: React.FC = () => {
         )}
 
         {!isLoanExpense && (
-        <div className="px-4 py-3">
+        <div className="px-5 py-4 border-t border-gray-50">
           <button
             type="button"
             onClick={() => setShowOptionalFields((prev) => !prev)}
             className={cn(
-              'flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all',
+              'flex w-full items-center justify-between rounded-2xl border px-4 py-3.5 text-left transition-all',
               isExpense
                 ? 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                 : 'border-gray-200 bg-gradient-to-br from-white to-gray-50 shadow-sm hover:border-gray-300 hover:bg-gray-50'
@@ -2309,11 +2389,11 @@ export const AddTransaction: React.FC = () => {
       </div>
 
       {/*  Fixed Bottom Bar  */}
-      <div className="bg-white border-t border-gray-100 px-4 py-3 flex gap-3 shrink-0">
+      <div className="border-t border-gray-100 px-5 py-4 flex gap-3 shrink-0">
         <button
           type="button"
           onClick={() => setCurrentPage(returnPage)}
-          className="flex-[0.4] py-3.5 rounded-2xl border-2 border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+          className="flex-[0.35] py-4 rounded-2xl border-2 border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors"
         >
           Cancel
         </button>
@@ -2322,13 +2402,13 @@ export const AddTransaction: React.FC = () => {
           disabled={isSubmitting || !formData.amount}
           whileTap={{ scale: 0.97 }}
           className={cn(
-            'flex-1 py-3.5 rounded-2xl font-bold text-white text-sm shadow-lg bg-gradient-to-r transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2',
+            'flex-1 py-4 rounded-2xl font-bold text-white text-sm shadow-lg bg-gradient-to-r transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2',
             accent.btn
           )}
         >
           {isSubmitting
             ? <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Saving...</>
-            : <><Zap size={15} /> {
+            : <><Zap size={16} /> {
               isLoanExpense
                 ? (loanType === 'borrowed' ? 'Create Borrow Record' : 'Create Lend Record')
                 : isGroupExpense
@@ -2359,68 +2439,67 @@ export const AddTransaction: React.FC = () => {
   if (isDesktop) {
     return (
       <>
-        
-        <div className="flex min-h-screen flex-col bg-white">
-        <div className="flex-1 w-full max-w-6xl mx-auto px-6 py-6 overflow-y-auto">
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+        <div className="flex-1 w-full max-w-7xl mx-auto px-6 py-6">
 
           {/*  Header  */}
-          <div className="flex justify-between items-center mb-5">
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-2xl font-black text-gray-900 tracking-tight">
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight">
                 {isLoanExpense ? 'Record Loan / Debt' : isGroupExpense ? 'Group Expense' : isExpense ? 'Add Expense' : 'Add Income'}
               </h1>
-              <p className="text-gray-400 text-sm mt-0.5">
+              <p className="text-gray-500 text-base mt-1.5">
                 {isLoanExpense ? 'Track money borrowed or lent' : isGroupExpense ? 'Split expenses with friends' : 'Fast, smart financial tracking'}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {isExpense && !isLoanExpense && (
                 <button type="button" onClick={() => setShowScanner(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
-                  <Camera size={15} /> Scan Receipt
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 shadow-md transition-all">
+                  <Camera size={16} /> Scan Receipt
                 </button>
               )}
               <button type="button" onClick={() => setCurrentPage(returnPage)}
-                className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
+                className="px-5 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-semibold hover:bg-gray-50 shadow-md transition-all">
                 Cancel
               </button>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-5">
+          <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-6">
             {/*  LEFT COLUMN  */}
-            <div className="col-span-8 space-y-4">
+            <div className="col-span-8 space-y-6">
 
               {/* Type + Amount Card */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/50">
                 {/* Expense / Income / Transfer switcher */}
-                <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 mb-4 w-fit">
+                <div className="flex items-center gap-1 bg-gray-100/80 rounded-2xl p-1.5 mb-6 w-fit">
                   <button type="button" onClick={() => switchType('expense')}
-                    className={cn('px-4 py-1.5 rounded-lg text-sm font-bold transition-all',
-                      isExpense ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
+                    className={cn('px-6 py-2.5 rounded-xl text-sm font-bold transition-all',
+                      isExpense ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700')}>
                     Expense
                   </button>
                   <button type="button" onClick={() => switchType('income')}
-                    className={cn('px-4 py-1.5 rounded-lg text-sm font-bold transition-all',
-                      !isExpense ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
+                    className={cn('px-6 py-2.5 rounded-xl text-sm font-bold transition-all',
+                      !isExpense ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500 hover:text-gray-700')}>
                     Income
                   </button>
                   <button type="button" onClick={() => setCurrentPage('transfer')}
-                    className="px-4 py-1.5 rounded-lg text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-white/70 transition-all">
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-white/70 transition-all">
                     Transfer
                   </button>
                 </div>
 
                 {/* Amount input */}
-                <div className={cn('rounded-2xl px-5 py-4 flex items-center bg-gradient-to-r transition-all', accent.amountCard)}>
-                  <span className="text-2xl font-black text-white/80 mr-3">
+                <div className={cn('rounded-3xl px-8 py-6 flex items-center bg-gradient-to-r transition-all shadow-lg', accent.amountCard)}>
+                  <span className="text-3xl font-black text-white/80 mr-4">
                     {isExpense ? '-' : '+'}{currency}
                   </span>
                   <input
                     type="number" step="0.01" min="0"
                     value={amountStr}
                     onChange={e => handleAmountChange(e.target.value)}
-                    className="flex-1 bg-transparent text-4xl font-black text-white outline-none placeholder:text-white/40 w-full"
+                    className="flex-1 bg-transparent text-5xl font-black text-white outline-none placeholder:text-white/40 w-full"
                     placeholder="0.00"
                     required
                     autoFocus
@@ -2429,11 +2508,11 @@ export const AddTransaction: React.FC = () => {
               </div>
 
               {/* Smart Description + Category + Date */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/50 space-y-6">
+                <div className="grid grid-cols-2 gap-6">
                   {/* Description with AI */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
                       Description
                       {aiSuggestion && !manualExpenseCategory && (
                         <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-100 text-violet-700 normal-case tracking-normal">
@@ -2463,33 +2542,33 @@ export const AddTransaction: React.FC = () => {
                           setAiSuggestion(null);
                         }
                       }}
-                      className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                      className="w-full py-3 px-4 bg-gray-50/50 border border-gray-200/50 rounded-2xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
                       placeholder="e.g. Pani puri, Petrol, Netflix..."
                     />
                   </div>
 
                   {/* Merchant */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">
                       {isExpense ? 'Merchant / Store' : 'Source / Payer'}
                     </label>
                     <input
                       type="text"
                       value={formData.merchant}
                       onChange={e => setFormData(prev => ({ ...prev, merchant: e.target.value }))}
-                      className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                      className="w-full py-3 px-4 bg-gray-50/50 border border-gray-200/50 rounded-2xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
                       placeholder={isExpense ? 'Amazon, Starbucks...' : 'Employer, client...'}
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6">
                   {/* Category */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Category</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Category</label>
                     {isExpense && !isLoanExpense ? (
                       <div className="relative">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <input
                           type="text"
                           value={subcategoryQuery}
@@ -2511,11 +2590,11 @@ export const AddTransaction: React.FC = () => {
                               }
                             }
                           }}
-                          className="w-full pl-8 pr-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-200/50 rounded-2xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
                           placeholder="Search (e.g. Uber, Netflix)..."
                         />
                         {formData.category && (
-                          <div className="mt-2 flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl border border-gray-100">
+                          <div className="mt-2 flex items-center justify-between px-4 py-2.5 bg-gray-50/50 rounded-2xl border border-gray-200/50">
                             <div className="flex items-center gap-2">
                               {getCategoryCartoonIcon(resolvedExpenseCategory, 18)}
                               <span className="text-xs font-bold text-gray-900">{resolvedExpenseCategory}</span>
@@ -2543,7 +2622,7 @@ export const AddTransaction: React.FC = () => {
                                   setManualExpenseCategory(true);
                                   setAiSuggestion(null);
                                 }}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 text-xs font-bold text-gray-600 transition-colors">
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gray-50/50 border border-gray-200/50 hover:bg-gray-100/50 text-xs font-bold text-gray-600 transition-colors">
                                 {getCategoryCartoonIcon(s.category, 12)} {s.name}
                               </button>
                             ))}
@@ -2557,7 +2636,7 @@ export const AddTransaction: React.FC = () => {
                           setFormData(prev => ({ ...prev, category: e.target.value, subcategory: '' }));
                           setManualExpenseCategory(true);
                         }}
-                        className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all appearance-none cursor-pointer">
+                        className="w-full py-3 px-4 bg-gray-50/50 border border-gray-200/50 rounded-2xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all appearance-none cursor-pointer">
                         {liveCategories[formData.type].map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
                         ))}
@@ -2567,12 +2646,12 @@ export const AddTransaction: React.FC = () => {
 
                   {/* Date */}
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Date</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Date</label>
                     <input
                       type="date"
                       value={formData.date}
                       onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                      className="w-full py-2.5 px-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                      className="w-full py-3 px-4 bg-gray-50/50 border border-gray-200/50 rounded-2xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
                       required
                     />
                   </div>
@@ -2755,7 +2834,7 @@ export const AddTransaction: React.FC = () => {
                   whileTap={{ scale: 0.97 }}
                   onClick={() => {
                     if (formData.description && formData.category) {
-                      learnCategorization(formData.description, formData.category, formData.subcategory);
+                      rememberCategoryChoice(formData.description, formData.category, formData.subcategory);
                     }
                   }}
                   className={cn(
@@ -2788,7 +2867,7 @@ export const AddTransaction: React.FC = () => {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen bg-white">
+      <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
         {formEl}
       </div>
       {/* Modals */}

@@ -110,6 +110,7 @@ export const OnboardingCompleteStep: React.FC<OnboardingCompleteStepProps> = ({
     localStorage.setItem('language', userSettings.language || 'en');
     localStorage.setItem('onboarding_completed', 'true');
     localStorage.setItem('user_setup_date', new Date().toISOString());
+    localStorage.setItem('pin_setup_required', 'true'); // Flag to trigger PIN setup
     // Also persist to Supabase user_metadata so it survives across devices/cache clears.
     // Non-blocking - localStorage remains the local-first fallback.
     supabase.auth.updateUser({ data: { onboarding_completed: true } }).catch(() => {});

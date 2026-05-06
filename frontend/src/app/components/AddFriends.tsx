@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { backendService } from '@/lib/backend-api';
 import { Users, UserPlus, X, ChevronLeft, Loader2, Check, Save } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,13 +11,18 @@ import { cn } from '@/lib/utils';
 
 const RELATIONSHIPS = ['friend', 'family', 'colleague', 'roommate', 'partner', 'other'];
 
+const relationshipOptions = RELATIONSHIPS.map((relationship) => ({
+  value: relationship,
+  label: relationship.charAt(0).toUpperCase() + relationship.slice(1),
+  description: relationship === 'other' ? 'Custom contact relationship' : `Mark as ${relationship}`,
+  group: 'Relationship',
+}));
+
 export const AddFriends: React.FC = () => {
   const { setCurrentPage, refreshData, friends } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [queue, setQueue] = useState<{ name: string; email: string; phone: string; relationship: string }[]>([]);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', relationship: 'friend' });
-
-  const selectStyle = { backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' };
 
   const addToQueue = () => {
     if (!formData.name.trim()) { toast.error('Name is required'); return; }
@@ -48,12 +54,11 @@ export const AddFriends: React.FC = () => {
 
   return (
     <>
-      
-      <div className="lg:hidden">
+      <div className="lg:hidden w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
         <CenteredLayout>
           <div className="space-y-6 max-w-lg w-full mx-auto pb-8">
             <PageHeader title="Add Friends" subtitle="Manage your contacts" icon={<UserPlus size={20} />} showBack backTo="friends" />
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 p-5 shadow-sm">
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
@@ -72,13 +77,15 @@ export const AddFriends: React.FC = () => {
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+91..." />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Relationship</label>
-                  <select value={formData.relationship} onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 capitalize">
-                    {RELATIONSHIPS.map(r => <option key={r} value={r} className="capitalize">{r}</option>)}
-                  </select>
-                </div>
+                <SearchableDropdown
+                  label="Relationship"
+                  options={relationshipOptions}
+                  value={formData.relationship}
+                  onChange={(relationship) => setFormData({ ...formData, relationship })}
+                  placeholder="Choose relationship"
+                  searchPlaceholder="Search relationship..."
+                  grouped
+                />
                 <button type="button" onClick={addToQueue}
                   className="w-full bg-gray-900 text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
                   <UserPlus size={15} /> Add to Queue
@@ -110,9 +117,8 @@ export const AddFriends: React.FC = () => {
         </CenteredLayout>
       </div>
 
-      
-      <div className="hidden lg:block">
-        <div className="w-full max-w-6xl mx-auto px-8 py-6">
+      <div className="hidden lg:block w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+        <div className="w-full max-w-[800px] mx-auto px-8 py-6">
           <div className="mb-6 flex items-center gap-3">
             <button type="button" onClick={() => setCurrentPage('friends')} className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 shadow-sm"><ChevronLeft size={18} /></button>
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md"><UserPlus size={16} className="text-white" /></div>
@@ -122,38 +128,40 @@ export const AddFriends: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
+          <div className="rounded-lg p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
             {/* Primary Row */}
-            <div className="flex items-end gap-4">
-              <div className="flex-1 min-w-[180px]">
+            <div className="grid grid-cols-2 gap-4 items-end">
+              <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Full Name</label>
                 <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addToQueue())}
                   className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none transition-all placeholder:font-medium placeholder:text-gray-400"
                   placeholder="e.g., John Doe" />
               </div>
-              <div className="w-[200px] shrink-0">
+              <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Email</label>
                 <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none placeholder:font-medium placeholder:text-gray-400"
                   placeholder="email@example.com" />
               </div>
-              <div className="w-[160px] shrink-0">
+              <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Phone</label>
                 <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none placeholder:font-medium placeholder:text-gray-400"
                   placeholder="+91..." />
               </div>
-              <div className="w-[140px] shrink-0">
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Relationship</label>
-                <select value={formData.relationship} onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                  className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer capitalize" style={selectStyle}>
-                  {RELATIONSHIPS.map(r => <option key={r} value={r} className="capitalize">{r}</option>)}
-                </select>
-              </div>
-              <div className="shrink-0">
+              <SearchableDropdown
+                label="Relationship"
+                options={relationshipOptions}
+                value={formData.relationship}
+                onChange={(relationship) => setFormData({ ...formData, relationship })}
+                placeholder="Choose relationship"
+                searchPlaceholder="Search relationship..."
+                grouped
+              />
+              <div className="col-span-2">
                 <button type="button" onClick={addToQueue}
-                  className="h-14 px-8 rounded-2xl bg-gray-900 text-white font-bold shadow-lg hover:bg-gray-800 transition-all active:scale-95 flex items-center gap-2">
+                  className="h-12 w-full px-8 rounded-lg bg-gray-900 text-white font-bold shadow-lg hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2">
                   <UserPlus size={16} /> Add
                 </button>
               </div>

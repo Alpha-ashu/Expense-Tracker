@@ -14,6 +14,7 @@ import { saveAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { api } from '@/lib/api';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
 import { enableGuestMode, isGuestMode, disableGuestMode, migrateGuestDataToUser, migrateGuestLocalStorage } from '@/lib/guestMode';
+import { pinService, isPinMissing } from '@/services/pinService';
 
 /** Internal-only logger - never leaks raw errors to the browser console in production. */
 const internalLog = {
@@ -218,9 +219,10 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       const alreadyConfirmed = !!authData?.user?.email_confirmed_at;
 
       if (alreadyConfirmed) {
-        // Email confirmation disabled in Supabase - go straight to profile setup
-        setStep('profile-setup');
-        saveFlowState('profile-setup');
+        // Email confirmation disabled in Supabase - go to NewUserOnboarding in App.tsx
+        localStorage.removeItem('auth_flow_step');
+        localStorage.removeItem('pending_auth_email');
+        window.location.reload();
         toast.success('Account created! Let\'s set up your profile.');
       } else if (serverError) {
         // Supabase returned 500 - account may have been created but email sending failed
@@ -265,21 +267,60 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
     }
   };
 
-  const handleOTPVerified = () => {
+  const handleOTPVerified = async () => {
     if (isNewUser) {
-      setStep('profile-setup');
+      // New users skip AuthFlow onboarding and go to NewUserOnboarding in App.tsx
+      localStorage.removeItem('auth_flow_step');
+      localStorage.removeItem('pending_auth_email');
+      window.location.reload();
     } else {
+      // Check if user already has PIN server-side before routing to pin-setup
+      try {
+        const status = await pinService.getStatus();
+        const hasServerPin = status.success && !isPinMissing(status);
+        const hasLocalPin = pinService.hasPin();
+
+        if (hasServerPin || hasLocalPin) {
+          // User already has PIN, skip to complete
+          localStorage.setItem('onboarding_completed', 'true');
+          localStorage.removeItem('auth_flow_step');
+          localStorage.removeItem('pending_auth_email');
+          window.location.reload();
+          return;
+        }
+      } catch {
+        // If check fails, proceed to pin-setup to be safe
+      }
       setStep('pin-setup');
+      saveFlowState('pin-setup');
     }
-    saveFlowState(isNewUser ? 'profile-setup' : 'pin-setup');
   };
 
-  const handleOTPSkip = () => {
+  const handleOTPSkip = async () => {
     // Limited mode - still allow entry
     if (isNewUser) {
       setStep('profile-setup');
+      saveFlowState('profile-setup');
     } else {
+      // Check if user already has PIN server-side before routing to pin-setup
+      try {
+        const status = await pinService.getStatus();
+        const hasServerPin = status.success && !isPinMissing(status);
+        const hasLocalPin = pinService.hasPin();
+
+        if (hasServerPin || hasLocalPin) {
+          // User already has PIN, skip to complete
+          localStorage.setItem('onboarding_completed', 'true');
+          localStorage.removeItem('auth_flow_step');
+          localStorage.removeItem('pending_auth_email');
+          window.location.reload();
+          return;
+        }
+      } catch {
+        // If check fails, proceed to pin-setup to be safe
+      }
       setStep('pin-setup');
+      saveFlowState('pin-setup');
     }
     toast.info('You can verify your email later in Settings');
   };
@@ -351,9 +392,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       // Auto-provision accounts and setup
       await autoProvisionAccounts();
 
-      // Mark onboarding complete
-      localStorage.setItem('onboarding_completed', 'true');
-      localStorage.setItem('onboarding_date', new Date().toISOString());
+      // Clear auth flow state but DO NOT mark onboarding complete
+      // New users will go through NewUserOnboarding which includes PIN setup
       localStorage.removeItem('auth_flow_step');
       localStorage.removeItem('pending_auth_email');
 

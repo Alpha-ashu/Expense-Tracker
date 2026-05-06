@@ -378,6 +378,25 @@ class BackendService {
     return response.data;
   }
 
+  async categorizeText(text: string): Promise<{
+    category: string;
+    subcategory: string;
+    confidence: number;
+    matchedBy?: string;
+  }> {
+    const response = await this.api.post('/categorize', { text });
+    return response.data?.data ?? response.data;
+  }
+
+  async learnCategorization(payload: {
+    text: string;
+    category: string;
+    subcategory?: string;
+  }) {
+    const response = await this.api.post('/learn', payload);
+    return response.data;
+  }
+
   async updateTransaction(id: string, updates: any) {
     const response = await this.api.put(`/transactions/${id}`, updates);
     return response.data;

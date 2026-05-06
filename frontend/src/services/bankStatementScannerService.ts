@@ -50,7 +50,7 @@ const BANK_KEYWORDS = [
 const HEADER_LINE_PATTERN = /^(period|statement|account|a\/c|customer\s*id|opening\s*balance|closing\s*balance|balance\s*(?:brought|carried)\s*forward)\b/i;
 const TRANSACTION_TABLE_HEADER_PATTERN = /\b(date|value\s*date)\b.*\b(description|particulars|narration|remarks)\b.*\b(debit|credit|withdrawal|deposit|amount|balance)\b/i;
 const DATE_PREFIX_PATTERN = /^(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{2,4}[/-]\d{1,2}[/-]\d{1,2})\s+(.+)$/i;
-const AMOUNT_TOKEN_PATTERN = /INR?\s*[\d,]+(?:\.\d{2})?/gi;
+const AMOUNT_TOKEN_PATTERN = /(?:INR|Rs\.?)?\s*[\d,]+(?:\.\d{1,2})?/gi;
 
 const TRANSACTION_DESCRIPTION_PATTERNS = {
   atm: /atm|cash\s*withdrawal/i,
@@ -65,7 +65,7 @@ const TRANSACTION_DESCRIPTION_PATTERNS = {
 };
 
 function normalizeAmount(amount: string): number {
-  return parseFloat(amount.replace(/[,\sINR]/g, ''));
+  return parseFloat(amount.replace(/(?:INR|Rs\.?)/gi, '').replace(/[,\s]/g, ''));
 }
 
 function normalizeStatementLine(line: string): string {
@@ -164,7 +164,7 @@ function extractBalances(lines: string[]): { opening?: number; closing?: number 
 }
 
 function extractTrailingAmountBlock(text: string) {
-  return text.match(/((?:INR?\s*[\d,]+(?:\.\d{2})?\s*){1,3})$/i);
+  return text.match(/((?:(?:INR|Rs\.?)?\s*[\d,]+(?:\.\d{1,2})?\s*){1,3})$/i);
 }
 
 function parseTrailingAmountColumns(

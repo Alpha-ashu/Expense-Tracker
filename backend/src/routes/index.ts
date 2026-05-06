@@ -19,6 +19,7 @@ import { investmentRoutes } from '../modules/investments/investment.routes';
 import { todoRoutes } from '../modules/todos/todo.routes';
 import { groupRoutes } from '../modules/groups/group.routes';
 import { dashboardRoutes } from '../modules/dashboard/dashboard.routes';
+import { categorizationRoutes, learnRouter } from '../modules/categorization/categorization.routes';
 
 const router = Router();
 
@@ -57,6 +58,8 @@ router.use('/friends', friendRoutes);
 router.use('/investments', investmentRoutes);
 router.use('/todos', todoRoutes);
 router.use('/groups', groupRoutes);
+router.use('/categorize', categorizationRoutes);
+router.use('/learn', learnRouter);
 router.use('/ai', lazyRoute(() => require('../modules/ai/ai.routes'), 'aiRoutes'));
 router.use('/receipts', lazyRoute(() => require('../modules/receipts/receipt.routes'), 'receiptRoutes'));
 

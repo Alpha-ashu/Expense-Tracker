@@ -12,6 +12,7 @@ import {
 import type { Account } from '@/lib/database';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 
 const accountTypeMeta: Record<string, { icon: React.FC<{ size?: number; className?: string }>; shell: string }> = {
   bank:    { icon: CreditCard,  shell: 'bg-blue-50 text-blue-600' },
@@ -136,47 +137,41 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
     fieldKey: 'fromAccountId' | 'toAccountId';
     exclude?: number;
     errorKey: string;
-  }) => (
-    <div>
-      <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">
-        {label}
-      </label>
-      <div className="space-y-2">
-        {activeAccounts
-          .filter((a) => a.id !== exclude)
-          .map((acc: Account) => {
-            const isSelected = formData[fieldKey] === acc.id;
-            const meta = accountTypeMeta[acc.type ?? 'bank'] ?? accountTypeMeta.bank;
-            return (
-              <button key={acc.id} type="button"
-                onClick={() => {
-                  setFormData((p) => ({ ...p, [fieldKey]: acc.id || 0, ...(fieldKey === 'fromAccountId' ? { toAccountId: 0 } : {}) }));
-                  setErrors((p) => ({ ...p, [errorKey]: '' }));
-                }}
-                className={cn(
-                  'w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all text-left',
-                  isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 bg-white hover:border-gray-300',
-                )}>
-                <div className="flex items-center gap-2.5">
-                  <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', meta.shell)}>
-                    <meta.icon size={15} />
-                  </div>
-                  <div>
-                    <p className={cn('font-bold text-sm leading-tight', isSelected ? 'text-indigo-900' : 'text-gray-900')}>{acc.name}</p>
-                    <p className={cn('text-[11px] font-semibold', isSelected ? 'text-indigo-600' : 'text-gray-400')}>{fmt(acc.balance)}</p>
-                  </div>
-                </div>
-                {isSelected && <div className="h-4 w-4 rounded-full bg-indigo-500 flex items-center justify-center"><Check size={10} className="text-white" /></div>}
-              </button>
-            );
-          })}
-        {activeAccounts.filter((a) => a.id !== exclude).length === 0 && (
-          <p className="text-xs text-gray-400 italic px-1">No accounts available</p>
-        )}
-      </div>
-      {errors[errorKey] && <p className="mt-1 text-xs text-rose-600 font-medium">{errors[errorKey]}</p>}
-    </div>
-  );
+  }) => {
+    const options = activeAccounts
+      .filter((account) => account.id !== exclude)
+      .map((account: Account) => {
+        const meta = accountTypeMeta[account.type ?? 'bank'] ?? accountTypeMeta.bank;
+        return {
+          value: String(account.id),
+          label: account.name,
+          description: fmt(account.balance),
+          icon: (
+            <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg', meta.shell)}>
+              <meta.icon size={14} />
+            </span>
+          ),
+          group: account.type ? `${account.type.charAt(0).toUpperCase()}${account.type.slice(1)} accounts` : 'Accounts',
+        };
+      });
+
+    return (
+      <SearchableDropdown
+        label={label}
+        options={options}
+        value={formData[fieldKey] ? String(formData[fieldKey]) : ''}
+        onChange={(accountId) => {
+          const nextId = parseInt(accountId, 10) || 0;
+          setFormData((p) => ({ ...p, [fieldKey]: nextId, ...(fieldKey === 'fromAccountId' ? { toAccountId: 0 } : {}) }));
+          setErrors((p) => ({ ...p, [errorKey]: '' }));
+        }}
+        placeholder={options.length ? `Select ${label.toLowerCase()}` : 'No accounts available'}
+        searchPlaceholder="Search accounts..."
+        error={errors[errorKey]}
+        grouped
+      />
+    );
+  };
 
   /*  Mobile view  */
   const MobileView = () => (
@@ -281,7 +276,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
   /*  Desktop view  */
   const DesktopView = () => (
     <div className="hidden lg:flex min-h-screen flex-col bg-white">
-      <div className="flex-1 w-full max-w-6xl mx-auto px-6 py-6 overflow-y-auto">
+      <div className="flex-1 w-full max-w-[800px] mx-auto px-6 py-6 overflow-y-auto">
 
         {/* Header */}
         <div className="flex justify-between items-center mb-5">

@@ -5,6 +5,7 @@ import { Wallet, Landmark, CreditCard, Banknote, Smartphone, CheckCircle2, Arrow
 import { toast } from 'sonner';
 import { Card } from '@/app/components/ui/card';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { cn } from '@/lib/utils';
 
 const accountTypes = [
@@ -165,19 +166,18 @@ export const AddAccount: React.FC = () => {
     setFormData(prev => ({ ...prev, name: '' }));
   }, [formData.type, userCountry]);
 
-  const handleProviderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setProvider(val);
-    if (!val) {
+  const applyProviderValue = (value: string) => {
+    setProvider(value);
+    if (!value) {
       setFormData(prev => ({ ...prev, name: '' }));
       return;
     }
 
-    let generatedName = `${val} Account`;
+    let generatedName = `${value} Account`;
     if (formData.type === 'card') {
-      generatedName = `${val} Credit Card`;
+      generatedName = `${value} Credit Card`;
     } else if (formData.type === 'wallet') {
-      generatedName = `${val} Wallet`;
+      generatedName = `${value} Wallet`;
     }
     setFormData(prev => ({ ...prev, name: generatedName }));
   };
@@ -286,11 +286,34 @@ export const AddAccount: React.FC = () => {
     return ranked.slice(0, 10);
   }, [availableOptions, formData.type, provider]);
 
+  const providerDropdownOptions = useMemo(() => {
+    if (formData.type === 'cash') {
+      return [];
+    }
+
+    const providerMap = formData.type === 'wallet' ? WALLET_PROVIDER_LISTS : BANK_PROVIDER_LISTS;
+    const providerSet = providerMap[userCountry] || providerMap['Default'];
+    const local = new Set(providerSet.local);
+    const international = new Set(providerSet.international);
+
+    return availableOptions.map((option) => ({
+      value: option,
+      label: option,
+      icon: formData.type === 'wallet' ? <Smartphone size={14} /> : <Landmark size={14} />,
+      description: formData.type === 'wallet' ? 'Wallet provider' : 'Bank or financial institution',
+      group: local.has(option)
+        ? `${userCountry === 'Default' ? 'Local' : userCountry} providers`
+        : international.has(option)
+          ? 'International providers'
+          : 'Global banks',
+    }));
+  }, [availableOptions, formData.type, userCountry]);
+
   const showNameField = formData.type === 'cash' || provider !== '';
 
   return (
     <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
-      <div className="max-w-[560px] mx-auto px-3 lg:px-4 w-full">
+      <div className="max-w-[760px] mx-auto px-3 lg:px-4 w-full">
         {/* Header */}
         <div className="mb-4 lg:mb-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -389,23 +412,17 @@ export const AddAccount: React.FC = () => {
                 {!isCashSelected && (
                   <>
                     <div>
-                      <label htmlFor="accountProvider" className="block text-sm font-medium text-gray-600 mb-2">
-                        {formData.type === 'wallet' ? 'Wallet Provider' : formData.type === 'card' ? 'Card Provider / Bank' : 'Bank / Institution'}
-                      </label>
-                      <input
+                      <SearchableDropdown
                         id="accountProvider"
-                        aria-label={formData.type === 'wallet' ? 'Wallet provider' : formData.type === 'card' ? 'Card provider' : 'Bank provider'}
+                        label={formData.type === 'wallet' ? 'Wallet Provider' : formData.type === 'card' ? 'Card Provider / Bank' : 'Bank / Institution'}
+                        options={providerDropdownOptions}
                         value={provider}
-                        onChange={handleProviderChange}
-                        list="provider-suggestions"
-                        className="w-full px-4 py-3 text-base border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-gray-900 font-medium appearance-none"
-                        placeholder={formData.type === 'wallet' ? 'Type wallet provider name' : 'Type bank name'}
+                        onChange={applyProviderValue}
+                        placeholder={formData.type === 'wallet' ? 'Search wallet provider' : 'Search bank or institution'}
+                        searchPlaceholder="Search local and international providers..."
+                        grouped
+                        required
                       />
-                      <datalist id="provider-suggestions">
-                        {providerSuggestions.map((opt) => (
-                          <option key={opt} value={opt} />
-                        ))}
-                      </datalist>
                       <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
                         <Globe2 size={13} />
                         <span>{providerSuggestions.length} suggestions shown. Keep typing to narrow results.</span>

@@ -64,12 +64,18 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
         if (mounted) {
           const serverHasNoPin = isPinMissing(status);
-          setIsCreating(serverHasNoPin && !hasLocalPin);
+          // Show create flow if:
+          // 1. Server explicitly says no PIN, OR
+          // 2. No local PIN (new user on fresh device or server error)
+          const shouldCreate = serverHasNoPin || !hasLocalPin;
+          setIsCreating(shouldCreate);
           setIsLoading(false);
         }
       } catch {
+        // Network/server error -> if no local PIN, assume new user and show create flow
         if (mounted) {
-          setIsCreating(!isPINSet());
+          const hasLocalPin = isPINSet();
+          setIsCreating(!hasLocalPin);
           setIsLoading(false);
         }
       }

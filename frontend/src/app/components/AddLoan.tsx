@@ -3,6 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { queueTransactionInsertSync } from '@/lib/auth-sync-integration';
 import { backendService } from '@/lib/backend-api';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { CreditCard, UserPlus, X, Check, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +25,14 @@ export const AddLoan: React.FC = () => {
   });
 
   const selectedAccount = accounts.find((a) => a.id === formData.accountId);
+  const accountOptions = accounts
+    .filter((account) => account.id)
+    .map((account) => ({
+      value: String(account.id),
+      label: account.name,
+      description: `${currency} ${account.balance.toFixed(2)} available`,
+      group: account.type ? `${account.type.charAt(0).toUpperCase()}${account.type.slice(1)} accounts` : 'Accounts',
+    }));
 
   const calculateEMI = (data = formData) => {
     const P = data.principalAmount;
@@ -140,12 +149,12 @@ export const AddLoan: React.FC = () => {
   /*  Shared summary sidebar  */
   const SummaryPanel = () => (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-6">
+      <div className="rounded-2xl  border border-gray-200 shadow-sm p-6">
         <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Loan Summary</h3>
         <div className="space-y-4">
           {[
-            { label: 'Principal', value: formData.principalAmount > 0 ? `${currency} ${formData.principalAmount.toFixed(2)}` : '-', cls: 'bg-white border-gray-100 text-gray-900' },
-            { label: 'Monthly EMI', value: formData.emiAmount > 0 ? `${currency} ${formData.emiAmount.toFixed(2)}` : '-', cls: 'bg-white border-gray-100 text-gray-900' },
+            { label: 'Principal', value: formData.principalAmount > 0 ? `${currency} ${formData.principalAmount.toFixed(2)}` : '-', cls: ' border-gray-100 text-gray-900' },
+            { label: 'Monthly EMI', value: formData.emiAmount > 0 ? `${currency} ${formData.emiAmount.toFixed(2)}` : '-', cls: ' border-gray-100 text-gray-900' },
             { label: 'Total Interest', value: totalInterest > 0 ? `${currency} ${totalInterest.toFixed(2)}` : '-', cls: 'bg-amber-50 border-amber-100 text-amber-700' },
             { label: 'Total Payable', value: formData.principalAmount > 0 ? `${currency} ${(formData.principalAmount + totalInterest).toFixed(2)}` : '-', cls: 'bg-rose-50 border-rose-100 text-rose-700' },
           ].map(({ label, value, cls }) => (
@@ -185,7 +194,7 @@ export const AddLoan: React.FC = () => {
             <UserPlus size={13} /> Select from friends
           </button>
           {showFriendPicker && (
-            <div className="mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div className="mt-2 p-3  border border-gray-200 rounded-xl shadow-sm">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Choose friend</span>
                 <button type="button" onClick={() => setShowFriendPicker(false)} className="text-gray-400 hover:text-gray-600"><X size={15} /></button>
@@ -193,7 +202,7 @@ export const AddLoan: React.FC = () => {
               <div className="space-y-1.5 max-h-40 overflow-auto">
                 {friends.map((friend) => (
                   <button key={friend.id} type="button"
-                    className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors flex items-center justify-between ${formData.friendId === friend.id ? 'bg-green-50 border-green-300 text-green-800 font-semibold' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                    className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors flex items-center justify-between ${formData.friendId === friend.id ? 'bg-green-50 border-green-300 text-green-800 font-semibold' : ' border-gray-200 text-gray-700 hover:bg-gray-50'}`}
                     onClick={() => friend.id && handleFriendSelect(friend.id)}>
                     <span>{friend.name}</span>
                     {formData.friendId === friend.id && <Check size={14} />}
@@ -214,7 +223,7 @@ export const AddLoan: React.FC = () => {
         <label className="block text-sm font-semibold text-gray-700 mb-2">Lender Name *</label>
         <input type="text" value={formData.lenderName}
           onChange={(e) => handleFieldChange('lenderName', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500  text-sm"
           placeholder="e.g., HDFC Bank, John Doe" required />
         <FriendPickerSection />
       </div>
@@ -222,7 +231,7 @@ export const AddLoan: React.FC = () => {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Principal Amount *</label>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl bg-white px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl  px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500">
             <span className="text-gray-500 text-sm font-bold">{currency}</span>
             <input type="number" step="0.01" value={formData.principalAmount || ''}
               onChange={(e) => handleFieldChange('principalAmount', parseFloat(e.target.value) || 0)}
@@ -231,7 +240,7 @@ export const AddLoan: React.FC = () => {
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Interest Rate (% p.a.)</label>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl bg-white px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl  px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500">
             <input type="number" step="0.01" value={formData.interestRate || ''}
               onChange={(e) => handleFieldChange('interestRate', parseFloat(e.target.value) || 0)}
               className="flex-1 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none" placeholder="0.00" />
@@ -243,7 +252,7 @@ export const AddLoan: React.FC = () => {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Tenure *</label>
-          <div className="flex items-center gap-2 border border-gray-200 rounded-xl bg-white px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="flex items-center gap-2 border border-gray-200 rounded-xl  px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500">
             <input type="number" step="1" value={formData.tenureMonths || ''}
               onChange={(e) => handleFieldChange('tenureMonths', parseInt(e.target.value) || 0)}
               className="flex-1 bg-transparent text-sm font-semibold text-gray-900 focus:outline-none" placeholder="12" required />
@@ -254,24 +263,27 @@ export const AddLoan: React.FC = () => {
           <label className="block text-sm font-semibold text-gray-700 mb-2">Start Date *</label>
           <input type="date" value={formData.startDate}
             onChange={(e) => handleFieldChange('startDate', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-semibold"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500  text-sm font-semibold"
             required aria-label="Start Date" title="Start Date" />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Link to Account</label>
-        <select value={formData.accountId} onChange={(e) => handleFieldChange('accountId', parseInt(e.target.value))}
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-semibold"
-          aria-label="Account" title="Account">
-          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+        <SearchableDropdown
+          label="Link to Account"
+          options={accountOptions}
+          value={formData.accountId ? String(formData.accountId) : ''}
+          onChange={(accountId) => handleFieldChange('accountId', parseInt(accountId, 10) || 0)}
+          placeholder="Select account"
+          searchPlaceholder="Search accounts..."
+          grouped
+        />
       </div>
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
         <textarea value={formData.description} onChange={(e) => handleFieldChange('description', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white text-sm"
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none  text-sm"
           rows={3} placeholder="Any notes about this loan..." />
       </div>
 
@@ -306,11 +318,11 @@ export const AddLoan: React.FC = () => {
   return (
     <>
       {isDesktop ? (
-        <div className="flex min-h-screen flex-col">
-          <div className="w-full max-w-5xl mx-auto px-8 py-10">
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col">
+          <div className="w-full max-w-[800px] mx-auto px-8 py-10">
             <div className="mb-8 flex items-center gap-3">
               <button type="button" onClick={() => setCurrentPage('loans')}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors shadow-sm"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200  text-gray-500 hover:bg-gray-50 transition-colors shadow-sm"
                 aria-label="Go back">
                 <Plus size={18} className="rotate-45" />
               </button>
@@ -324,7 +336,7 @@ export const AddLoan: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-[1fr_300px] gap-6 items-start">
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 p-8">
+              <div className=" rounded-lg border border-gray-100 shadow-xl shadow-gray-200/50 p-8">
                 {loanForm}
               </div>
               <div className="sticky top-8">
@@ -334,12 +346,12 @@ export const AddLoan: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col min-h-screen bg-white">
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col">
 
           {/* Header */}
           <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
             <button type="button" onClick={() => setCurrentPage('loans')}
-              className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-all shadow-sm">
+              className="w-9 h-9 rounded-xl border border-gray-200  flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-all shadow-sm">
               <Plus size={18} className="rotate-45" />
             </button>
             <div className="flex items-center gap-2">
@@ -361,21 +373,21 @@ export const AddLoan: React.FC = () => {
             <div className="flex-1 px-4 py-4 space-y-4">
 
               {/* Lender */}
-              <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
+              <div className="/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
                 <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Lender Name *</label>
                 <input type="text" value={formData.lenderName}
                   onChange={(e) => handleFieldChange('lenderName', e.target.value)}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white transition-all placeholder:text-gray-300"
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus: transition-all placeholder:text-gray-300"
                   placeholder="e.g., HDFC Bank, John Doe" required />
                 <FriendPickerSection />
               </div>
 
               {/* Principal + Interest */}
-              <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
+              <div className="/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Principal *</label>
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:bg-white transition-all">
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within: transition-all">
                       <span className="text-xs font-bold text-gray-400">{currency}</span>
                       <input type="number" step="0.01" value={formData.principalAmount || ''}
                         onChange={(e) => handleFieldChange('principalAmount', parseFloat(e.target.value) || 0)}
@@ -384,7 +396,7 @@ export const AddLoan: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Interest % p.a.</label>
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:bg-white transition-all">
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within: transition-all">
                       <input type="number" step="0.01" value={formData.interestRate || ''}
                         onChange={(e) => handleFieldChange('interestRate', parseFloat(e.target.value) || 0)}
                         className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none placeholder:text-gray-300" placeholder="0.00" />
@@ -395,11 +407,11 @@ export const AddLoan: React.FC = () => {
               </div>
 
               {/* Tenure + Start Date */}
-              <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
+              <div className="/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Tenure *</label>
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:bg-white transition-all">
+                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within: transition-all">
                       <input type="number" step="1" value={formData.tenureMonths || ''}
                         onChange={(e) => handleFieldChange('tenureMonths', parseInt(e.target.value) || 0)}
                         className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none placeholder:text-gray-300" placeholder="12" required />
@@ -410,7 +422,7 @@ export const AddLoan: React.FC = () => {
                     <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Start Date *</label>
                     <input type="date" value={formData.startDate}
                       onChange={(e) => handleFieldChange('startDate', e.target.value)}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white transition-all"
+                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus: transition-all"
                       required aria-label="Start Date" title="Start Date" />
                   </div>
                 </div>
@@ -433,26 +445,29 @@ export const AddLoan: React.FC = () => {
               )}
 
               {/* Account + Notes */}
-              <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4 space-y-3">
+              <div className="/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4 space-y-3">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Link to Account</label>
-                  <select value={formData.accountId} onChange={(e) => handleFieldChange('accountId', parseInt(e.target.value))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white transition-all"
-                    aria-label="Account" title="Account">
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
+                  <SearchableDropdown
+                    label="Link to Account"
+                    options={accountOptions}
+                    value={formData.accountId ? String(formData.accountId) : ''}
+                    onChange={(accountId) => handleFieldChange('accountId', parseInt(accountId, 10) || 0)}
+                    placeholder="Select account"
+                    searchPlaceholder="Search accounts..."
+                    grouped
+                  />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Notes <span className="normal-case font-normal">(optional)</span></label>
                   <textarea value={formData.description} onChange={(e) => handleFieldChange('description', e.target.value)}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white resize-none transition-all placeholder:text-gray-300"
+                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus: resize-none transition-all placeholder:text-gray-300"
                     rows={3} placeholder="Any notes about this loan..." />
                 </div>
               </div>
             </div>
 
             {/* Bottom action bar */}
-            <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-4 flex gap-3">
+            <div className="sticky bottom-0  border-t border-gray-100 px-4 py-4 flex gap-3">
               <button type="button" onClick={() => setCurrentPage('loans')}
                 className="px-5 py-3 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all">
                 Cancel

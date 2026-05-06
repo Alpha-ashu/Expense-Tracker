@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { db, Friend } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
 import { useApp } from '@/contexts/AppContext';
+import { ModalWrapper } from '@/app/components/ui/ModalWrapper';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { UserPlus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,6 +31,14 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
     phone: '',
     notes: '',
   });
+  const friendOptions = friends
+    .filter((friend) => friend.id)
+    .map((friend) => ({
+      value: String(friend.id),
+      label: friend.name,
+      description: [friend.email, friend.phone].filter(Boolean).join(' | ') || 'Saved friend',
+      group: 'Friends',
+    }));
 
   const handleAddFriend = async () => {
     if (!newFriend.name.trim()) {
@@ -87,15 +96,13 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
-          <h3 className="text-2xl font-bold">Add Loan</h3>
-          <p className="text-blue-100 text-sm mt-1">Track borrowed, lent, or EMI loans</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+    <ModalWrapper
+      title="Add Loan"
+      subtitle="Track borrowed, lent, or EMI loans"
+      onClose={onClose}
+      maxWidth="max-w-md"
+    >
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Loan Type */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Loan Type</label>
@@ -213,19 +220,14 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
                   </div>
                 </div>
               ) : (
-                <select
-                  aria-label="Select Friend"
-                  value={formData.friendId || ''}
-                  onChange={(e) => handleFriendSelect(parseInt(e.target.value))}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                  <option value="">Select a friend (optional)</option>
-                  {friends.map((friend) => (
-                    <option key={friend.id} value={friend.id}>
-                      {friend.name} {friend.phone && `(${friend.phone})`}
-                    </option>
-                  ))}
-                </select>
+                <SearchableDropdown
+                  options={friendOptions}
+                  value={formData.friendId ? String(formData.friendId) : ''}
+                  onChange={(friendId) => handleFriendSelect(parseInt(friendId, 10))}
+                  placeholder="Select a friend (optional)"
+                  searchPlaceholder="Search friends..."
+                  grouped
+                />
               )}
             </div>
           )}
@@ -305,7 +307,6 @@ export const AddLoanModalWithFriends: React.FC<AddLoanModalWithFriendsProps> = (
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalWrapper>
   );
 };

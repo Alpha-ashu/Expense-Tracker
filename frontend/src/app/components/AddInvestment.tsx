@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { backendService } from '@/lib/backend-api';
 import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { db } from '@/lib/database';
@@ -14,6 +15,15 @@ import { fetchCurrencyConversionRate } from '@/lib/investmentUtils';
 const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
 type InvestmentFormType = 'stocks' | 'bonds' | 'mutual-funds' | 'real-estate' | 'crypto' | 'other';
+
+const investmentTypeOptions = [
+  { value: 'stocks', label: 'Stocks', description: 'Listed equity holdings', group: 'Market assets' },
+  { value: 'crypto', label: 'Cryptocurrency', description: 'Crypto assets with live quotes', group: 'Market assets' },
+  { value: 'bonds', label: 'Bonds', description: 'Fixed income investments', group: 'Traditional assets' },
+  { value: 'mutual-funds', label: 'Mutual Funds', description: 'Funds, SIPs, and ETFs', group: 'Traditional assets' },
+  { value: 'real-estate', label: 'Real Estate', description: 'Property or land investments', group: 'Physical assets' },
+  { value: 'other', label: 'Other', description: 'Any custom investment', group: 'Physical assets' },
+];
 
 interface PendingInvestmentDraft {
   symbol: string;
@@ -82,6 +92,12 @@ export const AddInvestment: React.FC = () => {
   const currentValue = livePrice * formData.quantity;
   const investmentGain = (livePrice - formData.purchasePrice) * formData.quantity;
   const gainPercentage = totalInvested > 0 ? (investmentGain / totalInvested) * 100 : 0;
+  const fundingAccountOptions = activeAccounts.map((account) => ({
+    value: String(account.id),
+    label: account.name,
+    description: `${formatNativeMoney(account.balance, currency)} available`,
+    group: account.type ? `${account.type.charAt(0).toUpperCase()}${account.type.slice(1)} accounts` : 'Accounts',
+  }));
 
   useEffect(() => {
     if (formData.fundingAccountId || !activeAccounts.length) {
@@ -93,6 +109,26 @@ export const AddInvestment: React.FC = () => {
       fundingAccountId: activeAccounts[0]?.id || 0,
     }));
   }, [activeAccounts, formData.fundingAccountId]);
+
+  const handleInvestmentTypeChange = (value: string) => {
+    const nextType = value as InvestmentFormType;
+    setSelectedSymbol(null);
+    setQuoteSnapshot(null);
+    setSearchResults([]);
+    setShowSuggestions(false);
+    setFormData({
+      name: '',
+      type: nextType,
+      quantity: 0,
+      purchasePrice: 0,
+      currentPrice: 0,
+      date: formData.date,
+      broker: formData.broker,
+      description: formData.description,
+      fundingAccountId: formData.fundingAccountId,
+      purchaseFees: formData.purchaseFees,
+    });
+  };
 
   const applyQuoteSnapshot = useCallback((quote: QuoteSnapshot, prefillBuyPrice = false) => {
     setQuoteSnapshot(quote);
@@ -469,7 +505,7 @@ export const AddInvestment: React.FC = () => {
   return (
     <>
       {!isDesktop ? (
-        <div className="flex flex-col min-h-screen bg-white">
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
@@ -496,43 +532,21 @@ export const AddInvestment: React.FC = () => {
           <div className="flex-1 px-4 py-4 space-y-4">
 
             {/* Type */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
-              <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Asset Type *</label>
-              <select value={formData.type}
-                onChange={(e) => {
-                  const nextType = e.target.value as InvestmentFormType;
-                  setSelectedSymbol(null);
-                  setQuoteSnapshot(null);
-                  setSearchResults([]);
-                  setShowSuggestions(false);
-                  setFormData({
-                    name: '',
-                    type: nextType,
-                    quantity: 0,
-                    purchasePrice: 0,
-                    currentPrice: 0,
-                    date: formData.date,
-                    broker: formData.broker,
-                    description: formData.description,
-                    fundingAccountId: formData.fundingAccountId,
-                    purchaseFees: formData.purchaseFees,
-                  });
-                }}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                aria-label="Investment Type"
-                title="Investment Type"
-              >
-                <option value="stocks">Stocks</option>
-                <option value="crypto">Cryptocurrency</option>
-                <option value="bonds">Bonds</option>
-                <option value="mutual-funds">Mutual Funds</option>
-                <option value="real-estate">Real Estate</option>
-                <option value="other">Other</option>
-              </select>
+            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
+              <SearchableDropdown
+                label="Asset Type"
+                options={investmentTypeOptions}
+                value={formData.type}
+                onChange={handleInvestmentTypeChange}
+                placeholder="Select asset type"
+                searchPlaceholder="Search investment type..."
+                grouped
+                required
+              />
             </div>
 
             {/* Asset Name / Search */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
+            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
               {isMarketAsset ? (
                 <div className="relative">
                   <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">
@@ -600,7 +614,7 @@ export const AddInvestment: React.FC = () => {
             </div>
 
             {/* Qty + Price */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
+            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Quantity *</label>
@@ -649,15 +663,18 @@ export const AddInvestment: React.FC = () => {
             )}
 
             {/* Account + Fees + Date + Notes */}
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4 space-y-3">
+            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4 space-y-3">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Payment Account *</label>
-                <select value={formData.fundingAccountId || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(e.target.value, 10) || 0 }))}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all" required>
-                  <option value="">Select an account</option>
-                  {activeAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({formatNativeMoney(a.balance, currency)})</option>)}
-                </select>
+                <SearchableDropdown
+                  options={fundingAccountOptions}
+                  value={formData.fundingAccountId ? String(formData.fundingAccountId) : ''}
+                  onChange={(accountId) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(accountId, 10) || 0 }))}
+                  placeholder="Select an account"
+                  searchPlaceholder="Search accounts..."
+                  grouped
+                  required
+                />
                 {activeAccounts.length === 0 && <p className="mt-1 text-xs text-rose-600">Add an active account first.</p>}
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -709,8 +726,8 @@ export const AddInvestment: React.FC = () => {
         </form>
       </div>
       ) : (
-        <div className="flex min-h-screen flex-col items-start justify-start p-8">
-          <div className="w-full max-w-6xl mx-auto">
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col items-start justify-start p-8">
+          <div className="w-full max-w-[800px] mx-auto">
             <div className="mb-6 flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
                 <TrendingUp size={16} className="text-white" />
@@ -721,46 +738,23 @@ export const AddInvestment: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
+            <div className="bg-white rounded-lg p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
               <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                 
                 {/* Primary Horizontal Action Bar */}
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-end gap-4">
                   
                   {/* 1. Asset Type */}
                   <div className="w-[180px] shrink-0">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Asset Type</label>
-                    <select
+                    <SearchableDropdown
+                      label="Asset Type"
+                      options={investmentTypeOptions}
                       value={formData.type}
-                      onChange={(e) => {
-                        const nextType = e.target.value as InvestmentFormType;
-                        setSelectedSymbol(null);
-                        setQuoteSnapshot(null);
-                        setSearchResults([]);
-                        setShowSuggestions(false);
-                        setFormData({
-                          name: '',
-                          type: nextType,
-                          quantity: 0,
-                          purchasePrice: 0,
-                          currentPrice: 0,
-                          date: formData.date,
-                          broker: formData.broker,
-                          description: formData.description,
-                          fundingAccountId: formData.fundingAccountId,
-                          purchaseFees: formData.purchaseFees,
-                        });
-                      }}
-                      className="w-full bg-white border border-gray-200 focus:ring-2 focus:ring-black focus:border-black rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer transition-all"
-                      style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
-                    >
-                      <option value="stocks">Stocks</option>
-                      <option value="crypto">Crypto</option>
-                      <option value="bonds">Bonds</option>
-                      <option value="mutual-funds">Funds</option>
-                      <option value="real-estate">Real Estate</option>
-                      <option value="other">Other</option>
-                    </select>
+                      onChange={handleInvestmentTypeChange}
+                      placeholder="Select type"
+                      searchPlaceholder="Search investment type..."
+                      grouped
+                    />
                   </div>
 
                   {/* 2. Asset Name / Search */}
@@ -853,22 +847,19 @@ export const AddInvestment: React.FC = () => {
                 </div>
 
                 {/* Secondary Options Bar */}
-                <div className="flex gap-4 border-t border-gray-100 pt-6">
+                <div className="flex flex-wrap gap-4 border-t border-gray-100 pt-6">
                    {/* Payment Account */}
                    <div className="w-[200px] shrink-0">
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Payment Account</label>
-                      <select
-                        value={formData.fundingAccountId}
-                        onChange={(e) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(e.target.value, 10) || 0 }))}
-                        className="w-full bg-white border border-gray-200 focus:ring-2 focus:ring-black focus:border-black rounded-xl py-3 px-3 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer transition-all"
-                        style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
+                      <SearchableDropdown
+                        label="Payment Account"
+                        options={fundingAccountOptions}
+                        value={formData.fundingAccountId ? String(formData.fundingAccountId) : ''}
+                        onChange={(accountId) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(accountId, 10) || 0 }))}
+                        placeholder="Select account"
+                        searchPlaceholder="Search accounts..."
+                        grouped
                         required
-                      >
-                        <option value="">Select an account</option>
-                        {accounts.map(account => (
-                          <option key={account.id} value={account.id}>{account.name} ({currency}{account.balance})</option>
-                        ))}
-                      </select>
+                      />
                    </div>
                    
                    {/* Fees */}

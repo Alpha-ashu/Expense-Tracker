@@ -37,3 +37,24 @@
   color: #fff;
   font-weight: bold;
 }
+
+.formShell {
+  width: min(100%, 800px);
+  margin: 0 auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

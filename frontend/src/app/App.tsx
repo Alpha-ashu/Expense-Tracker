@@ -21,6 +21,7 @@ import { OfflineBanner } from '@/app/components/OfflineBanner';
 //  Auth / Security (shown before app shell - eager load) 
 import { AuthFlow } from '@/components/auth/AuthFlow';
 import { PINAuth } from '@/app/components/PINAuth';
+import { PINSetup } from '@/components/auth/PINSetup';
 import { LandingPage } from '@/app/components/LandingPage';
 import { AboutPage } from '@/app/components/AboutPage';
 import { PricingPage } from '@/app/components/PricingPage';
@@ -323,7 +324,7 @@ const AppContent: React.FC = () => {
     ? Date.now() - new Date(user.created_at).getTime()
     : Infinity;
   const isVeryNewAccount = accountAgeMs < 15 * 60 * 1000; // < 15 min
-  const isNewUser = !hasCompletedOnboarding && !hasProfileData && isVeryNewAccount;
+  const isNewUser = !hasCompletedOnboarding && isVeryNewAccount;
 
   if (!user) {
     if (showLanding) {
@@ -447,6 +448,20 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // Gate 1.5: PIN setup for new users (after onboarding completes)
+  const needsPinSetup = localStorage.getItem('pin_setup_required') === 'true';
+  if (needsPinSetup && isAuthenticated) {
+    localStorage.removeItem('pin_setup_required');
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <PINSetup
+          onComplete={() => setAuthenticated('')}
+          existingPinRequired={false}
+        />
+      </Suspense>
+    );
+  }
+
   // Gate 2: PIN authentication
   if (!isAuthenticated) {
     return <PINAuth onAuthenticated={setAuthenticated} />;
@@ -560,9 +575,7 @@ const AppContent: React.FC = () => {
         <LimitedModeBanner />
         <TopBar />
         <main className="flex-1 max-w-full overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
-          {/* Global alignment envelope - centers content on wide screens */}
-          <div className="w-full max-w-[1440px] mx-auto overflow-x-hidden isolate">
-            {dataSyncError && (
+          {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
                   <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -588,7 +601,6 @@ const AppContent: React.FC = () => {
                 {renderPage()}
               </Suspense>
             </PageErrorBoundary>
-          </div>
         </main>
       </div>
 

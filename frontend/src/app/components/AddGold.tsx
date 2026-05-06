@@ -4,6 +4,7 @@ import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
 import { CenteredLayout } from '@/app/components/CenteredLayout';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { ChevronLeft, Loader2, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,25 @@ const PURITY_PRESETS = [
   { label: '22K', value: 91.67 },
   { label: '18K', value: 75 },
   { label: '14K', value: 58.5 },
+];
+
+const goldTypeOptions = GOLD_TYPES.map((type) => ({
+  value: type.id,
+  label: type.label,
+  group: 'Gold type',
+}));
+
+const unitOptions = [
+  { value: 'gram', label: 'Gram', group: 'Weight unit' },
+  { value: 'ounce', label: 'Ounce', group: 'Weight unit' },
+  { value: 'kg', label: 'Kilogram', group: 'Weight unit' },
+];
+
+const locationOptions = [
+  { value: 'safe-deposit-box', label: 'Safe Deposit Box', group: 'Storage' },
+  { value: 'home-safe', label: 'Home Safe', group: 'Storage' },
+  { value: 'locker', label: 'Bank Locker', group: 'Storage' },
+  { value: 'other', label: 'Other', group: 'Storage' },
 ];
 
 export const AddGold: React.FC = () => {
@@ -70,26 +90,30 @@ export const AddGold: React.FC = () => {
   /*  Mobile Form  */
   const mobileForm = (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Gold Type *</label>
-        <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500">
-          {GOLD_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-        </select>
-      </div>
+      <SearchableDropdown
+        label="Gold Type"
+        options={goldTypeOptions}
+        value={formData.type}
+        onChange={(type) => setFormData({ ...formData, type: type as any })}
+        placeholder="Select gold type"
+        searchPlaceholder="Search gold type..."
+        grouped
+        required
+      />
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity *</label>
           <input type="number" step="0.01" min="0" value={formData.quantity || ''} onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) || 0 })}
             className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="0.00" required />
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Unit</label>
-          <select value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500">
-            <option value="gram">Gram</option><option value="ounce">Ounce</option><option value="kg">Kilogram</option>
-          </select>
-        </div>
+        <SearchableDropdown
+          label="Unit"
+          options={unitOptions}
+          value={formData.unit}
+          onChange={(unit) => setFormData({ ...formData, unit: unit as any })}
+          placeholder="Select unit"
+          grouped
+        />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -133,13 +157,15 @@ export const AddGold: React.FC = () => {
           <input type="date" value={formData.purchaseDate} onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
             className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500" required />
         </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-          <select value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500">
-            <option value="safe-deposit-box">Safe Deposit Box</option><option value="home-safe">Home Safe</option><option value="locker">Bank Locker</option><option value="other">Other</option>
-          </select>
-        </div>
+        <SearchableDropdown
+          label="Location"
+          options={locationOptions}
+          value={formData.location}
+          onChange={(location) => setFormData({ ...formData, location })}
+          placeholder="Select location"
+          searchPlaceholder="Search storage location..."
+          grouped
+        />
       </div>
       <div className="flex gap-3 pt-2">
         <button type="button" onClick={() => setCurrentPage('investments')} className="px-5 py-3 rounded-xl font-semibold text-gray-500 hover:bg-gray-100 transition-all text-sm">Cancel</button>
@@ -149,8 +175,6 @@ export const AddGold: React.FC = () => {
       </div>
     </form>
   );
-
-  const selectStyle = { backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' };
 
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -169,18 +193,18 @@ export const AddGold: React.FC = () => {
 
   return (
     <>
-        <div className="block">
+      {!isDesktop ? (
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
           <CenteredLayout>
             <div className="space-y-6 max-w-lg w-full mx-auto pb-8">
               <PageHeader title="Add Gold Investment" subtitle="Track your physical gold holdings" icon={<Sparkles size={20} />} showBack backTo="investments" />
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">{mobileForm}</div>
+              <div className="rounded-2xl border border-gray-200 p-5 shadow-sm">{mobileForm}</div>
             </div>
           </CenteredLayout>
         </div>
       ) : (
-        
-        <div className="block">
-        <div className="w-full max-w-6xl mx-auto px-8 py-6">
+        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+        <div className="w-full max-w-[800px] mx-auto px-8 py-6">
           <div className="mb-6 flex items-center gap-3">
             <button type="button" onClick={() => setCurrentPage('investments')} className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors shadow-sm">
               <ChevronLeft size={18} />
@@ -192,16 +216,19 @@ export const AddGold: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
+          <div className="rounded-lg p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
             <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               {/* Primary Row */}
-              <div className="flex items-end gap-4">
+              <div className="flex flex-wrap items-end gap-4">
                 <div className="w-[150px] shrink-0">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Type</label>
-                  <select value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                    className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer" style={selectStyle}>
-                    {GOLD_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                  </select>
+                  <SearchableDropdown
+                    label="Type"
+                    options={goldTypeOptions}
+                    value={formData.type}
+                    onChange={(type) => setFormData({ ...formData, type: type as any })}
+                    placeholder="Select type"
+                    grouped
+                  />
                 </div>
                 <div className="w-[120px] shrink-0">
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Quantity</label>
@@ -209,11 +236,14 @@ export const AddGold: React.FC = () => {
                     className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none" placeholder="0.00" required />
                 </div>
                 <div className="w-[100px] shrink-0">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Unit</label>
-                  <select value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
-                    className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer" style={selectStyle}>
-                    <option value="gram">Gram</option><option value="ounce">Ounce</option><option value="kg">KG</option>
-                  </select>
+                  <SearchableDropdown
+                    label="Unit"
+                    options={unitOptions}
+                    value={formData.unit}
+                    onChange={(unit) => setFormData({ ...formData, unit: unit as any })}
+                    placeholder="Unit"
+                    grouped
+                  />
                 </div>
                 <div className="w-[160px] shrink-0">
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Buy Price</label>
@@ -240,7 +270,7 @@ export const AddGold: React.FC = () => {
               </div>
 
               {/* Secondary Row */}
-              <div className="flex gap-4 border-t border-gray-100 pt-6">
+              <div className="flex flex-wrap gap-4 border-t border-gray-100 pt-6">
                 <div className="w-[140px] shrink-0">
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Purity</label>
                   <div className="flex items-center bg-gray-50 border border-gray-200 focus-within:ring-2 focus-within:ring-amber-500 rounded-xl px-3 py-3 transition-all">
@@ -263,11 +293,15 @@ export const AddGold: React.FC = () => {
                     className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-amber-500 rounded-xl py-3 px-3 text-sm font-bold text-gray-900 outline-none" required />
                 </div>
                 <div className="w-[160px] shrink-0">
-                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Location</label>
-                  <select value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-amber-500 rounded-xl py-3 px-3 text-sm font-bold text-gray-900 outline-none appearance-none cursor-pointer" style={selectStyle}>
-                    <option value="safe-deposit-box">Safe Deposit Box</option><option value="home-safe">Home Safe</option><option value="locker">Bank Locker</option><option value="other">Other</option>
-                  </select>
+                  <SearchableDropdown
+                    label="Location"
+                    options={locationOptions}
+                    value={formData.location}
+                    onChange={(location) => setFormData({ ...formData, location })}
+                    placeholder="Storage"
+                    searchPlaceholder="Search storage location..."
+                    grouped
+                  />
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Certificate / Notes</label>
@@ -297,6 +331,7 @@ export const AddGold: React.FC = () => {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 };
