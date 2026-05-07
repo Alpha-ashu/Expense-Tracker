@@ -310,16 +310,6 @@ export const AddAccount: React.FC = () => {
   }, [availableOptions, formData.type, userCountry]);
 
   const showNameField = formData.type === 'cash' || provider !== '';
-
-  return (
-    <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
-      <div className="max-w-[760px] mx-auto px-3 lg:px-4 w-full">
-        {/* Header */}
-        <div className="mb-4 lg:mb-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div>
-            <button 
-              type="button"
-              onClick={() => setCurrentPage('accounts')}
               className="lg:hidden w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 mb-4 shadow-sm border border-gray-100"
             >
               <ArrowLeft className="w-4 h-4" />

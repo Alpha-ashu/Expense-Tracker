@@ -22,41 +22,54 @@ Fix obvious OCR typos (like O vs 0, or \`?\` instead of \`₹\`), but do not inv
 
 const buildPrompt = (rawText: string) => `
 Here is the raw text extracted from a receipt using Tesseract OCR.
-Translate it into structured JSON.
+Translate it into structured JSON with professional-grade accuracy.
 
 --- RAW OCR TEXT ---
 ${rawText}
 --- END RAW OCR TEXT ---
 
-⚠️ PARSING RULES:
+⚠️ CRITICAL EXTRACTION RULES:
 
-1. CURRENCY: Tesseract often misreads "₹" as "?", "R", "F", or "¥". If the receipt mentions GST, TIN, Indian addresses, or INR, the currency is "INR".
-2. INVOICE NUMBER: Look for "INV#", "Invoice No", "Bill No", "Token No", "Check No". The word "DATE" is NEVER an invoice number.
-3. MERCHANT NAME: The first reasonably sized, clear text string at the top.
-4. AMOUNT (CRITICAL): Pick the FINAL payable amount (e.g., "Amount Payable", "NETT", "Grand Total"). Do NOT pick "Bill Total" or "SubTotal" if tax lines follow it.
-5. TAXES: Search for "CGST", "SGST", "VAT", "Service Tax", "S.TAX" and map them to the taxBreakdown array.
-6. ITEMS: Only real items (e.g. "CHHOLE BHATURE"). Do not invent items if you're not sure.
-7. DATE: Format as YYYY-MM-DD. "26-02-2016" -> "2016-02-26".
+1. MERCHANT BLOCK: Look at the top 5-10 lines. Find the legal name, address (e.g., "Nana Chowk, Mumbai"), and Phone numbers ("Ph:", "Tel:").
+2. DATE & BILL NO: Identify "Date", "Bill No", "Invoice No", "Token". If date is "01/07/17", year is 2017.
+3. TABLE EXTRACTION (QTY/RATE/AMOUNT): 
+   - Receipts often have columns: Particulars | Qty | Rate | Amount.
+   - If an item line says "MEDU WADA 1 65 65", the quantity is 1, rate is 65, and amount is 65.
+   - Verify: Qty * Rate should equal Amount.
+4. TOTALS & TAXES (INDIA SPECIFIC):
+   - "Sub Total": The raw sum of items.
+   - "Dis" or "Discount": The amount subtracted. You MUST find this.
+   - "Net Total" or "Taxable Value": Subtotal minus Discount.
+   - "CGST" & "SGST": Usually 9% or 2.5% each. They MUST both be extracted.
+   - "Grand Total": The final payable amount (e.g. 70). This is your netAmount.
+5. CURRENCY: Always "INR" for Indian receipts.
+6. GSTIN: The 15-character ID (e.g. 27AADFH5037M1Z6).
+
+⚠️ MATH VALIDATION:
+- Ensure (Subtotal - Discount + Taxes) roughly equals Grand Total.
+- If they differ slightly (e.g. 69.62 vs 70), the "Grand Total" is the source of truth for the transaction amount.
 
 Return ONLY the JSON. No explanation.
 
 {
   "merchantName": "string",
-  "netAmount": number,
+  "netAmount": number (Grand Total / Final Payable),
   "preTaxSubtotal": number | null,
   "totalTaxAmount": number | null,
+  "discountAmount": number | null,
   "taxBreakdown": [ { "name": "string", "rate": number | null, "amount": number } ],
+  "gstin": "string | null",
   "items": [ { "name": "string", "quantity": number | null, "rate": number | null, "amount": number } ],
   "date": "YYYY-MM-DD | null",
   "time": "HH:MM | null",
-  "currency": "INR | USD | EUR | GBP | AED | JPY",
-  "location": "INDIA | USA | EU | UAE | UK | UNKNOWN",
+  "currency": "INR",
+  "location": "INDIA",
   "invoiceNumber": "string | null",
   "paymentMethod": "Cash | Card | UPI | Online | null",
   "category": "expense category",
-  "subcategory": "specific type (Restaurant, Fast Food, Cafe, etc)",
-  "description": "top 3 item names with amounts (e.g., Chhole Bhature ₹75)",
-  "confidence": number
+  "subcategory": "specific type",
+  "description": "Short summary of main items",
+  "confidence": number (0.0 to 1.0)
 }
 `;
 
@@ -104,7 +117,7 @@ export const scanReceiptWithGemini = async (imageBuffer: Buffer, mimeType: strin
       { name: 'gemini-ocr', failureThreshold: 5, resetTimeoutMs: 60_000 },
       async () => {
         const model = genAI.getGenerativeModel({
-          model: 'gemini-2.0-flash',
+          model: 'gemini-1.5-flash',
           systemInstruction: SYSTEM_INSTRUCTION,
           generationConfig: {
             temperature: 0.1,

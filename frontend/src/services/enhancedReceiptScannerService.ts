@@ -73,7 +73,8 @@ export class EnhancedReceiptScannerService {
       const itemSubtotal = next.items?.reduce((sum, item) => sum + (item.amount || 0), 0) || 0;
       const subtotal = next.subtotal ?? (itemSubtotal > 0 ? Number(itemSubtotal.toFixed(2)) : 0);
       const taxAmount = next.taxAmount ?? 0;
-      const calculated = Number((subtotal + taxAmount).toFixed(2));
+      const discount = next.discountAmount ?? 0;
+      const calculated = Number((subtotal - discount + taxAmount).toFixed(2));
 
       if (calculated > 0) {
         next.validationResult = {

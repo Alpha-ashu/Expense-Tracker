@@ -132,75 +132,96 @@ export class CloudReceiptScanService {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const finalUrl = `${API_BASE}/receipts/scan`;
-    console.log(`[ReceiptScanner] Sending fetch to: ${finalUrl}. Token present: ${!!token}`);
+    const startUrl = `${API_BASE}/receipts/start`;
+    onProgress?.({ status: 'Uploading and starting AI extraction job...', progress: 35 });
     
-    onProgress?.({ status: 'Running AI financial intelligence engine...', progress: 35 });
-    const response = await fetch(finalUrl, {
+    const startResponse = await fetch(startUrl, {
       method: 'POST',
       headers,
       body: formData,
     });
-    console.log(`[ReceiptScanner] Received response status: ${response.status}`);
 
-    const payload = await response.json().catch(() => ({} as Record<string, unknown>));
-    if (!response.ok) {
-      const errorMessage = typeof payload?.error === 'string' ? payload.error : 'Cloud receipt scan failed';
-      throw new Error(errorMessage);
+    if (!startResponse.ok) {
+      const errorBody = await startResponse.json().catch(() => ({}));
+      throw new Error(errorBody.error || 'Failed to start OCR job');
     }
 
-    onProgress?.({ status: 'Applying global intelligence & tax extraction...', progress: 80 });
+    const { job_id } = await startResponse.json();
+    
+    // Polling for completion
+    let attempts = 0;
+    const maxAttempts = 30; // 30 * 2s = 60s max
+    const statusUrl = `${API_BASE}/receipts/status/${job_id}`;
 
-    const merchantName = typeof payload.merchantName === 'string' ? payload.merchantName : undefined;
-    const amount = typeof payload.amount === 'number' && Number.isFinite(payload.amount) ? payload.amount : undefined;
-    const currency = typeof payload.currency === 'string' ? payload.currency : 'INR';
-    const date = parseScanDate(payload.date);
-    const location = typeof payload.location === 'string' ? payload.location : 'UNKNOWN';
+    while (attempts < maxAttempts) {
+      onProgress?.({ status: `AI extracting details (Attempt ${attempts + 1})...`, progress: 40 + (attempts * 2) });
+      
+      const statusResponse = await fetch(statusUrl, { headers });
+      if (!statusResponse.ok) throw new Error('Failed to check OCR status');
+      
+      const job = await statusResponse.json();
+      if (job.status === 'completed') {
+        const payload = job.data;
+        onProgress?.({ status: 'Applying global intelligence & tax extraction...', progress: 95 });
 
-    const confidence = typeof payload.confidence === 'number' && Number.isFinite(payload.confidence)
-      ? payload.confidence
-      : 0.85;
+        const merchantName = typeof payload.merchantName === 'string' ? payload.merchantName : undefined;
+        const amount = typeof payload.amount === 'number' && Number.isFinite(payload.amount) ? payload.amount : undefined;
+        const currency = typeof payload.currency === 'string' ? payload.currency : 'INR';
+        const date = parseScanDate(payload.date);
+        const location = typeof payload.location === 'string' ? payload.location : 'UNKNOWN';
 
-    const taxBreakdown = parseTaxBreakdown(payload.taxBreakdown);
-    const items = parseItems(payload.items);
-    const validationResult = parseValidationResult(payload.validationResult);
-    const taxAmount = typeof payload.taxAmount === 'number'
-      ? payload.taxAmount
-      : taxBreakdown?.reduce((sum, item) => sum + item.amount, 0);
+        const confidence = typeof payload.confidence === 'number' && Number.isFinite(payload.confidence)
+          ? payload.confidence
+          : 0.85;
 
-    // Auto-generate smart description from top items if not provided by AI
-    const aiDescription = typeof payload.description === 'string' ? payload.description : undefined;
-    const itemsDescription = items && items.length > 0
-      ? items.slice(0, 3).map((i) => `${i.name} ${currency} ${i.amount}`).join(', ')
-      : undefined;
+        const taxBreakdown = parseTaxBreakdown(payload.taxBreakdown);
+        const items = parseItems(payload.items);
+        const validationResult = parseValidationResult(payload.validationResult);
+        const taxAmount = typeof payload.taxAmount === 'number'
+          ? payload.taxAmount
+          : taxBreakdown?.reduce((sum, item) => sum + item.amount, 0);
 
-    const rawFields = payload && typeof payload.rawFields === 'object' ? payload.rawFields : payload;
+        const aiDescription = typeof payload.description === 'string' ? payload.description : undefined;
+        const itemsDescription = items && items.length > 0
+          ? items.slice(0, 3).map((i) => `${i.name} ${currency} ${i.amount}`).join(', ')
+          : undefined;
 
-    onProgress?.({ status: 'Intelligence engine complete', progress: 100 });
+        onProgress?.({ status: 'Intelligence engine complete', progress: 100 });
 
-    return {
-      merchantName,
-      amount,
-      currency,
-      date,
-      location,
-      time: typeof payload.time === 'string' ? payload.time : undefined,
-      subtotal: typeof payload.subtotal === 'number' ? payload.subtotal : undefined,
-      taxAmount: typeof taxAmount === 'number' && Number.isFinite(taxAmount) ? Number(taxAmount.toFixed(2)) : undefined,
-      taxBreakdown: taxBreakdown && taxBreakdown.length > 0
-        ? taxBreakdown
-        : (typeof taxAmount === 'number' && taxAmount > 0 ? [{ name: 'Tax', amount: Number(taxAmount.toFixed(2)) }] : undefined),
-      invoiceNumber: typeof payload.invoiceNumber === 'string' ? payload.invoiceNumber : undefined,
-      paymentMethod: typeof payload.paymentMethod === 'string' ? payload.paymentMethod : undefined,
-      category: typeof payload.category === 'string' ? payload.category : undefined,
-      subcategory: typeof payload.subcategory === 'string' && payload.subcategory.trim() ? payload.subcategory.trim() : undefined,
-      description: aiDescription ?? itemsDescription,
-      items,
-      validationResult,
-      confidence: Math.max(0, Math.min(1, confidence)),
-      rawText: JSON.stringify(rawFields || {}),
-      notes: typeof payload.category === 'string' ? `${payload.category.toLowerCase()} receipt` : 'cloud ocr receipt',
-    };
+        return {
+          merchantName,
+          amount,
+          currency,
+          date,
+          location,
+          time: typeof payload.time === 'string' ? payload.time : undefined,
+          subtotal: typeof payload.subtotal === 'number' ? payload.subtotal : undefined,
+          taxAmount: typeof taxAmount === 'number' && Number.isFinite(taxAmount) ? Number(taxAmount.toFixed(2)) : undefined,
+          taxBreakdown: taxBreakdown && taxBreakdown.length > 0
+            ? taxBreakdown
+            : (typeof taxAmount === 'number' && taxAmount > 0 ? [{ name: 'Tax', amount: Number(taxAmount.toFixed(2)) }] : undefined),
+          invoiceNumber: typeof payload.invoiceNumber === 'string' ? payload.invoiceNumber : undefined,
+          paymentMethod: typeof payload.paymentMethod === 'string' ? payload.paymentMethod : undefined,
+          category: typeof payload.category === 'string' ? payload.category : undefined,
+          subcategory: typeof payload.subcategory === 'string' && payload.subcategory.trim() ? payload.subcategory.trim() : undefined,
+          description: aiDescription ?? itemsDescription,
+          items,
+          validationResult,
+          confidence: Math.max(0, Math.min(1, confidence)),
+          rawText: JSON.stringify(payload || {}),
+          notes: typeof payload.category === 'string' ? `${payload.category.toLowerCase()} receipt` : 'cloud ocr receipt',
+        };
+      }
+      
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'AI extraction failed');
+      }
+
+      attempts++;
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    throw new Error('OCR extraction timed out. Please try again.');
   }
 }
 

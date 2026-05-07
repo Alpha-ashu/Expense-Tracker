@@ -1,8 +1,10 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
-@import './responsive-auto-clean.css';
-@import './mobile-fullscreen-fix.css';
+@import './finora-add-forms.css';
+
+
+
 /* Uncomment for debugging mobile issues: */
 /* @import './mobile-test-classes.css'; */
 

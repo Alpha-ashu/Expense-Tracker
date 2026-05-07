@@ -123,6 +123,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     onApplyScan?.({
       ...scanResult,
       accountId: selectedAccountId,
+      scanDocumentId,
     });
 
     toast.success(`Receipt applied to ${expenseMode === 'group' ? 'group' : 'individual'} expense form`);

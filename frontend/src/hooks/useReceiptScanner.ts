@@ -99,7 +99,14 @@ export const useReceiptScanner = () => {
           });
         } catch (cloudError: any) {
           const errMsg = cloudError?.message || 'Cloud OCR unavailable';
-          toast.warning(`${errMsg}. Falling back to on-device OCR.`, { duration: 5000 });
+          if (errMsg.includes('GOOGLE_API_KEY')) {
+            toast.error('AI Engine requires a GOOGLE_API_KEY. Falling back to basic on-device OCR.', {
+              description: 'Please add GOOGLE_API_KEY to your backend .env file for professional extraction.',
+              duration: 8000
+            });
+          } else {
+            toast.warning(`${errMsg}. Falling back to on-device OCR.`, { duration: 5000 });
+          }
           setScanStatus('Cloud OCR unavailable. Trying on-device scan...');
           result = await scanWithOnDeviceOcr();
         }
