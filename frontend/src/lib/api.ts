@@ -91,31 +91,25 @@ let profileRequestInFlight: Promise<ApiResponse<any>> | null = null;
 
 export const TokenManager = {
   getAccessToken: (): string | null => {
-    return (
-      localStorage.getItem('accessToken')
-      || localStorage.getItem('auth_token')
-      || localStorage.getItem('token')
-      || localStorage.getItem('authToken')
-    );
+    return localStorage.getItem('accessToken');
   },
 
   setAccessToken: (token: string): void => {
     localStorage.setItem('accessToken', token);
-    localStorage.setItem('auth_token', token);
   },
 
   getRefreshToken: (): string | null => {
-    return localStorage.getItem('refreshToken') || localStorage.getItem('refresh_token');
+    return localStorage.getItem('refreshToken');
   },
 
   setRefreshToken: (token: string): void => {
     localStorage.setItem('refreshToken', token);
-    localStorage.setItem('refresh_token', token);
   },
 
   clearTokens: (): void => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    // Clear legacy tokens if they exist
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('token');

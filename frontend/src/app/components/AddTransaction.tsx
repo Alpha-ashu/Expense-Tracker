@@ -51,8 +51,8 @@ import {
 } from '@/lib/voiceDrafts';
 
 const BUILTIN_CATEGORIES = {
-  expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
-  income: Object.values(INCOME_CATEGORIES).map(cat => cat.name),
+  expense: Object.values(EXPENSE_CATEGORIES as Record<string, any>).map(cat => cat.name as string),
+  income: Object.values(INCOME_CATEGORIES as Record<string, any>).map(cat => cat.name as string),
 };
 
 const DEFAULT_CATEGORY = {
@@ -132,7 +132,7 @@ const createDefaultLoanDraft = (baseDate: string): LoanDraft => ({
   notes: '',
 });
 
-export const AddTransaction: React.FC = () => {
+export function AddTransaction() {
   const { accounts, friends, transactions, setCurrentPage, currency, refreshData } = useApp();
   const { user } = useAuth();
   const defaultDateKey = toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0];
@@ -153,7 +153,6 @@ export const AddTransaction: React.FC = () => {
       igst: 0,
       gstin: '',
       totalTax: 0,
-    }
     }
   }));
 
@@ -392,17 +391,17 @@ export const AddTransaction: React.FC = () => {
     }
   };
 
-    if (formData.type === 'income') return {
+  const accent = useMemo(() => (
+    formData.type === 'income' ? {
       amountCard: 'bg-gradient-to-br from-emerald-500 to-teal-600',
       btn: 'bg-gradient-to-r from-emerald-500 to-teal-600',
       switchShell: 'bg-emerald-500/20'
-    };
-    return {
+    } : {
       amountCard: 'bg-gradient-to-br from-rose-500 to-pink-600',
       btn: 'bg-gradient-to-r from-rose-500 to-pink-600',
       switchShell: 'bg-rose-500/20'
-    };
-  }, [formData.type]);
+    }
+  ), [formData.type]);
 
   const handleScanApply = (scan: ReceiptScanPayload) => {
     const taxObj = {
@@ -422,16 +421,19 @@ export const AddTransaction: React.FC = () => {
       });
     }
 
-    setFormData(prev => ({
-      ...prev,
-      amount: scan.amount || prev.amount,
-      description: scan.description || scan.merchantName || prev.description,
-      merchant: scan.merchantName || prev.merchant,
-      date: scan.date ? toLocalDateKey(new Date(scan.date)) : prev.date,
-      category: scan.category || prev.category,
-      subcategory: scan.subcategory || prev.subcategory,
-      taxDetails: taxObj,
-    }));
+    setFormData(prev => {
+      const newDate = scan.date ? toLocalDateKey(scan.date) : null;
+      return {
+        ...prev,
+        amount: scan.amount || prev.amount,
+        description: scan.description || scan.merchantName || prev.description,
+        merchant: scan.merchantName || prev.merchant,
+        date: (newDate || prev.date) as string,
+        category: (scan.category || prev.category) as string,
+        subcategory: (scan.subcategory || prev.subcategory) as string,
+        taxDetails: taxObj,
+      };
+    });
     setAmountStr((scan.amount || 0).toString());
     setScanDocumentId(scan.scanDocumentId || null);
   };
@@ -815,4 +817,4 @@ export const AddTransaction: React.FC = () => {
       </AnimatePresence>
     </>
   );
-};
+}

@@ -6,6 +6,7 @@ import {
   markOptionalBackendUnavailable,
   shouldRetryWithLocalApiFallback,
 } from '@/lib/apiBase';
+import { TokenManager } from '@/lib/api';
 import supabase from '@/utils/supabase/client';
 
 export interface PinStatus {
@@ -78,19 +79,15 @@ class PinService {
       // Fall back to locally stored tokens.
     }
 
-    return (
-      localStorage.getItem('auth_token')
-      || localStorage.getItem('accessToken')
-      || localStorage.getItem('token')
-      || localStorage.getItem('authToken')
-    );
+    return TokenManager.getAccessToken();
   }
 
-  private async getAuthHeaders(): Promise<HeadersInit> {
+  private async getAuthHeaders(securityToken?: string): Promise<HeadersInit> {
     const token = await this.getAuthToken();
     return {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(securityToken ? { 'X-Security-Token': securityToken } : {}),
     };
   }
 
@@ -198,8 +195,8 @@ class PinService {
     this.clearPendingServerSync();
   }
 
-  private async post(path: string, body: object): Promise<PinStatus> {
-    const headers = await this.getAuthHeaders();
+  private async post(path: string, body: object, securityToken?: string): Promise<PinStatus> {
+    const headers = await this.getAuthHeaders(securityToken);
     if (!('Authorization' in headers)) {
       return {
         success: false,
@@ -261,8 +258,8 @@ class PinService {
     }
   }
 
-  private async delete(path: string): Promise<PinStatus> {
-    const headers = await this.getAuthHeaders();
+  private async delete(path: string, securityToken?: string): Promise<PinStatus> {
+    const headers = await this.getAuthHeaders(securityToken);
     if (!('Authorization' in headers)) {
       return {
         success: false,
@@ -354,14 +351,38 @@ class PinService {
   /**
    * Update an existing PIN
    */
-  async updatePin(currentPin: string, newPin: string): Promise<PinStatus> {
+  async updatePin(currentPin: string, newPin: string, securityToken?: string): Promise<PinStatus> {
     clearCachedPinStatus();
-    const result = await this.post('update', { currentPin, newPin });
+    const result = await this.post('update', { currentPin, newPin }, securityToken);
     if (result.success) {
       this.persistPinState(result, true);
       this.clearPinVerification();
     }
     return result;
+  }
+
+  /**
+   * Request a security token via biometric/OTP verification
+   */
+  async verifySecurity(): Promise<{ success: boolean; securityToken?: string; message?: string }> {
+    try {
+      const response = await this.post('verify-security', {});
+      if (response.success && (response as any).securityToken) {
+        return { 
+          success: true, 
+          securityToken: (response as any).securityToken 
+        };
+      }
+      return { 
+        success: false, 
+        message: response.message || 'Security verification failed' 
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : 'Security verification failed' 
+      };
+    }
   }
 
   async getStatus(): Promise<PinStatus> {
@@ -399,17 +420,17 @@ class PinService {
     return this.get('key-backup');
   }
 
-  async saveKeyBackup(backup: string): Promise<PinStatus> {
-    return this.post('key-backup', { backup });
+  async saveKeyBackup(backup: string, securityToken?: string): Promise<PinStatus> {
+    return this.post('key-backup', { backup }, securityToken);
   }
 
-  async clearKeyBackup(): Promise<PinStatus> {
-    return this.delete('key-backup');
+  async clearKeyBackup(securityToken?: string): Promise<PinStatus> {
+    return this.delete('key-backup', securityToken);
   }
 
-  async resetCurrentUserPin(): Promise<PinStatus> {
+  async resetCurrentUserPin(securityToken?: string): Promise<PinStatus> {
     clearCachedPinStatus();
-    const result = await this.post('self-reset', {});
+    const result = await this.post('self-reset', {}, securityToken);
     if (result.success) {
       this.clearPinData();
     }

@@ -1,12 +1,13 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
+import { AppError } from '../../utils/AppError';
 import { logger } from '../../config/logger';
 import { cacheDeleteByPrefix } from '../../cache/redis';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
-export const getLoans = async (req: AuthRequest, res: Response) => {
+export const getLoans = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
 
@@ -23,11 +24,11 @@ export const getLoans = async (req: AuthRequest, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
-    res.status(500).json({ success: false, error: 'Failed to fetch loans' });
+    next(error);
   }
 };
 
-export const createLoan = async (req: AuthRequest, res: Response) => {
+export const createLoan = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const {
@@ -42,12 +43,12 @@ export const createLoan = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     if (!type || !name || !principalAmount) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
+      throw AppError.badRequest('Missing required fields: type, name, and principalAmount are mandatory.', 'MISSING_FIELDS');
     }
 
     const numericPrincipal = Number(principalAmount);
     if (!isFinite(numericPrincipal) || numericPrincipal <= 0) {
-      return res.status(400).json({ success: false, error: 'Principal amount must be a positive number' });
+      throw AppError.badRequest('Principal amount must be a positive number', 'INVALID_AMOUNT');
     }
 
     const loan = await prisma.loan.create({
@@ -71,12 +72,11 @@ export const createLoan = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: loan });
   } catch (error) {
-    logger.error('Failed to create loan', { error });
-    res.status(500).json({ success: false, error: 'Failed to create loan' });
+    next(error);
   }
 };
 
-export const getLoan = async (req: AuthRequest, res: Response) => {
+export const getLoan = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -87,16 +87,16 @@ export const getLoan = async (req: AuthRequest, res: Response) => {
     });
 
     if (!loan || loan.userId !== userId) {
-      return res.status(404).json({ error: 'Loan not found' });
+      throw AppError.notFound('Loan');
     }
 
     res.json({ success: true, data: loan });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch loan' });
+    next(error);
   }
 };
 
-export const updateLoan = async (req: AuthRequest, res: Response) => {
+export const updateLoan = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -108,35 +108,35 @@ export const updateLoan = async (req: AuthRequest, res: Response) => {
     });
 
     if (!loan || loan.userId !== userId) {
-      return res.status(404).json({ error: 'Loan not found' });
+      throw AppError.notFound('Loan');
     }
 
     // Validate numeric fields if provided
     if (body.principalAmount !== undefined) {
       const numAmount = Number(body.principalAmount);
       if (!Number.isFinite(numAmount) || numAmount <= 0) {
-        return res.status(400).json({ success: false, error: 'Principal amount must be a positive number' });
+        throw AppError.badRequest('Principal amount must be a positive number', 'INVALID_AMOUNT');
       }
     }
 
     if (body.outstandingBalance !== undefined) {
       const numBalance = Number(body.outstandingBalance);
       if (!Number.isFinite(numBalance) || numBalance < 0) {
-        return res.status(400).json({ success: false, error: 'Outstanding balance must be a non-negative number' });
+        throw AppError.badRequest('Outstanding balance must be a non-negative number', 'INVALID_BALANCE');
       }
     }
 
     if (body.interestRate !== undefined) {
       const numRate = Number(body.interestRate);
       if (!Number.isFinite(numRate) || numRate < 0) {
-        return res.status(400).json({ success: false, error: 'Interest rate must be a non-negative number' });
+        throw AppError.badRequest('Interest rate must be a non-negative number', 'INVALID_RATE');
       }
     }
 
     if (body.emiAmount !== undefined) {
       const numEmi = Number(body.emiAmount);
       if (!Number.isFinite(numEmi) || numEmi < 0) {
-        return res.status(400).json({ success: false, error: 'EMI amount must be a non-negative number' });
+        throw AppError.badRequest('EMI amount must be a non-negative number', 'INVALID_EMI');
       }
     }
 
@@ -165,11 +165,11 @@ export const updateLoan = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to update loan' });
+    next(error);
   }
 };
 
-export const deleteLoan = async (req: AuthRequest, res: Response) => {
+export const deleteLoan = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -180,7 +180,7 @@ export const deleteLoan = async (req: AuthRequest, res: Response) => {
     });
 
     if (!loan || loan.userId !== userId) {
-      return res.status(404).json({ error: 'Loan not found' });
+      throw AppError.notFound('Loan');
     }
 
     // Soft delete
@@ -193,24 +193,24 @@ export const deleteLoan = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'Loan deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to delete loan' });
+    next(error);
   }
 };
 
-export const addLoanPayment = async (req: AuthRequest, res: Response) => {
+export const addLoanPayment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
     const { amount, accountId, notes } = req.body;
 
     if (!amount) {
-      return res.status(400).json({ success: false, error: 'Amount is required' });
+      throw AppError.badRequest('Amount is required', 'AMOUNT_REQUIRED');
     }
 
     // Validate amount is a positive finite number
     const numericAmount = Number(amount);
     if (!isFinite(numericAmount) || numericAmount <= 0) {
-      return res.status(400).json({ success: false, error: 'Amount must be a positive number' });
+      throw AppError.badRequest('Amount must be a positive number', 'INVALID_AMOUNT');
     }
 
     // Verify ownership
@@ -219,7 +219,7 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
     });
 
     if (!loan || loan.userId !== userId) {
-      return res.status(404).json({ error: 'Loan not found' });
+      throw AppError.notFound('Loan');
     }
 
     // Create payment record
@@ -247,7 +247,6 @@ export const addLoanPayment = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: payment });
   } catch (error) {
-    logger.error('Failed to add loan payment', { error });
-    res.status(500).json({ success: false, error: 'Failed to add loan payment' });
+    next(error);
   }
 };

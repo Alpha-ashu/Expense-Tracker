@@ -1,12 +1,13 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
+import { AppError } from '../../utils/AppError';
 import { logger } from '../../config/logger';
 import { cacheDeleteByPrefix } from '../../cache/redis';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
-export const getGoals = async (req: AuthRequest, res: Response) => {
+export const getGoals = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
 
@@ -22,17 +23,17 @@ export const getGoals = async (req: AuthRequest, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
-    res.status(500).json({ success: false, error: 'Failed to fetch goals' });
+    next(error);
   }
 };
 
-export const createGoal = async (req: AuthRequest, res: Response) => {
+export const createGoal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { name, targetAmount, targetDate, category, isGroupGoal } = req.body;
 
     if (!name || !targetAmount || !targetDate) {
-      return res.status(400).json({ success: false, error: 'Missing required fields' });
+      throw AppError.badRequest('Missing required fields: name, targetAmount, and targetDate are mandatory.', 'MISSING_FIELDS');
     }
 
     const numericTarget = Number(targetAmount);
@@ -56,12 +57,11 @@ export const createGoal = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: goal });
   } catch (error) {
-    logger.error('Failed to create goal', { error });
-    res.status(500).json({ success: false, error: 'Failed to create goal' });
+    next(error);
   }
 };
 
-export const getGoal = async (req: AuthRequest, res: Response) => {
+export const getGoal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -71,16 +71,16 @@ export const getGoal = async (req: AuthRequest, res: Response) => {
     });
 
     if (!goal || goal.userId !== userId) {
-      return res.status(404).json({ error: 'Goal not found' });
+      throw AppError.notFound('Goal');
     }
 
     res.json({ success: true, data: goal });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch goal' });
+    next(error);
   }
 };
 
-export const updateGoal = async (req: AuthRequest, res: Response) => {
+export const updateGoal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -92,21 +92,21 @@ export const updateGoal = async (req: AuthRequest, res: Response) => {
     });
 
     if (!goal || goal.userId !== userId) {
-      return res.status(404).json({ error: 'Goal not found' });
+      throw AppError.notFound('Goal');
     }
 
     // Validate numeric fields if provided
     if (body.targetAmount !== undefined) {
       const numTarget = Number(body.targetAmount);
       if (!Number.isFinite(numTarget) || numTarget <= 0) {
-        return res.status(400).json({ success: false, error: 'Target amount must be a positive number' });
+        throw AppError.badRequest('Target amount must be a positive number', 'INVALID_AMOUNT');
       }
     }
 
     if (body.currentAmount !== undefined) {
       const numCurrent = Number(body.currentAmount);
       if (!Number.isFinite(numCurrent) || numCurrent < 0) {
-        return res.status(400).json({ success: false, error: 'Current amount must be a non-negative number' });
+        throw AppError.badRequest('Current amount must be a non-negative number', 'INVALID_AMOUNT');
       }
     }
 
@@ -134,11 +134,11 @@ export const updateGoal = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to update goal' });
+    next(error);
   }
 };
 
-export const deleteGoal = async (req: AuthRequest, res: Response) => {
+export const deleteGoal = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -149,7 +149,7 @@ export const deleteGoal = async (req: AuthRequest, res: Response) => {
     });
 
     if (!goal || goal.userId !== userId) {
-      return res.status(404).json({ error: 'Goal not found' });
+      throw AppError.notFound('Goal');
     }
 
     // Soft delete
@@ -162,6 +162,6 @@ export const deleteGoal = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'Goal deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to delete goal' });
+    next(error);
   }
 };

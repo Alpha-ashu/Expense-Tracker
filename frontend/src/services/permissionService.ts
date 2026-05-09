@@ -9,6 +9,7 @@ import {
   getConfiguredApiBase,
   shouldSkipOptionalBackendRequests,
 } from '@/lib/apiBase';
+import { TokenManager } from '@/lib/api';
 import supabase from '@/utils/supabase/client';
 
 const API_BASE = getConfiguredApiBase();
@@ -38,12 +39,7 @@ const getAuthToken = async (): Promise<string | null> => {
     return session.access_token;
   }
 
-  return (
-    localStorage.getItem('auth_token')
-    || localStorage.getItem('accessToken')
-    || localStorage.getItem('token')
-    || localStorage.getItem('authToken')
-  );
+  return TokenManager.getAccessToken();
 };
 
 export interface UserPermissions {

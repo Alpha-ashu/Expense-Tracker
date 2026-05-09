@@ -1,40 +1,19 @@
-import { randomUUID } from 'crypto';
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
 import { logger } from '../../config/logger';
+import { AppError } from '../../utils/AppError';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
-const ensureFriendsTable = async () => {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS friends (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      email TEXT,
-      phone TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      deleted_at TEXT
-    )
-  `);
-
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_friends_user_id ON friends(user_id)');
-  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS idx_friends_deleted_at ON friends(deleted_at)');
-};
-
-export const getFriends = async (req: AuthRequest, res: Response) => {
+export const getFriends = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
-    await ensureFriendsTable();
 
-    const friends = await prisma.$queryRaw<any[]>`
-      SELECT id, user_id as userId, name, email, phone, created_at as createdAt, updated_at as updatedAt
-      FROM friends
-      WHERE user_id = ${userId} AND deleted_at IS NULL
-      ORDER BY created_at DESC
-    `;
+    const friends = await prisma.friend.findMany({
+      where: { userId, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
 
     res.json({ success: true, data: friends });
   } catch (error) {
@@ -43,133 +22,81 @@ export const getFriends = async (req: AuthRequest, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
-    logger.error('Failed to fetch friends', { error });
-    res.status(500).json({ success: false, error: 'Failed to fetch friends' });
+    next(error);
   }
 };
 
-export const createFriend = async (req: AuthRequest, res: Response) => {
+export const createFriend = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
-    await ensureFriendsTable();
+    const { name, email, phone } = req.body;
 
-    const name = String(req.body?.name || '').trim();
-    const email = req.body?.email ? String(req.body.email).trim() : null;
-    const phone = req.body?.phone ? String(req.body.phone).trim() : null;
-
-    if (!name) {
-      return res.status(400).json({ success: false, error: 'Name is required' });
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      throw AppError.badRequest('Friend name is required.', 'NAME_REQUIRED');
     }
 
     if (!email && !phone) {
-      return res.status(400).json({ success: false, error: 'Email or phone is required' });
+      throw AppError.badRequest('Either email or phone is required to identify a friend.', 'CONTACT_REQUIRED');
     }
 
-    const nowIso = new Date().toISOString();
-    const id = randomUUID();
+    const friend = await prisma.friend.create({
+      data: {
+        userId,
+        name: sanitize(name.trim()),
+        email: email ? String(email).trim() : null,
+        phone: phone ? String(phone).trim() : null,
+      },
+    });
 
-    await prisma.$executeRaw`
-      INSERT INTO friends (id, user_id, name, email, phone, created_at, updated_at)
-      VALUES (${id}, ${userId}, ${sanitize(name)}, ${email}, ${phone}, ${nowIso}, ${nowIso})
-    `;
-
-    const [friend] = await prisma.$queryRaw<any[]>`
-      SELECT id, user_id as userId, name, email, phone, created_at as createdAt, updated_at as updatedAt
-      FROM friends
-      WHERE id = ${id} AND user_id = ${userId}
-      LIMIT 1
-    `;
-
-    res.status(201).json({ success: true, data: friend ?? null });
+    res.status(201).json({ success: true, data: friend });
   } catch (error) {
-    logger.error('Failed to create friend', { error });
-    res.status(500).json({ success: false, error: 'Failed to create friend' });
+    next(error);
   }
 };
 
-export const updateFriend = async (req: AuthRequest, res: Response) => {
+export const updateFriend = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
-    await ensureFriendsTable();
+    const { id } = req.params;
+    const { name, email, phone } = req.body;
 
-    const friendId = String(req.params.id || '').trim();
-    const name = req.body?.name ? String(req.body.name).trim() : undefined;
-    const email = req.body?.email !== undefined ? (String(req.body.email).trim() || null) : undefined;
-    const phone = req.body?.phone !== undefined ? (String(req.body.phone).trim() || null) : undefined;
-
-    if (!friendId) {
-      return res.status(400).json({ success: false, error: 'Friend id is required' });
+    const existing = await prisma.friend.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      throw AppError.notFound('Friend');
     }
 
-    const updates: string[] = [];
-    const values: any[] = [];
+    const updated = await prisma.friend.update({
+      where: { id },
+      data: {
+        name: name !== undefined ? sanitize(String(name).trim()) : undefined,
+        email: email !== undefined ? (email ? String(email).trim() : null) : undefined,
+        phone: phone !== undefined ? (phone ? String(phone).trim() : null) : undefined,
+      },
+    });
 
-    if (name !== undefined) {
-      updates.push('name = ?');
-      values.push(sanitize(name));
-    }
-    if (email !== undefined) {
-      updates.push('email = ?');
-      values.push(email);
-    }
-    if (phone !== undefined) {
-      updates.push('phone = ?');
-      values.push(phone);
-    }
-
-    if (updates.length === 0) {
-      return res.status(400).json({ success: false, error: 'No updates provided' });
-    }
-
-    updates.push('updated_at = ?');
-    values.push(new Date().toISOString());
-    values.push(friendId, userId);
-
-    const query = `
-      UPDATE friends
-      SET ${updates.join(', ')}
-      WHERE id = ? AND user_id = ? AND deleted_at IS NULL
-    `;
-
-    await prisma.$executeRawUnsafe(query, ...values);
-
-    const [friend] = await prisma.$queryRaw<any[]>`
-      SELECT id, user_id as userId, name, email, phone, created_at as createdAt, updated_at as updatedAt
-      FROM friends
-      WHERE id = ${friendId} AND user_id = ${userId} AND deleted_at IS NULL
-      LIMIT 1
-    `;
-
-    if (!friend) {
-      return res.status(404).json({ success: false, error: 'Friend not found' });
-    }
-
-    res.json({ success: true, data: friend });
+    res.json({ success: true, data: updated });
   } catch (error) {
-    logger.error('Failed to update friend', { error });
-    res.status(500).json({ success: false, error: 'Failed to update friend' });
+    next(error);
   }
 };
 
-export const deleteFriend = async (req: AuthRequest, res: Response) => {
+export const deleteFriend = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
-    await ensureFriendsTable();
+    const { id } = req.params;
 
-    const friendId = String(req.params.id || '').trim();
-    if (!friendId) {
-      return res.status(400).json({ success: false, error: 'Friend id is required' });
+    const existing = await prisma.friend.findUnique({ where: { id } });
+    if (!existing || existing.userId !== userId) {
+      throw AppError.notFound('Friend');
     }
 
-    await prisma.$executeRaw`
-      UPDATE friends
-      SET deleted_at = ${new Date().toISOString()}, updated_at = ${new Date().toISOString()}
-      WHERE id = ${friendId} AND user_id = ${userId} AND deleted_at IS NULL
-    `;
+    await prisma.friend.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
 
-    res.json({ success: true, message: 'Friend deleted' });
+    res.json({ success: true, message: 'Friend deleted successfully' });
   } catch (error) {
-    logger.error('Failed to delete friend', { error });
-    res.status(500).json({ success: false, error: 'Failed to delete friend' });
+    next(error);
   }
 };

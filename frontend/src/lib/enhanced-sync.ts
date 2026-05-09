@@ -1,5 +1,7 @@
 import { db } from './database';
 import { getDeviceInfo } from '../utils/device';
+import { TokenManager } from './api';
+
 
 export interface SyncEntity {
   entityType: 'accounts' | 'transactions' | 'goals' | 'loans';
@@ -73,7 +75,7 @@ class EnhancedSyncService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${TokenManager.getAccessToken()}`,
         },
         body: JSON.stringify({
           ...deviceInfo,
@@ -103,7 +105,7 @@ class EnhancedSyncService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${TokenManager.getAccessToken()}`,
         },
         body: JSON.stringify({
           deviceId: this.deviceId,

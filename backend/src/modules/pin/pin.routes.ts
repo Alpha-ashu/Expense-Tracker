@@ -1,6 +1,7 @@
 import { Router, Response, NextFunction } from 'express';
 import { pinService } from './pin.service';
 import { authMiddleware, AuthRequest } from '../../middleware/auth';
+import { securityGate, generateSecurityToken } from '../../middleware/securityGate';
 import { AppError } from '../../utils/AppError';
 
 const router = Router();
@@ -58,9 +59,26 @@ router.post('/verify', async (req: AuthRequest, res: Response, next: NextFunctio
 });
 
 /**
+ * POST /api/v1/pin/verify-security
+ * Generates a short-lived security token after successful biometric/OTP verification
+ * (In a real app, this would be the endpoint called after device-side biometric success)
+ */
+router.post('/verify-security', async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = requireUserId(req);
+    // For this demonstration/ hardening task, we simulate successful verification
+    // In production, this would verify a biometric signature or OTP code
+    const token = generateSecurityToken(userId);
+    res.json({ success: true, securityToken: token });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * POST /api/v1/pin/update
  */
-router.post('/update', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/update', securityGate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = requireUserId(req);
     const { currentPin, newPin } = req.body;
@@ -109,7 +127,7 @@ router.get('/key-backup', async (req: AuthRequest, res: Response, next: NextFunc
 /**
  * POST /api/v1/pin/key-backup
  */
-router.post('/key-backup', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/key-backup', securityGate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = requireUserId(req);
     const { backup } = req.body;
@@ -176,7 +194,7 @@ router.post('/reset', async (req: AuthRequest, res: Response, next: NextFunction
 /**
  * POST /api/v1/pin/self-reset
  */
-router.post('/self-reset', async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/self-reset', securityGate, async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = requireUserId(req);
     const result = await pinService.forceResetPin(userId);

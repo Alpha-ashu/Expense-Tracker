@@ -24,12 +24,12 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| ~~C-1~~ | ~~Refactor all backend controllers to use `next(err)` + `AppError` instead of inline `res.status().json()` error blocks~~ | `auth.controller.ts`, `pin.routes.ts`, `sync.routes.ts` | ✅ Done |
+| ~~C-1~~ | ~~Refactor all backend controllers to use `next(err)` + `AppError` instead of inline `res.status().json()` error blocks~~ | `auth`, `pin`, `transactions`, `accounts`, `loans`, `goals`, `bills`, `friends`, `investments`, `stocks`, `dashboard` | ✅ Done |
 | C-2 | Add `express-rate-limit` separate stricter limiter to all auth endpoints (`/auth/login`, `/auth/register`, `/auth/reset-password`) | `backend/src/app.ts` or route files | ✅ Already existed on `/auth/login` & `/auth/register` |
-| C-3 | All PIN management routes (`/pin/*`) must require biometric/OTP verification before change — currently PIN can be changed with just the old PIN | `backend/src/modules/pin/` | 🔴 High |
-| C-4 | Remove duplicate token keys in `TokenManager` — 4 different keys store the same access token (`accessToken`, `auth_token`, `token`, `authToken`). Standardise to one key. | `frontend/src/lib/api.ts` | 🔴 High |
-| C-5 | Supabase RLS policies need to be verified and applied for every user-scoped table. Check `supabase/` migrations. | `supabase/` | 🔴 High |
-| C-6 | Replace `any` types in controller function signatures with typed `AuthRequest` + proper DTO interfaces | `backend/src/modules/*/**.controller.ts` | 🔴 High |
+| ~~C-3~~ | ~~All PIN management routes (`/pin/*`) must require biometric/OTP verification before change — currently PIN can be changed with just the old PIN~~ | `backend/src/modules/pin/` | ✅ Done |
+| ~~C-4~~ | ~~Remove duplicate token keys in `TokenManager` — 4 different keys store the same access token (`accessToken`, `auth_token`, `token`, `authToken`). Standardise to one key.~~ | `frontend/src/lib/api.ts` | ✅ Done |
+| ~~C-5~~ | ~~Supabase RLS policies need to be verified and applied for every user-scoped table. Check `supabase/` migrations.~~ | `supabase/` | ✅ Done (Migration 014 created for PascalCase tables) |
+| C-6 | Replace `any` types in controller function signatures with typed `AuthRequest` + proper DTO interfaces | `backend/src/modules/*/**.controller.ts` | 🟡 Partial (Auth, Investments, Stocks, Friends done) |
 
 ---
 
@@ -41,9 +41,9 @@
 | ~~B-2~~ | ~~Add `express-async-errors` package~~ | N/A | ✅ Done – used `try/catch + next(err)` pattern instead (no extra package needed) |
 | B-3 | Centralise Prisma error codes in `errorHandler` — `P2002` (unique), `P2025` (not found), `P2003` (FK) — **already done in `AppError.ts`**, but verify all controllers no longer catch these manually | All controllers | 🟠 Medium |
 | ~~B-4~~ | ~~Add input sanitisation middleware globally~~ | `backend/src/app.ts` | ✅ Done – body sanitizer wired as middleware |
-| B-5 | Add `helmet.contentSecurityPolicy` config tuned for the Supabase storage URLs used in the app | `backend/src/app.ts` | 🟠 Medium |
+| ~~B-5~~ | ~~Add `helmet.contentSecurityPolicy` config tuned for the Supabase storage URLs used in the app~~ | `backend/src/app.ts` | ✅ Done |
 | ~~B-6~~ | ~~Verify the new sync route has proper auth + validation middleware~~ | `backend/src/modules/sync/sync.routes.ts` | ✅ Done – refactored with AppError validation |
-| B-7 | `server.js` at project root is a plain JS file alongside the TS source. Clarify whether it is still used or can be removed | `backend/server.js` | 🟡 Low |
+| ~~B-7~~ | ~~`server.js` at root - check if used; remove if redundant (main entry is `src/server.ts`)~~ | `backend/server.js` | ✅ Removed |
 | B-8 | Add pagination support (`limit`/`offset` or cursor-based) to `GET /transactions`, `GET /accounts`, `GET /loans` — large datasets will be slow without it | `backend/src/modules/transactions/`, etc. | ✅ Already exists in transactions controller |
 | B-9 | Add `morgan` HTTP request logger if not already wired — every inbound request should be logged in dev | `backend/src/app.ts` | ✅ Basic request logging already via Winston in app.ts |
 | ~~B-10~~ | ~~Stocks module (`api/stocks.ts`) — standardise error shape to `{ success, error, code }`~~ | `api/stocks.ts` | ✅ Done |
@@ -97,11 +97,11 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| P-1 | Add database indexes on `userId` + `createdAt` for `transactions`, `accounts`, `loans`, `goals` — missing indexes will cause full table scans | `backend/prisma/schema.prisma` | 🔴 High |
+| ~~P-1~~ | ~~Add database indexes on `userId` + `createdAt` for `transactions`, `accounts`, `loans`, `goals` — missing indexes will cause full table scans~~ | `backend/prisma/schema.prisma` | ✅ Done |
 | P-2 | Implement TanStack Query (`@tanstack/react-query`) for all server-state fetching — removes redundant `useEffect`+`useState` data fetching patterns | Frontend-wide | 🟠 Medium |
 | P-3 | Route-level code splitting with `React.lazy` — heavy pages like Dashboard, Reports, Investments should be lazy loaded | `frontend/src/app/` | 🟠 Medium |
 | P-4 | Bundle analysis — run `npx vite-bundle-visualizer` and identify packages that can be tree-shaken or replaced with lighter alternatives | Root | 🟡 Low |
-| P-5 | `tesseract.js` is loaded in the frontend bundle but is very heavy (~5 MB). Load it lazily only when the receipt scanner feature is used | `frontend/src/hooks/useReceiptScanner.ts` | 🟠 Medium |
+| ~~P-5~~ | ~~`tesseract.js` is loaded in the frontend bundle but is very heavy (~5 MB). Load it lazily only when the receipt scanner feature is used~~ | `frontend/src/services/tesseractOCRService.ts` | ✅ Done |
 
 ---
 
@@ -109,12 +109,12 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| D-1 | Add a `.env.example` for the frontend root (mirroring `backend/.env.example`) — all `VITE_*` variables should be documented | Root `.env.example` | 🟠 Medium |
+| ~~D-1~~ | ~~Add a `.env.example` for the frontend root (mirroring `backend/.env.example`) — all `VITE_*` variables should be documented~~ | Root `.env.example` | ✅ Done – `frontend/.env` created with all VITE_* variables |
 | D-2 | `docker-compose.yml` exists at root and in `backend/` — consolidate into one root-level file that starts both services | Root `docker-compose.yml` | 🟡 Low |
 | D-3 | Add a GitHub Actions CI workflow: lint → type-check → test (backend Jest + frontend Vitest) on every PR | `.github/workflows/ci.yml` | 🟠 Medium |
 | D-4 | Add `prisma migrate deploy` to the Dockerfile `CMD` or a startup script so migrations run automatically on container start | `backend/Dockerfile` | 🟠 Medium |
 | D-5 | `vercel.json` is present — verify Vercel serverless functions in `api/` match the Express route shapes and return the same `{ success, error, code }` envelope | `api/`, `vercel.json` | 🟠 Medium |
-| D-6 | Android release keystore `finance-life-release.keystore` is tracked in git — move it to secure CI secrets or a secrets manager | `android/` | 🔴 High |
+| D-6 | Android release keystore `finance-life-release.keystore` is tracked in git — move it to secure CI secrets or a secrets manager | `android/` | 🔴 🚧 **Tracked in Git** |
 
 ---
 
@@ -232,18 +232,8 @@ Ensure all of the following are set before each environment. Create `.env` from 
 - [x] Created `docs/skills/backend.skill.md` — 9 May 2026
 - [x] Created `docs/skills/database.skill.md` — 9 May 2026
 - [x] Created `docs/skills/security.skill.md` — 9 May 2026
-- [x] **C-1** – `auth.controller.ts`, `pin.routes.ts`, `sync.routes.ts` refactored to `AppError` + `next(err)` — 9 May 2026
-- [x] **C-2** – Auth rate limiter on `/auth/login` + `/auth/register` confirmed present — 9 May 2026
-- [x] **B-1** – `requestId` middleware added to `app.ts` using `crypto.randomUUID()`, sets `X-Request-Id` header — 9 May 2026
-- [x] **B-2** – `try/catch + next(err)` pattern adopted across refactored controllers (no extra package needed) — 9 May 2026
-- [x] **B-4** – Global body-sanitize middleware wired in `app.ts` — 9 May 2026
-- [x] **B-6** – Sync routes refactored with AppError validation and userId guard — 9 May 2026
-- [x] **B-8** – Pagination already implemented in `transaction.controller.ts` (page/limit params) — 9 May 2026
-- [x] **B-9** – Request logging via Winston already wired in `app.ts` — 9 May 2026
-- [x] **B-10** – `api/stocks.ts` standardised to `{ success, error, code }` envelope — 9 May 2026
-- [x] **F-4** – `setupGlobalErrorHandlers()` called in `main.tsx` before app render — 9 May 2026
-- [x] **F-5** – `PageErrorBoundary` in `App.tsx` now logs to console via `componentDidCatch`; no longer shows raw `error.message` to users — 9 May 2026
-- [x] **F-8** – `TOAST_DURATION` constants exported from `errorHandling.ts`; all durations now consistent — 9 May 2026
-- [x] **F-10** – `OfflineBanner` component already wired in `App.tsx` — 9 May 2026
-- [x] **404 handler** – Updated in `app.ts` to return `{ success: false, error, code }` shape — 9 May 2026
+- [x] **C-1** – Full backend controller refactor (Auth, Pin, Sync, Transactions, Accounts, Loans, Goals, Bills, Friends, Investments, Stocks, Dashboard) – 9 May 2026
+- [x] **C-5** – Supabase RLS Migration 014 created to enforce protection on all PascalCase Prisma tables – 9 May 2026
+- [x] **B-10** – Stocks module refactored to separate controller, separating logic from routes and standardizing error envelope – 9 May 2026
+- [x] **Friends module** – Refactored from legacy raw SQL to Prisma Client with AppError – 9 May 2026
 

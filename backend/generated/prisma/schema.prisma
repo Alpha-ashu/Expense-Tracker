@@ -33,6 +33,7 @@ model Account {
   @@index([isActive])
   @@index([syncStatus])
   @@index([userId])
+  @@index([createdAt])
   @@index([deletedAt])
   @@schema("public")
 }
@@ -222,6 +223,8 @@ model Goal {
   @@index([syncStatus])
   @@index([targetDate])
   @@index([userId])
+  @@index([createdAt])
+  @@index([deletedAt])
   @@schema("public")
 }
 
@@ -323,6 +326,7 @@ model Loan {
   @@index([status])
   @@index([syncStatus])
   @@index([userId])
+  @@index([createdAt])
   @@index([deletedAt])
   @@schema("public")
 }

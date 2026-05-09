@@ -1,7 +1,8 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
+import { AppError } from '../../utils/AppError';
 import { logger } from '../../config/logger';
 import { validateBillUpload, makeStoragePath } from '../../utils/uploadPolicy';
 import { processImage } from '../../utils/imageProcessing';
@@ -12,7 +13,7 @@ import { createSignedUrl, uploadBuffer, removeObject } from '../../utils/storage
 const hashBuffer = (buffer: Buffer) =>
   crypto.createHash('sha256').update(buffer).digest('hex');
 
-export const getBills = async (req: AuthRequest, res: Response) => {
+export const getBills = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const transactionId = req.query.transactionId ? String(req.query.transactionId) : undefined;
@@ -48,19 +49,18 @@ export const getBills = async (req: AuthRequest, res: Response) => {
 
     res.json(withUrls);
   } catch (error: any) {
-    logger.error('Failed to fetch bills', { error: error?.message || error });
-    res.status(500).json({ error: 'Failed to fetch bills' });
+    next(error);
   }
 };
 
-export const uploadBill = async (req: AuthRequest, res: Response) => {
+export const uploadBill = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const transactionId = req.body.transactionId ? String(req.body.transactionId).trim() : undefined;
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ error: 'File is required' });
+      throw AppError.badRequest('File is required', 'FILE_REQUIRED');
     }
 
     if (transactionId) {
@@ -74,7 +74,7 @@ export const uploadBill = async (req: AuthRequest, res: Response) => {
       });
 
       if (!linkedTransaction) {
-        return res.status(403).json({ error: 'Unauthorized transaction reference' });
+        throw AppError.forbidden('Unauthorized transaction reference', 'UNAUTHORIZED_TRANSACTION_REF');
       }
     }
 
@@ -93,13 +93,13 @@ export const uploadBill = async (req: AuthRequest, res: Response) => {
       const moderation = await moderateImage(buffer, contentType);
       moderationStatus = moderation.status;
       if (moderation.status === 'rejected') {
-        return res.status(400).json({ error: 'Image rejected by moderation', details: moderation.details });
+        throw AppError.badRequest('Image rejected by moderation', 'MODERATION_REJECTED');
       }
     }
 
     const scanResult = await scanBufferForViruses(buffer);
     if (scanResult.status === 'infected') {
-      return res.status(400).json({ error: 'File failed virus scan', details: scanResult.details });
+      throw AppError.badRequest('File failed virus scan', 'VIRUS_SCAN_FAILED');
     }
 
     const baseName = validated.originalName.replace(/\.[^/.]+$/, '');
@@ -148,22 +148,11 @@ export const uploadBill = async (req: AuthRequest, res: Response) => {
       downloadUrl,
     });
   } catch (error: any) {
-    logger.error('Upload failed', { error: error?.message || error });
-    if (
-      typeof error?.message === 'string'
-      && (
-        error.message.includes('Only PNG, JPG, and PDF files are allowed')
-        || error.message.includes('Unsupported or corrupted file')
-        || error.message.includes('File exceeds')
-      )
-    ) {
-      return res.status(400).json({ error: error.message });
-    }
-    return res.status(500).json({ error: error?.message || 'Upload failed' });
+    next(error);
   }
 };
 
-export const deleteBill = async (req: AuthRequest, res: Response) => {
+export const deleteBill = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -173,7 +162,7 @@ export const deleteBill = async (req: AuthRequest, res: Response) => {
     });
 
     if (!bill || bill.userId !== userId) {
-      return res.status(404).json({ error: 'Bill not found' });
+      throw AppError.notFound('Bill');
     }
 
     try {
@@ -186,7 +175,6 @@ export const deleteBill = async (req: AuthRequest, res: Response) => {
 
     return res.json({ message: 'Bill deleted' });
   } catch (error: any) {
-    logger.error('Failed to delete bill', { error: error?.message || error });
-    return res.status(500).json({ error: 'Failed to delete bill' });
+    next(error);
   }
 };

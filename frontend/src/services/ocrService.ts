@@ -1,4 +1,6 @@
-import { createWorker } from 'tesseract.js';
+// Lazy-load tesseract.js to reduce initial bundle size
+const getTesseract = async () => import('tesseract.js');
+
 import { parseReceiptText, preprocessReceiptFileVariants } from '@/services/receiptScannerService';
 import { receiptParserService } from '@/services/receiptParserService';
 import type { OCRProgress, ReceiptScanResult } from '@/types/receipt.types';
@@ -100,11 +102,12 @@ export class TesseractOCRService implements OCRService {
     }
   }
 
-  private createWorkerWithProgress(
+  private async createWorkerWithProgress(
     onProgress: ((progress: OCRProgress) => void) | undefined,
     language: string,
     statusPrefix: string,
   ) {
+    const { createWorker } = await getTesseract();
     return createWorker(language, 1, {
       logger: (message) => {
         if (message.status === 'recognizing text') {

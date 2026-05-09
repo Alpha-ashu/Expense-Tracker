@@ -30,7 +30,16 @@ app.use((req, res, next) => {
 app.disable('x-powered-by');
 
 // Add helmet for secure HTTP headers
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "https://*.supabase.co"],
+      "connect-src": ["'self'", "https://*.supabase.co"],
+    },
+  },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 
 const buildAllowedOrigins = () => {
   const origins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')

@@ -1,8 +1,9 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { createHash } from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { Prisma } from '../../db/prisma-client';
+import { AppError } from '../../utils/AppError';
 import { cacheDeleteByPrefix } from '../../cache/redis';
 import { eventBus } from '../../utils/eventBus';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
@@ -69,7 +70,7 @@ function normalizeTransaction<T extends TransactionWithTags>(transaction: T): Om
   };
 }
 
-export const getTransactions = async (req: AuthRequest, res: Response) => {
+export const getTransactions = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { accountId, startDate, endDate, category, page, limit } = req.query;
@@ -124,11 +125,11 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
+    next(error);
   }
 };
 
-export const createTransaction = async (req: AuthRequest, res: Response) => {
+export const createTransaction = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const {
@@ -151,7 +152,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
     // Validate amount is positive and finite
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      return res.status(400).json({ error: 'Transaction amount must be a positive number' });
+      throw AppError.badRequest('Transaction amount must be a positive number', 'INVALID_AMOUNT');
     }
 
     const txDate = new Date(date);
@@ -163,7 +164,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
       where: { dedupHash },
     });
     if (existingDup) {
-      return res.status(409).json({ error: 'Duplicate transaction detected', existingId: existingDup.id });
+      throw AppError.conflict('Duplicate transaction detected', 'DUPLICATE_TRANSACTION');
     }
 
     // Wrap all balance updates + transaction creation in an atomic DB transaction
@@ -174,7 +175,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
           where: { id: transferToAccountId },
         });
         if (!destinationAccount || destinationAccount.userId !== userId) {
-          throw Object.assign(new Error('Invalid destination account'), { statusCode: 403 });
+          throw AppError.forbidden('Invalid destination account', 'INVALID_DESTINATION_ACCOUNT');
         }
 
         // Validate source account ownership
@@ -182,11 +183,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
           where: { id: accountId },
         });
         if (!sourceAccount || sourceAccount.userId !== userId) {
-          throw Object.assign(new Error('Invalid source account'), { statusCode: 403 });
+          throw AppError.forbidden('Invalid source account', 'INVALID_SOURCE_ACCOUNT');
         }
 
         if (sourceAccount.balance < numericAmount) {
-          throw Object.assign(new Error('Insufficient balance'), { statusCode: 400 });
+          throw AppError.badRequest('Insufficient balance', 'INSUFFICIENT_BALANCE');
         }
 
         // Update both balances atomically
@@ -204,7 +205,7 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
           where: { id: accountId },
         });
         if (!account || account.userId !== userId) {
-          throw Object.assign(new Error('Invalid account'), { statusCode: 403 });
+          throw AppError.forbidden('Invalid account', 'INVALID_ACCOUNT');
         }
 
         const balanceAdjustment = type === 'income' ? numericAmount : -numericAmount;
@@ -245,19 +246,11 @@ export const createTransaction = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json(normalizeTransaction(transaction));
   } catch (error: unknown) {
-    const typedError = error as HttpLikeError;
-    if (typedError.statusCode === 403) {
-      return res.status(403).json({ error: typedError.message || 'Forbidden' });
-    }
-    if (typedError.statusCode === 400) {
-      return res.status(400).json({ error: typedError.message || 'Bad request' });
-    }
-    console.error('Create transaction error:', error);
-    res.status(500).json({ error: 'Failed to create transaction' });
+    next(error);
   }
 };
 
-export const getTransaction = async (req: AuthRequest, res: Response) => {
+export const getTransaction = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -272,16 +265,16 @@ export const getTransaction = async (req: AuthRequest, res: Response) => {
     });
 
     if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      throw AppError.notFound('Transaction');
     }
 
     res.json({ success: true, data: normalizeTransaction(transaction) });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch transaction' });
+    next(error);
   }
 };
 
-export const updateTransaction = async (req: AuthRequest, res: Response) => {
+export const updateTransaction = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -291,7 +284,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
     if (body.amount !== undefined) {
       const numAmount = Number(body.amount);
       if (!Number.isFinite(numAmount) || numAmount <= 0) {
-        return res.status(400).json({ error: 'Transaction amount must be a positive number' });
+        throw AppError.badRequest('Transaction amount must be a positive number', 'INVALID_AMOUNT');
       }
     }
 
@@ -324,7 +317,7 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
     });
 
     if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      throw AppError.notFound('Transaction');
     }
 
     const updated = await prisma.transaction.update({
@@ -342,11 +335,11 @@ export const updateTransaction = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: normalizeTransaction(updated) });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to update transaction' });
+    next(error);
   }
 };
 
-export const deleteTransaction = async (req: AuthRequest, res: Response) => {
+export const deleteTransaction = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -361,7 +354,7 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
     });
 
     if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      throw AppError.notFound('Transaction');
     }
 
     // Soft delete
@@ -376,11 +369,11 @@ export const deleteTransaction = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'Transaction deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to delete transaction' });
+    next(error);
   }
 };
 
-export const getAccountTransactions = async (req: AuthRequest, res: Response) => {
+export const getAccountTransactions = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { accountId } = req.params;
@@ -391,7 +384,7 @@ export const getAccountTransactions = async (req: AuthRequest, res: Response) =>
     });
 
     if (!account || account.userId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized' });
+      throw AppError.forbidden('Unauthorized access to account', 'UNAUTHORIZED_ACCOUNT_ACCESS');
     }
 
     const transactions = await prisma.transaction.findMany({
@@ -401,6 +394,6 @@ export const getAccountTransactions = async (req: AuthRequest, res: Response) =>
 
     res.json(transactions.map(normalizeTransaction));
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch account transactions' });
+    next(error);
   }
 };

@@ -1,6 +1,7 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
+import { AppError } from '../../utils/AppError';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 const toDate = (value?: string) => {
@@ -9,7 +10,7 @@ const toDate = (value?: string) => {
   return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
 };
 
-export const getInvestments = async (req: AuthRequest, res: Response) => {
+export const getInvestments = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
 
@@ -24,11 +25,11 @@ export const getInvestments = async (req: AuthRequest, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
-    res.status(500).json({ success: false, error: 'Failed to fetch investments' });
+    next(error);
   }
 };
 
-export const createInvestment = async (req: AuthRequest, res: Response) => {
+export const createInvestment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const body = req.body as {
@@ -65,12 +66,12 @@ export const createInvestment = async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json({ success: true, data: created });
-  } catch {
-    res.status(500).json({ success: false, error: 'Failed to create investment' });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const updateInvestment = async (req: AuthRequest, res: Response) => {
+export const updateInvestment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -78,7 +79,7 @@ export const updateInvestment = async (req: AuthRequest, res: Response) => {
 
     const existing = await prisma.investment.findUnique({ where: { id } });
     if (!existing || existing.userId !== userId) {
-      return res.status(404).json({ success: false, error: 'Investment not found' });
+      throw AppError.notFound('Investment');
     }
 
     const updates: Record<string, unknown> = { ...body, lastUpdated: new Date(), updatedAt: new Date() };
@@ -91,19 +92,19 @@ export const updateInvestment = async (req: AuthRequest, res: Response) => {
     });
 
     res.json({ success: true, data: updated });
-  } catch {
-    res.status(500).json({ success: false, error: 'Failed to update investment' });
+  } catch (error) {
+    next(error);
   }
 };
 
-export const deleteInvestment = async (req: AuthRequest, res: Response) => {
+export const deleteInvestment = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
 
     const existing = await prisma.investment.findUnique({ where: { id } });
     if (!existing || existing.userId !== userId) {
-      return res.status(404).json({ success: false, error: 'Investment not found' });
+      throw AppError.notFound('Investment');
     }
 
     await prisma.investment.update({
@@ -112,7 +113,7 @@ export const deleteInvestment = async (req: AuthRequest, res: Response) => {
     });
 
     res.json({ success: true, message: 'Investment deleted' });
-  } catch {
-    res.status(500).json({ success: false, error: 'Failed to delete investment' });
+  } catch (error) {
+    next(error);
   }
 };

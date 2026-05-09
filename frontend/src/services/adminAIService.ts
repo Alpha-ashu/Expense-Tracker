@@ -1,3 +1,5 @@
+import { TokenManager } from '@/lib/api';
+
 const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
 
 export interface AIOverviewDto {
@@ -71,10 +73,7 @@ export interface AIRawUserDataDto {
   }>;
 }
 
-const getToken = () =>
-  localStorage.getItem('auth_token')
-  || localStorage.getItem('accessToken')
-  || '';
+const getToken = () => TokenManager.getAccessToken() || '';
 
 const request = async <T>(endpoint: string, options?: RequestInit): Promise<T> => {
   const token = getToken();

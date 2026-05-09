@@ -1,4 +1,8 @@
-import Tesseract from 'tesseract.js';
+// tesseract.js is heavy (~5MB), so we import it dynamically only when needed
+// for OCR features to keep the main bundle light.
+type TesseractModule = typeof import('tesseract.js');
+type TesseractWorker = import('tesseract.js').Worker;
+
 
 export interface OCRResult {
   text: string;
@@ -15,14 +19,19 @@ export interface ExpenseData {
 }
 
 class TesseractOCREngine {
-  private worker: Tesseract.Worker | null = null;
+  private worker: TesseractWorker | null = null;
   private initialized = false;
+  private tesseract: any = null;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
     try {
-      console.log(' Initializing Tesseract OCR Engine...');
+      console.log(' Initializing Tesseract OCR Engine (Lazy Loading)...');
+      
+      const Tesseract = await import('tesseract.js');
+      this.tesseract = Tesseract;
+
       this.worker = await Tesseract.createWorker('eng', 1, {
         logger: (m) => {
           if (m.status === 'recognizing text') {
@@ -34,7 +43,7 @@ class TesseractOCREngine {
       // Optimize settings for receipt scanning
       await this.worker.setParameters({
         tessedit_char_whitelist: '0123456789.,INR$EURGBPABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ',
-        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_COLUMN,
+        tessedit_pageseg_mode: this.tesseract.PSM.SINGLE_COLUMN,
         preserve_interword_spaces: '1',
       });
 
@@ -230,5 +239,5 @@ class TesseractOCREngine {
 // Singleton instance
 export const ocrEngine = new TesseractOCREngine();
 
-// Auto-initialize on module load
-ocrEngine.initialize().catch(console.error);
+// REMOVED: ocrEngine.initialize() auto-call.
+// Initialization now happens lazily on the first extractText() call.

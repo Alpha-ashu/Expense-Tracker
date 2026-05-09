@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { TokenManager } from './api';
 
 interface SocketEvents {
   // Sync events
@@ -535,7 +536,7 @@ class SocketClient {
   private async reconnect(): Promise<void> {
     try {
       // Get current auth info
-      const token = localStorage.getItem('auth_token');
+      const token = TokenManager.getAccessToken();
       const deviceId = localStorage.getItem('device_id');
 
       if (token && deviceId) {

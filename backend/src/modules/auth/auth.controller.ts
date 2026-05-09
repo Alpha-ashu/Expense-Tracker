@@ -29,8 +29,8 @@ const toNumber = (value: unknown, fallback = 0): number => {
 const buildProfilePayload = (
   userId: string,
   authUser?: AuthRequest['user'],
-  userRecord?: any | null,
-  profileRecord?: any | null,
+  userRecord?: Record<string, any> | null,
+  profileRecord?: Record<string, any> | null,
 ) => {
   const fallbackName = authUser?.name || '';
   const fallbackNameParts = fallbackName.trim().split(/\s+/).filter(Boolean);
@@ -201,8 +201,8 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
     if (!req.userId) {
       return next(AppError.unauthorized());
     }
-    let userResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
-    let profileResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
+    let userResult: PromiseSettledResult<unknown> = { status: 'fulfilled', value: null };
+    let profileResult: PromiseSettledResult<unknown> = { status: 'fulfilled', value: null };
 
     const withTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
       return await Promise.race([
@@ -240,8 +240,8 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
       });
     }
 
-    const userRecord = userResult.status === 'fulfilled' ? userResult.value : null;
-    const profileRecord = profileResult.status === 'fulfilled' ? profileResult.value : null;
+    const userRecord = userResult.status === 'fulfilled' ? (userResult.value as Record<string, any>) : null;
+    const profileRecord = profileResult.status === 'fulfilled' ? (profileResult.value as Record<string, any>) : null;
 
     res.json({
       success: true,
@@ -266,7 +266,7 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
       return next(AppError.unauthorized());
     }
 
-    const sanitizedData = sanitize(req.body as any);
+    const sanitizedData = sanitize(req.body as Record<string, any>);
     const user = await authService.updateProfile(req.userId, sanitizedData, req.user?.email);
 
     res.json({

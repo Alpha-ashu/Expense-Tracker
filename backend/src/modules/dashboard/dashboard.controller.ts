@@ -1,14 +1,15 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { Prisma } from '../../db/prisma-client';
+import { AppError } from '../../utils/AppError';
 
 /**
  * GET /api/v1/dashboard/summary
  * Returns monthly spending, category breakdown, account totals, recent transactions.
  * Query params: month (YYYY-MM, defaults to current month)
  */
-export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
+export const getDashboardSummary = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const monthParam = req.query.month as string | undefined;
@@ -88,7 +89,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch dashboard summary' });
+    next(error);
   }
 };
 
@@ -97,7 +98,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response) => {
  * Monthly cashflow for the last N months (default 6).
  * Query params: months (number, 1-24)
  */
-export const getCashflow = async (req: AuthRequest, res: Response) => {
+export const getCashflow = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const monthsBack = Math.min(24, Math.max(1, parseInt(req.query.months as string || '6', 10)));
@@ -136,6 +137,6 @@ export const getCashflow = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: cashflow });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch cashflow data' });
+    next(error);
   }
 };

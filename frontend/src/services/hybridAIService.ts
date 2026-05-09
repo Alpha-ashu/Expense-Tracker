@@ -1,3 +1,4 @@
+import { TokenManager } from '@/lib/api';
 import { ocrEngine, ExpenseData } from './tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from './voiceAIProcessor';
 import { finoraAI } from './finoraIntelligenceEngine';
@@ -202,7 +203,7 @@ class HybridAIService {
       method: 'POST',
       body: formData,
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Authorization': `Bearer ${TokenManager.getAccessToken()}`,
       },
     });
 

@@ -224,7 +224,7 @@ const ensureDatabaseReady = async () => {
   cleanStalePrismaEngineTemps();
 
   try {
-    await runCommand('npx', ['prisma', 'generate'], {
+    await runCommand('npx', ['prisma@6.19.2', 'generate'], {
       cwd: backendDir,
       label: 'prisma generate',
     });
@@ -268,7 +268,7 @@ const ensureDatabaseReady = async () => {
     return;
   }
 
-  await runCommand('npx', ['prisma', 'db', 'push', '--skip-generate'], {
+  await runCommand('npx', ['prisma@6.19.2', 'db', 'push', '--skip-generate'], {
     cwd: backendDir,
     label: 'prisma db push',
   });

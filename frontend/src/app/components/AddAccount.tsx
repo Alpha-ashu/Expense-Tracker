@@ -310,6 +310,15 @@ export const AddAccount: React.FC = () => {
   }, [availableOptions, formData.type, userCountry]);
 
   const showNameField = formData.type === 'cash' || provider !== '';
+  return (
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <button
+              type="button"
+              onClick={() => setCurrentPage('accounts')}
               className="lg:hidden w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 mb-4 shadow-sm border border-gray-100"
             >
               <ArrowLeft className="w-4 h-4" />

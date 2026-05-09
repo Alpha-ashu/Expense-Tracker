@@ -1,3 +1,4 @@
+import { TokenManager } from '@/lib/api';
 import supabase from '@/utils/supabase/client';
 import type { OCRProgress, ReceiptLineItem, ReceiptScanResult, TaxComponent, TotalValidationResult } from '@/types/receipt.types';
 
@@ -10,13 +11,10 @@ const getAuthToken = async () => {
   if (session?.access_token) return session.access_token;
   
   // Fallback to custom JWT stored in localStorage
-  const token = localStorage.getItem('accessToken') || 
-                localStorage.getItem('token') || 
-                localStorage.getItem('auth_token') || 
-                localStorage.getItem('authToken');
+  const token = TokenManager.getAccessToken();
                 
   if (!token) {
-    console.warn('[ReceiptScanner] No auth token found in localStorage among keys: accessToken, token, auth_token, authToken');
+    console.warn('[ReceiptScanner] No auth token found in localStorage');
   }
   return token || null;
 };

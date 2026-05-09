@@ -1,12 +1,13 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { prisma } from '../../db/prisma';
 import { sanitize } from '../../utils/sanitize';
+import { AppError } from '../../utils/AppError';
 import { logger } from '../../config/logger';
 import { cacheDeleteByPrefix } from '../../cache/redis';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
-export const getAccounts = async (req: AuthRequest, res: Response) => {
+export const getAccounts = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
 
@@ -22,21 +23,21 @@ export const getAccounts = async (req: AuthRequest, res: Response) => {
       return res.json({ success: true, data: [] });
     }
 
-    res.status(500).json({ success: false, error: 'Failed to fetch accounts' });
+    next(error);
   }
 };
 
-export const createAccount = async (req: AuthRequest, res: Response) => {
+export const createAccount = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { name, type, provider, country, balance, currency } = req.body;
 
     if (!name || !type) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      throw AppError.badRequest('Missing required fields: name and type are mandatory.', 'MISSING_FIELDS');
     }
 
     if (balance !== undefined && Number(balance) < 0) {
-      return res.status(400).json({ error: 'Account balance cannot be negative' });
+      throw AppError.badRequest('Account balance cannot be negative', 'INVALID_BALANCE');
     }
 
     const account = await prisma.account.create({
@@ -57,12 +58,11 @@ export const createAccount = async (req: AuthRequest, res: Response) => {
 
     res.status(201).json({ success: true, data: account });
   } catch (error) {
-    logger.error('Failed to create account', { error });
-    res.status(500).json({ success: false, error: 'Failed to create account' });
+    next(error);
   }
 };
 
-export const getAccount = async (req: AuthRequest, res: Response) => {
+export const getAccount = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -78,16 +78,16 @@ export const getAccount = async (req: AuthRequest, res: Response) => {
     });
 
     if (!account || account.userId !== userId) {
-      return res.status(404).json({ error: 'Account not found' });
+      throw AppError.notFound('Account');
     }
 
     res.json({ success: true, data: account });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch account' });
+    next(error);
   }
 };
 
-export const updateAccount = async (req: AuthRequest, res: Response) => {
+export const updateAccount = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -99,14 +99,14 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
     });
 
     if (!account || account.userId !== userId) {
-      return res.status(404).json({ error: 'Account not found' });
+      throw AppError.notFound('Account');
     }
 
     // Validate balance: must be non-negative and finite
     if (body.balance !== undefined) {
       const numBalance = Number(body.balance);
       if (!Number.isFinite(numBalance) || numBalance < 0) {
-        return res.status(400).json({ error: 'Account balance must be a non-negative number' });
+        throw AppError.badRequest('Account balance must be a non-negative number', 'INVALID_BALANCE');
       }
     }
 
@@ -134,11 +134,11 @@ export const updateAccount = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, data: updated });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to update account' });
+    next(error);
   }
 };
 
-export const deleteAccount = async (req: AuthRequest, res: Response) => {
+export const deleteAccount = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = getUserId(req);
     const { id } = req.params;
@@ -149,7 +149,7 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
     });
 
     if (!account || account.userId !== userId) {
-      return res.status(404).json({ error: 'Account not found' });
+      throw AppError.notFound('Account');
     }
 
     // Soft delete
@@ -163,6 +163,6 @@ export const deleteAccount = async (req: AuthRequest, res: Response) => {
 
     res.json({ success: true, message: 'Account deleted' });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to delete account' });
+    next(error);
   }
 };
