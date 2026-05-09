@@ -22,6 +22,7 @@ import {
   getRequiredInvestmentQuoteSymbols,
   isClosedInvestment,
 } from '@/lib/investmentUtils';
+import { AIInsightsCard } from '@/app/components/AIInsightsCard';
 
 interface DashboardProps {
   setCurrentPage?: (page: string) => void;
@@ -286,6 +287,11 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             </div>
           </div>
         )}
+
+        {/* AI Insights Card */}
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6">
+          <AIInsightsCard compact />
+        </div>
 
         {/* "EUR"EUR 1. Financial Health Hero "EUR"EUR */}
         <div className="flex justify-center px-4 sm:px-6 lg:px-8 mb-6 lg:mb-8">

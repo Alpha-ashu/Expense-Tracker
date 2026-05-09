@@ -4,25 +4,45 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // structured error response rather than a raw FUNCTION_INVOCATION_FAILED.
 let _app: ((req: any, res: any) => void) | null = null;
 let _initError: Error | null = null;
+let _initAttempted = false;
 
 const loadApp = () => {
   if (_app) return _app;
-  if (_initError) throw _initError;
+  if (_initError && _initAttempted) throw _initError;
+  _initAttempted = true;
   try {
+    // Validate critical environment variables before loading the app
+    if (!process.env.DATABASE_URL) {
+      console.error('[api/index] CRITICAL: DATABASE_URL environment variable is not set.');
+    }
+    if (!process.env.JWT_SECRET && !process.env.SUPABASE_JWT_SECRET) {
+      console.error('[api/index] WARNING: No JWT secret configured.');
+    }
+
     // Load from compiled JS output (backend/dist/app.js).
     // The vercel-build script compiles backend TS before deployment.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('../backend/dist/app');
     _app = mod.default ?? mod.app ?? mod;
+    if (typeof _app !== 'function') {
+      throw new Error(`backend/dist/app did not export a valid Express handler. Got: ${typeof _app}`);
+    }
+    console.log('[api/index] App loaded successfully.');
     return _app!;
   } catch (err: any) {
     _initError = err;
     console.error('[api/index] App failed to load:', err?.message ?? err);
+    console.error('[api/index] Stack:', err?.stack);
     throw err;
   }
 };
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  // Health check that doesn't require the full app
+  if (req.url === '/api/ping') {
+    return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  }
+
   try {
     const app = loadApp();
     return app(req as any, res as any);

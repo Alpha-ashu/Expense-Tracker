@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { requireRole, requireApproved } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
+import { logger } from '../../config/logger';
 
 // List all approved advisors
 export const listAdvisors = async (req: AuthRequest, res: Response) => {
@@ -21,7 +22,7 @@ export const listAdvisors = async (req: AuthRequest, res: Response) => {
 
     res.json(advisors);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch advisors' });
+    res.status(500).json({ error: 'Failed to fetch advisors' });
   }
 };
 
@@ -62,7 +63,7 @@ export const getAdvisor = async (req: AuthRequest, res: Response) => {
       availability,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch advisor' });
+    res.status(500).json({ error: 'Failed to fetch advisor' });
   }
 };
 
@@ -106,7 +107,7 @@ export const setAvailability = async (req: AuthRequest, res: Response) => {
 
     res.json(availability);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to set availability' });
+    res.status(500).json({ error: 'Failed to set availability' });
   }
 };
 
@@ -157,7 +158,7 @@ export const setAvailabilityStatus = async (req: AuthRequest, res: Response) => 
       slots,
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to update advisor availability status' });
+    res.status(500).json({ error: 'Failed to update advisor availability status' });
   }
 };
 
@@ -173,7 +174,7 @@ export const getAvailability = async (req: AuthRequest, res: Response) => {
 
     res.json(availability);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch availability' });
+    res.status(500).json({ error: 'Failed to fetch availability' });
   }
 };
 
@@ -197,7 +198,7 @@ export const deleteAvailability = async (req: AuthRequest, res: Response) => {
 
     res.json({ message: 'Availability deleted' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to delete availability' });
+    res.status(500).json({ error: 'Failed to delete availability' });
   }
 };
 
@@ -220,7 +221,7 @@ export const getSessions = async (req: AuthRequest, res: Response) => {
 
     res.json(sessions);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch sessions' });
+    res.status(500).json({ error: 'Failed to fetch sessions' });
   }
 };
 
@@ -265,6 +266,145 @@ export const rateSession = async (req: AuthRequest, res: Response) => {
 
     res.json(updated);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to rate session' });
+    res.status(500).json({ error: 'Failed to rate session' });
   }
 };
+
+// ── ADMIN: Apply to become advisor ────────────────────────────────────────────
+
+export const applyAsAdvisor = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = getUserId(req);
+    const { bio, specializations, feePerSession, experienceYears, languages } = req.body;
+
+    // Update user role to 'advisor' but mark as NOT approved (pending admin review)
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        role: 'advisor',
+        isApproved: false,
+        // Store extra info in profile metadata
+      },
+      select: { id: true, name: true, email: true, role: true, isApproved: true },
+    });
+
+    logger.info('Advisor application submitted', { userId });
+    return res.json({ success: true, message: 'Application submitted. Awaiting admin approval.', user: updated });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to submit advisor application' });
+  }
+};
+
+// ── ADMIN: List all pending advisor applications ──────────────────────────────
+
+export const listPendingAdvisors = async (req: AuthRequest, res: Response) => {
+  try {
+    const pending = await prisma.user.findMany({
+      where: { role: 'advisor', isApproved: false },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isApproved: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const all = await prisma.user.findMany({
+      where: { role: 'advisor' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isApproved: true,
+        createdAt: true,
+        advisorAvailability: { select: { isActive: true } },
+        sessionsAsAdvisor: { select: { id: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({
+      pending,
+      all: all.map(a => ({
+        ...a,
+        sessionCount: a.sessionsAsAdvisor.length,
+        isAvailable: a.advisorAvailability.some(av => av.isActive),
+      })),
+    });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to fetch advisor applications' });
+  }
+};
+
+// ── ADMIN: Approve an advisor application ────────────────────────────────────
+
+export const approveAdvisor = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'advisor') return res.status(400).json({ error: 'User is not an advisor applicant' });
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isApproved: true },
+      select: { id: true, name: true, email: true, role: true, isApproved: true },
+    });
+
+    // Notify the advisor
+    await prisma.notification.create({
+      data: {
+        userId: id,
+        title: '🎉 Advisor Application Approved!',
+        message: 'Congratulations! Your advisor application has been approved. You can now accept client bookings.',
+        category: 'system',
+      },
+    });
+
+    logger.info('Advisor approved', { advisorId: id });
+    return res.json({ success: true, advisor: updated });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to approve advisor' });
+  }
+};
+
+// ── ADMIN: Reject / revoke an advisor ────────────────────────────────────────
+
+export const rejectAdvisor = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Revert to regular user role
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role: 'user', isApproved: false },
+      select: { id: true, name: true, email: true, role: true, isApproved: true },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: id,
+        title: 'Advisor Application Update',
+        message: reason
+          ? `Your advisor application was not approved: ${reason}`
+          : 'Your advisor application was not approved at this time. Please contact support for more details.',
+        category: 'system',
+      },
+    });
+
+    logger.info('Advisor rejected', { advisorId: id, reason });
+    return res.json({ success: true, user: updated });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to reject advisor application' });
+  }
+};
+

@@ -50,4 +50,20 @@ router.put(
   BookingController.cancelBooking
 );
 
+// Advisor workspace: list all clients
+router.get(
+  '/workspace/clients',
+  requireRole('advisor'),
+  requireApproved,
+  BookingController.getAdvisorClients
+);
+
+// Mark session fee as paid (advisor only)
+router.post(
+  '/:bookingId/fee/pay',
+  requireRole('advisor'),
+  requireApproved,
+  BookingController.markFeePaid
+);
+
 export { router as bookingRoutes };

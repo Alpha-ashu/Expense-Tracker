@@ -230,7 +230,7 @@ export const AddGoal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentPage('goals')}
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white backdrop-blur-sm transition-colors hover:bg-white/20 md:hidden"
                 >
                   <ChevronLeft size={20} />
                 </button>
@@ -705,7 +705,7 @@ export const AddGoal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentPage('goals')}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:bg-gray-50"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:bg-gray-50 md:hidden"
               >
                 <ChevronLeft size={20} />
               </button>

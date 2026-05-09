@@ -68,7 +68,7 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     res.status(201).json(booking);
   } catch (error: any) {
     console.error('Create booking error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create booking' });
+    res.status(500).json({ error: 'Failed to create booking' });
   }
 };
 
@@ -104,7 +104,7 @@ export const getBookings = async (req: AuthRequest, res: Response) => {
       return res.json(bookings);
     }
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch bookings' });
+    res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 };
 
@@ -137,7 +137,7 @@ export const getBooking = async (req: AuthRequest, res: Response) => {
 
     res.json(booking);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to fetch booking' });
+    res.status(500).json({ error: 'Failed to fetch booking' });
   }
 };
 
@@ -186,7 +186,7 @@ export const acceptBooking = async (req: AuthRequest, res: Response) => {
 
     res.json({ booking: updated, session });
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to accept booking' });
+    res.status(500).json({ error: 'Failed to accept booking' });
   }
 };
 
@@ -225,7 +225,7 @@ export const rejectBooking = async (req: AuthRequest, res: Response) => {
 
     res.json(updated);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to reject booking' });
+    res.status(500).json({ error: 'Failed to reject booking' });
   }
 };
 
@@ -274,7 +274,7 @@ export const rescheduleBooking = async (req: AuthRequest, res: Response) => {
 
     res.json(updated);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to reschedule booking' });
+    res.status(500).json({ error: 'Failed to reschedule booking' });
   }
 };
 
@@ -313,6 +313,77 @@ export const cancelBooking = async (req: AuthRequest, res: Response) => {
 
     res.json(updated);
   } catch (error: any) {
-    res.status(500).json({ error: error.message || 'Failed to cancel booking' });
+    res.status(500).json({ error: 'Failed to cancel booking' });
+  }
+};
+
+// Get advisor workspace: list clients with financial summaries
+export const getAdvisorClients = async (req: AuthRequest, res: Response) => {
+  try {
+    const advisorId = getUserId(req);
+
+    const sessions = await prisma.advisorSession.findMany({
+      where: { advisorId },
+      include: {
+        client: {
+          select: { id: true, name: true, email: true, createdAt: true },
+        },
+      },
+      orderBy: { startTime: 'desc' },
+    });
+
+    // Deduplicate clients
+    const clientsMap = new Map<string, typeof sessions[0]['client']>();
+    sessions.forEach(s => { if (s.client) clientsMap.set(s.clientId, s.client); });
+    const clients = Array.from(clientsMap.values());
+
+    return res.json({ clients, totalClients: clients.length });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to fetch clients' });
+  }
+};
+
+// Mark session fee as paid
+export const markFeePaid = async (req: AuthRequest, res: Response) => {
+  try {
+    const advisorId = getUserId(req);
+    const { bookingId } = req.params;
+    const { amount, paymentMethod, paymentReference } = req.body;
+
+    const booking = await prisma.bookingRequest.findUnique({ where: { id: bookingId } });
+    if (!booking || booking.advisorId !== advisorId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Create payment record if the model exists
+    let payment: any = null;
+    try {
+      payment = await (prisma as any).payment?.create({
+        data: {
+          bookingId,
+          clientId: booking.clientId,
+          advisorId,
+          amount: amount ?? booking.amount,
+          currency: 'INR',
+          status: 'paid',
+          paymentMethod: paymentMethod ?? 'manual',
+          transactionId: paymentReference ?? `manual_${Date.now()}`,
+          paidAt: new Date(),
+        },
+      });
+    } catch { /* Model may vary */ }
+
+    await prisma.notification.create({
+      data: {
+        userId: booking.clientId,
+        title: 'Payment Received',
+        message: `Your consultation fee of ₹${amount ?? booking.amount} has been recorded`,
+        category: 'payment',
+      },
+    });
+
+    return res.json({ success: true, payment });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Failed to mark fee as paid' });
   }
 };

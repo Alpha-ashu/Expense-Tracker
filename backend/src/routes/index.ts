@@ -20,6 +20,8 @@ import { todoRoutes } from '../modules/todos/todo.routes';
 import { groupRoutes } from '../modules/groups/group.routes';
 import { dashboardRoutes } from '../modules/dashboard/dashboard.routes';
 import { categorizationRoutes, learnRouter } from '../modules/categorization/categorization.routes';
+import voiceRoutes from '../modules/voice/voice.routes';
+import importRoutes from '../modules/import/import.routes';
 
 const router = Router();
 
@@ -60,6 +62,8 @@ router.use('/todos', todoRoutes);
 router.use('/groups', groupRoutes);
 router.use('/categorize', categorizationRoutes);
 router.use('/learn', learnRouter);
+router.use('/voice', voiceRoutes);
+router.use('/import', importRoutes);
 router.use('/ai', lazyRoute(() => require('../modules/ai/ai.routes'), 'aiRoutes'));
 router.use('/receipts', lazyRoute(() => require('../modules/receipts/receipt.routes'), 'receiptRoutes'));
 

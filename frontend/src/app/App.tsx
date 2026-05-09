@@ -52,6 +52,7 @@ const AdvisorWorkspace = lazy(() => import('@/app/components/AdvisorWorkspace').
 const AdminFeaturePanel = lazy(() => import('@/app/components/AdminFeaturePanel').then(m => ({ default: m.AdminFeaturePanel })));
 const AdvisorPanel = lazy(() => import('@/app/components/AdvisorPanel').then(m => ({ default: m.AdvisorPanel })));
 const BookAdvisor = lazy(() => import('@/app/components/BookAdvisor').then(m => ({ default: m.BookAdvisor })));
+const AdminAdvisorVerification = lazy(() => import('@/app/components/AdminAdvisorVerification').then(m => ({ default: m.AdminAdvisorVerification })));
 const PayEMI = lazy(() => import('@/app/components/PayEMI').then(m => ({ default: m.PayEMI })));
 const Diagnostics = lazy(() => import('@/app/components/Diagnostics').then(m => ({ default: m.Diagnostics })));
 const ExportReports = lazy(() => import('@/app/components/ExportReports').then(m => ({ default: m.ExportReports })));
@@ -571,6 +572,7 @@ const AppContent: React.FC = () => {
       case 'admin': return <AdminDashboard />;
       case 'admin-ai': return <AdminAIDashboard />;
       case 'sync-monitor': return <SyncMonitorDashboard />;
+      case 'admin-advisor-verification': return <AdminAdvisorVerification />;
       case 'advisor': return <AdvisorWorkspace />;
       case 'voice-input': return <VoiceInput />;
       case 'voice-review': return <VoiceReview />;

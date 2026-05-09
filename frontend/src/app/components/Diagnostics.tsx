@@ -59,7 +59,7 @@ export const Diagnostics: React.FC = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCurrentPage('settings')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
           >
             <ChevronLeft size={24} className="text-gray-600" />
           </button>

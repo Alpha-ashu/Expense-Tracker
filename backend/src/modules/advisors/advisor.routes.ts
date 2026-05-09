@@ -12,44 +12,24 @@ router.get('/:id', AdvisorController.getAdvisor);
 // Protected routes (require authentication)
 router.use(authMiddleware);
 
+// Any authenticated user: apply to become advisor
+router.post('/apply', AdvisorController.applyAsAdvisor);
+
 // Advisor-only routes
-router.post(
-  '/availability',
-  requireRole('advisor'),
-  requireApproved,
-  AdvisorController.setAvailability
-);
-
-router.put(
-  '/availability/status',
-  requireRole('advisor'),
-  requireApproved,
-  AdvisorController.setAvailabilityStatus
-);
-
-router.get(
-  '/:id/availability',
-  AdvisorController.getAvailability
-);
-
-router.delete(
-  '/availability/:id',
-  requireRole('advisor'),
-  requireApproved,
-  AdvisorController.deleteAvailability
-);
-
-router.get(
-  '/me/sessions',
-  requireRole('advisor'),
-  requireApproved,
-  AdvisorController.getSessions
-);
+router.post('/availability', requireRole('advisor'), requireApproved, AdvisorController.setAvailability);
+router.put('/availability/status', requireRole('advisor'), requireApproved, AdvisorController.setAvailabilityStatus);
+router.get('/:id/availability', AdvisorController.getAvailability);
+router.delete('/availability/:id', requireRole('advisor'), requireApproved, AdvisorController.deleteAvailability);
+router.get('/me/sessions', requireRole('advisor'), requireApproved, AdvisorController.getSessions);
 
 // Client-only routes
-router.put(
-  '/sessions/:id/rate',
-  AdvisorController.rateSession
-);
+router.put('/sessions/:id/rate', AdvisorController.rateSession);
+
+// ── ADMIN ONLY ─────────────────────────────────────────────────────────────
+router.get('/admin/applications', requireRole('admin'), AdvisorController.listPendingAdvisors);
+router.put('/admin/:id/approve', requireRole('admin'), AdvisorController.approveAdvisor);
+router.put('/admin/:id/reject', requireRole('admin'), AdvisorController.rejectAdvisor);
 
 export { router as advisorRoutes };
+
+

@@ -73,9 +73,204 @@ Return ONLY the JSON. No explanation.
 }
 `;
 
+/**
+ * Tesseract-only fallback: runs OCR and builds structured JSON from
+ * the raw text using heuristics — including item table extraction,
+ * GST/tax breakdown, GSTIN detection, and math validation.
+ * Used when Gemini is unavailable.
+ */
+const scanReceiptTesseractOnly = async (imageBuffer: Buffer): Promise<Record<string, unknown>> => {
+  logger.info('Tesseract-only OCR pass (Gemini unavailable)...');
+  const tesseractResult = await Tesseract.recognize(imageBuffer, 'eng', {
+    logger: m => {
+      if (m.status === 'recognizing text' && Math.round(m.progress * 100) % 25 === 0) {
+        logger.debug(`Tesseract progress: ${Math.round(m.progress * 100)}%`);
+      }
+    }
+  });
+  const rawText = tesseractResult.data.text.trim();
+  return extractStructuredDataFromText(rawText);
+};
+
+/**
+ * Pure-text structured extraction engine. Used by:
+ * 1. Tesseract-only fallback (from image OCR text)
+ * 2. PDF text extraction (from pdf-parse text)
+ *
+ * Extracts: merchant, date, items table, subtotal, discount,
+ * CGST/SGST/IGST/VAT taxes, GSTIN, grand total, payment method,
+ * invoice number, and validates the math.
+ */
+const extractStructuredDataFromText = (rawText: string): Record<string, unknown> => {
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // ── Helper: extract trailing number from a line ──────────────────────
+  const extractLineAmount = (line: string): number | undefined => {
+    const m = line.match(/([\d,]+\.?\d*)\s*$/);
+    if (!m) return undefined;
+    const n = parseFloat(m[1].replace(/,/g, ''));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+
+  // ── Merchant name: first meaningful line ─────────────────────────────
+  const labelPattern = /^(sub|net|dis|tax|cgst|sgst|igst|gst|total|grand|amount|invoice|bill|date|time|phone|tel|gstin|table|token|rs\.?|inr|qty|rate|mrp|item|particulars|sl|sr|s\.?no)/i;
+  let merchantName: string | undefined;
+  for (const line of lines.slice(0, 8)) {
+    if (line.length >= 3 && !labelPattern.test(line) && !/^\d/.test(line)) {
+      merchantName = line;
+      break;
+    }
+  }
+
+  // ── Date extraction ──────────────────────────────────────────────────
+  let date: string | null = null;
+  for (const line of lines) {
+    const dateMatch = line.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+    if (dateMatch) {
+      const [, d, m, y] = dateMatch;
+      const year = y.length === 2 ? `20${y}` : y;
+      date = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      break;
+    }
+  }
+
+  // ── Time extraction ──────────────────────────────────────────────────
+  let time: string | null = null;
+  for (const line of lines) {
+    const tm = line.match(/(\d{1,2}:\d{2}(?::\d{2})?)\s*(am|pm)?/i);
+    if (tm) { time = tm[1]; break; }
+  }
+
+  // ── Invoice / Bill number ────────────────────────────────────────────
+  let invoiceNumber: string | null = null;
+  for (const line of lines) {
+    const inv = line.match(/(bill|invoice|token|receipt)\s*(no\.?|#|number)?\s*[:\s]\s*([A-Za-z0-9\-]+)/i);
+    if (inv) { invoiceNumber = inv[3]; break; }
+  }
+
+  // ── GSTIN (15-char Indian GST ID) ────────────────────────────────────
+  let gstin: string | null = null;
+  for (const line of lines) {
+    const gstMatch = line.match(/[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}/);
+    if (gstMatch) { gstin = gstMatch[0]; break; }
+  }
+
+  // ── Payment method ───────────────────────────────────────────────────
+  let paymentMethod: string | null = null;
+  for (const line of lines) {
+    const pm = line.match(/(upi|cash|card|gpay|paytm|credit|debit|neft|imps|netbanking|phonepe|bhim)/i);
+    if (pm) { paymentMethod = pm[1].toUpperCase(); break; }
+  }
+
+  // ── Item table extraction ────────────────────────────────────────────
+  // Matches patterns like:
+  //   "MEDU WADA    1   65   65"
+  //   "Paneer Tikka  2  120.00  240.00"
+  //   "Coffee         1   35    35"
+  const items: Array<{ name: string; quantity: number | null; rate: number | null; amount: number }> = [];
+  for (const line of lines) {
+    // Pattern 1: NAME QTY RATE AMOUNT (4 columns)
+    const match4 = line.match(/^([A-Za-z][A-Za-z\s.&'\/]{1,40}?)\s+(\d+)\s+([\d,]+\.?\d*)\s+([\d,]+\.?\d*)\s*$/);
+    if (match4) {
+      const qty = parseInt(match4[2], 10);
+      const rate = parseFloat(match4[3].replace(/,/g, ''));
+      const amount = parseFloat(match4[4].replace(/,/g, ''));
+      if (amount > 0 && !labelPattern.test(match4[1])) {
+        items.push({ name: match4[1].trim(), quantity: qty, rate, amount });
+        continue;
+      }
+    }
+    // Pattern 2: NAME AMOUNT (2 columns — no qty/rate)
+    const match2 = line.match(/^([A-Za-z][A-Za-z\s.&'\/]{2,40}?)\s{2,}([\d,]+\.?\d*)\s*$/);
+    if (match2) {
+      const amount = parseFloat(match2[2].replace(/,/g, ''));
+      if (amount > 0 && !labelPattern.test(match2[1])) {
+        items.push({ name: match2[1].trim(), quantity: null, rate: null, amount });
+      }
+    }
+  }
+
+  // ── Tax breakdown extraction ─────────────────────────────────────────
+  const taxBreakdown: Array<{ name: string; rate: number | null; amount: number }> = [];
+  let subtotal: number | undefined;
+  let discount: number | undefined;
+  let netTotal: number | undefined; // pre-tax net total
+  let grandTotal: number | undefined;
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    const amount = extractLineAmount(line);
+    if (amount === undefined) continue;
+
+    if (/grand\s*total|amount\s*payable|net\s*payable|total\s*amount\s*due|bill\s*total/i.test(lower)) {
+      grandTotal = amount;
+    } else if (/^sub\s*total|subtotal|item\s*total/i.test(lower)) {
+      subtotal = amount;
+    } else if (/^(dis\b|discount)/i.test(lower)) {
+      discount = amount;
+    } else if (/net\s*total|taxable\s*value|net\s*amt|net\s*amount/i.test(lower)) {
+      netTotal = amount;
+    } else if (/^total/i.test(lower) && grandTotal === undefined) {
+      grandTotal = amount;
+    }
+
+    // Tax lines: CGST @9% 5.31 / SGST @9% 5.31 / IGST @18% 10.62 / VAT 12.5% etc.
+    const taxMatch = line.match(/^(CGST|SGST|IGST|GST|VAT|CESS|Service\s*Tax|Service\s*Charge|Swachh\s*Bharat)\s*(?:@?\s*([\d.]+)\s*%?)?/i);
+    if (taxMatch && amount > 0) {
+      taxBreakdown.push({
+        name: taxMatch[1].toUpperCase().replace(/\s+/g, '_'),
+        rate: taxMatch[2] ? parseFloat(taxMatch[2]) : null,
+        amount,
+      });
+    }
+  }
+
+  // Compute derived tax total
+  const taxTotal = taxBreakdown.length > 0
+    ? Number(taxBreakdown.reduce((s, t) => s + t.amount, 0).toFixed(2))
+    : undefined;
+
+  // If no grand total found, try computing it
+  if (grandTotal === undefined && subtotal !== undefined) {
+    grandTotal = Number(((subtotal) - (discount || 0) + (taxTotal || 0)).toFixed(2));
+  }
+
+  // Math validation
+  let validationResult: { isValid: boolean; calculated: number; detected: number } | undefined;
+  if (grandTotal !== undefined && subtotal !== undefined) {
+    const calculated = Number((subtotal - (discount || 0) + (taxTotal || 0)).toFixed(2));
+    validationResult = {
+      isValid: Math.abs(calculated - grandTotal) < 2.0,
+      calculated,
+      detected: grandTotal,
+    };
+  }
+
+  return {
+    merchantName: merchantName || 'Unknown Merchant',
+    netAmount: grandTotal,
+    preTaxSubtotal: subtotal,
+    totalTaxAmount: taxTotal,
+    discountAmount: discount || undefined,
+    taxBreakdown: taxBreakdown.length > 0 ? taxBreakdown : undefined,
+    gstin,
+    items: items.length > 0 ? items : undefined,
+    date,
+    time,
+    invoiceNumber,
+    paymentMethod,
+    currency: 'INR',
+    confidence: items.length > 0 && grandTotal ? 0.65 : taxBreakdown.length > 0 ? 0.55 : 0.45,
+    validationResult,
+    _rawOcrText: rawText,
+    _source: 'tesseract-only',
+  };
+};
+
 export const scanReceiptWithGemini = async (imageBuffer: Buffer, mimeType: string) => {
   if (!GOOGLE_API_KEY) {
-    throw new Error('GOOGLE_API_KEY is not configured for Gemini OCR');
+    logger.warn('GOOGLE_API_KEY not configured – falling back to Tesseract-only OCR');
+    return scanReceiptTesseractOnly(imageBuffer);
   }
 
   try {
@@ -161,7 +356,52 @@ export const scanReceiptWithGemini = async (imageBuffer: Buffer, mimeType: strin
 
     return parsed;
   } catch (error: any) {
-    logger.error('Hybrid OCR pipeline failed', { error: error.message || error });
-    throw error;
+    logger.error('Hybrid OCR pipeline failed, attempting Tesseract-only fallback', { error: error.message || error });
+    // Graceful degradation: return Tesseract-only result rather than crashing
+    try {
+      return await scanReceiptTesseractOnly(imageBuffer);
+    } catch (fallbackErr: any) {
+      logger.error('Tesseract-only fallback also failed', { error: fallbackErr.message });
+      throw error; // re-throw original error
+    }
   }
 };
+
+/**
+ * Process pre-extracted text (from digital PDFs) through the Gemini structuring
+ * pipeline, or fall back to the heuristic text parser.
+ */
+export const scanReceiptFromText = async (text: string): Promise<Record<string, unknown>> => {
+  if (!GOOGLE_API_KEY) {
+    logger.info('No GOOGLE_API_KEY — using heuristic text parser for PDF text');
+    return extractStructuredDataFromText(text);
+  }
+
+  try {
+    const { sanitized: cleanText } = sanitizeAIInput(text);
+
+    const jsonString = await withCircuitBreaker(
+      { name: 'gemini-ocr', failureThreshold: 5, resetTimeoutMs: 60_000 },
+      async () => {
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          systemInstruction: SYSTEM_INSTRUCTION,
+          generationConfig: { temperature: 0.1, topP: 0.95, maxOutputTokens: 2048 },
+        });
+        const result = await model.generateContent([{ text: buildPrompt(cleanText) }]);
+        let output = result.response.text().trim();
+        output = output.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+        return sanitizeAIOutput(output);
+      },
+    );
+
+    const parsed = JSON.parse(jsonString);
+    const validation = validateOcrResult(parsed);
+    if (!validation.valid) throw new Error(`Validation failed: ${validation.reason}`);
+    return parsed;
+  } catch (err: any) {
+    logger.warn('Gemini text structuring failed, falling back to heuristic parser', { error: err.message });
+    return extractStructuredDataFromText(text);
+  }
+};
+

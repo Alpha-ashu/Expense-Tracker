@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Mic, MicOff, Loader2 } from "lucide-react";
-import { motion } from "motion/react";
+import React, { useState, useEffect, useRef } from "react";
+import { Mic, MicOff, Loader2, X, Check } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { CenteredLayout } from "@/app/components/CenteredLayout";
 import { parseVoiceExpense, parseMultipleTransactions } from "@/lib/voiceExpenseParser";
 import { resolveLanguageCode } from "@/lib/userPreferences";
 import { persistVoiceRouteDraft, writeVoiceBatchDraft } from "@/lib/voiceDrafts";
+import { processVoiceTranscript } from "@/services/voiceFinancialService";
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -178,26 +179,62 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
     if (transcript.trim()) {
       setIsProcessing(true);
       
-      // Optimized processing with immediate feedback
       const processTranscript = async () => {
         try {
           if (onTranscript) {
             onTranscript(transcript.trim());
-          } else {
-            // Use the optimized parser
-            const transactions = parseMultipleTransactions(transcript.trim());
+            return;
+          }
 
+          // Try backend NLP first for richer intent understanding
+          let usedBackendNLP = false;
+          try {
+            const result = await processVoiceTranscript(transcript.trim());
+            if (result.success && result.totalActions > 0) {
+              usedBackendNLP = true;
+              if (result.totalActions === 1 && !result.requiresReview) {
+                const action = result.actions[0];
+                // Route to appropriate form with pre-filled data
+                const draft = {
+                  amount: action.entities.amount,
+                  description: action.entities.description,
+                  category: action.entities.category,
+                  merchant: action.entities.merchant,
+                  date: action.entities.date,
+                  type: action.type === 'income' ? 'income' : 'expense',
+                };
+                setCurrentPage(persistVoiceRouteDraft(draft));
+              } else {
+                // Multiple actions or needs review — go to review page
+                writeVoiceBatchDraft(result.actions.map((a) => ({
+                  type: (a.type as any),
+                  amount: a.entities.amount,
+                  description: a.entities.description ?? a.rawSegment,
+                  category: a.entities.category,
+                  merchant: a.entities.merchant,
+                  confidence: a.confidence,
+                })));
+                setCurrentPage("voice-review");
+              }
+              return;
+            }
+          } catch (backendErr) {
+            // Backend failed, fall back to local parser
+            console.warn('[VoiceInput] Backend NLP failed, using local parser:', backendErr);
+          }
+
+          // Local parser fallback
+          if (!usedBackendNLP) {
+            const transactions = parseMultipleTransactions(transcript.trim());
             if (transactions.length === 0) {
               const parsed = parseVoiceExpense(transcript.trim());
               if (!parsed.amount) {
-                setIsProcessing(false);
                 toast.error("Could not detect amount. Please try again.");
                 return;
               }
               setCurrentPage(persistVoiceRouteDraft(parsed));
             } else if (transactions.length === 1) {
-              const item = transactions[0];
-              setCurrentPage(persistVoiceRouteDraft(item));
+              setCurrentPage(persistVoiceRouteDraft(transactions[0]));
             } else {
               writeVoiceBatchDraft(transactions);
               setCurrentPage("voice-review");
@@ -211,7 +248,6 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
         }
       };
       
-      // Reduced timeout for faster response
       setTimeout(processTranscript, 200);
     }
   };
@@ -252,7 +288,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
             </div>
             <h3 className="text-2xl font-bold mb-2">Voice Input</h3>
             <p className="text-pink-100">
-              {isListening ? "Listening..." : isProcessing ? "Processing..." : "Tap to start"}
+              {isListening ? "Listening..." : isProcessing ? "Analyzing Financial Activities..." : "Tap to start"}
             </p>
           </div>
 
@@ -335,10 +371,9 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
           </div>
           <h3 className="text-2xl font-bold mb-2">Voice Entry</h3>
           <p className="text-pink-100">
-            {isListening
-              ? "Listening..."
+            {isListening ? "Listening..."
               : isProcessing
-                ? "Processing..."
+                ? "Analyzing Financial Activities..."
                 : "Speak your expenses (e.g., \"Food 500 and Uber 200\")"}
           </p>
         </div>

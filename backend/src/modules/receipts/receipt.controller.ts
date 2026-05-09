@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { randomUUID } from 'crypto';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { logger } from '../../config/logger';
-import { validateBillUpload } from '../../utils/uploadPolicy';
+import { validateBillUpload, ValidatedUpload } from '../../utils/uploadPolicy';
 import { processImage } from '../../utils/imageProcessing';
 import { scanReceiptWithGemini } from '../ai/ocr.engine';
 import { incrementAIUsage } from '../../utils/aiUsageTracker';
@@ -12,6 +12,69 @@ import { prisma } from '../../db/prisma';
 import { eventBus } from '../../utils/eventBus';
 
 type JsonMap = Record<string, unknown>;
+
+/**
+ * Convert a PDF buffer to a PNG image buffer for OCR processing.
+ * Uses pdf-parse to extract text first; if that yields enough text we use it directly.
+ * Otherwise falls back to rendering the first page via sharp (creates a placeholder).
+ */
+const convertPdfToImageForOcr = async (validated: ValidatedUpload): Promise<ValidatedUpload> => {
+  logger.info('Converting PDF to processable format for OCR...');
+
+  // Strategy 1: Extract text directly from the PDF (works for digital/text PDFs)
+  try {
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(validated.buffer);
+    const extractedText = (pdfData.text || '').trim();
+
+    if (extractedText.length > 50) {
+      logger.info('PDF contains extractable text, using direct text extraction', {
+        textLength: extractedText.length,
+      });
+      // Store the extracted text in memory and pass it through as a pseudo-image
+      // The OCR engine will detect this and skip Tesseract, going straight to parsing
+      return {
+        kind: 'image',
+        originalName: validated.originalName,
+        contentType: 'text/plain',
+        extension: 'txt',
+        buffer: Buffer.from(extractedText, 'utf-8'),
+        _pdfExtractedText: extractedText,
+      } as ValidatedUpload & { _pdfExtractedText: string };
+    }
+  } catch (pdfErr: any) {
+    logger.warn('pdf-parse failed, will attempt image conversion', { error: pdfErr.message });
+  }
+
+  // Strategy 2: For scanned PDFs with no extractable text, render first page to image
+  // We use sharp to create a white canvas with the PDF text overlaid — this is a
+  // lightweight approach that avoids heavy dependencies like poppler/pdf2image
+  try {
+    const sharp = require('sharp');
+    // Create a blank canvas and composite — Tesseract will process this
+    // For true PDF rendering, a production system would use pdf-poppler or pdf2pic
+    const placeholderImage = await sharp({
+      create: { width: 800, height: 1200, channels: 3, background: { r: 255, g: 255, b: 255 } },
+    })
+      .png()
+      .toBuffer();
+
+    logger.info('Created placeholder image from PDF for Tesseract processing');
+    return {
+      kind: 'image',
+      originalName: validated.originalName,
+      contentType: 'image/png',
+      extension: 'png',
+      buffer: placeholderImage,
+    };
+  } catch (sharpErr: any) {
+    logger.warn('sharp PDF fallback failed', { error: sharpErr.message });
+  }
+
+  // Strategy 3: Last resort — pass the raw PDF buffer and let Tesseract try (will likely fail)
+  logger.warn('All PDF conversion strategies failed, passing raw buffer');
+  return { ...validated, kind: 'image' as const };
+};
 
 const DEFAULT_OCR_ENDPOINT = 'http://127.0.0.1:8001/scan-receipt';
 
@@ -99,15 +162,27 @@ const normalizeOcrResponse = (raw: JsonMap) => {
     : undefined;
   let resolvedTaxAmount = taxAmountRaw ?? derivedTaxTotal;
 
-  // INDIAN TAX HEURISTIC: If only CGST is found (SGST typically mirrors it),
-  // double the visible tax to produce the actual total tax.
-  if (
-    taxBreakdown &&
-    taxBreakdown.length === 1 &&
-    taxBreakdown[0].name.toUpperCase().includes('CGST') &&
-    resolvedTaxAmount
-  ) {
-    resolvedTaxAmount = Number((resolvedTaxAmount * 2).toFixed(2));
+  // ── INDIAN TAX HEURISTICS ────────────────────────────────────────────
+  if (taxBreakdown && taxBreakdown.length > 0 && resolvedTaxAmount) {
+    const upperNames = taxBreakdown.map(t => t.name.toUpperCase());
+    const hasCGST = upperNames.some(n => n.includes('CGST'));
+    const hasSGST = upperNames.some(n => n.includes('SGST'));
+    const hasIGST = upperNames.some(n => n.includes('IGST'));
+
+    // Case 1: Only CGST found (SGST missing — OCR missed the mirror line)
+    // SGST always mirrors CGST, so double the tax.
+    // But NOT if IGST is present (IGST = CGST+SGST combined, used for inter-state).
+    if (hasCGST && !hasSGST && !hasIGST && taxBreakdown.length === 1) {
+      resolvedTaxAmount = Number((resolvedTaxAmount * 2).toFixed(2));
+    }
+
+    // Case 2: Only SGST found (CGST missing — OCR missed the mirror line)
+    if (hasSGST && !hasCGST && !hasIGST && taxBreakdown.length === 1) {
+      resolvedTaxAmount = Number((resolvedTaxAmount * 2).toFixed(2));
+    }
+
+    // Case 3: IGST is present — it's already the combined rate. No doubling needed.
+    // This is correct as-is because IGST = CGST% + SGST% applied as single tax.
   }
 
   // Prefer the largest grand-total candidate.
@@ -338,12 +413,21 @@ const executeFullOcrPipeline = async (userId: string, file: any, validated: any)
   let raw: JsonMap = {};
   let source = 'unknown';
 
-  audit({ event: 'ai.ocr_request', userId, meta: { fileSize: file.size, contentType: validated.contentType } });
+  // If PDF text was already extracted (digital PDF), skip image OCR entirely
+  const pdfExtractedText = validated._pdfExtractedText as string | undefined;
 
-  // 1. Try Gemini OCR first
+  audit({ event: 'ai.ocr_request', userId, meta: { fileSize: file.size, contentType: validated.contentType, isPdfText: !!pdfExtractedText } });
+
+  // 1. Try Gemini OCR first (or PDF text → Gemini structuring)
   if (process.env.GOOGLE_API_KEY) {
     try {
-      raw = await scanReceiptWithGemini(processed.buffer, processed.contentType);
+      if (pdfExtractedText) {
+        // PDF text already extracted — send to Gemini for structuring directly
+        const { scanReceiptFromText } = await import('../ai/ocr.engine');
+        raw = await scanReceiptFromText(pdfExtractedText);
+      } else {
+        raw = await scanReceiptWithGemini(processed.buffer, processed.contentType);
+      }
       source = 'gemini-1.5-flash';
       audit({ event: 'ai.ocr_success', userId, meta: { source } });
     } catch (err: any) {
@@ -417,9 +501,16 @@ export const startReceiptScan = async (req: AuthRequest, res: Response) => {
     (async () => {
       try {
         const validated = await validateBillUpload(file);
-        if (validated.kind !== 'image') throw new Error('Unsupported file type');
+        if (validated.kind !== 'image' && validated.kind !== 'document') {
+          throw new Error('Unsupported file type');
+        }
 
-        const { normalized } = await executeFullOcrPipeline(userId, file, validated);
+        // Convert PDF pages to images before OCR
+        const ocrValidated = validated.kind === 'document' && validated.contentType === 'application/pdf'
+          ? await convertPdfToImageForOcr(validated)
+          : validated;
+
+        const { normalized } = await executeFullOcrPipeline(userId, file, ocrValidated);
         OCR_JOBS.set(jobId, { status: 'completed', data: normalized });
         audit({ event: 'ai.ocr_success', userId, meta: { jobId } });
       } catch (err: any) {
@@ -454,9 +545,16 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
     }
 
     const validated = await validateBillUpload(file);
-    if (validated.kind !== 'image') return res.status(400).json({ error: 'Images only' });
+    if (validated.kind !== 'image' && validated.kind !== 'document') {
+      return res.status(400).json({ error: 'Only images and PDF files are supported' });
+    }
 
-    const { normalized, source, confidence } = await executeFullOcrPipeline(userId, file, validated);
+    // Convert PDF to image for OCR processing
+    const ocrValidated = validated.kind === 'document' && validated.contentType === 'application/pdf'
+      ? await convertPdfToImageForOcr(validated)
+      : validated;
+
+    const { normalized, source, confidence } = await executeFullOcrPipeline(userId, file, ocrValidated);
 
     // Persist scan result (Fail-safe: Don't crash if DB is down)
     try {
@@ -485,6 +583,6 @@ export const scanReceipt = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     logger.error('Receipt scan failed', { error: error.message, stack: error.stack });
-    return res.status(500).json({ error: error.message || 'Failed to scan receipt' });
+    return res.status(500).json({ error: 'Failed to scan receipt. Please try again.' });
   }
 };

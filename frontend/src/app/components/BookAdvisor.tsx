@@ -1,348 +1,322 @@
-import React, { useState } from 'react';
-import { CenteredLayout } from '@/app/components/CenteredLayout';
-import { PageHeader } from '@/app/components/ui/PageHeader';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db, FinanceAdvisor } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
 import {
-  Star,
-  Calendar,
-  Clock,
-  MessageSquare,
-  Briefcase,
-  Award,
-  Users,
-  Linkedin,
-  Twitter,
-  Globe,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
+  Star, Calendar, Clock, MessageSquare, Briefcase, Award, Users,
+  CheckCircle, XCircle, AlertCircle, Loader2, ChevronLeft, Search,
+  Video, Phone, MessageCircle, ArrowRight, RefreshCw, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface BookingForm {
+interface Advisor {
+  id: string;
+  name: string;
+  email: string;
+  averageRating: number;
+  reviewCount: number;
+  availability: boolean;
+  advisorAvailability: Array<{ dayOfWeek: number; startTime: string; endTime: string; isActive: boolean }>;
+}
+
+interface Booking {
+  id: string;
+  status: string;
   advisorId: string;
-  topic?: string;
-  message?: string;
-  sessionType: 'video' | 'audio' | 'chat';
-  preferredDate?: string;
-  preferredTime?: string;
+  proposedDate: string;
+  proposedTime: string;
+  sessionType: string;
+  description: string;
+  amount: number;
+  advisor?: { name: string; email: string };
+}
+
+type SessionType = 'video' | 'audio' | 'chat';
+
+const SESSION_TYPES: { id: SessionType; label: string; icon: React.ElementType }[] = [
+  { id: 'video', label: 'Video Call', icon: Video },
+  { id: 'audio', label: 'Audio Call', icon: Phone },
+  { id: 'chat', label: 'Chat', icon: MessageCircle },
+];
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function getStatusBadge(status: string) {
+  const map: Record<string, { color: string; label: string }> = {
+    pending:    { color: 'bg-amber-50 text-amber-700 border border-amber-200', label: '⏳ Awaiting Approval' },
+    accepted:   { color: 'bg-emerald-50 text-emerald-700 border border-emerald-200', label: '✅ Confirmed' },
+    rejected:   { color: 'bg-red-50 text-red-600 border border-red-200', label: '❌ Declined' },
+    reschedule: { color: 'bg-blue-50 text-blue-700 border border-blue-200', label: '🔄 Reschedule Proposed' },
+    cancelled:  { color: 'bg-gray-100 text-gray-500 border border-gray-200', label: '🚫 Cancelled' },
+    completed:  { color: 'bg-slate-100 text-slate-600 border border-slate-200', label: '✔ Completed' },
+  };
+  const s = map[status] ?? map.pending;
+  return <span className={cn('px-2.5 py-1 rounded-full text-[11px] font-bold', s.color)}>{s.label}</span>;
 }
 
 export const BookAdvisor: React.FC = () => {
+  const { setCurrentPage } = useApp();
   const { user } = useAuth();
-  const [selectedAdvisor, setSelectedAdvisor] = useState<FinanceAdvisor | null>(null);
+  const [advisors, setAdvisors] = useState<Advisor[]>([]);
+  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAdvisor, setSelectedAdvisor] = useState<Advisor | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [bookingForm, setBookingForm] = useState<BookingForm>({
-    advisorId: '',
-    sessionType: 'video',
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [applyingAsAdvisor, setApplyingAsAdvisor] = useState(false);
+  const [form, setForm] = useState({
+    sessionType: 'video' as SessionType,
     topic: '',
     message: '',
+    preferredDate: '',
+    preferredTime: '',
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Query all available advisors from database
-  const advisors = useLiveQuery(
-    () => db.financeAdvisors.toArray(),
-    []
-  ) || [];
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [advisorRes, bookingRes] = await Promise.allSettled([
+        backendService.api.get('/advisors'),
+        backendService.api.get('/bookings'),
+      ]);
+      if (advisorRes.status === 'fulfilled') setAdvisors(Array.isArray(advisorRes.value.data) ? advisorRes.value.data : []);
+      if (bookingRes.status === 'fulfilled') setMyBookings(Array.isArray(bookingRes.value.data) ? bookingRes.value.data : []);
+    } catch {
+      toast.error('Failed to load advisor data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Query existing booking requests from current user
-  const userBookings = useLiveQuery(
-    () => db.bookingRequests.where('userId').equals(user?.id || '').toArray(),
-    [user?.id]
-  ) || [];
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleSelectAdvisor = (advisor: FinanceAdvisor) => {
+  const filtered = advisors.filter(a =>
+    !searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleOpenBooking = (advisor: Advisor) => {
     setSelectedAdvisor(advisor);
+    setForm({ sessionType: 'video', topic: '', message: '', preferredDate: '', preferredTime: '' });
     setShowBookingModal(true);
-    setBookingForm((prev) => ({
-      ...prev,
-      advisorId: advisor.userId,
-    }));
   };
 
   const handleSubmitBooking = async () => {
-    if (!bookingForm.advisorId || !user || !selectedAdvisor) {
-      toast.error('Please complete the booking form');
+    if (!selectedAdvisor || !form.preferredDate || !form.preferredTime || !form.topic) {
+      toast.error('Please fill in topic, date, and time');
       return;
     }
-
-    if (!bookingForm.preferredDate || !bookingForm.preferredTime) {
-      toast.error('Please select a preferred date and time');
-      return;
-    }
-
     setIsSubmitting(true);
-
     try {
-      await backendService.createBookingRequest({
-        advisorId: bookingForm.advisorId,
-        topic: bookingForm.topic,
-        message: bookingForm.message,
-        sessionType: bookingForm.sessionType,
-        proposedDate: bookingForm.preferredDate,
-        proposedTime: bookingForm.preferredTime,
+      await backendService.api.post('/bookings', {
+        advisorId: selectedAdvisor.id,
+        sessionType: form.sessionType,
+        description: [form.topic, form.message].filter(Boolean).join('\n\n'),
+        proposedDate: form.preferredDate,
+        proposedTime: form.preferredTime,
         duration: 60,
-        amount: selectedAdvisor.hourlyRate,
+        amount: 0,
       });
-
-      toast.success('Booking request sent! The advisor will respond soon.');
+      toast.success('Booking request sent! The advisor will confirm shortly.');
       setShowBookingModal(false);
-      setSelectedAdvisor(null);
-      setBookingForm({
-        advisorId: '',
-        sessionType: 'video',
-        topic: '',
-        message: '',
-      });
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      toast.error('Failed to send booking request');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to submit booking');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      pending: { icon: <AlertCircle size={14} />, text: 'Pending', color: 'text-yellow-600 bg-yellow-50' },
-      accepted: { icon: <CheckCircle size={14} />, text: 'Accepted', color: 'text-green-600 bg-green-50' },
-      rejected: { icon: <XCircle size={14} />, text: 'Rejected', color: 'text-red-600 bg-red-50' },
-      reschedule: { icon: <Clock size={14} />, text: 'Reschedule Requested', color: 'text-blue-600 bg-blue-50' },
-    };
-
-    const badge = badges[status as keyof typeof badges] || badges.pending;
-    return (
-      <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${badge.color}`}>
-        {badge.icon}
-        {badge.text}
-      </span>
-    );
+  const handleApplyAsAdvisor = async () => {
+    setApplyingAsAdvisor(true);
+    try {
+      await backendService.api.post('/advisors/apply', {});
+      toast.success('Application submitted! An admin will review your request.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to submit application');
+    } finally {
+      setApplyingAsAdvisor(false);
+    }
   };
 
-  return (
-    <CenteredLayout>
-      <div className="space-y-6">
-        <PageHeader
-          title="Book a Financial Advisor"
-          subtitle="Connect with verified financial experts"
-          icon={<Users size={20} className="sm:w-6 sm:h-6" />}
-        />
+  const clientBookings = myBookings.filter(b => !b.advisorId || b.advisorId !== user?.id);
 
-        {/* My Active Bookings */}
-        {userBookings.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
-            <h3 className="font-semibold text-green-900 mb-4 flex items-center gap-2 text-lg">
-              <Calendar size={20} />
-              Your Bookings
-            </h3>
-            <div className="space-y-3">
-              {userBookings.map((booking) => (
-                <div
-                  key={booking.id}
-                  className="bg-white rounded-xl px-4 py-4 border border-green-100 hover:border-green-200 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-gray-900">{booking.advisorName}</p>
-                    {getStatusBadge(booking.status)}
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm">
+        <div className="max-w-5xl mx-auto flex items-center gap-3">
+          <button onClick={() => setCurrentPage('dashboard')} className="p-2 hover:bg-gray-100 rounded-xl md:hidden transition-colors">
+            <ChevronLeft size={20} className="text-gray-600" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl font-black text-gray-900">Book a Financial Advisor</h1>
+            <p className="text-sm text-gray-500 hidden sm:block">Get expert guidance on your finances</p>
+          </div>
+          <button onClick={handleApplyAsAdvisor} disabled={applyingAsAdvisor}
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all">
+            {applyingAsAdvisor ? <Loader2 size={13} className="animate-spin" /> : <Briefcase size={13} />}
+            Become an Advisor
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+        {/* My Bookings */}
+        {clientBookings.length > 0 && (
+          <section>
+            <h2 className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">My Bookings</h2>
+            <div className="space-y-2">
+              {clientBookings.map(b => (
+                <div key={b.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                    <Briefcase size={16} className="text-indigo-600" />
                   </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    {booking.topic && <p className="font-medium">Topic: {booking.topic}</p>}
-                    <div className="flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <Clock size={14} />
-                        {booking.preferredTime}
-                      </span>
-                      <span className="capitalize">{booking.sessionType}</span>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 text-sm truncate">{b.description || 'Consultation'}</p>
+                    <p className="text-xs text-gray-500">
+                      {b.sessionType} · {new Date(b.proposedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} at {b.proposedTime}
+                    </p>
                   </div>
-                  {booking.responseMessage && (
-                    <div className="mt-2 text-sm bg-gray-50 rounded p-2">
-                      <p className="font-medium text-gray-700">Response:</p>
-                      <p className="text-gray-600">{booking.responseMessage}</p>
-                    </div>
-                  )}
+                  {getStatusBadge(b.status)}
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Search */}
+        <div className="relative">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search advisors by name..."
+            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 shadow-sm" />
+        </div>
+
+        {/* Advisor Cards */}
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 size={28} className="animate-spin text-indigo-400" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+            <Briefcase size={40} className="mx-auto text-gray-300 mb-3" />
+            <h3 className="font-bold text-gray-700">No Advisors Available Yet</h3>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Be the first financial advisor on Finora!</p>
+            <button onClick={handleApplyAsAdvisor} disabled={applyingAsAdvisor}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700">
+              {applyingAsAdvisor ? <Loader2 size={14} className="animate-spin" /> : <Briefcase size={14} />}
+              Apply as Advisor
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map(advisor => (
+              <motion.div key={advisor.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4 hover:shadow-md transition-all">
+                {/* Info */}
+                <div className="flex items-start gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-xl shrink-0">
+                    {advisor.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h3 className="font-bold text-gray-900">{advisor.name}</h3>
+                      {advisor.availability ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Available
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full text-[10px] font-bold">Unavailable</span>
+                      )}
+                    </div>
+                    {advisor.averageRating > 0 && (
+                      <span className="flex items-center gap-1 text-sm font-bold text-amber-600">
+                        <Star size={13} className="fill-amber-400 text-amber-400" />
+                        {advisor.averageRating.toFixed(1)}
+                        <span className="text-gray-400 font-normal text-xs ml-0.5">({advisor.reviewCount} reviews)</span>
+                      </span>
+                    )}
+                    <p className="text-xs text-gray-400 mt-0.5">{advisor.email}</p>
+                  </div>
+                </div>
+
+                {/* Available Days */}
+                {advisor.advisorAvailability?.filter(s => s.isActive).length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {DAYS.map((day, idx) => {
+                      const slot = advisor.advisorAvailability.find(s => s.dayOfWeek === idx && s.isActive);
+                      return (
+                        <span key={day} className={cn('px-2 py-0.5 rounded-lg text-[10px] font-bold',
+                          slot ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-gray-200')}>
+                          {slot ? day : ''}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Book Button */}
+                <button onClick={() => handleOpenBooking(advisor)} disabled={!advisor.availability}
+                  className={cn('w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all',
+                    advisor.availability
+                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:shadow-lg hover:scale-[1.01] active:scale-100'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed')}>
+                  {advisor.availability ? <><Calendar size={15} /> Book Session <ArrowRight size={15} /></> : 'Currently Unavailable'}
+                </button>
+              </motion.div>
+            ))}
           </div>
         )}
 
-        {/* Available Advisors */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Available Advisors</h3>
-          {advisors.length === 0 ? (
-            <div className="text-center py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
-              <Users size={48} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-600 font-medium">No advisors available at the moment</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {advisors.map((advisor) => (
-                <div
-                  key={advisor.id}
-                  className="bg-white rounded-2xl border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all p-6"
-                >
-                  {/* Profile Header */}
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white text-2xl font-bold">
-                      {advisor.name.charAt(0)}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-lg font-semibold text-gray-900">{advisor.name}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex items-center gap-1">
-                          <Star size={16} className="text-amber-500 fill-current" />
-                          <span className="font-semibold text-gray-900">{advisor.rating.toFixed(1)}</span>
-                          <span className="text-sm text-gray-500">({advisor.totalReviews} reviews)</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bio */}
-                  {advisor.bio && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{advisor.bio}</p>
-                  )}
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-gray-50 rounded-xl p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <Briefcase size={14} />
-                        <span className="text-xs font-medium">Experience</span>
-                      </div>
-                      <p className="font-semibold text-gray-900">{advisor.experience} years</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
-                        <Users size={14} />
-                        <span className="text-xs font-medium">Clients</span>
-                      </div>
-                      <p className="font-semibold text-gray-900">{advisor.clientsCompleted} completed</p>
-                    </div>
-                  </div>
-
-                  {/* Specializations */}
-                  <div className="mb-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                      <Award size={14} />
-                      <span className="font-medium">Specializations</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {advisor.specialization.slice(0, 3).map((spec, idx) => (
-                        <span
-                          key={idx}
-                          className="text-xs font-medium px-3 py-1 bg-gray-100 text-gray-700 rounded-full"
-                        >
-                          {spec}
-                        </span>
-                      ))}
-                      {advisor.specialization.length > 3 && (
-                        <span className="text-xs font-medium px-3 py-1 bg-gray-100 text-gray-600 rounded-full">
-                          +{advisor.specialization.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Social Links */}
-                  {advisor.socialLinks && (
-                    <div className="flex items-center gap-3 mb-4">
-                      {advisor.socialLinks.linkedin && (
-                        <a
-                          href={advisor.socialLinks.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-gray-900 transition-colors"
-                          title="LinkedIn Profile"
-                          aria-label="LinkedIn Profile"
-                        >
-                          <Linkedin size={18} />
-                        </a>
-                      )}
-                      {advisor.socialLinks.twitter && (
-                        <a
-                          href={advisor.socialLinks.twitter}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-gray-900 transition-colors"
-                          title="Twitter Profile"
-                          aria-label="Twitter Profile"
-                        >
-                          <Twitter size={18} />
-                        </a>
-                      )}
-                      {advisor.socialLinks.website && (
-                        <a
-                          href={advisor.socialLinks.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-gray-900 transition-colors"
-                          title="Website"
-                          aria-label="Website"
-                        >
-                          <Globe size={18} />
-                        </a>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Footer */}
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                    <p className="font-semibold text-gray-900">INR{advisor.hourlyRate}/hour</p>
-                    <button
-                      onClick={() => handleSelectAdvisor(advisor)}
-                      className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
-                      aria-label="Book Session"
-                      title="Book Session"
-                    >
-                      Book Session
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Mobile CTA */}
+        <div className="sm:hidden">
+          <button onClick={handleApplyAsAdvisor} disabled={applyingAsAdvisor}
+            className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-indigo-300 text-indigo-600 rounded-2xl font-bold text-sm hover:bg-indigo-50 transition-all">
+            {applyingAsAdvisor ? <Loader2 size={14} className="animate-spin" /> : <Briefcase size={14} />}
+            Apply to Become an Advisor
+          </button>
         </div>
+      </div>
 
-        {/* Booking Modal */}
+      {/* Booking Modal */}
+      <AnimatePresence>
         {showBookingModal && selectedAdvisor && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-xl font-bold text-gray-900">Book Session with {selectedAdvisor.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">Fill in the details below to request a booking</p>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center gap-3 p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black shrink-0">
+                  {selectedAdvisor.name.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900">Book: {selectedAdvisor.name}</h3>
+                  <p className="text-xs text-gray-500">Session request — advisor will confirm</p>
+                </div>
+                <button onClick={() => setShowBookingModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                  <XCircle size={18} className="text-gray-400" />
+                </button>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-5 space-y-5">
                 {/* Session Type */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Session Type
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {['video', 'audio', 'chat'].map((type) => (
-                      <button
-                        key={type}
-                        onClick={() =>
-                          setBookingForm((prev) => ({
-                            ...prev,
-                            sessionType: type as any,
-                          }))
-                        }
-                        className={`p-3 rounded-lg border-2 capitalize font-medium transition-all ${
-                          bookingForm.sessionType === type
-                            ? 'border-black bg-gray-100 text-gray-900'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                        }`}
-                        aria-label={type + ' session'}
-                        title={type + ' session'}
-                      >
-                        {type}
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Session Type</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SESSION_TYPES.map(st => (
+                      <button key={st.id} type="button" onClick={() => setForm(f => ({ ...f, sessionType: st.id }))
+                        className={cn('flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all',
+                          form.sessionType === st.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500 hover:border-indigo-200')}>
+                        <st.icon size={18} />
+                        <span className="text-[11px] font-bold">{st.label}</span>
                       </button>
                     ))}
                   </div>
@@ -350,124 +324,58 @@ export const BookAdvisor: React.FC = () => {
 
                 {/* Topic */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Topic (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={bookingForm.topic}
-                    onChange={(e) =>
-                      setBookingForm((prev) => ({
-                        ...prev,
-                        topic: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g., Tax planning for 2026"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
-                    aria-label="Topic"
-                    title="Topic"
-                  />
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5">Topic *</label>
+                  <input type="text" value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))
+                    placeholder="e.g., Tax planning, Investment review, Debt management"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
 
-                {/* Preferred Date & Time */}
-                <div className="grid grid-cols-2 gap-4">
+                {/* Date & Time */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Date
-                    </label>
-                    <input
-                      type="date"
-                      value={bookingForm.preferredDate}
-                      onChange={(e) =>
-                        setBookingForm((prev) => ({
-                          ...prev,
-                          preferredDate: e.target.value,
-                        }))
-                      }
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
-                      aria-label="Preferred Date"
-                      title="Preferred Date"
-                    />
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Date *</label>
+                    <input type="date" value={form.preferredDate} min={new Date().toISOString().slice(0, 10)}
+                      onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Preferred Time
-                    </label>
-                    <input
-                      type="time"
-                      value={bookingForm.preferredTime}
-                      onChange={(e) =>
-                        setBookingForm((prev) => ({
-                          ...prev,
-                          preferredTime: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
-                      aria-label="Preferred Time"
-                      title="Preferred Time"
-                    />
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Time *</label>
+                    <input type="time" value={form.preferredTime}
+                      onChange={e => setForm(f => ({ ...f, preferredTime: e.target.value }))
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   </div>
                 </div>
+
+                {/* Availability Hint */}
+                {selectedAdvisor.advisorAvailability.filter(s => s.isActive).length > 0 && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                    <p className="text-xs font-bold text-blue-700 mb-1">Advisor's Available Days:</p>
+                    <p className="text-xs text-blue-600">
+                      {selectedAdvisor.advisorAvailability.filter(s => s.isActive)
+                        .map(s => `${DAYS[s.dayOfWeek]} ${s.startTime}–${s.endTime}`).join(', ')}
+                    </p>
+                  </div>
+                )}
 
                 {/* Message */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message (Optional)
-                  </label>
-                  <textarea
-                    value={bookingForm.message}
-                    onChange={(e) =>
-                      setBookingForm((prev) => ({
-                        ...prev,
-                        message: e.target.value,
-                      }))
-                    }
-                    placeholder="Any additional information or questions for the advisor..."
-                    rows={4}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:bg-white"
-                    aria-label="Message"
-                    title="Message"
-                  />
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5">Additional Note (optional)</label>
+                  <textarea rows={3} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))
+                    placeholder="Anything specific you'd like to discuss..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
 
-                {/* Pricing Info */}
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <p className="text-sm text-gray-900 font-medium">
-                    <span className="font-semibold">Rate:</span> INR{selectedAdvisor.hourlyRate}/hour
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Final pricing will be confirmed by the advisor based on session duration
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setShowBookingModal(false);
-                    setSelectedAdvisor(null);
-                  }}
-                  className="px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium"
-                  aria-label="Cancel"
-                  title="Cancel"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitBooking}
-                  disabled={isSubmitting}
-                  className="px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-900 disabled:bg-gray-300 font-medium"
-                  aria-label="Submit Request"
-                  title="Submit Request"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                <button onClick={handleSubmitBooking}
+                  disabled={isSubmitting || !form.preferredDate || !form.preferredTime || !form.topic}
+                  className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:shadow-lg transition-all active:scale-[0.98]">
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
+                  Send Booking Request
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
         )}
-      </div>
-    </CenteredLayout>
+      </AnimatePresence>
+    </div>
   );
 };

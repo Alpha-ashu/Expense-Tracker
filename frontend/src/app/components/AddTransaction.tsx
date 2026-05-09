@@ -442,7 +442,7 @@ export function AddTransaction() {
     <div className="hidden lg:flex flex-col h-screen bg-[#F8FAFC] overflow-hidden">
       <header className="h-14 border-b bg-white flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => setCurrentPage(returnPage)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+          <button onClick={() => setCurrentPage(returnPage)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500 md:hidden">
             <ChevronLeft size={20} />
           </button>
           <h1 className="text-lg font-bold text-slate-900 tracking-tight">Add Transaction</h1>
@@ -522,6 +522,30 @@ export function AddTransaction() {
                     </div>
                   )}
                 </div>
+                {/* Quick Category Chips */}
+                {formData.type !== 'transfer' && (
+                  <div>
+                    <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Quick Category</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 8).map((cat: string) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, category: cat, subcategory: '' }))}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                            formData.category === cat
+                              ? "bg-slate-900 text-white border-slate-900 shadow-md"
+                              : "bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100 hover:border-slate-300"
+                          )}
+                        >
+                          <span>{getCategoryCartoonIcon(cat)}</span>
+                          <span>{cat}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
                   <label className="block text-slate-500 text-[11px] font-bold mb-1.5">{formData.type === 'transfer' ? 'Internal Note' : 'Merchant / Source'}</label>
                   <input type="text" value={formData.merchant} onChange={(e) => setFormData(prev => ({ ...prev, merchant: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-medium" placeholder="e.g. Starbucks, Client..." />
@@ -649,7 +673,7 @@ export function AddTransaction() {
       <div className={cn("p-4 pt-6 rounded-b-2xl shadow-lg relative overflow-hidden shrink-0 text-white", accent.amountCard)}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => setCurrentPage(returnPage)} className="text-white/80 p-1"><ChevronLeft size={20} /></button>
+            <button onClick={() => setCurrentPage(returnPage)} className="text-white/80 p-1 md:hidden"><ChevronLeft size={20} /></button>
             <button onClick={() => setShowScanner(true)} className="p-1.5 bg-white/10 rounded-lg"><Camera size={16} /></button>
             <button className="p-1.5 bg-white/10 rounded-lg"><AlignLeft size={16} /></button>
           </div>
@@ -768,17 +792,38 @@ export function AddTransaction() {
                  </select>
                </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-3">
+                {/* Quick Category Chips — Mobile */}
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Category</p>
-                  <CategoryDropdown options={liveCategories[formData.type as 'expense' | 'income'] || []} value={formData.category} onChange={(val) => setFormData(prev => ({ ...prev, category: val, subcategory: '' }))} className="bg-slate-50 border-none rounded-xl h-[44px] font-bold text-xs" />
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</p>
+                  <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide">
+                    {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 10).map((cat: string) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, category: cat, subcategory: '' }))}
+                        className={cn(
+                          "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border whitespace-nowrap",
+                          formData.category === cat
+                            ? "bg-slate-900 text-white border-slate-900 shadow-md"
+                            : "bg-slate-50 text-slate-600 border-slate-100 active:bg-slate-100"
+                        )}
+                      >
+                        <span>{getCategoryCartoonIcon(cat)}</span>
+                        <span>{cat}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2">
+                    <CategoryDropdown options={liveCategories[formData.type as 'expense' | 'income'] || []} value={formData.category} onChange={(val) => setFormData(prev => ({ ...prev, category: val, subcategory: '' }))} className="bg-slate-50 border-none rounded-xl h-[40px] font-bold text-xs" />
+                  </div>
                 </div>
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">GST / Tax</p>
                   <div className="flex gap-1.5">
-                    <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="C" />
-                    <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="S" />
-                    <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="I" />
+                    <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="CGST" />
+                    <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="SGST" />
+                    <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="IGST" />
                   </div>
                 </div>
               </div>
