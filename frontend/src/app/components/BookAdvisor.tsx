@@ -312,7 +312,7 @@ export const BookAdvisor: React.FC = () => {
                   <label className="block text-sm font-bold text-gray-700 mb-2">Session Type</label>
                   <div className="grid grid-cols-3 gap-2">
                     {SESSION_TYPES.map(st => (
-                      <button key={st.id} type="button" onClick={() => setForm(f => ({ ...f, sessionType: st.id }))
+                      <button key={st.id} type="button" onClick={() => setForm(f => ({ ...f, sessionType: st.id }))}
                         className={cn('flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 transition-all',
                           form.sessionType === st.id ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500 hover:border-indigo-200')}>
                         <st.icon size={18} />
@@ -325,7 +325,7 @@ export const BookAdvisor: React.FC = () => {
                 {/* Topic */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Topic *</label>
-                  <input type="text" value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))
+                  <input type="text" value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))}
                     placeholder="e.g., Tax planning, Investment review, Debt management"
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>
@@ -335,13 +335,13 @@ export const BookAdvisor: React.FC = () => {
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Date *</label>
                     <input type="date" value={form.preferredDate} min={new Date().toISOString().slice(0, 10)}
-                      onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))
+                      onChange={e => setForm(f => ({ ...f, preferredDate: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Time *</label>
                     <input type="time" value={form.preferredTime}
-                      onChange={e => setForm(f => ({ ...f, preferredTime: e.target.value }))
+                      onChange={e => setForm(f => ({ ...f, preferredTime: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                   </div>
                 </div>
@@ -360,7 +360,7 @@ export const BookAdvisor: React.FC = () => {
                 {/* Message */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Additional Note (optional)</label>
-                  <textarea rows={3} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))
+                  <textarea rows={3} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                     placeholder="Anything specific you'd like to discuss..."
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 </div>

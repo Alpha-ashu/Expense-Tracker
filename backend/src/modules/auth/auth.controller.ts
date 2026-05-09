@@ -266,7 +266,12 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
       return next(AppError.unauthorized());
     }
 
-    const sanitizedData = sanitize(req.body as Record<string, any>);
+    const sanitizedData = Object.fromEntries(
+      Object.entries(req.body as Record<string, unknown>).map(([key, value]) => [
+        key,
+        typeof value === 'string' ? sanitize(value) : value,
+      ]),
+    );
     const user = await authService.updateProfile(req.userId, sanitizedData, req.user?.email);
 
     res.json({

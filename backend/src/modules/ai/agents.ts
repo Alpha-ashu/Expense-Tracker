@@ -62,8 +62,12 @@ function dateRangeStart(daysBack: number): Date {
   return d;
 }
 
-function safeQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  return fn().catch(() => fallback);
+async function safeQuery<T>(fn: () => Promise<T> | T, fallback: any): Promise<any> {
+  try {
+    return await fn();
+  } catch {
+    return fallback;
+  }
 }
 
 // ── Agent 1: Expense Categorization Agent ─────────────────────────────────────
@@ -72,7 +76,7 @@ export async function runExpenseCategorizationAgent(userId: string): Promise<Age
   const start = Date.now();
   try {
     // Find uncategorized transactions and auto-categorize them
-    const { categorizeTransaction } = await import('../categorization/categorization.engine');
+    const { categorizeTextForUser } = await import('../categorization/categorization.engine');
 
     const uncategorized = await safeQuery(() => (prisma as any).transaction.findMany({
       where: {
@@ -87,7 +91,7 @@ export async function runExpenseCategorizationAgent(userId: string): Promise<Age
     for (const tx of uncategorized) {
       if (!tx.description) continue;
       try {
-        const result = await categorizeTransaction(tx.description);
+        const result = await categorizeTextForUser(userId, tx.description);
         if (result.confidence > 0.7) {
           await (prisma as any).transaction.update({
             where: { id: tx.id },
