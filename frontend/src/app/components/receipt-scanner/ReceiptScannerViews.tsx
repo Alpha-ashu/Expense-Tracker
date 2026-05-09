@@ -399,20 +399,32 @@ const ValidationWarning: React.FC<{
   calculated: number;
   detected: number;
   currency: string;
-}> = ({ calculated, detected, currency }) => (
-  <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-3.5">
-    <AlertTriangle size={18} className="shrink-0 text-red-500 mt-0.5" />
-    <div>
-      <p className="text-sm font-bold text-red-800">Bill total mismatch detected</p>
-      <p className="text-xs text-red-600">
-        Calculated from items + taxes: <strong>{currency} {calculated.toFixed(2)}</strong>
-        {' vs '}
-        printed total: <strong>{currency} {detected.toFixed(2)}</strong>.
-        Please verify the amount before saving.
-      </p>
+}> = ({ calculated, detected, currency }) => {
+  const calculatedIsHigher = calculated > detected;
+  return (
+    <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-3.5">
+      <AlertTriangle size={18} className="shrink-0 text-amber-500 mt-0.5" />
+      <div>
+        <p className="text-sm font-bold text-amber-800">Amount verify needed</p>
+        <p className="text-xs text-amber-700">
+          {calculatedIsHigher ? (
+            <>
+              The printed figure <strong>{currency} {detected.toFixed(2)}</strong> appears to be a pre-tax subtotal.
+              {' '}The amount field is set to the calculated total <strong>{currency} {calculated.toFixed(2)}</strong> — please verify before saving.
+            </>
+          ) : (
+            <>
+              Calculated from items + taxes: <strong>{currency} {calculated.toFixed(2)}</strong>
+              {' vs '}
+              printed total: <strong>{currency} {detected.toFixed(2)}</strong>.
+              Please verify the amount before saving.
+            </>
+          )}
+        </p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const SmartDescriptionBadge: React.FC<{ description: string }> = ({ description }) => (
   <div className="flex items-start gap-2.5 rounded-2xl border border-indigo-100 bg-indigo-50 px-3.5 py-3">

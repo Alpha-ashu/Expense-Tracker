@@ -89,10 +89,12 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     // Show validation mismatch warning if AI detected a discrepancy
     if (result?.validationResult && !result.validationResult.isValid) {
       const { calculated, detected } = result.validationResult;
-      toast.warning(
-        `Bill total mismatch: calculated ${result.currency ?? ''} ${calculated.toFixed(2)} vs printed ${result.currency ?? ''} ${detected.toFixed(2)}. Please verify before saving.`,
-        { duration: 8000 },
-      );
+      const currency = result.currency ?? '';
+      // Guide user: if calculated > detected, the printed figure is likely pre-tax
+      const hint = calculated > detected
+        ? `The printed amount (${currency} ${detected.toFixed(2)}) appears to be a pre-tax subtotal. The amount field has been set to the calculated total (${currency} ${calculated.toFixed(2)}) — please verify.`
+        : `Calculated total (${currency} ${calculated.toFixed(2)}) doesn't match the printed total (${currency} ${detected.toFixed(2)}). Please verify the amount before saving.`;
+      toast.warning(hint, { duration: 10000 });
     }
   };
 

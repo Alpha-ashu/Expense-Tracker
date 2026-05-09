@@ -298,8 +298,9 @@ class HTTPClient {
             data: data.data || data,
             message: data.message,
           };
-        } catch (error: any) {
-          if (error.name === 'AbortError') {
+        } catch (error: unknown) {
+          const err = error as Record<string, unknown>;
+          if (err?.name === 'AbortError') {
             markOptionalBackendUnavailable(apiBase);
             if (index < baseCandidates.length - 1 && shouldRetryWithLocalApiFallback(undefined, error)) {
               continue;
@@ -326,7 +327,7 @@ class HTTPClient {
       }
 
       throw new APIError('REQUEST_ERROR', 'Failed to make request', 0);
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
@@ -337,7 +338,7 @@ class HTTPClient {
 
   async post<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
@@ -349,7 +350,7 @@ class HTTPClient {
 
   async put<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
@@ -361,7 +362,7 @@ class HTTPClient {
 
   async patch<T>(
     endpoint: string,
-    data?: any,
+    data?: unknown,
     config?: RequestConfig
   ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
@@ -375,7 +376,7 @@ class HTTPClient {
     return this.request<T>(endpoint, { ...config, method: 'DELETE' });
   }
 
-  private async parseResponseBody(response: Response): Promise<any> {
+  private async parseResponseBody(response: Response): Promise<unknown> {
     if (typeof response.text !== 'function') {
       if (typeof response.json === 'function') {
         return response.json();

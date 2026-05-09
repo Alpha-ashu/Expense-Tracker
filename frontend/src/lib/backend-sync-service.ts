@@ -42,12 +42,12 @@ class BackendSyncService {
 
   private setupNetworkListeners() {
     window.addEventListener('online', () => {
-      console.log(' Back online - initiating backend sync');
+      console.info('[BackendSync] Back online – initiating backend sync.');
       this.syncWithBackend();
     });
 
     window.addEventListener('offline', () => {
-      console.log(' Offline - backend sync paused');
+      console.info('[BackendSync] Offline – backend sync paused.');
     });
   }
 
@@ -65,9 +65,8 @@ class BackendSyncService {
   // Add operation to pending queue
   addPendingOperation(operationId: string): void {
     this.pendingOperations.add(operationId);
-    console.log(` Added pending operation: ${operationId}`);
-    
-    // Trigger sync after a short delay to batch operations
+    console.info(`[BackendSync] Pending operation queued: ${operationId}`);
+
     setTimeout(() => {
       if (this.pendingOperations.size > 0) {
         this.syncWithBackend();
@@ -92,7 +91,7 @@ class BackendSyncService {
     }
 
     this.syncInProgress = true;
-    console.log(' Starting backend sync...');
+    console.info('[BackendSync] Starting backend sync...');
 
     try {
       // Get user authentication
@@ -129,12 +128,12 @@ class BackendSyncService {
       
       this.lastSyncTime = new Date();
       this.pendingOperations.clear();
-      
-      console.log(' Backend sync completed successfully');
+
+      console.info('[BackendSync] Sync completed successfully.');
       return true;
 
     } catch (error) {
-      console.error(' Backend sync error:', error);
+      console.error('[BackendSync] Sync error:', error);
       return false;
     } finally {
       this.syncInProgress = false;

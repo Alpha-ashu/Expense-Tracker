@@ -2086,52 +2086,72 @@ export async function saveTransactionWithBackendSync(transaction: any) {
 
   if (isBackendFirstSyncMode()) {
     const sourceAccount = await db.accounts.get(Number(transaction.accountId));
-    if (!sourceAccount?.cloudId) {
-      throw new Error('Account must be synced before creating a backend transaction');
-    }
+
+    // If the account doesn't have a cloudId (saved locally while backend was down),
+    // fall through to local-only storage and queue for sync
+    const canSyncToBackend = !!sourceAccount?.cloudId;
 
     const transferTargetAccount = transaction.transferToAccountId
       ? await db.accounts.get(Number(transaction.transferToAccountId))
       : null;
 
-    if (transaction.transferToAccountId && !transferTargetAccount?.cloudId) {
-      throw new Error('Transfer destination account must be synced before creating a backend transaction');
+    if (canSyncToBackend) {
+      if (transaction.transferToAccountId && !transferTargetAccount?.cloudId) {
+        // Fall through to local save — target account not yet synced
+      } else {
+        try {
+          const response = await apiClient.post('/transactions', {
+            accountId: sourceAccount!.cloudId,
+            type: transaction.type,
+            amount: Number(transaction.amount ?? 0),
+            category: transaction.category,
+            subcategory: transaction.subcategory,
+            description: transaction.description,
+            merchant: transaction.merchant,
+            date: toIsoString(transaction.date) ?? new Date().toISOString(),
+            tags: Array.isArray(transaction.tags) ? transaction.tags : [],
+            transferToAccountId: transferTargetAccount?.cloudId,
+            transferType: transaction.transferType,
+          }, {
+            showErrorToast: false,
+          });
+
+          const remote = response.data as any;
+          const now = new Date();
+          const dbTransaction = {
+            ...transaction,
+            cloudId: remote?.id,
+            createdAt: toDate(remote?.createdAt) ?? transaction.createdAt ?? now,
+            updatedAt: toDate(remote?.updatedAt) ?? now,
+            syncStatus: 'synced' as const,
+            version: remote?.version ?? transaction.version,
+          };
+
+          const savedId = await db.transactions.add(dbTransaction);
+          return { ...dbTransaction, id: savedId };
+        } catch (backendError: any) {
+          const isUnavailable =
+            backendError?.status === 503 ||
+            backendError?.status === 0 ||
+            backendError?.code === 'DATABASE_UNAVAILABLE' ||
+            backendError?.code === 'NETWORK_ERROR' ||
+            backendError?.code === 'TIMEOUT_ERROR';
+
+          if (!isUnavailable) throw backendError;
+
+          console.warn('[saveTransactionWithBackendSync] Backend unavailable, saving locally and queuing for sync.', backendError?.code);
+          markOptionalBackendUnavailable();
+          // Fall through to local save below
+        }
+      }
     }
-
-    const response = await apiClient.post('/transactions', {
-      accountId: sourceAccount.cloudId,
-      type: transaction.type,
-      amount: Number(transaction.amount ?? 0),
-      category: transaction.category,
-      subcategory: transaction.subcategory,
-      description: transaction.description,
-      merchant: transaction.merchant,
-      date: toIsoString(transaction.date) ?? new Date().toISOString(),
-      tags: Array.isArray(transaction.tags) ? transaction.tags : [],
-      transferToAccountId: transferTargetAccount?.cloudId,
-      transferType: transaction.transferType,
-    }, {
-      showErrorToast: false,
-    });
-
-    const remote = response.data as any;
-    const now = new Date();
-    const dbTransaction = {
-      ...transaction,
-      cloudId: remote?.id,
-      createdAt: toDate(remote?.createdAt) ?? transaction.createdAt ?? now,
-      updatedAt: toDate(remote?.updatedAt) ?? now,
-      syncStatus: 'synced' as const,
-      version: remote?.version ?? transaction.version,
-    };
-
-    const savedId = await db.transactions.add(dbTransaction);
-    return { ...dbTransaction, id: savedId };
   }
 
+  // Local-only save (also used as fallback from backend-unavailable path above)
   const now = new Date();
   const dbTransaction = {
     ...transaction,
+    syncStatus: 'pending' as const,
     createdAt: transaction.createdAt ?? now,
     updatedAt: now,
   };
@@ -2250,31 +2270,64 @@ export async function saveAccountWithBackendSync(account: any) {
   initializeBackendSync();
 
   if (isBackendFirstSyncMode()) {
-    const response = await apiClient.post('/accounts', {
-      name: account.name,
-      type: account.type,
-      provider: account.provider ?? undefined,
-      country: account.country ?? undefined,
-      balance: Number(account.balance ?? 0),
-      currency: account.currency,
-    }, {
-      showErrorToast: false,
-    });
+    try {
+      const response = await apiClient.post('/accounts', {
+        name: account.name,
+        type: account.type,
+        provider: account.provider ?? undefined,
+        country: account.country ?? undefined,
+        balance: Number(account.balance ?? 0),
+        currency: account.currency,
+      }, {
+        showErrorToast: false,
+      });
 
-    const remote = response.data as any;
-    const dbAccount = {
-      ...account,
-      cloudId: remote?.id,
-      balance: Number(remote?.balance ?? account.balance ?? 0),
-      isActive: remote?.isActive ?? account.isActive ?? true,
-      createdAt: toDate(remote?.createdAt) ?? account.createdAt ?? new Date(),
-      updatedAt: toDate(remote?.updatedAt) ?? new Date(),
-      deletedAt: toDate(remote?.deletedAt),
-      syncStatus: 'synced' as const,
-    };
+      const remote = response.data as any;
+      const dbAccount = {
+        ...account,
+        cloudId: remote?.id,
+        balance: Number(remote?.balance ?? account.balance ?? 0),
+        isActive: remote?.isActive ?? account.isActive ?? true,
+        createdAt: toDate(remote?.createdAt) ?? account.createdAt ?? new Date(),
+        updatedAt: toDate(remote?.updatedAt) ?? new Date(),
+        deletedAt: toDate(remote?.deletedAt),
+        syncStatus: 'synced' as const,
+      };
 
-    const savedId = await db.accounts.add(dbAccount);
-    return { ...dbAccount, id: savedId };
+      const savedId = await db.accounts.add(dbAccount);
+      return { ...dbAccount, id: savedId };
+    } catch (backendError: any) {
+      // If the backend is unavailable (503, network error, timeout), fall back
+      // to local-only storage and queue the record for sync when it recovers.
+      const isUnavailable =
+        backendError?.status === 503 ||
+        backendError?.status === 0 ||
+        backendError?.code === 'DATABASE_UNAVAILABLE' ||
+        backendError?.code === 'NETWORK_ERROR' ||
+        backendError?.code === 'TIMEOUT_ERROR' ||
+        backendError?.name === 'AbortError';
+
+      if (!isUnavailable) {
+        // Surface real client errors (400, 401, 403, etc.) to the caller
+        throw backendError;
+      }
+
+      console.warn('[saveAccountWithBackendSync] Backend unavailable, saving locally and queuing for sync.', backendError?.code);
+      markOptionalBackendUnavailable();
+
+      const now = new Date();
+      const dbAccount = {
+        ...account,
+        cloudId: undefined,
+        syncStatus: 'pending' as const,
+        createdAt: account.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      const savedId = await db.accounts.add(dbAccount);
+      queueRecordUpsertSync('accounts', savedId, toNumber(account?.remoteId));
+      return { ...dbAccount, id: savedId };
+    }
   }
 
   const now = new Date();
@@ -2306,26 +2359,42 @@ export async function updateAccountWithBackendSync(accountId: number, updates: a
     };
 
     if (existing.cloudId) {
-      const response = await apiClient.put(`/accounts/${existing.cloudId}`, {
-        name: updates.name,
-        type: updates.type,
-        provider: updates.provider,
-        country: updates.country,
-        balance: updates.balance,
-        currency: updates.currency,
-      }, {
-        showErrorToast: false,
-      });
+      try {
+        const response = await apiClient.put(`/accounts/${existing.cloudId}`, {
+          name: updates.name,
+          type: updates.type,
+          provider: updates.provider,
+          country: updates.country,
+          balance: updates.balance,
+          currency: updates.currency,
+        }, {
+          showErrorToast: false,
+        });
 
-      const remote = response.data as any;
-      nextUpdates = {
-        ...nextUpdates,
-        cloudId: remote?.id ?? existing.cloudId,
-        balance: Number(remote?.balance ?? updates.balance ?? existing.balance),
-        isActive: remote?.isActive ?? updates.isActive ?? existing.isActive,
-        updatedAt: toDate(remote?.updatedAt) ?? new Date(),
-        deletedAt: toDate(remote?.deletedAt) ?? existing.deletedAt,
-      };
+        const remote = response.data as any;
+        nextUpdates = {
+          ...nextUpdates,
+          cloudId: remote?.id ?? existing.cloudId,
+          balance: Number(remote?.balance ?? updates.balance ?? existing.balance),
+          isActive: remote?.isActive ?? updates.isActive ?? existing.isActive,
+          updatedAt: toDate(remote?.updatedAt) ?? new Date(),
+          deletedAt: toDate(remote?.deletedAt) ?? existing.deletedAt,
+        };
+      } catch (backendError: any) {
+        const isUnavailable =
+          backendError?.status === 503 ||
+          backendError?.status === 0 ||
+          backendError?.code === 'DATABASE_UNAVAILABLE' ||
+          backendError?.code === 'NETWORK_ERROR' ||
+          backendError?.code === 'TIMEOUT_ERROR';
+
+        if (!isUnavailable) throw backendError;
+
+        console.warn('[updateAccountWithBackendSync] Backend unavailable, updating locally and queuing for sync.');
+        markOptionalBackendUnavailable();
+        nextUpdates = { ...nextUpdates, syncStatus: 'pending' as const };
+        queueRecordUpsertSync('accounts', accountId, toNumber(existing?.remoteId));
+      }
     }
 
     await db.accounts.update(accountId, nextUpdates);

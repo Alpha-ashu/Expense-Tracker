@@ -200,8 +200,19 @@ const AppContent: React.FC = () => {
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const message = String(event.reason?.message || event.reason || '');
-      if (message.includes('Failed to fetch dynamically imported module') ||
-        message.includes('Expected a JavaScript-or-Wasm module script')) {
+      const isModuleLoadFailure =
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('Expected a JavaScript-or-Wasm module script');
+
+      // Only reload for genuine Vite chunk-load failures, NOT for API/network errors
+      // (API errors from 503/offline should be handled by the sync layer, not a page reload)
+      const isApiError =
+        event.reason?.name === 'APIError' ||
+        event.reason?.code === 'DATABASE_UNAVAILABLE' ||
+        event.reason?.code === 'NETWORK_ERROR' ||
+        event.reason?.status >= 400;
+
+      if (isModuleLoadFailure && !isApiError) {
         handleModuleFailure();
       }
     };
@@ -274,7 +285,7 @@ const AppContent: React.FC = () => {
         else window.history.back();
       });
       CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) console.log('App is active');
+        if (isActive) console.info('[Capacitor] App resumed to foreground.');
       });
     } catch (error) {
       console.error('Error setting up native features:', error);

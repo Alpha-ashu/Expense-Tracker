@@ -225,29 +225,101 @@ export class ErrorHandler {
   }
 }
 
+// ==================== Friendly message resolver (F-2, F-3) ====================
+// Maps API/network errors to user-readable messages without exposing technical details.
+
+const HTTP_STATUS_MESSAGES: Record<number, string> = {
+  400: 'Some of your inputs look incorrect. Please review and try again.',
+  401: 'Please sign in to continue.',
+  403: 'You do not have permission to do that.',
+  404: 'We could not find what you were looking for.',
+  409: 'This item already exists. Please use different values.',
+  429: 'You are doing that too fast. Please wait a moment and try again.',
+  500: 'Something went wrong on our end. Please try again later.',
+  502: 'The server is temporarily unavailable. Please try again shortly.',
+  503: 'Our servers are temporarily unavailable. Please try again in a moment.',
+  504: 'The request timed out on the server. Please try again.',
+};
+
+const API_CODE_MESSAGES: Record<string, string> = {
+  INVALID_CREDENTIALS: 'Incorrect email or password. Please try again.',
+  EMAIL_EXISTS: 'An account with this email already exists. Try signing in instead.',
+  MISSING_FIELDS: 'Please fill in all required fields.',
+  INVALID_EMAIL: 'Please enter a valid email address.',
+  PASSWORD_TOO_SHORT: 'Your password must be at least 8 characters long.',
+  UNAUTHORIZED: 'Please sign in to continue.',
+  FORBIDDEN: 'You do not have permission to do that.',
+  NOT_FOUND: 'We could not find what you were looking for.',
+  DUPLICATE_ENTRY: 'This item already exists. Please use different values.',
+  VALIDATION_ERROR: 'Some of your inputs look incorrect. Please review and try again.',
+  DATABASE_UNAVAILABLE: 'Our servers are temporarily unavailable. Please try again in a moment.',
+  NETWORK_ERROR: 'Check your internet connection and try again.',
+  TIMEOUT_ERROR: 'The request took too long. Please try again.',
+  RATE_LIMIT_EXCEEDED: 'You are doing that too fast. Please wait a moment.',
+  INTERNAL_ERROR: 'Something went wrong on our end. Please try again later.',
+};
+
+/**
+ * Resolves a user-friendly message from any caught error.
+ * API errors (with status/code) are mapped through the friendly map.
+ * Technical details are logged to console, never shown to users.
+ */
+export function resolveUserMessage(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return 'Something went wrong. Please try again.';
+  }
+
+  const err = error as Record<string, unknown>;
+
+  // Log technical detail for developers
+  if (err.message || err.code || err.status) {
+    console.error('[ErrorHandling] Caught error:', {
+      message: err.message,
+      code: err.code,
+      status: err.status,
+    });
+  }
+
+  // API code takes highest priority
+  if (typeof err.code === 'string' && API_CODE_MESSAGES[err.code]) {
+    return API_CODE_MESSAGES[err.code];
+  }
+
+  // HTTP status fallback
+  if (typeof err.status === 'number' && HTTP_STATUS_MESSAGES[err.status]) {
+    return HTTP_STATUS_MESSAGES[err.status];
+  }
+
+  // Network / fetch errors
+  const message = String(err.message || '').toLowerCase();
+  if (message.includes('failed to fetch') || message.includes('network')) {
+    return 'Check your internet connection and try again.';
+  }
+  if (message.includes('timeout') || message.includes('timed out') || message.includes('aborted')) {
+    return 'The request took too long. Please try again.';
+  }
+
+  return 'Something went wrong. Please try again.';
+}
+
 // ==================== Error Boundary Utility ====================
 
-export function wrapAsyncFunction<T extends (...args: any[]) => Promise<any>>(
+export function wrapAsyncFunction<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T,
   errorHandler?: (error: AppError) => void
 ): T {
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     try {
       return await fn(...args);
-    } catch (error: any) {
-      const appError = error instanceof Error
-        ? ErrorFactory.create(
-            ErrorType.UNKNOWN,
-            error.message,
-            error.name,
-            error
-          )
-        : ErrorFactory.create(
-            ErrorType.UNKNOWN,
-            'An unexpected error occurred',
-            undefined,
-            error
-          );
+    } catch (error: unknown) {
+      // F-3: Use friendly message resolver instead of raw error.message
+      const friendlyMessage = resolveUserMessage(error);
+      const appError = ErrorFactory.create(
+        ErrorType.UNKNOWN,
+        friendlyMessage,
+        (error as Record<string, unknown>)?.code as string | undefined,
+        error
+      );
 
       if (errorHandler) {
         errorHandler(appError);
@@ -342,12 +414,14 @@ export async function safeExecute<T>(
 ): Promise<T | undefined> {
   try {
     return await fn();
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (showError) {
+      // F-2: use resolveUserMessage instead of raw error.message
+      const friendlyMessage = resolveUserMessage(error);
       const appError = ErrorFactory.create(
         ErrorType.UNKNOWN,
-        error.message || 'Operation failed',
-        error.code,
+        friendlyMessage,
+        (error as Record<string, unknown>)?.code as string | undefined,
         error
       );
       ErrorHandler.handle(appError);

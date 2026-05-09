@@ -221,7 +221,7 @@ export const AddAccount: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await saveAccountWithBackendSync({
+      const saved = await saveAccountWithBackendSync({
         name: finalName,
         type: formData.type,
         provider: isCashSelected ? null : (provider.trim() || null),
@@ -232,12 +232,25 @@ export const AddAccount: React.FC = () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      toast.success('Account created successfully', { icon: '' });
+
+      if ((saved as any)?.syncStatus === 'pending') {
+        toast.success('Account saved locally. It will sync to the cloud when your connection is restored.', { icon: '📶' });
+      } else {
+        toast.success('Account created successfully', { icon: '✅' });
+      }
+
       refreshData();
       setCurrentPage('accounts');
-    } catch (error) {
-      console.error('Failed to add account:', error);
-      toast.error('Failed to create account. Please try again.');
+    } catch (error: any) {
+      console.error('[AddAccount] Failed to add account:', error);
+      // Show user-friendly message based on HTTP status
+      if (error?.status === 400 || error?.code === 'MISSING_FIELDS' || error?.code === 'INVALID_BALANCE') {
+        toast.error(error.message || 'Please check the account details and try again.');
+      } else if (error?.status === 401 || error?.status === 403) {
+        toast.error('Your session has expired. Please sign in again.');
+      } else {
+        toast.error('Could not save the account. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

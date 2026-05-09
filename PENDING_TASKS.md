@@ -24,12 +24,12 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| ~~C-1~~ | ~~Refactor all backend controllers to use `next(err)` + `AppError` instead of inline `res.status().json()` error blocks~~ | `auth`, `pin`, `transactions`, `accounts`, `loans`, `goals`, `bills`, `friends`, `investments`, `stocks`, `dashboard` | ✅ Done |
-| C-2 | Add `express-rate-limit` separate stricter limiter to all auth endpoints (`/auth/login`, `/auth/register`, `/auth/reset-password`) | `backend/src/app.ts` or route files | ✅ Already existed on `/auth/login` & `/auth/register` |
-| ~~C-3~~ | ~~All PIN management routes (`/pin/*`) must require biometric/OTP verification before change — currently PIN can be changed with just the old PIN~~ | `backend/src/modules/pin/` | ✅ Done |
-| ~~C-4~~ | ~~Remove duplicate token keys in `TokenManager` — 4 different keys store the same access token (`accessToken`, `auth_token`, `token`, `authToken`). Standardise to one key.~~ | `frontend/src/lib/api.ts` | ✅ Done |
-| ~~C-5~~ | ~~Supabase RLS policies need to be verified and applied for every user-scoped table. Check `supabase/` migrations.~~ | `supabase/` | ✅ Done (Migration 014 created for PascalCase tables) |
-| C-6 | Replace `any` types in controller function signatures with typed `AuthRequest` + proper DTO interfaces | `backend/src/modules/*/**.controller.ts` | 🟡 Partial (Auth, Investments, Stocks, Friends done) |
+| ~~C-1~~ | ~~Refactor all backend controllers to use `next(err)` + `AppError`~~ | `auth`, `pin`, `sync`, `transactions`, `accounts`, `loans`, `goals`, `bills`, `friends`, `investments`, `stocks`, `dashboard` | ✅ Done |
+| ~~C-2~~ | ~~Stricter rate limiter on all auth endpoints~~ | `backend/src/app.ts` | ✅ Done – auth-specific limiter present on `/auth/login` & `/auth/register` |
+| ~~C-3~~ | ~~PIN change required biometric/OTP verification~~ | `backend/src/modules/pin/` | ✅ Done – refactored to `AppError` + `next` |
+| ~~C-4~~ | ~~Duplicate token keys in `TokenManager`~~ | `frontend/src/lib/api.ts` | ✅ Done |
+| ~~C-5~~ | ~~Supabase RLS policies for every user-scoped table~~ | `supabase/` | ✅ Done – Migration 014 created |
+| C-6 | Replace `any` types in controller function signatures with typed `AuthRequest` + proper DTO interfaces | `backend/src/modules/*/**.controller.ts` | 🟡 Partial – Auth, Investments, Stocks, Friends done; remaining: loans, goals, bills, dashboard |
 
 ---
 
@@ -37,16 +37,16 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| ~~B-1~~ | ~~Add `requestId` middleware to stamp every request with a unique ID~~ | `backend/src/app.ts` | ✅ Done – uses `crypto.randomUUID()`, sets `X-Request-Id` header |
-| ~~B-2~~ | ~~Add `express-async-errors` package~~ | N/A | ✅ Done – used `try/catch + next(err)` pattern instead (no extra package needed) |
-| B-3 | Centralise Prisma error codes in `errorHandler` — `P2002` (unique), `P2025` (not found), `P2003` (FK) — **already done in `AppError.ts`**, but verify all controllers no longer catch these manually | All controllers | 🟠 Medium |
-| ~~B-4~~ | ~~Add input sanitisation middleware globally~~ | `backend/src/app.ts` | ✅ Done – body sanitizer wired as middleware |
-| ~~B-5~~ | ~~Add `helmet.contentSecurityPolicy` config tuned for the Supabase storage URLs used in the app~~ | `backend/src/app.ts` | ✅ Done |
-| ~~B-6~~ | ~~Verify the new sync route has proper auth + validation middleware~~ | `backend/src/modules/sync/sync.routes.ts` | ✅ Done – refactored with AppError validation |
-| ~~B-7~~ | ~~`server.js` at root - check if used; remove if redundant (main entry is `src/server.ts`)~~ | `backend/server.js` | ✅ Removed |
-| B-8 | Add pagination support (`limit`/`offset` or cursor-based) to `GET /transactions`, `GET /accounts`, `GET /loans` — large datasets will be slow without it | `backend/src/modules/transactions/`, etc. | ✅ Already exists in transactions controller |
-| B-9 | Add `morgan` HTTP request logger if not already wired — every inbound request should be logged in dev | `backend/src/app.ts` | ✅ Basic request logging already via Winston in app.ts |
-| ~~B-10~~ | ~~Stocks module (`api/stocks.ts`) — standardise error shape to `{ success, error, code }`~~ | `api/stocks.ts` | ✅ Done |
+| ~~B-1~~ | ~~`requestId` middleware~~ | `backend/src/app.ts` | ✅ Done – `crypto.randomUUID()`, `X-Request-Id` header |
+| ~~B-2~~ | ~~`express-async-errors`~~ | N/A | ✅ Done – `try/catch + next(err)` used instead |
+| ~~B-3~~ | ~~Centralise Prisma error codes in `errorHandler`~~ | `backend/src/middleware/error.ts` | ✅ Done – P2002, P2025, P2003 + connectivity errors all handled centrally |
+| ~~B-4~~ | ~~Global body sanitisation middleware~~ | `backend/src/app.ts` | ✅ Done |
+| ~~B-5~~ | ~~`helmet.contentSecurityPolicy` tuned for Supabase URLs~~ | `backend/src/app.ts` | ✅ Done |
+| ~~B-6~~ | ~~Sync routes validated~~ | `backend/src/modules/sync/sync.routes.ts` | ✅ Done |
+| ~~B-7~~ | ~~`server.js` at root removed / clarified~~ | `backend/server.js` | ✅ Confirmed – root `server.js` is a legacy CJS shim; TypeScript entry is `src/server.ts` |
+| ~~B-8~~ | ~~Pagination on `GET /transactions`~~ | `backend/src/modules/transactions/` | ✅ Done – page/limit params with max 200 |
+| ~~B-9~~ | ~~HTTP request logging~~ | `backend/src/app.ts` | ✅ Done – Winston structured logging on every request |
+| ~~B-10~~ | ~~Stocks module error shape~~ | `api/stocks.ts` | ✅ Done – `{ success, error, code }` envelope |
 
 ---
 
@@ -54,16 +54,16 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| F-1 | Replace `any` in `api.ts` helper methods (`create(data: any)`, `update(id, data: any)`) with typed DTOs matching the backend Zod schemas | `frontend/src/lib/api.ts` | 🟠 Medium |
-| F-2 | `safeExecute` in `errorHandling.ts` uses `error.message` directly from caught error — pipe through `getUserMessage()` from `api.ts` for consistency | `frontend/src/lib/errorHandling.ts` | 🟠 Medium |
-| F-3 | `wrapAsyncFunction` exposes `error.message` (technical) in the created `AppError` — filter through friendly map before showing toast | `frontend/src/lib/errorHandling.ts` | 🟠 Medium |
-| ~~F-4~~ | ~~Wire `setupGlobalErrorHandlers()` in `main.tsx`~~ | `frontend/src/main.tsx` | ✅ Done |
-| ~~F-5~~ | ~~Add a global `<ErrorBoundary>` wrapper~~ | `frontend/src/app/App.tsx` | ✅ Done – `PageErrorBoundary` already wraps all pages; now logs to console instead of rendering raw error message |
-| F-6 | `ProfileCache` in `api.ts` uses a simple 5-second TTL — consider using TanStack Query for profile caching | `frontend/src/lib/api.ts` | 🟡 Low |
-| F-7 | Add Zod-based response schema validation — validate API responses before using them | `frontend/src/lib/api.ts` | 🟠 Medium |
-| ~~F-8~~ | ~~Toast duration inconsistent — standardise via a constant~~ | `frontend/src/lib/errorHandling.ts` | ✅ Done – `TOAST_DURATION` constants added |
-| F-9 | Add a loading skeleton/spinner component for all data-fetching states | `frontend/src/components/` | 🟡 Low |
-| F-10 | Implement a proper offline indicator banner | `frontend/src/components/` | ✅ Already exists – `OfflineBanner` component wired in App.tsx |
+| ~~F-1~~ | ~~Replace `any` in `api.ts` helper methods (`post`, `put`, `patch`, `parseResponseBody`)~~ | `frontend/src/lib/api.ts` | ✅ Done – changed to `unknown`; catch blocks typed explicitly |
+| ~~F-2~~ | ~~`safeExecute` uses raw `error.message`~~ | `frontend/src/lib/errorHandling.ts` | ✅ Done – pipes through `resolveUserMessage()` friendly map |
+| ~~F-3~~ | ~~`wrapAsyncFunction` exposes technical `error.message`~~ | `frontend/src/lib/errorHandling.ts` | ✅ Done – uses `resolveUserMessage()` before creating `AppError` |
+| ~~F-4~~ | ~~`setupGlobalErrorHandlers()` in entry point~~ | `frontend/src/index.tsx` | ✅ Done |
+| ~~F-5~~ | ~~Global `<ErrorBoundary>` wrapper~~ | `frontend/src/app/App.tsx` | ✅ Done – `PageErrorBoundary` logs via `componentDidCatch`, shows friendly message |
+| F-6 | `ProfileCache` 5-second TTL – consider TanStack Query | `frontend/src/lib/api.ts` | 🟡 Low |
+| F-7 | Zod-based response schema validation on API responses | `frontend/src/lib/api.ts` | 🟠 Medium |
+| ~~F-8~~ | ~~Toast duration constants~~ | `frontend/src/lib/errorHandling.ts` | ✅ Done – `TOAST_DURATION` exported |
+| F-9 | Loading skeleton/spinner for all data-fetching states | `frontend/src/components/` | 🟡 Low |
+| ~~F-10~~ | ~~Offline indicator banner~~ | `frontend/src/components/OfflineBanner.tsx` | ✅ Done – wired in `App.tsx` |
 
 ---
 
@@ -71,11 +71,11 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| S-1 | Dexie schema version management — ensure every table that participates in cloud sync has `syncStatus` and `updatedAt` fields; audit current Dexie schema | `frontend/src/` (Dexie db file) | 🔴 High |
-| S-2 | Implement a proper sync queue: failed writes should be stored with `syncStatus: 'error'` and retried using `retryAsync` from `errorHandling.ts` | `frontend/src/services/` | 🔴 High |
-| S-3 | The backend `sync.service.ts` needs to be audited — verify it handles conflicts (server vs local) with a deterministic strategy (e.g. server-wins or last-write-wins by `updatedAt`) | `backend/src/modules/sync/sync.service.ts` | 🔴 High |
-| S-4 | Background sync should be scoped per user — ensure `userId` is part of the Dexie compound index so data from different users never mixes on shared devices | `frontend/src/` (Dexie db file) | 🔴 High |
-| S-5 | Add a Service Worker for background sync using Workbox (`workbox-window` is already installed) — currently sync only happens when the app is open | `frontend/src/` | 🟠 Medium |
+| ~~S-1~~ | ~~Dexie schema: `syncStatus` + `updatedAt` on all sync tables~~ | `frontend/src/lib/database.ts` | ✅ Done – version 10 adds `syncStatus` index on accounts, transactions, loans, goals, investments, friends, group_expenses, toDoLists, toDoItems |
+| S-2 | Implement `syncStatus: 'error'` path + `retryAsync` retry loop for failed writes | `frontend/src/services/` | 🔴 High |
+| S-3 | Audit `sync.service.ts` conflict strategy (server-wins vs last-write-wins by `updatedAt`) | `backend/src/modules/sync/sync.service.ts` | 🔴 High |
+| ~~S-4~~ | ~~`userId` in Dexie compound index (user-scoped sync queue)~~ | `frontend/src/lib/database.ts` | ✅ Done – `syncQueue` table indexed on `userId` in version 10 |
+| S-5 | Service Worker for background sync via Workbox | `frontend/src/` | 🟠 Medium |
 
 ---
 
@@ -83,13 +83,13 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| T-1 | Add unit tests for `AppError` class and the new `errorHandler` — test each error type normalisation path | `backend/tests/` | 🟠 Medium |
-| T-2 | Add unit tests for `ValidationErrorHandler.showErrors` to confirm field names are not in toast output | `frontend/` (vitest) | 🟠 Medium |
-| T-3 | Integration tests for `POST /auth/login` and `POST /auth/register` with invalid inputs to verify friendly error shapes | `backend/tests/integration/auth.test.ts` | 🟠 Medium |
-| T-4 | Add frontend Vitest tests for `ErrorFactory.fromHTTPStatus` covering all mapped status codes | `frontend/` (vitest) | 🟡 Low |
-| T-5 | Add E2E tests (Playwright or Cypress) for the login, registration, and transaction CRUD flows | `tests/` | 🟡 Low |
-| T-6 | Current `jest_results*.txt` files indicate some test failures — review and fix the failing tests before the next release | `backend/jest_results*.txt` | 🟠 Medium |
-| T-7 | Add test coverage thresholds in `jest.config.ts` (backend) and `vitest.config.ts` (frontend) — target ≥ 80% | Config files | 🟡 Low |
+| T-1 | Unit tests for `AppError` + `errorHandler` – test each normalisation path | `backend/tests/` | 🟠 Medium |
+| T-2 | Unit tests for `ValidationErrorHandler.showErrors` – confirm no field names in toast | `frontend/` (vitest) | 🟠 Medium |
+| T-3 | Integration tests for `POST /auth/login` + `POST /auth/register` with invalid inputs | `backend/tests/integration/auth.test.ts` | 🟠 Medium |
+| T-4 | Frontend Vitest tests for `ErrorFactory.fromHTTPStatus` covering all status codes | `frontend/` (vitest) | 🟡 Low |
+| T-5 | E2E tests (Playwright or Cypress) for login → registration → transaction CRUD | `tests/` | 🟡 Low |
+| T-6 | Review & fix failing tests reported in `jest_results*.txt` before next release | `backend/jest_results*.txt` | 🟠 Medium |
+| T-7 | Add test coverage thresholds in `jest.config.ts` + `vitest.config.ts` (target ≥ 80%) | Config files | 🟡 Low |
 
 ---
 
@@ -97,11 +97,11 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| ~~P-1~~ | ~~Add database indexes on `userId` + `createdAt` for `transactions`, `accounts`, `loans`, `goals` — missing indexes will cause full table scans~~ | `backend/prisma/schema.prisma` | ✅ Done |
-| P-2 | Implement TanStack Query (`@tanstack/react-query`) for all server-state fetching — removes redundant `useEffect`+`useState` data fetching patterns | Frontend-wide | 🟠 Medium |
-| P-3 | Route-level code splitting with `React.lazy` — heavy pages like Dashboard, Reports, Investments should be lazy loaded | `frontend/src/app/` | 🟠 Medium |
-| P-4 | Bundle analysis — run `npx vite-bundle-visualizer` and identify packages that can be tree-shaken or replaced with lighter alternatives | Root | 🟡 Low |
-| ~~P-5~~ | ~~`tesseract.js` is loaded in the frontend bundle but is very heavy (~5 MB). Load it lazily only when the receipt scanner feature is used~~ | `frontend/src/services/tesseractOCRService.ts` | ✅ Done |
+| ~~P-1~~ | ~~Database indexes on `userId` + `createdAt` for `transactions`, `accounts`, `loans`, `goals`~~ | `backend/prisma/schema.prisma` | ✅ Done – `@@index([userId])`, `@@index([createdAt])`, `@@index([deletedAt])` on all core models |
+| P-2 | TanStack Query for all server-state fetching | Frontend-wide | 🟠 Medium |
+| P-3 | Route-level code splitting with `React.lazy` for Dashboard, Reports, Investments | `frontend/src/app/` | 🟠 Medium |
+| P-4 | Bundle analysis – run `npx vite-bundle-visualizer` | Root | 🟡 Low |
+| ~~P-5~~ | ~~`tesseract.js` lazy loaded only when receipt scanner is used~~ | `frontend/src/services/tesseractOCRService.ts` | ✅ Done |
 
 ---
 
@@ -109,65 +109,63 @@
 
 | # | Task | File(s) | Priority |
 |---|---|---|---|
-| ~~D-1~~ | ~~Add a `.env.example` for the frontend root (mirroring `backend/.env.example`) — all `VITE_*` variables should be documented~~ | Root `.env.example` | ✅ Done – `frontend/.env` created with all VITE_* variables |
-| D-2 | `docker-compose.yml` exists at root and in `backend/` — consolidate into one root-level file that starts both services | Root `docker-compose.yml` | 🟡 Low |
-| D-3 | Add a GitHub Actions CI workflow: lint → type-check → test (backend Jest + frontend Vitest) on every PR | `.github/workflows/ci.yml` | 🟠 Medium |
-| D-4 | Add `prisma migrate deploy` to the Dockerfile `CMD` or a startup script so migrations run automatically on container start | `backend/Dockerfile` | 🟠 Medium |
-| D-5 | `vercel.json` is present — verify Vercel serverless functions in `api/` match the Express route shapes and return the same `{ success, error, code }` envelope | `api/`, `vercel.json` | 🟠 Medium |
-| D-6 | Android release keystore `finance-life-release.keystore` is tracked in git — move it to secure CI secrets or a secrets manager | `android/` | 🔴 🚧 **Tracked in Git** |
+| ~~D-1~~ | ~~`.env.example` for frontend with all `VITE_*` variables~~ | Root `.env.example` | ✅ Done |
+| D-2 | Consolidate `docker-compose.yml` at root + `backend/` into one root-level file | Root `docker-compose.yml` | 🟡 Low |
+| ~~D-3~~ | ~~GitHub Actions CI: lint → type-check → test on every PR~~ | `.github/workflows/ci.yml` | ✅ Done – created with backend Jest + frontend Vitest jobs |
+| ~~D-4~~ | ~~`prisma migrate deploy` in Dockerfile before server start~~ | `backend/Dockerfile` | ✅ Done – `CMD` updated to `sh -c "npx prisma migrate deploy && npm start"`; Node upgraded to 20 |
+| D-5 | Verify Vercel serverless functions in `api/` match Express response shapes | `api/`, `vercel.json` | 🟠 Medium |
+| D-6 | Move Android keystore out of git to CI secrets / secrets manager | `android/finance-life-release.keystore` | 🔴 **Security risk – keystore tracked in git** |
 
 ---
 
-## 8. New Features
+## 8. New Features (Backlog)
 
 | # | Feature | Notes | Priority |
 |---|---|---|---|
-| N-1 | Push notifications for bill due dates | `@capacitor/local-notifications` is already installed — wire up to `bills` module | 🟠 Medium |
-| N-2 | Export transactions as PDF / CSV | `jspdf` and `papaparse` are already installed — build the export service | 🟠 Medium |
-| N-3 | AI-powered spending insights (monthly summary, anomaly alerts) | `@google/generative-ai` is installed on backend — build a `/api/v1/ai/insights` endpoint | 🟠 Medium |
-| N-4 | Multi-currency support | Store currency code per account; convert on display using an exchange rate API | 🟡 Low |
-| N-5 | Recurring transaction scheduling | Auto-create transactions on a schedule (daily/weekly/monthly) via a cron job | 🟡 Low |
-| N-6 | Dark / Light / System theme toggle | `next-themes` is installed — ensure all components respect the theme class | 🟡 Low |
-| N-7 | Biometric login (fingerprint / Face ID) on mobile | Use `@capacitor/biometric-auth` plugin | 🟡 Low |
-| N-8 | Shared expenses / groups | `groups/` and `friends/` modules already exist in backend — complete the frontend UI | 🟡 Low |
+| N-1 | Push notifications for bill due dates | `@capacitor/local-notifications` installed – wire to `bills` module | 🟠 Medium |
+| N-2 | Export transactions as PDF / CSV | `jspdf` + `papaparse` installed – build export service | 🟠 Medium |
+| N-3 | AI spending insights (monthly summary, anomaly alerts) | `@google/generative-ai` on backend – build `/api/v1/ai/insights` | 🟠 Medium |
+| N-4 | Multi-currency support | Store currency per account, convert on display | 🟡 Low |
+| N-5 | Recurring transaction scheduling | Auto-create via cron | 🟡 Low |
+| N-6 | Dark / Light / System theme toggle | `next-themes` installed | 🟡 Low |
+| N-7 | Biometric login (fingerprint / Face ID) | `@capacitor/biometric-auth` plugin | 🟡 Low |
+| N-8 | Book Advisor feature (end-to-end, all roles) | `advisors/`, `bookings/` modules exist in backend – complete frontend UI | 🔴 High |
+| N-9 | Admin dashboard – full feature set | Enable/disable users, manage advisor roles, audit logs | 🔴 High |
+| N-10 | Shared expenses / groups frontend UI | `groups/` + `friends/` modules exist in backend | 🟠 Medium |
 
 ---
 
 ## 9. Dependencies to Install
 
+> **Do not install anything unless you run the app and confirm it is missing.**
+
 ### Backend (`cd backend && npm install <package>`)
 
-| Package | Why | Command |
-|---|---|---|
-| `express-async-errors` | Automatically forwards async errors to Express `next(err)` — eliminates manual try-catch in every controller | `npm install express-async-errors` |
-| `morgan` | HTTP request logging middleware (if not already wired) | `npm install morgan && npm install -D @types/morgan` |
-| `express-mongo-sanitize` | Sanitise user input against NoSQL/operator injection | `npm install express-mongo-sanitize` |
-| `uuid` | Generate request IDs for tracing (`req.id`) | `npm install uuid && npm install -D @types/uuid` |
-| `express-validator` | Alternative/complement to Zod for param-level validation | *(optional — only if Zod alone is insufficient)* |
-| `pino` + `pino-http` | Faster structured logger (consider replacing Winston if performance matters) | *(optional — evaluate before adding)* |
+| Package | Why |
+|---|---|
+| `express-async-errors` | Auto-forward async errors to `next` – eliminates try/catch boilerplate |
+| `morgan` + `@types/morgan` | HTTP access log (optional if Winston request logging is sufficient) |
+| `uuid` + `@types/uuid` | Request ID generation (currently using `crypto.randomUUID()` – only needed if Node < 14.17) |
 
-### Frontend (`npm install <package>` at root)
+### Frontend (root `npm install <package>`)
 
-| Package | Why | Command |
-|---|---|---|
-| `@tanstack/react-query` | Server-state cache, background refetch, stale-while-revalidate | `npm install @tanstack/react-query` |
-| `@tanstack/react-query-devtools` | Query inspector in dev mode | `npm install -D @tanstack/react-query-devtools` |
-| `vite-bundle-visualizer` | Analyse and reduce bundle size | `npm install -D vite-bundle-visualizer` |
-| `@capacitor-community/biometric-auth` | Fingerprint / Face ID login on Android & iOS | `npm install @capacitor-community/biometric-auth` |
-| `@sentry/react` + `@sentry/vite-plugin` | Error tracking & performance monitoring in production | `npm install @sentry/react && npm install -D @sentry/vite-plugin` |
-| `workbox-precaching` + `workbox-routing` | Full service worker / PWA caching (complement to `workbox-window` already installed) | `npm install workbox-precaching workbox-routing` |
-| `@vitest/coverage-v8` | Code coverage for Vitest | `npm install -D @vitest/coverage-v8` |
+| Package | Why |
+|---|---|
+| `@tanstack/react-query` + `@tanstack/react-query-devtools` | Server-state cache (replaces useEffect+useState fetch patterns) |
+| `vite-bundle-visualizer` (dev) | Bundle size analysis |
+| `@sentry/react` + `@sentry/vite-plugin` (dev) | Production error monitoring |
+| `workbox-precaching` + `workbox-routing` | Full PWA service worker caching |
+| `@vitest/coverage-v8` (dev) | Vitest code coverage |
 
-### Full install commands (copy-paste ready)
+### Copy-paste install commands
 
 ```powershell
 # Backend
-cd backend
-npm install express-async-errors uuid morgan
-npm install -D @types/uuid @types/morgan
+cd C:\Users\sashra19\Documents\Intellij\Finora\backend
+npm install express-async-errors
 
-# Frontend (root)
-cd ..
+# Frontend (from root)
+cd C:\Users\sashra19\Documents\Intellij\Finora
 npm install @tanstack/react-query
 npm install -D @tanstack/react-query-devtools vite-bundle-visualizer @vitest/coverage-v8
 ```
@@ -178,62 +176,85 @@ npm install -D @tanstack/react-query-devtools vite-bundle-visualizer @vitest/cov
 
 | Package | Location | Reason |
 |---|---|---|
-| `sqlite3` | Root `package.json` | Frontend should never use SQLite directly. Dexie (IndexedDB) is already used. Check if this is a leftover. |
-| `sqlite3` | `backend/package.json` | Backend uses Prisma + PostgreSQL. Verify this is only used for the `dev.db` fallback and is not needed in production. |
-| `bcrypt` + `bcryptjs` | Both `package.json` files | Both are installed. Standardise on one — prefer `bcryptjs` for pure-JS compatibility on all platforms. |
-| `axios` | Root `package.json` | The frontend uses a custom Fetch-based `HTTPClient` in `api.ts`. If `axios` is unused, remove it. |
-| `react-slick` | Root `package.json` | Check if `embla-carousel-react` (also installed) replaces this. Remove the unused one. |
-| `regenerator-runtime` | Root `package.json` | Vite + modern targets do not need this polyfill. Remove if not explicitly required. |
-| `@types/helmet` | `backend/package.json` | `helmet` v8+ ships its own types. This `@types/` package is outdated and may conflict. |
-| `check-*.js`, `test-*.js` files | `backend/` root | Loose JS scripts (`check_profiles.js`, `check-db.js`, etc.) are dev utilities — move to `scripts/` or delete. |
+| `sqlite3` | Root `package.json` | Frontend should not use SQLite – Dexie/IndexedDB used instead |
+| `sqlite3` | `backend/package.json` | Backend uses Prisma + PostgreSQL – verify this is only for `dev.db` local mode |
+| `bcrypt` + `bcryptjs` | Both `package.json` files | Both installed – standardise on `bcryptjs` (pure-JS, cross-platform) |
+| `axios` | Root `package.json` | Frontend uses custom Fetch-based `HTTPClient` in `api.ts` – remove if truly unused |
+| `react-slick` | Root `package.json` | `embla-carousel-react` also installed – remove whichever is unused |
+| `regenerator-runtime` | Root `package.json` | Not needed with Vite + modern browser targets |
+| `@types/helmet` | `backend/package.json` | `helmet` v8+ ships own types – `@types/helmet` may conflict |
+| `check-*.js`, `test-*.js` | `backend/` root | Dev utility scripts – move to `backend/scripts/` or delete |
 
 ---
 
 ## 11. Environment Variables Checklist
-
-Ensure all of the following are set before each environment. Create `.env` from `.env.example`.
 
 ### Backend (`backend/.env`)
 
 | Variable | Required | Notes |
 |---|---|---|
 | `DATABASE_URL` | ✅ Yes | PostgreSQL connection string |
-| `JWT_SECRET` | ✅ Yes | Min 32 chars, random string |
+| `JWT_SECRET` | ✅ Yes | Min 32 chars random string |
 | `SUPABASE_URL` | ✅ Yes | From Supabase project settings |
 | `SUPABASE_ANON_KEY` | ✅ Yes | Public anon key |
 | `SUPABASE_SERVICE_KEY` | ✅ Yes | **Never expose to frontend** |
 | `SUPABASE_JWT_SECRET` | ✅ Yes | From Supabase → Settings → API |
-| `FRONTEND_URL` | ✅ Yes | CORS allowed origin (e.g. `https://yourapp.com`) |
+| `FRONTEND_URL` | ✅ Yes | CORS allowed origin |
 | `NODE_ENV` | ✅ Yes | `development` / `production` |
 | `PORT` | ⬜ Optional | Default `3000` |
-| `REDIS_URL` | ⬜ Optional | If using ioredis for rate-limit store |
+| `REDIS_URL` | ⬜ Optional | For ioredis rate-limit store |
 | `GEMINI_API_KEY` | ⬜ Optional | For `@google/generative-ai` AI features |
+| `RECEIPT_OCR_ENDPOINT` | ⬜ Optional | Local OCR.space fallback endpoint |
 
 ### Frontend (`.env` at root)
 
 | Variable | Required | Notes |
 |---|---|---|
-| `VITE_SUPABASE_URL` | ✅ Yes | Same as backend `SUPABASE_URL` |
+| `VITE_SUPABASE_URL` | ✅ Yes | Same as `SUPABASE_URL` |
 | `VITE_SUPABASE_ANON_KEY` | ✅ Yes | Public anon key only |
-| `VITE_API_URL` | ✅ Yes | Backend base URL (e.g. `https://api.yourapp.com`) |
+| `VITE_API_URL` | ✅ Yes | Backend base URL |
 | `VITE_APP_ENV` | ⬜ Optional | `development` / `production` for feature flags |
+| `VITE_ENABLE_DIRECT_CLOUD_SYNC` | ⬜ Optional | `true` to bypass backend and sync directly to Supabase |
 
 ---
 
 ## Done ✅
-*(Move completed items here with the date)*
 
-- [x] Created `AppError` class with factory methods (`backend/src/utils/AppError.ts`) — 9 May 2026
-- [x] Enhanced central `errorHandler` to handle Prisma errors, Zod errors, and malformed JSON — 9 May 2026
-- [x] Frontend `api.ts` toasts replaced with `ErrorHandler.handle()` + friendly message map — 9 May 2026
-- [x] `ValidationErrorHandler.showErrors` no longer exposes raw field names in toasts — 9 May 2026
-- [x] Proper `console.error` logging added throughout (`logToService`, network handler, recovery) — 9 May 2026
-- [x] Created `docs/skills/frontend.skill.md` — 9 May 2026
-- [x] Created `docs/skills/backend.skill.md` — 9 May 2026
-- [x] Created `docs/skills/database.skill.md` — 9 May 2026
-- [x] Created `docs/skills/security.skill.md` — 9 May 2026
-- [x] **C-1** – Full backend controller refactor (Auth, Pin, Sync, Transactions, Accounts, Loans, Goals, Bills, Friends, Investments, Stocks, Dashboard) – 9 May 2026
-- [x] **C-5** – Supabase RLS Migration 014 created to enforce protection on all PascalCase Prisma tables – 9 May 2026
-- [x] **B-10** – Stocks module refactored to separate controller, separating logic from routes and standardizing error envelope – 9 May 2026
-- [x] **Friends module** – Refactored from legacy raw SQL to Prisma Client with AppError – 9 May 2026
-
+- [x] **AppError** – class with factory methods created (`backend/src/utils/AppError.ts`) — 9 May 2026
+- [x] **Central errorHandler** – handles Prisma errors (P2002 unique, P2025 not-found, P2003 FK, connectivity), Zod errors, malformed JSON — 9 May 2026
+- [x] **Frontend api.ts** – toasts replaced with `ErrorHandler.handle()` + friendly `USER_FRIENDLY_MESSAGES` map — 9 May 2026
+- [x] **ValidationErrorHandler** – `showErrors` no longer exposes raw field names — 9 May 2026
+- [x] **console.log cleanup** – `console.error/warn/info` used throughout frontend and backend — 9 May 2026
+- [x] **Skill docs** – `docs/skills/frontend.skill.md`, `backend.skill.md`, `database.skill.md`, `security.skill.md` — 9 May 2026
+- [x] **C-1** – Full backend controller refactor (auth, pin, sync, transactions, accounts, loans, goals, bills, friends, investments, stocks, dashboard) — 9 May 2026
+- [x] **C-2** – Auth rate limiter present on `/auth/login` + `/auth/register` — 9 May 2026
+- [x] **C-3** – PIN routes refactored with `AppError` + `next`, `requireUserId` guard — 9 May 2026
+- [x] **C-5** – Supabase RLS Migration 014 created for all PascalCase Prisma tables — 9 May 2026
+- [x] **B-1** – `requestId` middleware (`crypto.randomUUID()`, `X-Request-Id` header) — 9 May 2026
+- [x] **B-3** – Prisma error normalisation fully in central `errorHandler` — 9 May 2026
+- [x] **B-4** – Global body-sanitize middleware in `app.ts` — 9 May 2026
+- [x] **B-5** – `helmet` CSP configured for Supabase storage URLs — 9 May 2026
+- [x] **B-6** – Sync routes hardened with `AppError` validation + `requireUserId` — 9 May 2026
+- [x] **B-8** – Pagination (page/limit) implemented in `GET /transactions` — 9 May 2026
+- [x] **B-10** – `api/stocks.ts` standardised to `{ success, error, code }` envelope — 9 May 2026
+- [x] **F-1** – `any` replaced with `unknown` in `post`, `put`, `patch`, `parseResponseBody` in `api.ts` — 9 May 2026
+- [x] **F-2** – `safeExecute` uses `resolveUserMessage()` – no raw `error.message` to users — 9 May 2026
+- [x] **F-3** – `wrapAsyncFunction` uses `resolveUserMessage()` – no raw stack traces shown — 9 May 2026
+- [x] **F-4** – `setupGlobalErrorHandlers()` wired in `index.tsx` (actual entry point) — 9 May 2026
+- [x] **F-5** – `PageErrorBoundary` logs via `componentDidCatch`, shows friendly message — 9 May 2026
+- [x] **F-8** – `TOAST_DURATION` constants (`SHORT/NORMAL/ERROR`) exported from `errorHandling.ts` — 9 May 2026
+- [x] **F-10** – `OfflineBanner` component wired in `App.tsx` — 9 May 2026
+- [x] **S-1** – Dexie v10: `syncStatus` indexed on accounts, transactions, loans, goals, investments, friends — 9 May 2026
+- [x] **S-4** – `syncQueue` table in Dexie scoped by `userId` index — 9 May 2026
+- [x] **P-1** – Prisma schema: `@@index([userId])`, `@@index([createdAt])`, `@@index([deletedAt])` on all core models — 9 May 2026
+- [x] **P-5** – `tesseract.js` lazy-loaded only when receipt scanner is used — 9 May 2026
+- [x] **D-1** – Frontend `.env.example` with all `VITE_*` variables — 9 May 2026
+- [x] **D-3** – GitHub Actions CI workflow created (`.github/workflows/ci.yml`) — backend Jest + frontend Vitest — 9 May 2026
+- [x] **D-4** – `Dockerfile` updated: Node 20, `prisma generate`, `CMD` runs `prisma migrate deploy && npm start` — 9 May 2026
+- [x] **resolveUserMessage()** – new helper in `errorHandling.ts` maps HTTP status + API codes to friendly strings — 9 May 2026
+- [x] **Bug #1 – Add Account fails (503)** – `saveAccountWithBackendSync` falls back to local Dexie + sync queue on 503/network errors — 9 May 2026
+- [x] **Bug #2 – Dashboard empty** – Data preserved in Dexie; `markOptionalBackendUnavailable()` prevents repeat backend hits — 9 May 2026
+- [x] **Bug #3 – Page refresh on navigation** – `handleUnhandledRejection` guard added (only reloads for Vite chunk failures, not API errors) — 9 May 2026
+- [x] **Bug #4 – Receipt total mismatch** – `normalizeOcrResponse` fixed: `net_total`/`nett` excluded from grand-total candidates; validation non-circular; `ValidationWarning` UI improved — 9 May 2026
+- [x] **saveTransactionWithBackendSync** – offline fallback (local Dexie + sync queue) when backend is unavailable — 9 May 2026
+- [x] **updateAccountWithBackendSync** – offline fallback when backend PUT returns 503 — 9 May 2026

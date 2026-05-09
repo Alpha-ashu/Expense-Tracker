@@ -71,22 +71,21 @@ const normalizeOcrResponse = (raw: JsonMap) => {
   const taxAmountRaw = parseNumber(raw.totalTaxAmount) ?? parseNumber(raw.taxAmount);
   const subtotal = parseNumber(raw.preTaxSubtotal) ?? parseNumber(raw.subtotal);
   const discount = parseNumber(raw.discountAmount) ?? parseNumber(raw.discount);
-  
-  // Potential totals candidates - sorted by professional priority
+
+  // Identify "Net Total" = after-discount, BEFORE tax (e.g. 59 on an Indian bill)
+  // This must NEVER be used as the grand total candidate.
+  const printedNetTotal = parseNumber(raw.nett) ?? parseNumber(raw.net_total);
+
+  // Grand-total candidates — explicitly exclude net_total / nett (pre-tax)
   const totalCandidates = [
-    parseNumber(raw.netAmount),        // Often used for Grand Total in AI output
+    parseNumber(raw.netAmount),        // AI field for Grand Total
     parseNumber(raw.grand_total),
     parseNumber(raw.amount_payable),
     parseNumber(raw.total_payable),
-    parseNumber(raw.nett),             // Could be pre-tax or post-tax, tricky
     parseNumber(raw.total),
     parseNumber(raw.total_amount),
-    parseNumber(raw.amount)
+    parseNumber(raw.amount),
   ].filter((v): v is number => v !== undefined && v > 0);
-
-  // Identify "Net Total" (the amount after discount but BEFORE tax)
-  // In many Indian bills, "Net Total" = Subtotal - Discount.
-  const printedNetTotal = parseNumber(raw.nett) ?? parseNumber(raw.net_total);
 
   const taxBreakdown = Array.isArray(raw.taxBreakdown)
     ? (raw.taxBreakdown as Array<{ name: string; rate?: number; amount: number }>)
@@ -100,28 +99,38 @@ const normalizeOcrResponse = (raw: JsonMap) => {
     : undefined;
   let resolvedTaxAmount = taxAmountRaw ?? derivedTaxTotal;
 
-  // INTELLIGENT TOTAL SELECTION:
-  let total = totalCandidates.length > 0 ? Math.max(...totalCandidates) : undefined;
-
-  // INDIAN TAX HEURISTIC: If CGST is found but SGST is missing (very common in OCR), 
-  // and the total is ~5% higher than subtotal, assume SGST = CGST.
-  if (taxBreakdown && taxBreakdown.length === 1 && taxBreakdown[0].name.toUpperCase().includes('CGST')) {
-    if (total && total > (subtotal || 0) + (resolvedTaxAmount || 0)) {
-      resolvedTaxAmount = (resolvedTaxAmount || 0) * 2;
-    }
+  // INDIAN TAX HEURISTIC: If only CGST is found (SGST typically mirrors it),
+  // double the visible tax to produce the actual total tax.
+  if (
+    taxBreakdown &&
+    taxBreakdown.length === 1 &&
+    taxBreakdown[0].name.toUpperCase().includes('CGST') &&
+    resolvedTaxAmount
+  ) {
+    resolvedTaxAmount = Number((resolvedTaxAmount * 2).toFixed(2));
   }
 
-  // If the largest candidate is actually the printedNetTotal (which is pre-tax), 
-  // and we have taxes, we should calculate the real total.
-  if (total !== undefined && printedNetTotal !== undefined && Math.abs(total - printedNetTotal) < 0.5 && (resolvedTaxAmount || 0) > 0) {
-    const calculatedPayable = printedNetTotal + (resolvedTaxAmount || 0);
-    const closerCandidate = totalCandidates.find(v => Math.abs(v - calculatedPayable) < 2.0);
-    if (closerCandidate) total = closerCandidate;
-    else total = Number(calculatedPayable.toFixed(2));
+  // Prefer the largest grand-total candidate.
+  let total = totalCandidates.length > 0 ? Math.max(...totalCandidates) : undefined;
+
+  // If the candidates only returned the net total (pre-tax), compute the real total.
+  if (
+    total !== undefined &&
+    printedNetTotal !== undefined &&
+    Math.abs(total - printedNetTotal) < 0.5 &&
+    (resolvedTaxAmount || 0) > 0
+  ) {
+    const calculatedPayable = Number((printedNetTotal + (resolvedTaxAmount || 0)).toFixed(2));
+    const closerCandidate = totalCandidates.find((v) => Math.abs(v - calculatedPayable) < 2.0);
+    total = closerCandidate ?? calculatedPayable;
+  }
+
+  // If we have a printedNetTotal and taxes but no other grand-total candidate, reconstruct.
+  if (total === undefined && printedNetTotal !== undefined && (resolvedTaxAmount || 0) > 0) {
+    total = Number((printedNetTotal + (resolvedTaxAmount || 0)).toFixed(2));
   }
 
   // DEFENSIVE DISCOUNT INFERENCE:
-  // If subtotal is found but it's > total, then a discount was almost certainly missed.
   let resolvedDiscount = discount || 0;
   if (subtotal && total && subtotal > total && resolvedDiscount === 0) {
     const impliedDiscount = subtotal + (resolvedTaxAmount || 0) - total;
@@ -146,16 +155,20 @@ const normalizeOcrResponse = (raw: JsonMap) => {
 
   const currency = firstString(raw.currency, raw.currency_code) || 'INR';
 
+  // VALIDATION: Only meaningful when we have an independently observed subtotal
+  // (i.e. the subtotal came from the OCR output, not computed from the total).
+  // Avoids the circular case where subtotal = total - tax → calculated always = total.
   let validationResult: { isValid: boolean; calculated: number; detected: number } | undefined;
-  if (total !== undefined) {
-    const effectiveSubtotal = subtotal ?? (total - (resolvedTaxAmount || 0) + resolvedDiscount);
-    const calculated = Number((effectiveSubtotal - resolvedDiscount + (resolvedTaxAmount || 0)).toFixed(2));
-    const detected = total;
-    
+  const hasIndependentSubtotal =
+    subtotal !== undefined &&
+    (parseNumber(raw.preTaxSubtotal) !== undefined || parseNumber(raw.subtotal) !== undefined);
+
+  if (total !== undefined && hasIndependentSubtotal && subtotal !== undefined) {
+    const calculated = Number((subtotal - resolvedDiscount + (resolvedTaxAmount || 0)).toFixed(2));
     validationResult = {
-      isValid: Math.abs(calculated - detected) < 2.0, 
+      isValid: Math.abs(calculated - total) < 2.0,
       calculated,
-      detected,
+      detected: total,
     };
   }
 

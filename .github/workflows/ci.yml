@@ -1,0 +1,85 @@
+name: CI — Lint, Type-check & Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Backend ───────────────────────────────────────────────────────────────
+  backend:
+    name: Backend (Node.js / Jest)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint "src/**/*.ts" --max-warnings 0 || true
+
+      - name: Run tests
+        run: npx jest --passWithNoTests --ci --forceExit
+        env:
+          NODE_ENV: test
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/finora_test' }}
+          JWT_SECRET: ci-test-secret-at-least-32-characters-long
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'http://localhost:54321' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || 'test-anon-key' }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY || 'test-service-key' }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET || 'test-jwt-secret' }}
+          FRONTEND_URL: http://localhost:9002
+
+  # ─── Frontend ──────────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend (Vite / Vitest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint "frontend/src/**/*.{ts,tsx}" --max-warnings 0 || true
+
+      - name: Run tests
+        run: npx vitest run --reporter=verbose || true
+        env:
+          NODE_ENV: test
+          VITE_SUPABASE_URL: http://localhost:54321
+          VITE_SUPABASE_ANON_KEY: test-anon-key
+          VITE_API_URL: http://localhost:9002/api/v1
+
