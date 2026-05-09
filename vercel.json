@@ -13,7 +13,8 @@
       "src": "api/*.ts",
       "use": "@vercel/node",
       "config": {
-        "maxDuration": 30
+        "maxDuration": 30,
+        "includeFiles": ["backend/dist/**", "backend/prisma/**", "backend/generated/**"]
       }
     }
   ],

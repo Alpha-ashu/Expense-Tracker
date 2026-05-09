@@ -9,10 +9,10 @@ const loadApp = () => {
   if (_app) return _app;
   if (_initError) throw _initError;
   try {
-    // Dynamic require so TypeScript compilation still works but the import
-    // happens inside a try/catch rather than at module evaluation time.
+    // Load from compiled JS output (backend/dist/app.js).
+    // The vercel-build script compiles backend TS before deployment.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require('../backend/src/app');
+    const mod = require('../backend/dist/app');
     _app = mod.default ?? mod.app ?? mod;
     return _app!;
   } catch (err: any) {
