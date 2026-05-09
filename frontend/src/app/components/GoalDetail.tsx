@@ -6,6 +6,7 @@ import { Card } from '@/app/components/ui/card';
 import { getGoalCategoryMeta, getGoalProgress, getMilestoneLabel, getMonthlySuggestion } from '@/lib/goal-utils';
 import { MessageSquare, Plus, Target } from 'lucide-react';
 import { toast } from 'sonner';
+import { takeVoiceDraft, VOICE_GOAL_DRAFT_KEY, type VoiceGoalDraft } from '@/lib/voiceDrafts';
 
 const SELECTED_GOAL_ID_KEY = 'selected_goal_id';
 
@@ -22,6 +23,7 @@ export const GoalDetail: React.FC = () => {
   const [amount, setAmount] = useState(0);
   const [accountId, setAccountId] = useState<number>(accounts[0]?.id || 0);
   const [memberName, setMemberName] = useState<string>('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     const selectedId = Number(localStorage.getItem(SELECTED_GOAL_ID_KEY));
@@ -45,6 +47,21 @@ export const GoalDetail: React.FC = () => {
 
     void load();
   }, [setCurrentPage]);
+
+  useEffect(() => {
+    if (!goal?.id) {
+      return;
+    }
+
+    const draft = takeVoiceDraft<VoiceGoalDraft>(VOICE_GOAL_DRAFT_KEY);
+    if (!draft?.amount) {
+      return;
+    }
+
+    setAmount(draft.amount);
+    setNotes(draft.description || '');
+    toast.info(`Voice contribution draft loaded for ${goal.name}`);
+  }, [goal?.id, goal?.name]);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
@@ -132,6 +149,17 @@ export const GoalDetail: React.FC = () => {
       return;
     }
 
+    const account = accounts.find((item) => item.id === accountId);
+    if (!account) {
+      toast.error('Select an account for this contribution');
+      return;
+    }
+
+    if (account.balance < amount) {
+      toast.error('Selected account does not have enough balance');
+      return;
+    }
+
     await db.goalContributions.add({
       goalId: goal.id,
       amount,
@@ -139,6 +167,7 @@ export const GoalDetail: React.FC = () => {
       date: new Date(),
       memberName: goal.isGroupGoal ? memberName : undefined,
       status: goal.isGroupGoal ? 'paid' : undefined,
+      notes: notes.trim() || undefined,
     });
 
     await db.goals.update(goal.id, {
@@ -146,13 +175,11 @@ export const GoalDetail: React.FC = () => {
       updatedAt: new Date(),
     });
 
-    const account = accounts.find((item) => item.id === accountId);
-    if (account) {
-      await db.accounts.update(accountId, { balance: account.balance - amount });
-    }
+    await db.accounts.update(accountId, { balance: account.balance - amount });
 
     toast.success('Contribution added');
     setAmount(0);
+    setNotes('');
 
     const updatedGoal = await db.goals.get(goal.id);
     const rows = await db.goalContributions.where('goalId').equals(goal.id).reverse().sortBy('date');
@@ -296,6 +323,16 @@ export const GoalDetail: React.FC = () => {
                     </select>
                   </div>
                 )}
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full resize-none rounded-2xl bg-gray-50 px-4 py-3.5 text-sm font-medium text-gray-900 placeholder-gray-400 transition-all focus:bg-white focus:ring-2 focus:ring-gray-900"
+                    rows={3}
+                    placeholder="Optional note for this contribution"
+                  />
+                </div>
                 <button type="submit" className="w-full py-4 rounded-2xl bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 mt-2">
                   <Plus size={18} /> Add Contribution
                 </button>

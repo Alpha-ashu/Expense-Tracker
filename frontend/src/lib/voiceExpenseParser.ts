@@ -1,10 +1,14 @@
-export type VoiceIntent = 'expense' | 'income' | 'transfer';
+export type VoiceIntent = 'expense' | 'income' | 'transfer' | 'goal' | 'group' | 'investment';
+
+export type VoiceInvestmentKind = 'stocks' | 'crypto' | 'gold' | 'mutual-funds' | 'bonds' | 'other';
 
 export interface VoiceParseResult {
   intent: VoiceIntent;
   amount: number | null;
   category: string | null;
   description: string;
+  confidence: number;
+  date?: string | null;
 }
 
 const expenseCategoryRules: Array<{ keywords: string[]; category: string }> = [
@@ -83,9 +87,38 @@ const incomeCategoryRules: Array<{ keywords: string[]; category: string }> = [
   { keywords: ['bonus', 'award', 'inheritance', 'settlement', 'scholarship', 'pension', 'borrowed', 'loan received', 'rent', 'rental income', 'royalty', 'royalties', 'annuity', 'alimony', 'child support', 'grant', 'fellowship', 'subsidy', 'benefit', 'welfare', 'assistance', 'aid', 'other income', 'miscellaneous income', 'extra income', 'extra', 'additional income'], category: 'Other Income' },
 ];
 
+const goalKeywords = [
+  'goal', 'save for', 'saving for', 'savings goal', 'target for', 'towards my goal',
+  'towards goal', 'goal contribution', 'contribute to goal', 'for my goal', 'save up for',
+];
+const groupKeywords = [
+  'group expense', 'split', 'shared expense', 'split with', 'shared with', 'divide with',
+  'group bill', 'split bill', 'split dinner', 'split lunch', 'shared bill', 'shared payment',
+];
+const investmentKeywords = [
+  'invest', 'invested', 'bought stock', 'stock', 'stocks', 'sip', 'mutual fund', 'mutual funds',
+  'etf', 'crypto', 'bitcoin', 'ethereum', 'gold', 'silver', 'bond', 'bonds', 'portfolio', 'share market',
+];
 const transferKeywords = ['transfer', 'moved', 'send', 'sent', 'to savings', 'to wallet', 'to bank', 'from savings', 'from bank', 'shifted', 'switch', 'swap', 'move money', 'fund transfer', 'between accounts', 'between account', 'moving', 'switch account', 'from account', 'to account'];
 const incomeKeywords = ['salary', 'received', 'got', 'income', 'refund', 'reimbursement', 'cashback', 'gst', 'tax return', 'claim', 'bonus', 'interest', 'dividend', 'borrowed', 'credited', 'loan received', 'gift received', 'deposited', 'earned', 'commission', 'tip', 'received from', 'got paid', 'credited to', 'incoming', 'payment received', 'money received', 'credit', 'payout', 'awarded'];
 const expenseKeywords = ['spent', 'spend', 'bought', 'buy', 'paid', 'pay', 'purchase', 'petrol', 'fuel', 'food', 'grocery', 'rent', 'movie', 'mobile', 'bill', 'charge', 'fee', 'ordered', 'purchased', 'subscription', 'membership', 'enrolled', 'registered', 'paid for', 'spent on', 'expense', 'cost', 'buying', 'shopping', 'payment', 'debited', 'debit', 'withdrew'];
+const strongGoalPatterns = [
+  /\b(?:save|saving|saved)\s+(?:for|towards)\b/i,
+  /\bgoal contribution\b/i,
+  /\bcontribut(?:e|ed)\b.*\bgoal\b/i,
+  /\b(?:towards|for)\s+my\s+goal\b/i,
+];
+const strongGroupPatterns = [
+  /\bsplit\b.*\bwith\b/i,
+  /\bshared expense\b/i,
+  /\bgroup expense\b/i,
+  /\bshared bill\b/i,
+];
+const strongInvestmentPatterns = [
+  /\binvest(?:ed|ing)?\b/i,
+  /\bbought\s+(?:stock|stocks|shares?|crypto|bitcoin|ethereum|gold|bonds?)\b/i,
+  /\b(?:sip|mutual fund|etf|portfolio)\b/i,
+];
 const strongTransferPatterns = [
   /\btransfer(?:red)?\b/i,
   /\bfund transfer\b/i,
@@ -111,6 +144,31 @@ const numberWords: Record<string, number> = {
 };
 
 const decimalWords: Record<string, number> = { half: 0.5, quarter: 0.25 };
+
+const monthLookup: Record<string, number> = {
+  january: 0, jan: 0,
+  february: 1, feb: 1,
+  march: 2, mar: 2,
+  april: 3, apr: 3,
+  may: 4,
+  june: 5, jun: 5,
+  july: 6, jul: 6,
+  august: 7, aug: 7,
+  september: 8, sept: 8, sep: 8,
+  october: 9, oct: 9,
+  november: 10, nov: 10,
+  december: 11, dec: 11,
+};
+
+const weekdayLookup: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
 
 const numericAmountPatterns = [
   /(?:rs|inr|rupees?|INR)\s*(\d[\d,]*(?:\.\d+)?)/gi,
@@ -151,6 +209,26 @@ function wordsToNumber(text: string): number | null {
 
 function detectCategory(text: string, intent: VoiceIntent): string | null {
   const lowerText = text.toLowerCase();
+  if (intent === 'transfer') return 'Transfer';
+  if (intent === 'goal') return 'Goal Contribution';
+  if (intent === 'group') return 'Group Expense';
+  if (intent === 'investment') {
+    const kind = inferInvestmentTypeFromText(lowerText);
+    switch (kind) {
+      case 'gold':
+        return 'Gold Investment';
+      case 'crypto':
+        return 'Crypto Investment';
+      case 'mutual-funds':
+        return 'Mutual Fund Investment';
+      case 'bonds':
+        return 'Bond Investment';
+      case 'stocks':
+        return 'Stock Investment';
+      default:
+        return 'Investment';
+    }
+  }
   const rules = intent === 'income' ? incomeCategoryRules : expenseCategoryRules;
   for (const rule of rules) {
     if (rule.keywords.some((keyword) => lowerText.includes(keyword))) return rule.category;
@@ -162,9 +240,214 @@ function countMatches(text: string, keywords: string[]): number {
   return keywords.reduce((count, keyword) => (text.includes(keyword) ? count + 1 : count), 0);
 }
 
+export function inferInvestmentTypeFromText(text: string): VoiceInvestmentKind {
+  const lowerText = text.toLowerCase();
+
+  if (/\b(gold|jewelry|jewellery|coin|bullion|sovereign|24k|22k)\b/i.test(lowerText)) {
+    return 'gold';
+  }
+  if (/\b(bitcoin|ethereum|crypto|cryptocurrency|btc|eth|sol|usdt|doge)\b/i.test(lowerText)) {
+    return 'crypto';
+  }
+  if (/\b(mutual fund|mutual funds|sip|etf|index fund|nifty)\b/i.test(lowerText)) {
+    return 'mutual-funds';
+  }
+  if (/\b(bond|bonds|treasury|debenture|fixed income)\b/i.test(lowerText)) {
+    return 'bonds';
+  }
+  if (/\b(stock|stocks|share|shares|equity|portfolio)\b/i.test(lowerText)) {
+    return 'stocks';
+  }
+
+  return 'other';
+}
+
+export function extractGroupParticipantNames(text: string): string[] {
+  const lowerText = text.toLowerCase();
+  const match = lowerText.match(/\b(?:split with|shared with|divide with|with)\s+([^,.]+)/i);
+  if (!match?.[1]) {
+    return [];
+  }
+
+  const rawSegment = match[1]
+    .replace(/\bfor\b.*$/i, '')
+    .replace(/\b(?:yesterday|today|tomorrow|last\s+\w+)\b/gi, '')
+    .trim();
+
+  const disallowed = new Set([
+    'me', 'myself', 'us', 'everyone', 'all', 'friends', 'team', 'group', 'roommates', 'family',
+  ]);
+
+  return rawSegment
+    .split(/,|\band\b|&/i)
+    .map((name) => name.trim())
+    .filter((name) => name.length > 1)
+    .filter((name) => !/^\d/.test(name))
+    .map((name) => name.replace(/[^a-zA-Z\s'-]/g, '').trim())
+    .filter((name) => name.length > 1 && !disallowed.has(name.toLowerCase()))
+    .map((name) => name.split(/\s+/).map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' '))
+    .filter((name, index, items) => items.indexOf(name) === index)
+    .slice(0, 8);
+}
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function buildDateFromParts(year: number, month: number, day: number): Date | null {
+  const parsed = new Date(year, month, day);
+  if (
+    Number.isNaN(parsed.getTime())
+    || parsed.getFullYear() !== year
+    || parsed.getMonth() !== month
+    || parsed.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function resolveRelativeWeekday(targetWeekday: number, baseDate: Date, mode: 'last' | 'this'): Date {
+  const cursor = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+  const currentWeekday = cursor.getDay();
+  let diff = currentWeekday - targetWeekday;
+
+  if (mode === 'last') {
+    diff = diff <= 0 ? diff + 7 : diff;
+    cursor.setDate(cursor.getDate() - diff);
+    return cursor;
+  }
+
+  diff = targetWeekday - currentWeekday;
+  cursor.setDate(cursor.getDate() + diff);
+  return cursor;
+}
+
+function extractDate(text: string, baseDate = new Date()): string | null {
+  const lowerText = text.toLowerCase();
+  const today = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate());
+
+  if (/\btoday\b/i.test(lowerText)) {
+    return toDateKey(today);
+  }
+  if (/\byesterday\b/i.test(lowerText)) {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    return toDateKey(yesterday);
+  }
+  if (/\btomorrow\b/i.test(lowerText)) {
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    return toDateKey(tomorrow);
+  }
+
+  const weekdayMatch = lowerText.match(/\b(last|this)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+  if (weekdayMatch) {
+    const [, mode, weekdayLabel] = weekdayMatch;
+    const weekday = weekdayLookup[weekdayLabel.toLowerCase()];
+    if (weekday !== undefined) {
+      return toDateKey(resolveRelativeWeekday(weekday, today, mode.toLowerCase() as 'last' | 'this'));
+    }
+  }
+
+  const isoMatch = lowerText.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if (isoMatch) {
+    const parsed = buildDateFromParts(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    return parsed ? toDateKey(parsed) : null;
+  }
+
+  const dayMonthMatch = lowerText.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)(?:\s+(\d{4}))?\b/i);
+  if (dayMonthMatch) {
+    const day = Number(dayMonthMatch[1]);
+    const month = monthLookup[dayMonthMatch[2].toLowerCase()];
+    const explicitYear = Number(dayMonthMatch[3] || today.getFullYear());
+    let parsed = buildDateFromParts(explicitYear, month, day);
+    if (!parsed) return null;
+    if (!dayMonthMatch[3] && parsed.getTime() - today.getTime() > 7 * 24 * 60 * 60 * 1000) {
+      parsed = buildDateFromParts(explicitYear - 1, month, day);
+    }
+    return parsed ? toDateKey(parsed) : null;
+  }
+
+  const monthDayMatch = lowerText.match(/\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?\b/i);
+  if (monthDayMatch) {
+    const month = monthLookup[monthDayMatch[1].toLowerCase()];
+    const day = Number(monthDayMatch[2]);
+    const explicitYear = Number(monthDayMatch[3] || today.getFullYear());
+    let parsed = buildDateFromParts(explicitYear, month, day);
+    if (!parsed) return null;
+    if (!monthDayMatch[3] && parsed.getTime() - today.getTime() > 7 * 24 * 60 * 60 * 1000) {
+      parsed = buildDateFromParts(explicitYear - 1, month, day);
+    }
+    return parsed ? toDateKey(parsed) : null;
+  }
+
+  return null;
+}
+
+function hasStrongPatternForIntent(text: string, intent: VoiceIntent): boolean {
+  const patternMap: Record<VoiceIntent, RegExp[]> = {
+    goal: strongGoalPatterns,
+    group: strongGroupPatterns,
+    investment: strongInvestmentPatterns,
+    transfer: strongTransferPatterns,
+    income: strongIncomePatterns,
+    expense: strongExpensePatterns,
+  };
+
+  return patternMap[intent].some((pattern) => pattern.test(text));
+}
+
+function computeConfidence(text: string, intent: VoiceIntent, amount: number | null): number {
+  let score = amount !== null ? 0.5 : 0.12;
+
+  if (hasStrongPatternForIntent(text, intent)) {
+    score += 0.3;
+  }
+
+  if (/\b(?:rs|inr|rupees?)\b/i.test(text)) {
+    score += 0.15;
+  }
+
+  if (amount !== null && amount >= 10) {
+    score += 0.05;
+  }
+
+  const keywordMap: Record<VoiceIntent, string[]> = {
+    goal: goalKeywords,
+    group: groupKeywords,
+    investment: investmentKeywords,
+    transfer: transferKeywords,
+    income: incomeKeywords,
+    expense: expenseKeywords,
+  };
+  const keywordMatches = countMatches(text.toLowerCase(), keywordMap[intent]);
+  if (keywordMatches >= 2) {
+    score += 0.05;
+  }
+
+  return Math.max(0, Math.min(1, Number(score.toFixed(2))));
+}
+
 function detectIntent(text: string): VoiceIntent {
   const lowerText = text.toLowerCase();
-  
+
+  if (strongGoalPatterns.some((pattern) => pattern.test(lowerText)) || goalKeywords.some((keyword) => lowerText.includes(keyword))) {
+    return 'goal';
+  }
+
+  if (strongGroupPatterns.some((pattern) => pattern.test(lowerText)) || groupKeywords.some((keyword) => lowerText.includes(keyword))) {
+    return 'group';
+  }
+
+  if (strongInvestmentPatterns.some((pattern) => pattern.test(lowerText)) || investmentKeywords.some((keyword) => lowerText.includes(keyword))) {
+    return 'investment';
+  }
+
   if (strongTransferPatterns.some((pattern) => pattern.test(lowerText)) || transferKeywords.some((keyword) => lowerText.includes(keyword))) {
     return 'transfer';
   }
@@ -309,9 +592,18 @@ export function parseMultipleTransactions(rawText: string): VoiceParseResult[] {
     if (amount === null) continue;
 
     const intent = detectIntent(chunk);
-    const category = intent === 'transfer' ? 'Transfer' : detectCategory(chunk, intent);
+    const category = detectCategory(chunk, intent);
+    const date = extractDate(chunk);
+    const confidence = computeConfidence(chunk, intent, amount);
 
-    results.push({ intent, amount, category, description: description || chunk });
+    results.push({
+      intent,
+      amount,
+      category,
+      description: description || chunk,
+      confidence,
+      date,
+    });
   }
 
   return results;
@@ -332,6 +624,8 @@ export function parseVoiceExpense(rawText: string): VoiceParseResult {
     amount = wordsToNumber(text);
   }
 
-  const category = intent === 'transfer' ? 'Transfer' : detectCategory(text, intent);
-  return { intent, amount, category, description: rawText.trim() };
+  const category = detectCategory(text, intent);
+  const confidence = computeConfidence(text, intent, amount);
+  const date = extractDate(text);
+  return { intent, amount, category, description: rawText.trim(), confidence, date };
 }

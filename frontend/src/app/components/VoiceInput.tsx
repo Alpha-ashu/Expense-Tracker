@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
 import { CenteredLayout } from "@/app/components/CenteredLayout";
 import { parseVoiceExpense, parseMultipleTransactions } from "@/lib/voiceExpenseParser";
+import { resolveLanguageCode } from "@/lib/userPreferences";
+import { persistVoiceRouteDraft, writeVoiceBatchDraft } from "@/lib/voiceDrafts";
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;
@@ -56,12 +58,34 @@ interface VoiceInputProps {
 }
 
 export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose }) => {
-  const { setCurrentPage } = useApp();
+  const { language, setCurrentPage } = useApp();
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognition, setRecognition] = useState<ISpeechRecognition | null>(null);
+
+  const resolveRecognitionLocale = (appLanguage: string) => {
+    const languageCode = resolveLanguageCode(appLanguage);
+    const localeMap: Record<string, string> = {
+      en: "en-US",
+      hi: "hi-IN",
+      bn: "bn-IN",
+      ta: "ta-IN",
+      te: "te-IN",
+      mr: "mr-IN",
+      gu: "gu-IN",
+      kn: "kn-IN",
+      ml: "ml-IN",
+      pa: "pa-IN",
+      ur: "ur-PK",
+      es: "es-ES",
+      fr: "fr-FR",
+      de: "de-DE",
+    };
+
+    return localeMap[languageCode] || "en-US";
+  };
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -74,7 +98,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
     // Optimized recognition settings for faster response
     recognitionInstance.continuous = true;
     recognitionInstance.interimResults = true;
-    recognitionInstance.lang = "en-US";
+    recognitionInstance.lang = resolveRecognitionLocale(language);
 
     recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
       let interim = "";
@@ -112,7 +136,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
         recognitionInstance.stop();
       }
     };
-  }, []);
+  }, [language]);
 
   const startListening = async () => {
     if (!recognition) return;
@@ -170,43 +194,12 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
                 toast.error("Could not detect amount. Please try again.");
                 return;
               }
-
-              if (parsed.intent === "transfer") {
-                localStorage.setItem("voiceTransferDraft", JSON.stringify({
-                  amount: parsed.amount,
-                  description: parsed.description,
-                }));
-                setCurrentPage("transfer");
-              } else {
-                localStorage.setItem("voiceTransactionDraft", JSON.stringify({
-                  type: parsed.intent,
-                  amount: parsed.amount,
-                  category: parsed.category,
-                  description: parsed.description,
-                  date: new Date().toISOString().split("T")[0],
-                }));
-                setCurrentPage("add-transaction");
-              }
+              setCurrentPage(persistVoiceRouteDraft(parsed));
             } else if (transactions.length === 1) {
               const item = transactions[0];
-              if (item.intent === "transfer") {
-                localStorage.setItem("voiceTransferDraft", JSON.stringify({
-                  amount: item.amount,
-                  description: item.description,
-                }));
-                setCurrentPage("transfer");
-              } else {
-                localStorage.setItem("voiceTransactionDraft", JSON.stringify({
-                  type: item.intent,
-                  amount: item.amount,
-                  category: item.category,
-                  description: item.description,
-                  date: new Date().toISOString().split("T")[0],
-                }));
-                setCurrentPage("add-transaction");
-              }
+              setCurrentPage(persistVoiceRouteDraft(item));
             } else {
-              localStorage.setItem("voiceBatchDraft", JSON.stringify(transactions));
+              writeVoiceBatchDraft(transactions);
               setCurrentPage("voice-review");
             }
           }

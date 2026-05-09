@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { takeVoiceDraft, VOICE_GOAL_DRAFT_KEY, type VoiceGoalDraft } from '@/lib/voiceDrafts';
 
 const steps = [
   { id: 1, title: 'Goal Details', description: 'Name your goal and set a category' },
@@ -46,7 +47,7 @@ export const AddGoal: React.FC = () => {
   const { setCurrentPage, currency, refreshData, friends } = useApp();
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     name: '',
     category: 'travel',
     targetAmount: 0,
@@ -55,7 +56,7 @@ export const AddGoal: React.FC = () => {
     deadline: '',
     description: '',
     goalType: 'individual' as 'individual' | 'group',
-  });
+  }));
   const [memberInput, setMemberInput] = useState({
     name: '',
     contactType: 'email' as 'phone' | 'email' | 'link',
@@ -74,6 +75,20 @@ export const AddGoal: React.FC = () => {
   const suggestion = deadlineDate
     ? getMonthlySuggestion(formData.targetAmount, formData.currentAmount, deadlineDate)
     : null;
+
+  useEffect(() => {
+    const draft = takeVoiceDraft<VoiceGoalDraft>(VOICE_GOAL_DRAFT_KEY);
+    if (!draft) {
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      name: draft.description || prev.name,
+      targetAmount: draft.amount || prev.targetAmount,
+      description: draft.description || prev.description,
+    }));
+  }, []);
 
   useEffect(() => {
     if (formData.monthlySavingPlan <= 0 && suggestion?.monthlyAmount) {

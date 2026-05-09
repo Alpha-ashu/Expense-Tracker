@@ -41,6 +41,14 @@ import {
   markSmsTransactionImported,
   resolvePendingSmsTransactionDraft,
 } from '@/services/smsTransactionDetectionService';
+import { extractGroupParticipantNames } from '@/lib/voiceExpenseParser';
+import {
+  takeVoiceDraft,
+  VOICE_GROUP_DRAFT_KEY,
+  VOICE_TRANSACTION_DRAFT_KEY,
+  type VoiceGroupDraft,
+  type VoiceTransactionDraft,
+} from '@/lib/voiceDrafts';
 
 const BUILTIN_CATEGORIES = {
   expense: Object.values(EXPENSE_CATEGORIES).map(cat => cat.name),
@@ -127,6 +135,7 @@ const createDefaultLoanDraft = (baseDate: string): LoanDraft => ({
 export const AddTransaction: React.FC = () => {
   const { accounts, friends, transactions, setCurrentPage, currency, refreshData } = useApp();
   const { user } = useAuth();
+  const defaultDateKey = toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState(() => ({
     type: 'expense' as 'expense' | 'income' | 'transfer',
@@ -137,7 +146,7 @@ export const AddTransaction: React.FC = () => {
     subcategory: '',
     description: '',
     merchant: '',
-    date: toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0],
+    date: defaultDateKey,
     taxDetails: {
       cgst: 0,
       sgst: 0,
@@ -151,14 +160,17 @@ export const AddTransaction: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
-  const [amountStr, setAmountStr] = useState('');
+  const [amountStr, setAmountStr] = useState(() => '');
   const [subcategoryQuery, setSubcategoryQuery] = useState('');
-  const [expenseMode, setExpenseMode] = useState<ExpenseEntryMode>('individual');
+  const [expenseMode, setExpenseMode] = useState<ExpenseEntryMode>(() => {
+    const storedMode = localStorage.getItem('quickExpenseMode');
+    return storedMode === 'group' || storedMode === 'loan' ? storedMode : 'individual';
+  });
   const [loanType, setLoanType] = useState<LoanEntryType>('borrowed');
   const [loanDraft, setLoanDraft] = useState<LoanDraft>(() =>
-    createDefaultLoanDraft(toLocalDateKey(new Date()) ?? new Date().toISOString().split('T')[0])
+    createDefaultLoanDraft(defaultDateKey)
   );
-  const [returnPage, setReturnPage] = useState('transactions');
+  const [returnPage, setReturnPage] = useState(() => localStorage.getItem('quickBackPage') || 'transactions');
   const [groupName, setGroupName] = useState('');
   const [groupSplitType, setGroupSplitType] = useState<'equal' | 'custom'>('equal');
   const [groupParticipants, setGroupParticipants] = useState<GroupParticipantDraft[]>([]);
@@ -195,6 +207,42 @@ export const AddTransaction: React.FC = () => {
       switchType(rawFormType as any);
       localStorage.removeItem('quickFormType');
     }
+  }, []);
+
+  useEffect(() => {
+    const rawVoiceTransactionDraft = takeVoiceDraft<VoiceTransactionDraft>(VOICE_TRANSACTION_DRAFT_KEY);
+    if (rawVoiceTransactionDraft?.amount) {
+      setFormData((prev) => ({
+        ...prev,
+        type: rawVoiceTransactionDraft.type,
+        amount: rawVoiceTransactionDraft.amount,
+        category: rawVoiceTransactionDraft.category || DEFAULT_CATEGORY[rawVoiceTransactionDraft.type],
+        description: rawVoiceTransactionDraft.description,
+        date: rawVoiceTransactionDraft.date || prev.date,
+      }));
+      setExpenseMode('individual');
+      setAmountStr(String(rawVoiceTransactionDraft.amount));
+    }
+
+    const rawVoiceGroupDraft = takeVoiceDraft<VoiceGroupDraft>(VOICE_GROUP_DRAFT_KEY);
+    if (rawVoiceGroupDraft?.amount) {
+      const participantNames = extractGroupParticipantNames(rawVoiceGroupDraft.description || '');
+      setFormData((prev) => ({
+        ...prev,
+        type: 'expense',
+        amount: rawVoiceGroupDraft.amount,
+        description: rawVoiceGroupDraft.description,
+      }));
+      setAmountStr(String(rawVoiceGroupDraft.amount));
+      setExpenseMode('group');
+      setGroupName(rawVoiceGroupDraft.description || 'Voice Group Expense');
+      if (participantNames.length > 0) {
+        setGroupParticipants(participantNames.map((name) => createEmptyParticipant({ name })));
+      }
+    }
+
+    localStorage.removeItem('quickExpenseMode');
+    localStorage.removeItem('quickBackPage');
   }, []);
 
   const switchType = (t: 'expense' | 'income' | 'transfer') => {
@@ -335,7 +383,7 @@ export const AddTransaction: React.FC = () => {
       }
 
       refreshData();
-      setCurrentPage('transactions');
+      setCurrentPage(returnPage);
     } catch (err) {
       console.error(err);
       toast.error('Failed to record transaction');
@@ -392,7 +440,7 @@ export const AddTransaction: React.FC = () => {
     <div className="hidden lg:flex flex-col h-screen bg-[#F8FAFC] overflow-hidden">
       <header className="h-14 border-b bg-white flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => setCurrentPage('transactions')} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+          <button onClick={() => setCurrentPage(returnPage)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
             <ChevronLeft size={20} />
           </button>
           <h1 className="text-lg font-bold text-slate-900 tracking-tight">Add Transaction</h1>
@@ -599,7 +647,7 @@ export const AddTransaction: React.FC = () => {
       <div className={cn("p-4 pt-6 rounded-b-2xl shadow-lg relative overflow-hidden shrink-0 text-white", accent.amountCard)}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => setCurrentPage('transactions')} className="text-white/80 p-1"><ChevronLeft size={20} /></button>
+            <button onClick={() => setCurrentPage(returnPage)} className="text-white/80 p-1"><ChevronLeft size={20} /></button>
             <button onClick={() => setShowScanner(true)} className="p-1.5 bg-white/10 rounded-lg"><Camera size={16} /></button>
             <button className="p-1.5 bg-white/10 rounded-lg"><AlignLeft size={16} /></button>
           </div>

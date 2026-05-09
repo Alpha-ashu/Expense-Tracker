@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterInput, LoginInput } from './auth.types';
 import { AuthRequest } from '../../middleware/auth';
@@ -8,6 +8,7 @@ import { generateOtp, verifyOtp } from './otp.service';
 import { checkDeviceTrust, trustDevice, revokeDeviceTrust, listUserDevices } from './device.service';
 import { prisma } from '../../db/prisma';
 import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
+import { AppError } from '../../utils/AppError';
 
 const authService = new AuthService();
 
@@ -80,35 +81,22 @@ const buildProfilePayload = (
   };
 };
 
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const input: RegisterInput = req.body;
 
-    // Validate input
     if (!input.email || !input.name || !input.password) {
-      return res.status(400).json({
-        error: 'Missing required fields: email, name, password',
-        code: 'MISSING_FIELDS'
-      });
+      throw AppError.badRequest('Please fill in all required fields: email, name, and password.', 'MISSING_FIELDS');
     }
 
-    // Validate email format (strict)
     if (!EMAIL_REGEX.test(input.email)) {
-      return res.status(400).json({
-        error: 'Invalid email format',
-        code: 'INVALID_EMAIL'
-      });
+      throw AppError.badRequest('Please enter a valid email address.', 'INVALID_EMAIL');
     }
 
-    // Validate password length
     if (input.password.length < 8) {
-      return res.status(400).json({
-        error: 'Password must be at least 8 characters long',
-        code: 'PASSWORD_TOO_SHORT'
-      });
+      throw AppError.badRequest('Your password must be at least 8 characters long.', 'PASSWORD_TOO_SHORT');
     }
 
-    // Sanitize user-facing text fields
     const sanitizedInput = {
       ...input,
       name: sanitize(input.name),
@@ -120,64 +108,46 @@ export const register = async (req: Request, res: Response) => {
     res.status(201).json({
       success: true,
       message: 'Registration successful',
-      data: tokens
+      data: tokens,
     });
   } catch (error: any) {
-    logger.error('Registration error', { error: error.message });
-
-    let statusCode = 400;
-    let errorCode = 'REGISTRATION_FAILED';
-    let errorMessage = 'Registration failed. Please try again.';
-
-    // Handle specific database errors
-    if (error.message && error.message.includes('UNIQUE constraint failed')) {
-      statusCode = 409;
-      errorCode = 'EMAIL_EXISTS';
-      errorMessage = 'This email is already registered. Please use a different email or try signing in.';
-    } else if (error.message === 'Email already registered') {
-      statusCode = 409;
-      errorCode = 'EMAIL_EXISTS';
-      errorMessage = 'This email is already registered. Please use a different email or try signing in.';
-    } else if (
-      error.message
-      && (
-        error.message.includes('database')
-        || error.message.includes('Can\'t reach database')
-        || error.message.includes('Error validating datasource')
-      )
+    // Map known service errors to AppError before passing to next()
+    if (
+      error instanceof AppError
     ) {
-      statusCode = 500;
-      errorCode = 'DATABASE_ERROR';
-      errorMessage = 'Database error occurred. Please try again later.';
+      return next(error);
     }
 
-    res.status(statusCode).json({
-      success: false,
-      error: errorMessage,
-      code: errorCode
-    });
+    logger.error('Registration error', { message: error?.message, stack: error?.stack });
+
+    if (
+      error?.message?.includes('UNIQUE constraint failed') ||
+      error?.message === 'Email already registered'
+    ) {
+      return next(AppError.conflict(
+        'An account with this email already exists. Please sign in or use a different email.',
+        'EMAIL_EXISTS',
+      ));
+    }
+
+    if (isDatabaseUnavailableError(error)) {
+      return next(new AppError(503, 'DATABASE_UNAVAILABLE', 'Our servers are temporarily unavailable. Please try again in a moment.', false));
+    }
+
+    next(AppError.internal());
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const input: LoginInput = req.body;
 
-
-    // Validate input
     if (!input.email || !input.password) {
-      return res.status(400).json({
-        error: 'Missing required fields: email, password',
-        code: 'MISSING_FIELDS'
-      });
+      throw AppError.badRequest('Please enter your email and password.', 'MISSING_FIELDS');
     }
 
-    // Validate email format (strict)
     if (!EMAIL_REGEX.test(input.email)) {
-      return res.status(400).json({
-        error: 'Invalid email format',
-        code: 'INVALID_EMAIL'
-      });
+      throw AppError.badRequest('Please enter a valid email address.', 'INVALID_EMAIL');
     }
 
     const tokens = await authService.login({
@@ -205,43 +175,32 @@ export const login = async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    logger.error('Login error', { error: error.message });
-
-    let statusCode = 401;
-    let errorCode = 'LOGIN_FAILED';
-    let errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-
-    if (error.message === 'Invalid credentials') {
-      errorCode = 'INVALID_CREDENTIALS';
-      errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-    } else if (
-      error.message
-      && (
-        error.message.includes('database')
-        || error.message.includes('Can\'t reach database')
-        || error.message.includes('Error validating datasource')
-      )
-    ) {
-      statusCode = 500;
-      errorCode = 'DATABASE_ERROR';
-      errorMessage = 'Database error occurred. Please try again later.';
+    if (error instanceof AppError) {
+      return next(error);
     }
 
-    res.status(statusCode).json({
-      success: false,
-      error: errorMessage,
-      code: errorCode
-    });
+    logger.error('Login error', { message: error?.message, stack: error?.stack });
+
+    if (error?.message === 'Invalid credentials') {
+      return next(AppError.unauthorized(
+        'Incorrect email or password. Please check your credentials and try again.',
+        'INVALID_CREDENTIALS',
+      ));
+    }
+
+    if (isDatabaseUnavailableError(error)) {
+      return next(new AppError(503, 'DATABASE_UNAVAILABLE', 'Our servers are temporarily unavailable. Please try again in a moment.', false));
+    }
+
+    next(AppError.unauthorized('Incorrect email or password. Please check your credentials and try again.', 'LOGIN_FAILED'));
   }
 };
 
-export const getProfile = async (req: AuthRequest, res: Response) => {
+export const getProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({ success: false, error: 'Not authenticated' });
+      return next(AppError.unauthorized());
     }
-
-    // BUG FIX #3: Wrap database calls in individual try-catch to prevent cascading failures
     let userResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
     let profileResult: PromiseSettledResult<any> = { status: 'fulfilled', value: null };
 
@@ -301,10 +260,10 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const updateProfile = async (req: AuthRequest, res: Response) => {
+export const updateProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({ success: false, error: 'Not authenticated' });
+      return next(AppError.unauthorized());
     }
 
     const sanitizedData = sanitize(req.body as any);
@@ -345,75 +304,60 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
 
 // ── OTP Endpoints ───────────────────────────────────────────────────
 
-export const sendOtp = async (req: AuthRequest, res: Response) => {
+export const sendOtp = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ success: false, error: 'Not authenticated' });
-    }
+    if (!req.userId) throw AppError.unauthorized();
     const result = await generateOtp(req.userId);
     const status = result.success ? 200 : 429;
     res.status(status).json({ success: result.success, message: result.message, expiresAt: result.expiresAt });
   } catch (error) {
-    logger.error('Send OTP error', { error });
-    res.status(500).json({ success: false, error: 'Failed to send OTP' });
+    next(error);
   }
 };
 
-export const verifyOtpEndpoint = async (req: AuthRequest, res: Response) => {
+export const verifyOtpEndpoint = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ success: false, error: 'Not authenticated' });
-    }
+    if (!req.userId) throw AppError.unauthorized();
     const { code, deviceId, deviceName, platform, appVersion } = req.body;
     if (!code || typeof code !== 'string') {
-      return res.status(400).json({ success: false, error: 'OTP code is required' });
+      throw AppError.badRequest('Verification code is required.', 'OTP_REQUIRED');
     }
 
     const result = await verifyOtp(req.userId, code);
     if (!result.success) {
-      return res.status(400).json({ success: false, message: result.message });
+      throw AppError.badRequest(result.message || 'Invalid or expired verification code.', 'OTP_INVALID');
     }
 
-    // If deviceId provided, trust the device after successful OTP
     if (deviceId && typeof deviceId === 'string') {
       await trustDevice(req.userId, deviceId, { deviceName, platform, appVersion });
     }
 
     res.json({ success: true, message: result.message });
   } catch (error) {
-    logger.error('Verify OTP error', { error });
-    res.status(500).json({ success: false, error: 'Failed to verify OTP' });
+    next(error);
   }
 };
 
 // ── Device Management Endpoints ─────────────────────────────────────
 
-export const getDevices = async (req: AuthRequest, res: Response) => {
+export const getDevices = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ success: false, error: 'Not authenticated' });
-    }
+    if (!req.userId) throw AppError.unauthorized();
     const devices = await listUserDevices(req.userId);
     res.json({ success: true, data: devices });
   } catch (error) {
-    logger.error('List devices error', { error });
-    res.status(500).json({ success: false, error: 'Failed to list devices' });
+    next(error);
   }
 };
 
-export const revokeDevice = async (req: AuthRequest, res: Response) => {
+export const revokeDevice = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    if (!req.userId) {
-      return res.status(401).json({ success: false, error: 'Not authenticated' });
-    }
+    if (!req.userId) throw AppError.unauthorized();
     const { deviceId } = req.params;
-    if (!deviceId) {
-      return res.status(400).json({ success: false, error: 'Device ID required' });
-    }
+    if (!deviceId) throw AppError.badRequest('Device ID is required.', 'DEVICE_ID_REQUIRED');
     await revokeDeviceTrust(req.userId, deviceId);
     res.json({ success: true, message: 'Device trust revoked' });
   } catch (error) {
-    logger.error('Revoke device error', { error });
-    res.status(500).json({ success: false, error: 'Failed to revoke device' });
+    next(error);
   }
 };

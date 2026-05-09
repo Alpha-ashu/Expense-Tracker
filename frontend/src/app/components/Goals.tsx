@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { getGoalCategoryMeta, getGoalProgress, getMilestoneLabel, getMonthlySuggestion } from '@/lib/goal-utils';
@@ -10,10 +10,14 @@ import { Button } from '@/app/components/ui/button';
 import { PageHeader } from '@/app/components/ui/PageHeader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { VOICE_GOAL_DRAFT_KEY, takeVoiceDraft, type VoiceGoalDraft } from '@/lib/voiceDrafts';
 
 export const Goals: React.FC = () => {
   const { goals, accounts, currency, setCurrentPage } = useApp();
   const [showContributeModal, setShowContributeModal] = useState<number | null>(null);
+  const [activeContributionDraft, setActiveContributionDraft] = useState<VoiceGoalDraft | null>(null);
+  const [pendingVoiceGoalDraft, setPendingVoiceGoalDraft] = useState<VoiceGoalDraft | null>(null);
+  const [showVoiceGoalPicker, setShowVoiceGoalPicker] = useState(false);
   const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<any>({});
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -21,6 +25,23 @@ export const Goals: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const selectedGoalKey = 'selected_goal_id';
+
+  useEffect(() => {
+    const draft = takeVoiceDraft<VoiceGoalDraft>(VOICE_GOAL_DRAFT_KEY);
+    if (!draft?.amount) {
+      return;
+    }
+
+    if (goals.length === 0) {
+      localStorage.setItem(VOICE_GOAL_DRAFT_KEY, JSON.stringify(draft));
+      toast.info('No goals found yet. Create a goal with your voice draft.');
+      setCurrentPage('add-goal');
+      return;
+    }
+
+    setPendingVoiceGoalDraft(draft);
+    setShowVoiceGoalPicker(true);
+  }, [goals.length, setCurrentPage]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -56,6 +77,26 @@ export const Goals: React.FC = () => {
   const openGoalDetail = (goalId: number) => {
     localStorage.setItem(selectedGoalKey, String(goalId));
     setCurrentPage('goal-detail');
+  };
+
+  const openContributionModal = (goalId: number, draft?: VoiceGoalDraft | null) => {
+    setActiveContributionDraft(draft || null);
+    setShowContributeModal(goalId);
+  };
+
+  const handleUseVoiceDraftForGoal = (goalId: number) => {
+    openContributionModal(goalId, pendingVoiceGoalDraft);
+    setShowVoiceGoalPicker(false);
+    setPendingVoiceGoalDraft(null);
+  };
+
+  const handleCreateGoalFromVoiceDraft = () => {
+    if (pendingVoiceGoalDraft) {
+      localStorage.setItem(VOICE_GOAL_DRAFT_KEY, JSON.stringify(pendingVoiceGoalDraft));
+    }
+    setShowVoiceGoalPicker(false);
+    setPendingVoiceGoalDraft(null);
+    setCurrentPage('add-goal');
   };
 
   const handleEditClick = (goal: any) => {
@@ -413,7 +454,7 @@ export const Goals: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-2 mt-auto pt-3">
                         <button
-                          onClick={() => setShowContributeModal(goal.id!)}
+                          onClick={() => openContributionModal(goal.id!)}
                           className="w-full px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-900 transition-all font-medium shadow-sm active:scale-95"
                           aria-label={`Add contribution to ${goal.name}`}
                           title={`Add contribution to ${goal.name}`}
@@ -469,8 +510,73 @@ export const Goals: React.FC = () => {
         <ContributeModal
           goalId={showContributeModal}
           accounts={accounts}
-          onClose={() => setShowContributeModal(null)}
+          initialAmount={activeContributionDraft?.amount}
+          initialNotes={activeContributionDraft?.description}
+          onClose={() => {
+            setShowContributeModal(null);
+            setActiveContributionDraft(null);
+          }}
         />
+      )}
+
+      {showVoiceGoalPicker && pendingVoiceGoalDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"
+          >
+            <h3 className="text-2xl font-bold text-gray-900">Apply Voice Goal Draft</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              We heard {formatCurrency(pendingVoiceGoalDraft.amount)} for “{pendingVoiceGoalDraft.description || 'goal contribution'}”.
+              Choose an existing goal to contribute to, or create a new one.
+            </p>
+
+            <div className="mt-5 space-y-3 max-h-72 overflow-y-auto pr-1">
+              {goals.map((goal) => (
+                <button
+                  key={goal.id}
+                  type="button"
+                  onClick={() => handleUseVoiceDraftForGoal(goal.id!)}
+                  className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-left transition-colors hover:border-gray-300 hover:bg-gray-50"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{goal.name}</p>
+                      <p className="text-xs text-gray-500">
+                        Saved {formatCurrency(goal.currentAmount)} of {formatCurrency(goal.targetAmount)}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                      Contribute
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleCreateGoalFromVoiceDraft}
+                className="rounded-2xl bg-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-900"
+              >
+                Create New Goal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowVoiceGoalPicker(false);
+                  setPendingVoiceGoalDraft(null);
+                }}
+                className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        </div>
       )}
 
       <DeleteConfirmModal
@@ -492,10 +598,18 @@ export const Goals: React.FC = () => {
 const ContributeModal: React.FC<{
   goalId: number;
   accounts: any[];
+  initialAmount?: number;
+  initialNotes?: string;
   onClose: () => void;
-}> = ({ goalId, accounts, onClose }) => {
-  const [amount, setAmount] = useState(0);
+}> = ({ goalId, accounts, initialAmount, initialNotes, onClose }) => {
+  const [amount, setAmount] = useState(initialAmount || 0);
   const [accountId, setAccountId] = useState(accounts[0]?.id || 0);
+  const [notes, setNotes] = useState(initialNotes || '');
+
+  useEffect(() => {
+    setAmount(initialAmount || 0);
+    setNotes(initialNotes || '');
+  }, [initialAmount, initialNotes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -503,11 +617,23 @@ const ContributeModal: React.FC<{
     const goal = await db.goals.get(goalId);
     if (!goal) return;
 
+    const account = accounts.find((item) => item.id === accountId);
+    if (!account) {
+      toast.error('Select an account for this contribution');
+      return;
+    }
+
+    if (account.balance < amount) {
+      toast.error('Selected account does not have enough balance');
+      return;
+    }
+
     await db.goalContributions.add({
       goalId,
       amount,
       accountId,
       date: new Date(),
+      notes: notes.trim() || undefined,
     });
 
     await db.goals.update(goalId, {
@@ -516,12 +642,9 @@ const ContributeModal: React.FC<{
     });
     // Goal and contribution updates are synced through local DB hooks.
 
-    const account = accounts.find(a => a.id === accountId);
-    if (account) {
-      await db.accounts.update(accountId, {
-        balance: account.balance - amount,
-      });
-    }
+    await db.accounts.update(accountId, {
+      balance: account.balance - amount,
+    });
 
     toast.success('Contribution added successfully');
     onClose();
@@ -569,6 +692,18 @@ const ContributeModal: React.FC<{
                 <option key={acc.id} value={acc.id}>{acc.name}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="goal-contribution-notes" className="block text-sm font-bold text-gray-700 mb-2">Notes</label>
+            <textarea
+              id="goal-contribution-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-black/10"
+              rows={3}
+              placeholder="Optional note for this contribution"
+            />
           </div>
 
           <div className="flex gap-3 pt-4">

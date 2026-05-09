@@ -14,6 +14,64 @@ import {
 } from './apiBase';
 import supabase from '@/utils/supabase/client';
 import type { ApiResponse, ApiError } from '@/types';
+import { ErrorFactory, ErrorHandler } from './errorHandling';
+
+// ==================== User-friendly error message map ====================
+// Maps server error codes to simple, human-readable messages.
+// Technical details are logged to the console; only these go to the user.
+
+const USER_FRIENDLY_MESSAGES: Record<string, string> = {
+  // Auth
+  INVALID_CREDENTIALS: 'Incorrect email or password. Please try again.',
+  EMAIL_EXISTS: 'An account with this email already exists. Try signing in instead.',
+  MISSING_FIELDS: 'Please fill in all required fields.',
+  INVALID_EMAIL: 'Please enter a valid email address.',
+  PASSWORD_TOO_SHORT: 'Your password must be at least 8 characters long.',
+  UNAUTHORIZED: 'Please sign in to continue.',
+  FORBIDDEN: 'You do not have permission to do that.',
+  // Data
+  NOT_FOUND: 'We could not find what you were looking for.',
+  DUPLICATE_ENTRY: 'This item already exists. Please use different values.',
+  VALIDATION_ERROR: 'Some of your inputs look incorrect. Please review and try again.',
+  INVALID_JSON: 'There was a problem sending your data. Please try again.',
+  // Connectivity
+  DATABASE_UNAVAILABLE: 'Our servers are temporarily unavailable. Please try again in a moment.',
+  NETWORK_ERROR: 'Check your internet connection and try again.',
+  TIMEOUT_ERROR: 'The request took too long. Please try again.',
+  RATE_LIMIT_EXCEEDED: 'You are doing that too fast. Please wait a moment before trying again.',
+  // Fallback
+  INTERNAL_ERROR: 'Something went wrong on our end. Please try again later.',
+  REQUEST_ERROR: 'Something went wrong. Please try again.',
+};
+
+/**
+ * Returns a user-friendly message for a server error code/HTTP status.
+ * Logs the raw technical message to the console so developers can debug.
+ */
+function getUserMessage(
+  status: number,
+  serverCode: string | undefined,
+  technicalMessage: string,
+): string {
+  // Log the raw technical detail for debugging – never shown to the user
+  console.error(
+    `[API Error] HTTP ${status} | code=${serverCode ?? 'n/a'} | ${technicalMessage}`,
+  );
+
+  if (serverCode && USER_FRIENDLY_MESSAGES[serverCode]) {
+    return USER_FRIENDLY_MESSAGES[serverCode];
+  }
+
+  // Fall back to HTTP-status-based friendly message
+  if (status === 400) return 'Some of your inputs look incorrect. Please review and try again.';
+  if (status === 401) return 'Please sign in to continue.';
+  if (status === 403) return 'You do not have permission to do that.';
+  if (status === 404) return 'We could not find what you were looking for.';
+  if (status === 409) return 'This item already exists. Please use different values.';
+  if (status === 429) return 'You are doing that too fast. Please wait a moment and try again.';
+  if (status >= 500) return 'Something went wrong on our end. Please try again later.';
+  return 'Something went wrong. Please try again.';
+}
 
 // ==================== Configuration ====================
 
@@ -205,14 +263,22 @@ class HTTPClient {
               continue;
             }
 
+            const serverCode = data.code || `HTTP_${response.status}`;
+            const technicalMessage = data.message || data.error || response.statusText;
+            const userMessage = getUserMessage(response.status, serverCode, technicalMessage);
+
             const error: ApiError = {
-              code: data.code || `HTTP_${response.status}`,
-              message: data.message || response.statusText,
+              code: serverCode,
+              message: userMessage,
               details: data.details,
             };
 
             if (showErrorToast) {
-              toast.error(error.message);
+              // Use ErrorHandler for consistent, user-friendly toast messages
+              ErrorHandler.handle(
+                ErrorFactory.fromHTTPStatus(response.status, userMessage),
+                true,
+              );
             }
 
             // Handle 401 Unauthorized
@@ -245,12 +311,11 @@ class HTTPClient {
               continue;
             }
 
-            const timeoutError = new APIError(
-              'TIMEOUT_ERROR',
-              'Request timeout. Please try again.',
-              0);
+            const timeoutMsg = USER_FRIENDLY_MESSAGES['TIMEOUT_ERROR'];
+            console.error('[API Error] Request timed out:', endpoint);
+            const timeoutError = new APIError('TIMEOUT_ERROR', timeoutMsg, 0);
             if (showErrorToast) {
-              toast.error(timeoutError.message);
+              ErrorHandler.handle(ErrorFactory.fromHTTPStatus(408, timeoutMsg), true);
             }
             throw timeoutError;
           }

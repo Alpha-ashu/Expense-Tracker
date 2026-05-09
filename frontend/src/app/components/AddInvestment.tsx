@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { searchStocks, fetchStockQuote, StockQuote, StockSearchResult, displaySymbol } from '@/lib/stockApi';
 import { formatNativeMoney, getCurrencySymbol, normalizeCurrencyCode } from '@/lib/currencyUtils';
 import { fetchCurrencyConversionRate } from '@/lib/investmentUtils';
+import { inferInvestmentTypeFromText } from '@/lib/voiceExpenseParser';
+import { takeVoiceDraft, VOICE_INVESTMENT_DRAFT_KEY, type VoiceInvestmentDraft } from '@/lib/voiceDrafts';
 
 const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';
 
@@ -62,7 +64,7 @@ const buildQuoteSnapshot = (quote: StockQuote): QuoteSnapshot => ({
 export const AddInvestment: React.FC = () => {
   const { accounts, setCurrentPage, currency, refreshData } = useApp();
   const activeAccounts = accounts.filter((account) => account.isActive);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     name: '',
     type: 'stocks' as InvestmentFormType,
     quantity: 0,
@@ -73,7 +75,7 @@ export const AddInvestment: React.FC = () => {
     description: '',
     fundingAccountId: activeAccounts[0]?.id || 0,
     purchaseFees: 0,
-  });
+  }));
 
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -109,6 +111,38 @@ export const AddInvestment: React.FC = () => {
       fundingAccountId: activeAccounts[0]?.id || 0,
     }));
   }, [activeAccounts, formData.fundingAccountId]);
+
+  useEffect(() => {
+    const draft = takeVoiceDraft<VoiceInvestmentDraft>(VOICE_INVESTMENT_DRAFT_KEY);
+    if (!draft) {
+      return;
+    }
+
+    const inferredType = (() => {
+      switch (inferInvestmentTypeFromText(draft.description || '')) {
+        case 'crypto':
+          return 'crypto' as const;
+        case 'mutual-funds':
+          return 'mutual-funds' as const;
+        case 'bonds':
+          return 'bonds' as const;
+        case 'stocks':
+          return 'stocks' as const;
+        default:
+          return 'other' as const;
+      }
+    })();
+
+    setFormData((prev) => ({
+      ...prev,
+      name: draft.description || prev.name,
+      type: inferredType,
+      quantity: prev.quantity > 0 ? prev.quantity : 1,
+      purchasePrice: draft.amount || prev.purchasePrice,
+      currentPrice: draft.amount || prev.currentPrice,
+      description: draft.description || prev.description,
+    }));
+  }, []);
 
   const handleInvestmentTypeChange = (value: string) => {
     const nextType = value as InvestmentFormType;

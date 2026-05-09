@@ -96,13 +96,23 @@ class PageErrorBoundary extends React.Component<
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    // Log full technical details for developers — never show to users
+    console.error('[PageErrorBoundary] Caught render error:', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: info.componentStack,
+    });
+  }
   render() {
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
-          <div className="text-4xl"></div>
+          <div className="text-4xl">⚠️</div>
           <h2 className="text-lg font-bold text-gray-900">Something went wrong</h2>
-          <p className="text-sm text-gray-500 max-w-sm">{this.state.error.message}</p>
+          <p className="text-sm text-gray-500 max-w-sm">
+            We hit an unexpected problem loading this page. Please try again.
+          </p>
           <button
             onClick={() => this.setState({ error: null })}
             className="px-4 py-2 bg-black text-white rounded-xl text-sm font-medium"

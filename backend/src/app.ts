@@ -1,19 +1,28 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { randomUUID } from 'crypto';
 import { errorHandler } from './middleware/error';
 import { apiRoutes } from './routes/index';
 import { docsRoutes } from './routes/docs';
 import { getRedisStatus } from './cache/redis';
 import { rateLimit, authenticatedRateLimit } from './middleware/rateLimit';
 import { getCircuitBreakerStatus } from './utils/circuitBreaker';
-
+import { sanitize } from './utils/sanitize';
 import { logger } from './config/logger';
 
 const app = express();
 
+// ── Request ID stamping (B-1) ─────────────────────────────────────────
+// Every request gets a unique ID for log correlation & error responses.
 app.use((req, res, next) => {
-  logger.info(`[REQ] ${req.method} ${req.path}`);
+  (req as any).id = randomUUID();
+  res.setHeader('X-Request-Id', (req as any).id);
+  next();
+});
+
+app.use((req, res, next) => {
+  logger.info(`[REQ] ${req.method} ${req.path}`, { requestId: (req as any).id });
   next();
 });
 
@@ -76,6 +85,28 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 
+// ── Global body sanitization (B-4) ───────────────────────────────────
+// Strip HTML/script tags from all string fields in the request body.
+app.use((req, _res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    const sanitizeObject = (obj: Record<string, unknown>): Record<string, unknown> => {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'string') {
+          result[key] = sanitize(value);
+        } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          result[key] = sanitizeObject(value as Record<string, unknown>);
+        } else {
+          result[key] = value;
+        }
+      }
+      return result;
+    };
+    req.body = sanitizeObject(req.body);
+  }
+  next();
+});
+
 // Baseline API throttling for abuse protection (IP + optional user identity).
 const defaultGlobalApiRateLimit = process.env.NODE_ENV === 'production' ? 60 : 600;
 
@@ -127,9 +158,13 @@ app.use('/api-docs', docsRoutes);
 // API v1
 app.use('/api/v1', apiRoutes);
 
-// 404
+// 404 – unknown routes
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Not found' });
+  res.status(404).json({
+    success: false,
+    error: 'The page or resource you are looking for does not exist.',
+    code: 'NOT_FOUND',
+  });
 });
 
 // Error handling middleware

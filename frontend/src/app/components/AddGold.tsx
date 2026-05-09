@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { backendService } from '@/lib/backend-api';
@@ -8,6 +8,7 @@ import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { ChevronLeft, Loader2, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { takeVoiceDraft, VOICE_INVESTMENT_DRAFT_KEY, type VoiceInvestmentDraft } from '@/lib/voiceDrafts';
 
 const GOLD_TYPES = [
   { id: 'gold', label: 'Pure Gold' },
@@ -44,7 +45,7 @@ const locationOptions = [
 export const AddGold: React.FC = () => {
   const { setCurrentPage, currency, refreshData } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     type: 'gold' as 'gold' | 'jewelry' | 'coin',
     quantity: 0,
     unit: 'gram' as 'gram' | 'ounce' | 'kg',
@@ -55,7 +56,30 @@ export const AddGold: React.FC = () => {
     location: 'safe-deposit-box',
     certificateNumber: '',
     notes: '',
-  });
+  }));
+
+  useEffect(() => {
+    const draft = takeVoiceDraft<VoiceInvestmentDraft>(VOICE_INVESTMENT_DRAFT_KEY);
+    if (!draft) {
+      return;
+    }
+
+    const lowerDescription = (draft.description || '').toLowerCase();
+    const inferredType = lowerDescription.includes('coin')
+      ? 'coin'
+      : /\b(jewelry|jewellery|necklace|ring|bangle|bracelet|ornament)\b/i.test(lowerDescription)
+        ? 'jewelry'
+        : 'gold';
+
+    setFormData((prev) => ({
+      ...prev,
+      type: inferredType,
+      quantity: prev.quantity > 0 ? prev.quantity : 1,
+      purchasePrice: draft.amount || prev.purchasePrice,
+      currentPrice: draft.amount || prev.currentPrice,
+      notes: draft.description || prev.notes,
+    }));
+  }, []);
 
   const totalValue = formData.quantity * formData.currentPrice;
   const totalInvestment = formData.quantity * formData.purchasePrice;

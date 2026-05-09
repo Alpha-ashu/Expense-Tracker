@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { queueTransactionDeleteSync } from '@/lib/auth-sync-integration';
@@ -8,6 +8,7 @@ import { Plus, Users, Trash2, Edit2, Check, X, CalendarDays } from 'lucide-react
 import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
+import { readVoiceDraft, VOICE_GROUP_DRAFT_KEY, type VoiceGroupDraft } from '@/lib/voiceDrafts';
 
 const avatarToneClasses = [
   'bg-rose-100 text-rose-700',
@@ -46,6 +47,16 @@ export const Groups: React.FC = () => {
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [editedName, setEditedName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const pendingDraft = readVoiceDraft<VoiceGroupDraft>(VOICE_GROUP_DRAFT_KEY);
+    if (!pendingDraft?.amount) {
+      return;
+    }
+
+    toast.info('Opening your group expense draft.');
+    openGroupExpenseForm();
+  }, []);
 
   const sortedExpenses = useMemo(
     () => [...groupExpenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),

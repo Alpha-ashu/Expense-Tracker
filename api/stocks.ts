@@ -331,7 +331,7 @@ async function handleSearch(searchParams: URLSearchParams, res: VercelResponse) 
   });
 
   if (!response.ok) {
-    res.status(502).json({ error: 'Upstream fetch failed', detail: `Yahoo search returned ${response.status}` });
+    res.status(502).json({ success: false, error: 'Unable to search stocks right now. Please try again shortly.', code: 'UPSTREAM_ERROR' });
     return;
   }
 
@@ -363,7 +363,7 @@ async function handleStock(searchParams: URLSearchParams, res: VercelResponse) {
   const market = searchParams.get('market')?.trim().toLowerCase() || undefined;
 
   if (!symbol) {
-    res.status(400).json({ status: 'error', message: 'symbol required' });
+    res.status(400).json({ success: false, error: 'A stock symbol is required.', code: 'SYMBOL_REQUIRED' });
     return;
   }
 
@@ -377,7 +377,7 @@ async function handleStock(searchParams: URLSearchParams, res: VercelResponse) {
 
   const chart = await resolveChart(symbol, market);
   if (!chart) {
-    res.status(404).json({ status: 'error', message: 'Not found' });
+    res.status(404).json({ success: false, error: 'Stock data not found for the requested symbol.', code: 'STOCK_NOT_FOUND' });
     return;
   }
 
@@ -391,7 +391,7 @@ async function handleBatch(searchParams: URLSearchParams, res: VercelResponse) {
   const market = searchParams.get('market')?.trim().toLowerCase() || undefined;
 
   if (!symbolsParam) {
-    res.status(400).json({ status: 'error', message: 'symbols required' });
+    res.status(400).json({ success: false, error: 'At least one stock symbol is required.', code: 'SYMBOLS_REQUIRED' });
     return;
   }
 
@@ -443,7 +443,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(405).json({ success: false, error: 'Method not allowed.', code: 'METHOD_NOT_ALLOWED' });
     return;
   }
 
@@ -470,9 +470,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    res.status(404).json({ error: 'Endpoint not mapped' });
+    res.status(404).json({ success: false, error: 'The requested endpoint does not exist.', code: 'NOT_FOUND' });
   } catch (error) {
     const detail = error instanceof Error ? error.message : 'Unknown error';
-    res.status(502).json({ error: 'Upstream fetch failed', detail });
+    console.error('[stocks] Upstream fetch failed:', detail);
+    res.status(502).json({ success: false, error: 'Unable to fetch market data right now. Please try again shortly.', code: 'UPSTREAM_ERROR' });
   }
 }

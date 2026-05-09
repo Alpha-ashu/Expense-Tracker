@@ -1,143 +1,106 @@
-import { Router, Response } from 'express';
+import { Router, Response, NextFunction } from 'express';
 import { syncService } from './sync.service';
 import { authMiddleware, AuthRequest } from '../../middleware/auth';
+import { AppError } from '../../utils/AppError';
 
 const router = Router();
 
 // All sync routes require authentication
 router.use(authMiddleware);
 
+function requireUserId(req: AuthRequest): string {
+  const userId = req.user?.id;
+  if (!userId) throw AppError.unauthorized();
+  return userId;
+}
+
 /**
  * POST /api/v1/sync/pull
- * Pull data from server (source of truth)
  */
-router.post('/pull', async (req: AuthRequest, res: Response) => {
+router.post('/pull', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const userId = requireUserId(req);
     const { deviceId, lastSyncedAt, entityTypes } = req.body;
-    const userId = req.user?.id;
 
-    // Basic validation
-    if (!userId) {
-      return res.status(401).json({ error: 'Authenticated user is required' });
-    }
-
-    if (!deviceId) {
-      return res.status(400).json({ error: 'Device ID is required' });
-    }
+    if (!deviceId) throw AppError.badRequest('Device ID is required', 'DEVICE_ID_REQUIRED');
 
     if (lastSyncedAt && Number.isNaN(Date.parse(String(lastSyncedAt)))) {
-      return res.status(400).json({ error: 'lastSyncedAt must be a valid timestamp' });
+      throw AppError.badRequest('lastSyncedAt must be a valid timestamp', 'INVALID_TIMESTAMP');
     }
 
-    const result = await syncService.pullData({
-      userId,
-      deviceId,
-      lastSyncedAt,
-      entityTypes,
-    });
-
+    const result = await syncService.pullData({ userId, deviceId, lastSyncedAt, entityTypes });
     res.json(result);
   } catch (error) {
-    console.error('Sync pull error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
 /**
  * POST /api/v1/sync/push
- * Push local changes to server
  */
-router.post('/push', async (req: AuthRequest, res: Response) => {
+router.post('/push', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const userId = requireUserId(req);
     const { deviceId, entities } = req.body;
-    const userId = req.user?.id;
-
-    // Basic validation
-    if (!userId) {
-      return res.status(401).json({ error: 'Authenticated user is required' });
-    }
 
     if (!deviceId || !entities || !Array.isArray(entities)) {
-      return res.status(400).json({ error: 'Device ID and entities array are required' });
+      throw AppError.badRequest('Device ID and entities array are required', 'PUSH_FIELDS_REQUIRED');
     }
 
-    const result = await syncService.pushData({
-      userId,
-      deviceId,
-      entities,
-    });
-
+    const result = await syncService.pushData({ userId, deviceId, entities });
     res.json(result);
   } catch (error) {
-    console.error('Sync push error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
 /**
  * POST /api/v1/sync/register-device
- * Register or update a device
  */
-router.post('/register-device', async (req: AuthRequest, res: Response) => {
+router.post('/register-device', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const userId = requireUserId(req);
     const { deviceId, deviceName, deviceType, platform, appVersion } = req.body;
-    const userId = req.user?.id;
 
-    // Basic validation
-    if (!userId) {
-      return res.status(401).json({ error: 'Authenticated user is required' });
-    }
-
-    if (!deviceId) {
-      return res.status(400).json({ error: 'Device ID is required' });
-    }
+    if (!deviceId) throw AppError.badRequest('Device ID is required', 'DEVICE_ID_REQUIRED');
 
     const device = await syncService.registerDevice(userId, {
-      deviceId,
-      deviceName,
-      deviceType,
-      platform,
-      appVersion,
+      deviceId, deviceName, deviceType, platform, appVersion,
     });
 
     res.json({ success: true, device });
   } catch (error) {
-    console.error('Device registration error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
 /**
  * GET /api/v1/sync/devices
- * Get all devices for the authenticated user
  */
-router.get('/devices', async (req: AuthRequest, res: Response) => {
+router.get('/devices', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const devices = await syncService.getUserDevices(req.user?.id || '');
+    const userId = requireUserId(req);
+    const devices = await syncService.getUserDevices(userId);
     res.json({ success: true, devices });
   } catch (error) {
-    console.error('Get devices error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
 /**
  * POST /api/v1/sync/deactivate-device
- * Deactivate a device
  */
-router.post('/deactivate-device', async (req: AuthRequest, res: Response) => {
+router.post('/deactivate-device', async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const userId = requireUserId(req);
     const { deviceId } = req.body;
 
-    if (!deviceId) {
-      return res.status(400).json({ error: 'Device ID is required' });
-    }
+    if (!deviceId) throw AppError.badRequest('Device ID is required', 'DEVICE_ID_REQUIRED');
 
-    await syncService.deactivateDevice(req.user?.id || '', deviceId);
+    await syncService.deactivateDevice(userId, deviceId);
     res.json({ success: true, message: 'Device deactivated' });
   } catch (error) {
-    console.error('Deactivate device error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    next(error);
   }
 });
 
