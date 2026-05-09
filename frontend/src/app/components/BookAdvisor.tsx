@@ -144,7 +144,7 @@ export const BookAdvisor: React.FC = () => {
   const clientBookings = myBookings.filter(b => !b.advisorId || b.advisorId !== user?.id);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="finora-screen-page finora-advisor-entry min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center gap-3">

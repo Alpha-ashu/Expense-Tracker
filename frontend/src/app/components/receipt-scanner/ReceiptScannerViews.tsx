@@ -205,145 +205,148 @@ export const ResultsView: React.FC<{
   onSubcategoryChange,
   onRescan,
   onSubmit,
-}) => (
-  <div className="space-y-4">
-    {/* Confidence + location row */}
-    <div className="flex gap-2">
-      <div className="flex-1">
+}) => {
+  const effectiveCurrency = scanResult.currency || currency;
+
+  return (
+    <div className="finora-receipt-review">
+      <div className="finora-receipt-review__top">
         <ConfidenceBadge confidence={scanResult.confidence ?? 0} />
+        {scanResult.location && scanResult.location !== 'UNKNOWN' && (
+          <LocationBadge location={scanResult.location} />
+        )}
       </div>
-      {scanResult.location && scanResult.location !== 'UNKNOWN' && (
-        <LocationBadge location={scanResult.location} />
+
+      {scanResult.validationResult && !scanResult.validationResult.isValid && (
+        <ValidationWarning
+          calculated={scanResult.validationResult.calculated}
+          detected={scanResult.validationResult.detected}
+          currency={effectiveCurrency}
+        />
       )}
+
+      {scanResult.description && (
+        <SmartDescriptionBadge description={scanResult.description} />
+      )}
+
+      <div className="finora-receipt-review__grid">
+        <section className="finora-receipt-card">
+          <div className="finora-receipt-card__head">
+            <p className="finora-receipt-card__title">Review Extracted Receipt</p>
+            <p className="text-xs font-semibold text-gray-500">
+              {scanResult.items?.length || 0} item{scanResult.items?.length === 1 ? '' : 's'} detected
+            </p>
+          </div>
+
+          <div className="finora-receipt-fields">
+            <AmountField
+              amount={scanResult.amount}
+              currency={effectiveCurrency}
+              onChange={(value) => onFieldChange('amount', value)}
+            />
+
+            <TextField
+              label="Merchant"
+              value={scanResult.merchantName || ''}
+              onChange={(value) => onFieldChange('merchantName', value)}
+              placeholder="Merchant name"
+              className="finora-receipt-field--wide"
+            />
+
+            <DateField
+              label="Date"
+              value={scanResult.date}
+              onChange={(date) => onFieldChange('date', date)}
+            />
+            <TextField
+              label="Time"
+              value={scanResult.time || ''}
+              onChange={(value) => onFieldChange('time', value)}
+              placeholder="18:45"
+            />
+            <SelectField
+              label="Category"
+              value={scanResult.category || ''}
+              options={expenseCategoryOptions}
+              onChange={(value) => onFieldChange('category', value)}
+              className="finora-receipt-field--wide"
+            />
+
+            <TextField
+              label="Payment"
+              value={scanResult.paymentMethod || ''}
+              onChange={(value) => onFieldChange('paymentMethod', value)}
+              placeholder="Card, UPI, Cash..."
+            />
+            <TextField
+              label="Currency"
+              value={effectiveCurrency}
+              onChange={(value) => onFieldChange('currency', value.toUpperCase())}
+            />
+            <NumberField
+              label="Subtotal"
+              value={scanResult.subtotal}
+              onChange={(value) => onFieldChange('subtotal', value)}
+            />
+            <NumberField
+              label="Tax"
+              value={scanResult.taxAmount}
+              onChange={(value) => onFieldChange('taxAmount', value)}
+            />
+
+            <TextField
+              label="Invoice Number"
+              value={scanResult.invoiceNumber || ''}
+              onChange={(value) => onFieldChange('invoiceNumber', value)}
+              placeholder="Invoice or receipt reference"
+              className="finora-receipt-field--wide"
+            />
+            <SubcategoryField
+              category={scanResult.category || ''}
+              value={scanResult.subcategory || ''}
+              onChange={onSubcategoryChange}
+            />
+            <TextField
+              label="Notes"
+              value={scanResult.notes || ''}
+              onChange={(value) => onFieldChange('notes', value)}
+              placeholder="Fuel receipt, hotel bill, office expense..."
+              className="finora-receipt-field--full"
+            />
+          </div>
+        </section>
+
+        <aside className="finora-receipt-side">
+          <AccountSelector
+            accounts={accounts}
+            selectedId={selectedAccountId}
+            currency={currency}
+            onChange={onAccountChange}
+          />
+
+          {scanResult.taxBreakdown && scanResult.taxBreakdown.length > 0 && (
+            <TaxBreakdownPanel
+              taxes={scanResult.taxBreakdown}
+              currency={effectiveCurrency}
+            />
+          )}
+
+          {scanResult.items && scanResult.items.length > 0 && (
+            <ItemsPanel items={scanResult.items} currency={effectiveCurrency} />
+          )}
+
+          <ActionButtons
+            onRescan={onRescan}
+            onSubmit={onSubmit}
+            isFormPrefillMode={isFormPrefillMode}
+            expenseMode={expenseMode}
+            isDisabled={!selectedAccountId || !scanResult.amount}
+          />
+        </aside>
+      </div>
     </div>
-
-    {/* Validation warning */}
-    {scanResult.validationResult && !scanResult.validationResult.isValid && (
-      <ValidationWarning
-        calculated={scanResult.validationResult.calculated}
-        detected={scanResult.validationResult.detected}
-        currency={currency}
-      />
-    )}
-
-    {/* AI-generated smart description */}
-    {scanResult.description && (
-      <SmartDescriptionBadge description={scanResult.description} />
-    )}
-
-    {/* Main editable fields */}
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 divide-y divide-gray-100">
-      <AmountField
-        amount={scanResult.amount}
-        currency={currency}
-        onChange={(value) => onFieldChange('amount', value)}
-      />
-
-      <TextField
-        label="Merchant"
-        value={scanResult.merchantName || ''}
-        onChange={(value) => onFieldChange('merchantName', value)}
-        placeholder="Merchant name"
-      />
-
-      <div className="grid grid-cols-2 divide-x divide-gray-100">
-        <TextField
-          label="Currency"
-          value={scanResult.currency || currency}
-          onChange={(value) => onFieldChange('currency', value.toUpperCase())}
-        />
-        <TextField
-          label="Payment"
-          value={scanResult.paymentMethod || ''}
-          onChange={(value) => onFieldChange('paymentMethod', value)}
-          placeholder="Card, UPI, Cash..."
-        />
-      </div>
-
-      <div className="grid grid-cols-2 divide-x divide-gray-100">
-        <DateField
-          label="Date"
-          value={scanResult.date}
-          onChange={(date) => onFieldChange('date', date)}
-        />
-        <SelectField
-          label="Category"
-          value={scanResult.category || ''}
-          options={expenseCategoryOptions}
-          onChange={(value) => onFieldChange('category', value)}
-        />
-      </div>
-
-      <div className="grid grid-cols-3 divide-x divide-gray-100">
-        <TextField
-          label="Time"
-          value={scanResult.time || ''}
-          onChange={(value) => onFieldChange('time', value)}
-          placeholder="18:45"
-        />
-        <NumberField
-          label="Subtotal"
-          value={scanResult.subtotal}
-          onChange={(value) => onFieldChange('subtotal', value)}
-        />
-        <NumberField
-          label="Tax"
-          value={scanResult.taxAmount}
-          onChange={(value) => onFieldChange('taxAmount', value)}
-        />
-      </div>
-
-      <TextField
-        label="Invoice Number"
-        value={scanResult.invoiceNumber || ''}
-        onChange={(value) => onFieldChange('invoiceNumber', value)}
-        placeholder="Invoice or receipt reference"
-      />
-
-      {/* Subcategory - smart dropdown based on selected category */}
-      <SubcategoryField
-        category={scanResult.category || ''}
-        value={scanResult.subcategory || ''}
-        onChange={onSubcategoryChange}
-      />
-
-      <TextField
-        label="Notes"
-        value={scanResult.notes || ''}
-        onChange={(value) => onFieldChange('notes', value)}
-        placeholder="Fuel receipt, hotel bill, office expense..."
-      />
-    </div>
-
-    {/* Tax Breakdown Panel */}
-    {scanResult.taxBreakdown && scanResult.taxBreakdown.length > 0 && (
-      <TaxBreakdownPanel
-        taxes={scanResult.taxBreakdown}
-        currency={scanResult.currency || currency}
-      />
-    )}
-
-    {/* Items Panel */}
-    {scanResult.items && scanResult.items.length > 0 && (
-      <ItemsPanel items={scanResult.items} currency={scanResult.currency || currency} />
-    )}
-
-    <AccountSelector
-      accounts={accounts}
-      selectedId={selectedAccountId}
-      currency={currency}
-      onChange={onAccountChange}
-    />
-
-    <ActionButtons
-      onRescan={onRescan}
-      onSubmit={onSubmit}
-      isFormPrefillMode={isFormPrefillMode}
-      expenseMode={expenseMode}
-      isDisabled={!selectedAccountId || !scanResult.amount}
-    />
-  </div>
-);
+  );
+};
 
 // 
 // INTELLIGENCE BADGES & PANELS
@@ -409,7 +412,7 @@ const ValidationWarning: React.FC<{
         <p className="text-xs text-amber-700">
           {calculatedIsHigher ? (
             <>
-              The printed figure <strong>{currency} {detected.toFixed(2)}</strong> appears to be a pre-tax subtotal.
+              The printed figure <strong>{currency} {detected.toFixed(2)}</strong> may be a partial or pre-tax amount.
               {' '}The amount field is set to the calculated total <strong>{currency} {calculated.toFixed(2)}</strong> — please verify before saving.
             </>
           ) : (
@@ -445,7 +448,7 @@ const TaxBreakdownPanel: React.FC<{
   const totalTax = taxes.reduce((s, t) => s + t.amount, 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-orange-100 bg-orange-50">
+    <div className="finora-receipt-card overflow-hidden border-orange-100 bg-orange-50">
       <div className="flex items-center gap-2 border-b border-orange-100 px-4 py-3">
         <Layers size={14} className="text-orange-500" />
         <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600">
@@ -486,7 +489,7 @@ const ItemsPanel: React.FC<{
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+    <div className="finora-receipt-card overflow-hidden border-gray-200 bg-white">
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
         <Receipt size={14} className="text-gray-500" />
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -523,7 +526,7 @@ const AmountField: React.FC<{
   currency: string;
   onChange: (value: number) => void;
 }> = ({ amount, currency, onChange }) => (
-  <div className="p-4">
+  <div className="finora-receipt-field finora-receipt-amount">
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       Total Amount *
     </label>
@@ -546,8 +549,9 @@ const TextField: React.FC<{
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-}> = ({ label, value, onChange, placeholder }) => (
-  <div className="p-4">
+  className?: string;
+}> = ({ label, value, onChange, placeholder, className }) => (
+  <div className={cn('finora-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -565,8 +569,9 @@ const NumberField: React.FC<{
   label: string;
   value?: number;
   onChange: (value?: number) => void;
-}> = ({ label, value, onChange }) => (
-  <div className="p-4">
+  className?: string;
+}> = ({ label, value, onChange, className }) => (
+  <div className={cn('finora-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -586,8 +591,9 @@ const DateField: React.FC<{
   label: string;
   value?: Date;
   onChange: (date?: Date) => void;
-}> = ({ label, value, onChange }) => (
-  <div className="p-4">
+  className?: string;
+}> = ({ label, value, onChange, className }) => (
+  <div className={cn('finora-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -610,8 +616,9 @@ const SelectField: React.FC<{
   value: string;
   options: string[];
   onChange: (value: string) => void;
-}> = ({ label, value, options, onChange }) => (
-  <div className="p-4">
+  className?: string;
+}> = ({ label, value, options, onChange, className }) => (
+  <div className={cn('finora-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -651,7 +658,7 @@ const SubcategoryField: React.FC<{
   };
 
   return (
-    <div className="p-4">
+    <div className="finora-receipt-field finora-receipt-field--wide">
       <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
         Subcategory
       </label>
@@ -706,7 +713,7 @@ const AccountSelector: React.FC<{
   currency: string;
   onChange: (id: number | null) => void;
 }> = ({ accounts, selectedId, currency, onChange }) => (
-  <div className="rounded-2xl border border-gray-200 bg-white p-4">
+  <div className="finora-receipt-card p-4">
     <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       Charge to Account *
     </label>
@@ -737,7 +744,7 @@ const ActionButtons: React.FC<{
   expenseMode: 'individual' | 'group';
   isDisabled: boolean;
 }> = ({ onRescan, onSubmit, isFormPrefillMode, expenseMode, isDisabled }) => (
-  <div className="flex gap-3">
+  <div className="finora-receipt-actions">
     <button
       onClick={onRescan}
       className="flex-[0.4] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"

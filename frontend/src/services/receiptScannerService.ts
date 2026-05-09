@@ -613,6 +613,7 @@ const deriveCategoryHint = (
 
 const buildValidationResult = (input: {
   amount?: number;
+  detectedAmount?: number;
   subtotal?: number;
   taxAmount?: number;
   taxBreakdown?: TaxComponent[];
@@ -632,11 +633,14 @@ const buildValidationResult = (input: {
 
   const calculated = toRoundedAmount(subtotal + taxAmount);
   if (calculated <= 0) return undefined;
+  const detected = toRoundedAmount(input.detectedAmount ?? input.amount);
+  const amountMatchesCalculated = Math.abs(calculated - input.amount) <= Math.max(2, input.amount * 0.05);
+  const detectedMatchesAmount = Math.abs(detected - input.amount) <= Math.max(2, input.amount * 0.05);
 
   return {
-    isValid: Math.abs(calculated - input.amount) <= Math.max(2, input.amount * 0.05),
+    isValid: amountMatchesCalculated && detectedMatchesAmount,
     calculated,
-    detected: toRoundedAmount(input.amount),
+    detected,
   };
 };
 
@@ -897,11 +901,20 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
 
   let amount = amountFromLabels
     ?? (fallbackAmounts.length > 0 ? Math.max(...fallbackAmounts) : undefined);
+  let detectedAmountForValidation = amount;
 
   let resolvedSubtotal = subtotal;
   let resolvedTaxAmount = taxAmount;
 
-  if (!resolvedSubtotal && pretaxAmount && (!amount || pretaxAmount < amount)) {
+  if (
+    !resolvedSubtotal
+    && pretaxAmount
+    && (
+      !amount
+      || pretaxAmount < amount
+      || (resolvedTaxAmount !== undefined && pretaxAmount + resolvedTaxAmount > amount)
+    )
+  ) {
     resolvedSubtotal = pretaxAmount;
   }
 
@@ -931,7 +944,13 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
   if (amount && resolvedSubtotal && resolvedTaxAmount !== undefined) {
     const combined = Number((resolvedSubtotal + resolvedTaxAmount).toFixed(2));
     const variance = Math.abs(combined - amount);
-    if (variance > Math.max(2, amount * 0.05) && amount > resolvedSubtotal) {
+    const tolerance = Math.max(2, amount * 0.05);
+    const amountLooksPartial = combined > amount && amount <= combined * 0.92;
+
+    if (variance > tolerance && amountLooksPartial) {
+      detectedAmountForValidation = amount;
+      amount = combined;
+    } else if (variance > tolerance && amount > resolvedSubtotal) {
       const derivedTax = amount - resolvedSubtotal;
       if (derivedTax >= 0 && derivedTax <= amount * 0.35) {
         resolvedTaxAmount = Number(derivedTax.toFixed(2));
@@ -958,6 +977,7 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
     : 'receipt import';
   const validationResult = buildValidationResult({
     amount,
+    detectedAmount: detectedAmountForValidation,
     subtotal: resolvedSubtotal,
     taxAmount: resolvedTaxAmount,
     taxBreakdown,

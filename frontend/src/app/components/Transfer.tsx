@@ -175,7 +175,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
   /*  Mobile view  */
   const MobileView = () => (
-    <div className="lg:hidden flex flex-col min-h-screen bg-white">
+    <div className="lg:hidden finora-screen-page finora-transfer-entry flex flex-col min-h-screen bg-white">
       
       <div className="flex items-center gap-3 px-4 pt-5 pb-3 border-b border-gray-100">
         <button type="button" onClick={handleBack}
@@ -275,7 +275,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
   /*  Desktop view  */
   const DesktopView = () => (
-    <div className="hidden lg:flex min-h-screen flex-col bg-white">
+    <div className="hidden lg:flex finora-screen-page finora-transfer-entry min-h-screen flex-col bg-white">
       <div className="flex-1 w-full max-w-[800px] mx-auto px-6 py-6 overflow-y-auto">
 
         {/* Header */}

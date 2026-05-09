@@ -539,7 +539,7 @@ export const AddInvestment: React.FC = () => {
   return (
     <>
       {!isDesktop ? (
-        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col">
+        <div className="finora-screen-page finora-investment-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
@@ -760,7 +760,7 @@ export const AddInvestment: React.FC = () => {
         </form>
       </div>
       ) : (
-        <div className="w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col items-start justify-start p-8">
+        <div className="finora-screen-page finora-investment-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col items-start justify-start p-8">
           <div className="w-full max-w-[800px] mx-auto">
             <div className="mb-6 flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">

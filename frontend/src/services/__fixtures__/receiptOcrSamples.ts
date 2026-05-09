@@ -110,6 +110,17 @@ export const RECEIPT_OCR_SAMPLES = {
     'Card',
   ].join('\n'),
 
+  sriKrishnaPartialAmountWithGst: [
+    'SRI KRISHNA',
+    'Date : 01/07/2017 Time 18:45',
+    'Bill No rs',
+    'MEDU WADA Seth 1 59.00',
+    'Bill Amount 65.00',
+    'CGST@9% 5.31',
+    'Amount Paid 59.00',
+    'Paid by UPI',
+  ].join('\n'),
+
   // Spaced date separators
   spacedDate: [
     'BIRYANI HUB',

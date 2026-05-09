@@ -54,7 +54,7 @@ export const AddFriends: React.FC = () => {
 
   return (
     <>
-      <div className="lg:hidden w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+      <div className="lg:hidden finora-screen-page finora-friends-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
         <CenteredLayout>
           <div className="space-y-6 max-w-lg w-full mx-auto pb-8">
             <PageHeader title="Add Friends" subtitle="Manage your contacts" icon={<UserPlus size={20} />} showBack backTo="friends" />
@@ -117,7 +117,7 @@ export const AddFriends: React.FC = () => {
         </CenteredLayout>
       </div>
 
-      <div className="hidden lg:block w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+      <div className="hidden lg:block finora-screen-page finora-friends-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
         <div className="w-full max-w-[800px] mx-auto px-8 py-6">
           <div className="mb-6 flex items-center gap-3">
             <button type="button" onClick={() => setCurrentPage('friends')} className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 shadow-sm"><ChevronLeft size={18} /></button>

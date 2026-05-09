@@ -128,6 +128,20 @@ describe('parseReceiptText', () => {
     expect(result.taxAmount).toBe(25);
   });
 
+  it('uses subtotal plus GST when a printed paid amount is partial', async () => {
+    const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.sriKrishnaPartialAmountWithGst, 'user-10b');
+
+    expect(result.merchantName).toBe('Sri Krishna');
+    expect(result.amount).toBe(70.31);
+    expect(result.subtotal).toBe(65);
+    expect(result.taxAmount).toBe(5.31);
+    expect(result.validationResult).toMatchObject({
+      isValid: false,
+      calculated: 70.31,
+      detected: 59,
+    });
+  });
+
   it('extracts date with spaced separators', async () => {
     const result = await parseReceiptText(RECEIPT_OCR_SAMPLES.spacedDate, 'user-11');
 
