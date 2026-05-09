@@ -1,5 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+type NodeCompatibleResponse = VercelResponse & {
+  headersSent?: boolean;
+};
+
 // Lazy-load the Express app so any startup crash is caught and returned as a
 // structured error response rather than a raw FUNCTION_INVOCATION_FAILED.
 let _app: ((req: any, res: any) => void) | null = null;
@@ -38,6 +42,8 @@ const loadApp = () => {
 };
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  const nodeRes = res as NodeCompatibleResponse;
+
   // Health check that doesn't require the full app
   if (req.url === '/api/ping') {
     return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -48,7 +54,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     return app(req as any, res as any);
   } catch (err: any) {
     console.error('[api/index] Unhandled error during request:', err?.message ?? err);
-    if (!res.headersSent) {
+    if (!nodeRes.headersSent) {
       res.status(500).json({
         success: false,
         error: 'Service temporarily unavailable. Please try again later.',

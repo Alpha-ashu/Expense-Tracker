@@ -1,6 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 type MarketCategory = 'nse' | 'bse' | 'us' | 'forex' | 'crypto';
+type QueryValue = string | string[];
+type QueryRecord = Record<string, QueryValue | undefined>;
+type VercelRequestWithQuery = VercelRequest & {
+  query?: QueryRecord;
+};
+type NodeCompatibleResponse = VercelResponse & {
+  setHeader(name: string, value: number | string | string[]): void;
+  end(chunk?: unknown): void;
+};
 
 interface CachedPayload {
   data: unknown;
@@ -19,18 +28,20 @@ const MARKET_DEFAULTS: Record<MarketCategory, string[]> = {
 };
 
 function setHeaders(res: VercelResponse) {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=40');
+  const nodeRes = res as NodeCompatibleResponse;
+  nodeRes.setHeader('Content-Type', 'application/json');
+  nodeRes.setHeader('Access-Control-Allow-Origin', '*');
+  nodeRes.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  nodeRes.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  nodeRes.setHeader('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=40');
 }
 
 function getRequestPath(req: VercelRequest) {
-  const endpoint = req.query.endpoint;
+  const query = (req as VercelRequestWithQuery).query ?? {};
+  const endpoint = query.endpoint;
   if (typeof endpoint === 'string' && endpoint.trim()) {
     const searchParams = new URLSearchParams();
-    for (const [key, value] of Object.entries(req.query)) {
+    for (const [key, value] of Object.entries(query)) {
       if (key === 'endpoint' || value == null) {
         continue;
       }
@@ -296,7 +307,8 @@ function matchesMarket(result: any, market?: string) {
 }
 
 async function handleMarkets(req: VercelRequest, res: VercelResponse) {
-  const market = String(req.query.market || 'nse').toLowerCase() as MarketCategory;
+  const query = (req as VercelRequestWithQuery).query ?? {};
+  const market = String(query.market || 'nse').toLowerCase() as MarketCategory;
   res.status(200).json({
     status: 'success',
     market,
@@ -438,7 +450,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   setHeaders(res);
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
+    res.status(200);
+    (res as NodeCompatibleResponse).end();
     return;
   }
 
