@@ -788,7 +788,7 @@ export function AddTransaction() {
         </div>
       </main>
     </div>
-  );
+    );
 
   const mobileView = (
     <div className="flex lg:hidden flex-col bg-slate-50 relative min-h-screen mobile-safe-bottom">

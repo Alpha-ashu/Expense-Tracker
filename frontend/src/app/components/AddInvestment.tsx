@@ -994,10 +994,11 @@ export const AddInvestment: React.FC = () => {
                  </p>
               </div>
             </div>
-          </main>
-        </div>
-      )}
-    </>
+          </div>
+        </main>
+      </div>
+    )}
+  </>
   );
 };
 
