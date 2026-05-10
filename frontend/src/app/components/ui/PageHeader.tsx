@@ -36,15 +36,10 @@ export const PageHeaderCard: React.FC<PageHeaderProps> = ({
 
     return (
         <header className={cn(
-            "relative mb-8 p-6 lg:p-8 rounded-[32px] bg-white border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.03)] overflow-hidden",
-            "before:absolute before:inset-0 before:bg-gradient-to-br before:from-indigo-50/30 before:to-transparent before:-z-10",
-            "floating-card", // Modern floating appearance
+            "relative mb-8 w-full",
             className
         )}>
-            {/* Soft tint background element */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50/50 blur-[80px] rounded-full pointer-events-none" />
-            
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-6">
                     {showBack && (
                         <button

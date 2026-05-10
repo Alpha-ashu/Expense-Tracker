@@ -188,7 +188,7 @@ export const TopBar: React.FC = () => {
     };
 
     return (
-        <header className="w-full bg-white/70 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-[60]">
+        <header className="w-full sticky top-0 z-[60] bg-transparent">
             {/* Notification Popup */}
             <NotificationPopup
                 isOpen={notificationPopupOpen}
