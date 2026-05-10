@@ -592,12 +592,12 @@ const AppContent: React.FC = () => {
         <Sidebar />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 lg:ml-28 flex flex-col min-h-screen mobile-content relative overflow-x-hidden">
-        {/* LimitedModeBanner inside the column so it never competes for flex-row width */}
-        <LimitedModeBanner />
-        <TopBar />
-        <main className="flex-1 max-w-full overflow-x-hidden overflow-y-auto pb-24 lg:pb-0 bg-gray-50 mobile-main">
+      {/* Main Content Area - Center scaled for Desktop */}
+      <div className="flex-1 lg:ml-28 flex flex-col min-h-screen relative overflow-x-hidden">
+        <div className="w-full lg:max-w-[90%] xl:max-w-[85%] mx-auto flex flex-col h-fit mobile-content relative">
+          <LimitedModeBanner />
+          <TopBar />
+          <main className="w-full overflow-x-hidden mobile-safe-bottom bg-gray-50 mobile-main h-fit">
           {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
@@ -625,10 +625,11 @@ const AppContent: React.FC = () => {
               </Suspense>
             </PageErrorBoundary>
         </main>
+        </div>
       </div>
 
       {/* Mobile Bottom Nav */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 mobile-only mobile-bottom-nav">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[70] mobile-bottom-nav">
         <BottomNav onQuickAdd={() => setShowQuickAction(true)} />
       </div>
 

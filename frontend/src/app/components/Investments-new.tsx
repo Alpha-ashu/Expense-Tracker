@@ -186,8 +186,8 @@ export const Investments: React.FC = () => {
         >
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="h-full">
+              <Card variant="glass" className="h-full p-4 sm:p-6 relative overflow-hidden">
                 <div className="relative z-10">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
                     <TrendingUp className="text-white sm:w-5 sm:h-5" size={18} />
@@ -200,8 +200,8 @@ export const Investments: React.FC = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Card variant="glass" className="p-6 relative overflow-hidden">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="h-full">
+              <Card variant="glass" className="h-full p-6 relative overflow-hidden">
                 <div className="relative z-10">
                   <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-sm">
                     <BarChart3 className="text-white" size={20} />
@@ -214,8 +214,8 @@ export const Investments: React.FC = () => {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <Card variant={portfolioStats.profitLoss >= 0 ? 'mesh-green' : 'mesh-red'} className="p-6 relative overflow-hidden">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="h-full">
+              <Card variant={portfolioStats.profitLoss >= 0 ? 'mesh-green' : 'mesh-red'} className="h-full p-6 relative overflow-hidden">
                 <div className="relative z-10">
                   <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4">
                     {portfolioStats.profitLoss >= 0 ? <TrendingUp className="text-white" size={20} /> : <TrendingDown className="text-white" size={20} />}

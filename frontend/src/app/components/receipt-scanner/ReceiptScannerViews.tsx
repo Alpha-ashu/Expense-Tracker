@@ -35,82 +35,72 @@ export const FileSelectionView: React.FC<{
   onDeviceOnly: boolean;
   onDeviceOnlyChange: (value: boolean) => void;
 }> = ({ onUploadClick, onCameraClick, onDeviceOnly, onDeviceOnlyChange }) => (
-  <div className="space-y-3">
-    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Choose a receipt image</p>
-    <div className="grid grid-cols-2 gap-3">
-      <UploadButton onClick={onUploadClick} />
-      <CameraButton onClick={onCameraClick} />
+  <div className="space-y-6 pt-2">
+    <div className="grid grid-cols-2 gap-4">
+      <SelectionCard 
+        onClick={onUploadClick} 
+        icon={<Upload size={24} />} 
+        label="Upload" 
+        sublabel="Gallery/Files" 
+        className="bg-slate-50 text-slate-900 hover:bg-slate-100"
+      />
+      <SelectionCard 
+        onClick={onCameraClick} 
+        icon={<Camera size={24} />} 
+        label="Camera" 
+        sublabel="Take Photo" 
+        className="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200"
+      />
     </div>
 
-    <PrivacyNotice onDeviceOnly={onDeviceOnly} onDeviceOnlyChange={onDeviceOnlyChange} />
-  </div>
-);
-
-const UploadButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 p-6 transition-all hover:border-gray-400 hover:bg-gray-50"
-  >
-    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 transition-colors group-hover:bg-gray-200">
-      <Upload size={22} className="text-gray-600" />
-    </div>
-    <div className="text-center">
-      <p className="text-sm font-bold text-gray-800">Upload Image</p>
-      <p className="text-xs text-gray-400">JPG, PNG, PDF, HEIC, WebP</p>
-    </div>
-  </button>
-);
-
-const CameraButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 p-6 transition-all hover:border-gray-400 hover:bg-gray-50"
-  >
-    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-black transition-colors group-hover:bg-gray-800">
-      <Camera size={22} className="text-white" />
-    </div>
-    <div className="text-center">
-      <p className="text-sm font-bold text-gray-800">Take Photo</p>
-      <p className="text-xs text-gray-400">Use camera</p>
-    </div>
-  </button>
-);
-
-const PrivacyNotice: React.FC<{
-  onDeviceOnly: boolean;
-  onDeviceOnlyChange: (value: boolean) => void;
-}> = ({ onDeviceOnly, onDeviceOnlyChange }) => (
-  <div className="rounded-2xl bg-blue-50 p-4">
-    <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-white/80 px-3 py-2">
-      <div>
-        <p className="text-xs font-semibold text-blue-800">On-device OCR only</p>
-        <p className="text-[11px] text-blue-700">
-          {onDeviceOnly
-            ? 'Enabled: receipt processing stays on this device.'
-            : 'Disabled: image is sent securely to server OCR for improved accuracy.'}
-        </p>
+    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400">
+          <Globe size={14} />
+        </div>
+        <div>
+          <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none mb-1">On-Device OCR</p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Privacy Mode</p>
+        </div>
       </div>
-      <label className="inline-flex items-center gap-2 text-xs font-semibold text-blue-800">
+      <label className="relative inline-flex items-center cursor-pointer">
         <input
           type="checkbox"
           checked={onDeviceOnly}
-          onChange={(event) => onDeviceOnlyChange(event.target.checked)}
-          className="h-4 w-4 rounded border-blue-300"
+          onChange={(e) => onDeviceOnlyChange(e.target.checked)}
+          className="sr-only peer"
         />
-        Enabled
+        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
       </label>
     </div>
-    <p className="text-xs font-semibold text-blue-700">Tips for best results</p>
-    <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs text-blue-600">
-      <li>Ensure receipt is flat and well-lit</li>
-      <li>Capture the entire receipt including the total</li>
-      <li>Avoid blurry or dark images</li>
-    </ul>
-    <p className="mt-2 text-[11px] text-blue-700">
-      Privacy note: You can keep OCR local or use secure server OCR. Results are always shown for manual confirmation before saving.
-    </p>
   </div>
 );
+
+const SelectionCard: React.FC<{ 
+  onClick: () => void; 
+  icon: React.ReactNode; 
+  label: string; 
+  sublabel: string;
+  className?: string;
+}> = ({ onClick, icon, label, sublabel, className }) => (
+  <button
+    onClick={onClick}
+    className={cn(
+      "flex flex-col items-center justify-center gap-3 rounded-[32px] p-8 transition-all active:scale-95 border border-transparent",
+      className
+    )}
+  >
+    <div className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md">
+      {icon}
+    </div>
+    <div className="text-center">
+      <p className="text-sm font-black uppercase tracking-widest">{label}</p>
+      <p className="text-[10px] font-bold opacity-40 uppercase tracking-tight">{sublabel}</p>
+    </div>
+  </button>
+);
+
+
 
 // 
 // PREVIEW VIEW
@@ -229,119 +219,79 @@ export const ResultsView: React.FC<{
         <SmartDescriptionBadge description={scanResult.description} />
       )}
 
-      <div className="finora-receipt-review__grid">
-        <section className="finora-receipt-card">
-          <div className="finora-receipt-card__head">
-            <p className="finora-receipt-card__title">Review Extracted Receipt</p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
+        {/* Main Grid Area */}
+        <section className="col-span-1 lg:col-span-8 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between border-b border-gray-50 px-4 py-3 bg-gray-50/50 rounded-t-2xl">
+            <p className="text-sm font-bold text-gray-900">Review Data</p>
             <p className="text-xs font-semibold text-gray-500">
-              {scanResult.items?.length || 0} item{scanResult.items?.length === 1 ? '' : 's'} detected
+              {scanResult.items?.length || 0} item{scanResult.items?.length === 1 ? '' : 's'}
             </p>
           </div>
 
-          <div className="finora-receipt-fields">
-            <AmountField
-              amount={scanResult.amount}
-              currency={effectiveCurrency}
-              onChange={(value) => onFieldChange('amount', value)}
-            />
+          <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="col-span-2 sm:col-span-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <AmountField amount={scanResult.amount} currency={effectiveCurrency} onChange={(value) => onFieldChange('amount', value)} />
+            </div>
 
-            <TextField
-              label="Merchant"
-              value={scanResult.merchantName || ''}
-              onChange={(value) => onFieldChange('merchantName', value)}
-              placeholder="Merchant name"
-              className="finora-receipt-field--wide"
-            />
+            <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <TextField label="Merchant" value={scanResult.merchantName || ''} onChange={(value) => onFieldChange('merchantName', value)} placeholder="Merchant name" />
+            </div>
+            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <DateField label="Date" value={scanResult.date} onChange={(date) => onFieldChange('date', date)} />
+            </div>
+            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <TextField label="Time" value={scanResult.time || ''} onChange={(value) => onFieldChange('time', value)} placeholder="18:45" />
+            </div>
 
-            <DateField
-              label="Date"
-              value={scanResult.date}
-              onChange={(date) => onFieldChange('date', date)}
-            />
-            <TextField
-              label="Time"
-              value={scanResult.time || ''}
-              onChange={(value) => onFieldChange('time', value)}
-              placeholder="18:45"
-            />
-            <SelectField
-              label="Category"
-              value={scanResult.category || ''}
-              options={expenseCategoryOptions}
-              onChange={(value) => onFieldChange('category', value)}
-              className="finora-receipt-field--wide"
-            />
+            <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <SelectField label="Category" value={scanResult.category || ''} options={expenseCategoryOptions} onChange={(value) => onFieldChange('category', value)} />
+            </div>
+            <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <SubcategoryField category={scanResult.category || ''} value={scanResult.subcategory || ''} onChange={onSubcategoryChange} />
+            </div>
 
-            <TextField
-              label="Payment"
-              value={scanResult.paymentMethod || ''}
-              onChange={(value) => onFieldChange('paymentMethod', value)}
-              placeholder="Card, UPI, Cash..."
-            />
-            <TextField
-              label="Currency"
-              value={effectiveCurrency}
-              onChange={(value) => onFieldChange('currency', value.toUpperCase())}
-            />
-            <NumberField
-              label="Subtotal"
-              value={scanResult.subtotal}
-              onChange={(value) => onFieldChange('subtotal', value)}
-            />
-            <NumberField
-              label="Tax"
-              value={scanResult.taxAmount}
-              onChange={(value) => onFieldChange('taxAmount', value)}
-            />
-
-            <TextField
-              label="Invoice Number"
-              value={scanResult.invoiceNumber || ''}
-              onChange={(value) => onFieldChange('invoiceNumber', value)}
-              placeholder="Invoice or receipt reference"
-              className="finora-receipt-field--wide"
-            />
-            <SubcategoryField
-              category={scanResult.category || ''}
-              value={scanResult.subcategory || ''}
-              onChange={onSubcategoryChange}
-            />
-            <TextField
-              label="Notes"
-              value={scanResult.notes || ''}
-              onChange={(value) => onFieldChange('notes', value)}
-              placeholder="Fuel receipt, hotel bill, office expense..."
-              className="finora-receipt-field--full"
-            />
+            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <NumberField label="Subtotal" value={scanResult.subtotal} onChange={(value) => onFieldChange('subtotal', value)} />
+            </div>
+            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <NumberField label="Tax" value={scanResult.taxAmount} onChange={(value) => onFieldChange('taxAmount', value)} />
+            </div>
+            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <TextField label="Payment" value={scanResult.paymentMethod || ''} onChange={(value) => onFieldChange('paymentMethod', value)} placeholder="Card/UPI..." />
+            </div>
+            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
+              <TextField label="Currency" value={effectiveCurrency} onChange={(value) => onFieldChange('currency', value.toUpperCase())} />
+            </div>
           </div>
         </section>
 
-        <aside className="finora-receipt-side">
-          <AccountSelector
-            accounts={accounts}
-            selectedId={selectedAccountId}
-            currency={currency}
-            onChange={onAccountChange}
-          />
-
-          {scanResult.taxBreakdown && scanResult.taxBreakdown.length > 0 && (
-            <TaxBreakdownPanel
-              taxes={scanResult.taxBreakdown}
-              currency={effectiveCurrency}
+        {/* Sidebar Area */}
+        <aside className="col-span-1 lg:col-span-4 flex flex-col gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <AccountSelector
+              accounts={accounts}
+              selectedId={selectedAccountId}
+              currency={currency}
+              onChange={onAccountChange}
             />
-          )}
+          </div>
 
           {scanResult.items && scanResult.items.length > 0 && (
-            <ItemsPanel items={scanResult.items} currency={effectiveCurrency} />
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-h-48 flex flex-col">
+              <ItemsPanel items={scanResult.items} currency={effectiveCurrency} />
+            </div>
           )}
 
-          <ActionButtons
-            onRescan={onRescan}
-            onSubmit={onSubmit}
-            isFormPrefillMode={isFormPrefillMode}
-            expenseMode={expenseMode}
-            isDisabled={!selectedAccountId || !scanResult.amount}
-          />
+          <div className="mt-auto">
+            <ActionButtons
+              onRescan={onRescan}
+              onSubmit={onSubmit}
+              isFormPrefillMode={isFormPrefillMode}
+              expenseMode={expenseMode}
+              isDisabled={!selectedAccountId || !scanResult.amount}
+            />
+          </div>
         </aside>
       </div>
     </div>

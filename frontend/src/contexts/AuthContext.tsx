@@ -14,6 +14,7 @@ import {
   subscribeToUserCloudSync,
   syncUserDataFromCloud,
 } from '@/lib/auth-sync-integration';
+import { backendService } from '@/lib/backend-api';
 import { shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
 import { pinService } from '@/services/pinService';
 
@@ -597,6 +598,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(nextUser);
         const provisionalRole = resolveUserRole(nextUser);
         setRole(provisionalRole);
+
+        // PERSISTENCE FIX: Sync token to backend service for authenticated requests
+        if (session?.access_token) {
+          backendService.setToken(session.access_token);
+        } else if (event === 'SIGNED_OUT') {
+          backendService.clearToken();
+        }
 
         try {
           if (nextUser?.id) {

@@ -63,8 +63,8 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'w-full flex items-center gap-3 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl',
-          'hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+          'w-full flex items-center gap-3 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm',
+          'hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
           'transition-all duration-200',
           isOpen && 'ring-2 ring-blue-500 border-transparent'
         )}
@@ -97,9 +97,9 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute z-50 w-full mt-2 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+            className="absolute z-50 w-full mt-2 max-h-80 overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden flex flex-col"
           >
-            <div className="py-2">
+            <div className="py-2 divide-y divide-slate-50">
               {options.map((option, index) => {
                 const isSelected = option === value;
                 
@@ -115,18 +115,18 @@ export const CategoryDropdown: React.FC<CategoryDropdownProps> = ({
                       setIsOpen(false);
                     }}
                     className={cn(
-                      'w-full flex items-center gap-3 px-4 py-3 transition-all duration-150',
-                      'hover:bg-gray-50',
-                      isSelected && 'bg-blue-50'
+                      'w-full flex items-center gap-4 px-5 py-4 transition-all duration-200',
+                      'hover:bg-slate-50 active:scale-[0.98]',
+                      isSelected && 'bg-blue-50/50'
                     )}
                   >
-                    <div className="flex-shrink-0 transform transition-transform hover:scale-110">
-                      {getCategoryCartoonIcon(option, 40)}
+                    <div className="flex-shrink-0 transform transition-transform group-hover:scale-110">
+                      {getCategoryCartoonIcon(option, 44)}
                     </div>
                     <div className="flex-1 text-left">
                       <span className={cn(
-                        'font-medium',
-                        isSelected ? 'text-blue-700' : 'text-gray-900'
+                        'font-bold text-sm tracking-tight',
+                        isSelected ? 'text-blue-600' : 'text-slate-700'
                       )}>
                         {option}
                       </span>

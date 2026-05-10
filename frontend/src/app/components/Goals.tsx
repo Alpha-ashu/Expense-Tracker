@@ -193,9 +193,9 @@ export const Goals: React.FC = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 items-stretch">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="h-full">
+          <Card variant="glass" className="h-full p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
                 <Target className="text-white sm:w-5 sm:h-5" size={18} />
@@ -208,8 +208,8 @@ export const Goals: React.FC = () => {
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="h-full">
+          <Card variant="glass" className="h-full p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
                 <TrendingUp className="text-white sm:w-5 sm:h-5" size={18} />
@@ -222,8 +222,8 @@ export const Goals: React.FC = () => {
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="h-full">
+          <Card variant="glass" className="h-full p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-500 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
                 <Bell className="text-white sm:w-5 sm:h-5" size={18} />
@@ -236,8 +236,8 @@ export const Goals: React.FC = () => {
           </Card>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card variant="mesh-green" className="p-4 sm:p-6 relative overflow-hidden">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="h-full">
+          <Card variant="mesh-green" className="h-full p-4 sm:p-6 relative overflow-hidden">
             <div className="relative z-10">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-2 sm:mb-4">
                 <Sparkles className="text-white sm:w-5 sm:h-5" size={18} />

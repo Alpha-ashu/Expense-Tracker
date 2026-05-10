@@ -243,7 +243,6 @@ export const AddAccount: React.FC = () => {
       setCurrentPage('accounts');
     } catch (error: any) {
       console.error('[AddAccount] Failed to add account:', error);
-      // Show user-friendly message based on HTTP status
       if (error?.status === 400 || error?.code === 'MISSING_FIELDS' || error?.code === 'INVALID_BALANCE') {
         toast.error(error.message || 'Please check the account details and try again.');
       } else if (error?.status === 401 || error?.status === 403) {
@@ -257,15 +256,10 @@ export const AddAccount: React.FC = () => {
   };
 
   const availableOptions = useMemo(() => {
-    if (formData.type === 'cash') {
-      return [];
-    }
-
+    if (formData.type === 'cash') return [];
     const providerMap = formData.type === 'wallet' ? WALLET_PROVIDER_LISTS : BANK_PROVIDER_LISTS;
     const providerSet = providerMap[userCountry] || providerMap['Default'];
     const uniqueProviders = Array.from(new Set([...providerSet.local, ...providerSet.international]));
-
-    // Add a few globally-known banks so search feels richer beyond country-local records.
     if (formData.type !== 'wallet') {
       uniqueProviders.push(
         'Industrial and Commercial Bank of China',
@@ -276,34 +270,11 @@ export const AddAccount: React.FC = () => {
         'HSBC'
       );
     }
-
     return Array.from(new Set(uniqueProviders));
   }, [formData.type, userCountry]);
 
-  const providerSuggestions = useMemo(() => {
-    if (formData.type === 'cash') {
-      return [] as string[];
-    }
-
-    const query = provider.trim().toLowerCase();
-    const ranked = availableOptions
-      .filter((option) => option.toLowerCase().includes(query))
-      .sort((a, b) => {
-        const aStarts = a.toLowerCase().startsWith(query);
-        const bStarts = b.toLowerCase().startsWith(query);
-        if (aStarts && !bStarts) return -1;
-        if (!aStarts && bStarts) return 1;
-        return a.localeCompare(b);
-      });
-
-    return ranked.slice(0, 10);
-  }, [availableOptions, formData.type, provider]);
-
   const providerDropdownOptions = useMemo(() => {
-    if (formData.type === 'cash') {
-      return [];
-    }
-
+    if (formData.type === 'cash') return [];
     const providerMap = formData.type === 'wallet' ? WALLET_PROVIDER_LISTS : BANK_PROVIDER_LISTS;
     const providerSet = providerMap[userCountry] || providerMap['Default'];
     const local = new Set(providerSet.local);
@@ -312,7 +283,7 @@ export const AddAccount: React.FC = () => {
     return availableOptions.map((option) => ({
       value: option,
       label: option,
-      icon: formData.type === 'wallet' ? <Smartphone size={14} /> : <Landmark size={14} />,
+      icon: <div className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-slate-500"><Landmark size={12} /></div>,
       description: formData.type === 'wallet' ? 'Wallet provider' : 'Bank or financial institution',
       group: local.has(option)
         ? `${userCountry === 'Default' ? 'Local' : userCountry} providers`
@@ -323,201 +294,220 @@ export const AddAccount: React.FC = () => {
   }, [availableOptions, formData.type, userCountry]);
 
   const showNameField = formData.type === 'cash' || provider !== '';
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="max-w-3xl mx-auto px-4 py-6 lg:py-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
+    <div className="min-h-screen bg-[#F8FAFC] pb-20">
+      {/* Premium Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-100 sticky top-0 z-20 px-4 lg:px-8 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <button
-              type="button"
               onClick={() => setCurrentPage('accounts')}
-              className="lg:hidden w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-600 mb-4 shadow-sm border border-gray-100"
+              className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-500"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft size={20} />
             </button>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2 lg:gap-3">
-              <Wallet className="w-6 h-6 lg:w-8 lg:h-8 text-blue-600" /> New Account
-            </h1>
-            <p className="text-xs lg:text-sm text-gray-500 mt-1 lg:mt-2">Let's set up a new place to track your money</p>
+            <div>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <Wallet className="text-indigo-600" size={22} />
+                New Account
+              </h1>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Setup your financial landscape</p>
+            </div>
           </div>
-          <button 
-            type="button"
-            onClick={() => setCurrentPage('accounts')}
-            className="hidden lg:flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm border border-gray-100 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100">
+               <Globe2 size={12} className="text-indigo-500" />
+               <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">{userCountry} Mode</span>
+            </div>
+          </div>
         </div>
+      </header>
 
-        {/* Form Card */}
-        <div>
-          <Card className="bg-white/95 border border-white shadow-[0_18px_40px_rgba(15,23,42,0.08)] rounded-3xl p-4 lg:p-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50 px-3 py-2.5">
+      <main className="max-w-5xl mx-auto px-4 mt-8">
+        <div className="grid lg:grid-cols-12 gap-8">
+          {/* Main Form Area */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Step 1: Account Type */}
+            <section className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+              <div className="flex items-center justify-between mb-6">
                 <div>
-                  <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Quick Setup</p>
-                  <p className="text-sm font-semibold text-slate-800">Create a clean account profile in seconds</p>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">1. Account Type</h3>
+                  <p className="text-xs text-slate-400 font-medium">Where is this money sitting?</p>
                 </div>
-                <span className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1">Modern Flow</span>
-              </div>
-
-              {/* Account Type Selection */}
-              <div className="space-y-3">
-                <label className="block text-sm font-bold text-gray-700 mb-3 tracking-wide uppercase">
-                  1. Choose Account Type
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {accountTypes.map((type) => {
-                    const isSelected = formData.type === type.id;
-                    const Icon = type.icon;
-                    return (
-                      <button
-                        key={type.id}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, type: type.id as any })}
-                        className={cn(
-                          "w-full flex items-center gap-3 p-3 rounded-xl border text-left relative transition-all",
-                          isSelected
-                            ? `border-blue-500 bg-gradient-to-r from-white to-blue-50/80 shadow-sm`
-                            : "border-gray-200 bg-white hover:border-slate-300 hover:bg-slate-50/40"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                          isSelected ? type.bg : "bg-gray-50"
-                        )}>
-                          <Icon size={20} className={isSelected ? type.color : "text-gray-500"} />
-                        </div>
-                        <div>
-                          <p className={cn(
-                            "font-semibold text-base leading-tight",
-                            isSelected ? "text-gray-900" : "text-gray-700"
-                          )}>
-                            {type.label}
-                          </p>
-                          <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">{type.helper}</p>
-                        </div>
-                        {isSelected && (
-                          <CheckCircle2 className={type.color + ' ml-auto'} size={18} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                  <MapPin size={14} className="text-blue-600" />
-                  <span>
-                    Country detected: <span className="font-semibold text-slate-800">{userCountry}</span>
-                  </span>
+                <div className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                  Required
                 </div>
               </div>
 
-              {/* Account Details */}
-              <div className="bg-white rounded-2xl p-4 space-y-4 border border-slate-200">
-                <label className="block text-sm font-bold text-gray-700 mb-2 tracking-wide uppercase">
-                  2. Account Details
-                </label>
-
-                {/* Provider Selection */}
-                {!isCashSelected && (
-                  <>
-                    <div>
-                      <SearchableDropdown
-                        id="accountProvider"
-                        label={formData.type === 'wallet' ? 'Wallet Provider' : formData.type === 'card' ? 'Card Provider / Bank' : 'Bank / Institution'}
-                        options={providerDropdownOptions}
-                        value={provider}
-                        onChange={applyProviderValue}
-                        placeholder={formData.type === 'wallet' ? 'Search wallet provider' : 'Search bank or institution'}
-                        searchPlaceholder="Search local and international providers..."
-                        grouped
-                        required
-                      />
-                      <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
-                        <Globe2 size={13} />
-                        <span>{providerSuggestions.length} suggestions shown. Keep typing to narrow results.</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {accountTypes.map((type) => {
+                  const isSelected = formData.type === type.id;
+                  const Icon = type.icon;
+                  return (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, type: type.id as any })}
+                      className={cn(
+                        "group flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all relative overflow-hidden",
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50/30 ring-4 ring-indigo-500/10"
+                          : "border-slate-50 bg-slate-50/50 hover:border-slate-200 hover:bg-white"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300",
+                        isSelected ? "bg-indigo-600 text-white scale-110 rotate-3 shadow-lg shadow-indigo-200" : "bg-white text-slate-400 group-hover:text-slate-600"
+                      )}>
+                        <Icon size={24} />
                       </div>
-                    </div>
-                  </>
+                      <div className="text-center">
+                        <p className={cn("text-xs font-black uppercase tracking-wider", isSelected ? "text-indigo-900" : "text-slate-500")}>
+                          {type.label.split(' ')[0]}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2">
+                          <CheckCircle2 className="text-indigo-600" size={14} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Step 2: Details */}
+            <section className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100">
+               <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">2. Account Details</h3>
+                  <p className="text-xs text-slate-400 font-medium">Let's get the particulars right</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Provider Search */}
+                {!isCashSelected && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Provider / Institution</label>
+                    <SearchableDropdown
+                      options={providerDropdownOptions}
+                      value={provider}
+                      onChange={applyProviderValue}
+                      placeholder={formData.type === 'wallet' ? 'Search wallet provider' : 'Search bank or institution'}
+                      searchPlaceholder="Type name of bank, card or wallet..."
+                      grouped
+                      className="h-14"
+                    />
+                  </div>
                 )}
 
-                {/* Account Name */}
+                {/* Conditional Name Field */}
                 {showNameField && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
-                      {isCashSelected ? 'Cash Label (Optional)' : 'Account Name'}
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      {isCashSelected ? 'Wallet Label' : 'Custom Account Name'}
                     </label>
                     <input
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 text-base border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-gray-900 placeholder:text-gray-400 font-medium"
-                      placeholder={isCashSelected ? '' : 'e.g., Main Checking'}
-                      required={!isCashSelected}
+                      className="w-full h-14 px-5 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 placeholder:text-slate-300"
+                      placeholder={isCashSelected ? 'e.g. Daily Expenses, Office Cash' : 'e.g. Salary Account, Emergency Fund'}
                     />
-                    {isCashSelected && (
-                      <p className="mt-1.5 text-xs text-slate-500">Leave empty to save as Cash Wallet.</p>
-                    )}
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Current Balance <span className="text-gray-400 font-normal">(Optional)</span>
-                  </label>
+                {/* Balance Section */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Current Balance</label>
                   <div className="relative group">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-600 group-focus-within:bg-blue-100 group-focus-within:text-blue-700 transition-colors">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-black text-slate-500 text-sm">
                       {currency}
                     </div>
                     <input
                       type="number"
                       step="0.01"
-                      min="0"
                       value={formData.balance}
                       onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-                      className="w-full pl-16 pr-4 py-3 text-xl font-semibold border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-500 text-gray-900 placeholder:text-gray-300 tracking-tight"
+                      className="w-full h-16 pl-20 pr-6 text-2xl font-black border-none bg-slate-50 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 text-slate-900 transition-all"
                       placeholder="0.00"
                     />
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {QUICK_BALANCE_PRESETS.map((amount) => (
                       <button
                         key={amount}
                         type="button"
                         onClick={() => setFormData((prev) => ({ ...prev, balance: amount === 0 ? '' : String(amount) }))}
-                        className="px-2.5 py-1.5 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold hover:bg-slate-200 transition-colors"
+                        className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider hover:bg-slate-900 hover:text-white transition-all active:scale-95 border border-slate-200"
                       >
-                        {amount === 0 ? 'Clear' : `+ ${currency} ${amount.toLocaleString()}`}
+                        {amount === 0 ? 'Clear' : `+ ${amount.toLocaleString()}`}
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
+            </section>
+          </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-2 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('accounts')}
-                  className="px-5 py-3 rounded-lg font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all shrink-0"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || (!isCashSelected && !formData.name.trim())}
-                  className="w-full rounded-lg bg-gradient-to-r from-slate-900 to-slate-700 text-white font-semibold py-3 px-5 flex items-center justify-center gap-2 transition-all hover:from-slate-800 hover:to-slate-700 active:scale-[0.99] disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  <span>{isSubmitting ? 'Creating...' : 'Create Account'}</span>
-                  {!isSubmitting && <ArrowRight size={18} />}
-                </button>
+          {/* Sidebar / Preview Area */}
+          <div className="lg:col-span-4 space-y-6">
+            <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-200 sticky top-24">
+              <div className="flex justify-between items-start mb-12">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                  {React.createElement(accountTypes.find(t => t.id === formData.type)?.icon || Wallet, { size: 20 })}
+                </div>
+                <div className="px-2 py-1 bg-white/10 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] border border-white/10">
+                  Card Preview
+                </div>
               </div>
-            </form>
-          </Card>
+              
+              <div className="space-y-1">
+                <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">
+                  {formData.name || (isCashSelected ? 'Cash Wallet' : 'Unnamed Account')}
+                </p>
+                <h2 className="text-4xl font-black tracking-tight truncate">
+                  <span className="text-white/40 mr-1">{currency}</span>
+                  {Number(formData.balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </h2>
+              </div>
+              
+              <div className="mt-12 flex items-center justify-between">
+                <div className="flex -space-x-2">
+                  <div className="w-6 h-6 rounded-full bg-white/20 border-2 border-indigo-600"></div>
+                  <div className="w-6 h-6 rounded-full bg-white/10 border-2 border-indigo-600"></div>
+                </div>
+                <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                  {userCountry}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || (!isCashSelected && !formData.name.trim())}
+              className="w-full h-16 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 group"
+            >
+              {isSubmitting ? (
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+            
+            <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] px-4">
+              Protected by military-grade encryption & biometric security
+            </p>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

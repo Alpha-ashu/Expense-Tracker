@@ -275,20 +275,18 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
 
   /*  Desktop view  */
   const DesktopView = () => (
-    <div className="hidden lg:flex finora-screen-page finora-transfer-entry min-h-screen flex-col bg-white">
-      <div className="flex-1 w-full max-w-[800px] mx-auto px-6 py-6 overflow-y-auto">
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-5">
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Transfer Money</h1>
-            <p className="text-gray-400 text-sm mt-0.5">Move funds between your accounts</p>
-          </div>
-          <button type="button" onClick={handleBack}
-            className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
-            Cancel
-          </button>
+    <div className="hidden lg:flex finora-screen-page finora-transfer-entry min-h-screen flex-col bg-slate-50">
+      <header className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Transfer Money</h1>
+          <p className="text-gray-400 text-xs mt-0.5">Move funds between your accounts</p>
         </div>
+        <button type="button" onClick={handleBack}
+          className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
+          Cancel
+        </button>
+      </header>
+      <div className="flex-1 w-full max-w-[800px] mx-auto px-6 py-6 overflow-y-auto">
 
         <form onSubmit={handleSubmit} className="grid grid-cols-12 gap-5">
           {/*  LEFT COLUMN  */}

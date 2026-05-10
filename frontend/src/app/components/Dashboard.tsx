@@ -369,7 +369,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth touch-scroll"
               >
                 {filteredAccounts.map((account) => (
-                  <Card key={account.id} className="p-4 w-[280px] sm:w-[320px] shrink-0 snap-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
+                  <Card key={account.id} className="p-4 w-[260px] xs:w-[280px] sm:w-[320px] shrink-0 snap-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
                     <div className="flex items-center justify-between mb-3">
                       <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
                         account.type === 'bank' ? "bg-blue-100 text-blue-600" :

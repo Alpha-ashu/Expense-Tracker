@@ -6,6 +6,7 @@ import { backendService } from '@/lib/backend-api';
 import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
 import { db } from '@/lib/database';
 import { TrendingUp, Loader2, RefreshCw, ChevronLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { toast } from 'sonner';
 import { searchStocks, fetchStockQuote, StockQuote, StockSearchResult, displaySymbol } from '@/lib/stockApi';
@@ -539,432 +540,460 @@ export const AddInvestment: React.FC = () => {
   return (
     <>
       {!isDesktop ? (
-        <div className="finora-screen-page finora-investment-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
-          <button type="button" onClick={() => setCurrentPage('investments')}
-            className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-all shadow-sm">
-            <TrendingUp size={16} className="rotate-180" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-sm">
-              <TrendingUp size={15} className="text-white" />
+        <div className="flex-1 flex flex-col bg-slate-50 relative min-h-screen mobile-safe-bottom">
+          {/* Amount Card - Integrated and Premium */}
+          <div className={cn("px-4 pb-8 rounded-b-[48px] shadow-2xl relative overflow-hidden shrink-0 text-white transition-all duration-500 mobile-safe-top-spacious", "bg-gradient-to-br from-[#FF2D85] via-[#FF1A75] to-[#E6005C]")}>
+            {/* Background Sparkles */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+              <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white blur-[60px] rounded-full"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-white blur-[60px] rounded-full"></div>
             </div>
-            <div>
-              <h1 className="text-base font-black text-gray-900 leading-tight">Add Investment</h1>
-              <p className="text-[11px] text-gray-400">Add this asset to your portfolio</p>
+
+            <div className="flex items-center justify-between mb-6 relative z-10">
+              <button 
+                type="button"
+                onClick={() => setCurrentPage('investments')} 
+                className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  type="button"
+                  onClick={handleSubmit} 
+                  className="bg-white text-slate-900 px-6 h-10 rounded-xl text-[10px] font-black flex items-center gap-2 shadow-xl active:scale-95 transition-all uppercase tracking-[0.2em]"
+                >
+                  SAVE
+                </button>
+              </div>
+            </div>
+
+            <div className="mb-6 relative z-10 px-2">
+              <div className="flex items-center gap-2 mb-1">
+                 <div className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></div>
+                 <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.3em]">INVESTMENT ENTRY</p>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black text-white/30 tracking-tighter">{currency}</span>
+                <div className="text-5xl font-black text-white outline-none w-full tracking-tighter">
+                  {((formData.quantity || 0) * (formData.purchasePrice || 0) + (formData.purchaseFees || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Summary Bar */}
+            <div className="flex gap-2 relative z-10 px-1">
+              <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                <p className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-1">Quantity</p>
+                <p className="text-xs font-black text-white">{formData.quantity.toLocaleString()}</p>
+              </div>
+              <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+                <p className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-1">Asset Currency</p>
+                <p className="text-xs font-black text-white">{assetCurrencyCode}</p>
+              </div>
             </div>
           </div>
-          <button type="button" onClick={() => setCurrentPage('investments')}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50">
-            Cancel
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-y-auto">
-          <div className="flex-1 px-4 py-4 space-y-4">
+          {/* Main Content Area */}
+          <form onSubmit={handleSubmit} className="flex-1 px-4 py-4 space-y-4 pb-24">
+            {/* Core Details Card */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Asset Type</p>
+                  <SearchableDropdown
+                    options={investmentTypeOptions}
+                    value={formData.type}
+                    onChange={handleInvestmentTypeChange}
+                    placeholder="Select asset type"
+                    searchPlaceholder="Search..."
+                    grouped
+                    className="min-h-[3.5rem]"
+                  />
+                </div>
 
-            {/* Type */}
-            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
-              <SearchableDropdown
-                label="Asset Type"
-                options={investmentTypeOptions}
-                value={formData.type}
-                onChange={handleInvestmentTypeChange}
-                placeholder="Select asset type"
-                searchPlaceholder="Search investment type..."
-                grouped
-                required
-              />
-            </div>
-
-            {/* Asset Name / Search */}
-            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
-              {isMarketAsset ? (
-                <div className="relative">
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">
-                    {formData.type === 'crypto' ? 'Crypto Asset *' : 'Stock *'}
-                  </label>
+                <div className="space-y-2 relative">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Search Asset</p>
                   <div className="relative">
-                    <input type="text" value={formData.name}
-                      onChange={(e) => { setSelectedSymbol(null); setQuoteSnapshot(null); setFormData(prev => ({ ...prev, name: e.target.value, currentPrice: 0 })); setShowSuggestions(true); }}
+                    <input 
+                      type="text" 
+                      value={formData.name} 
+                      onChange={(e) => { setSelectedSymbol(null); setQuoteSnapshot(null); setFormData(prev => ({ ...prev, name: e.target.value, currentPrice: 0 })); setShowSuggestions(true); }} 
                       onFocus={() => { if (formData.name.length >= 2) setShowSuggestions(true); }}
-                      className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:text-gray-300"
-                      placeholder={formData.type === 'crypto' ? 'Search BTC, ETH, SOL...' : 'Search AAPL, INFY, RELIANCE...'} required />
-                    {fetchingPrice && <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-gray-400" />}
+                      className="w-full min-h-[3.5rem] px-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 transition-all" 
+                      placeholder={formData.type === 'crypto' ? 'BTC, ETH...' : 'AAPL, INFY...'} 
+                    />
+                    {fetchingPrice && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
                   </div>
+                  
                   {showSuggestions && (searchResults.length > 0 || searching) && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                    <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2">
                       {searching ? (
-                        <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Searching...</div>
-                      ) : searchResults.map(r => (
-                        <button key={r.symbol} type="button" onClick={() => handleSelectStock(r)}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 flex flex-col border-b border-gray-50 last:border-0">
-                          <span className="font-bold text-sm text-gray-900">{displaySymbol(r.symbol)}</span>
-                          <span className="text-xs text-gray-500">{r.companyName}{r.exchange ? '  ' + r.exchange : ''}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {(selectedSymbol || quoteSnapshot) && (
-                    <div className="mt-3 rounded-xl border border-gray-100 bg-indigo-50/50 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-bold text-sm text-gray-900 truncate">{displaySymbol(selectedSymbol || formData.name)}</p>
-                          <p className="text-xs text-gray-500 truncate">{quoteSnapshot?.companyName || formData.name}{quoteSnapshot?.exchange ? '  ' + quoteSnapshot.exchange : ''}</p>
+                        <div className="p-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                          <Loader2 size={12} className="animate-spin" /> Searching...
                         </div>
-                        {selectedSymbol && (
-                          <button type="button" onClick={() => loadLiveQuote(selectedSymbol, formData.type === 'crypto' ? 'crypto' : 'stocks')}
-                            className="shrink-0 flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-                            <RefreshCw size={12} className={fetchingPrice ? 'animate-spin' : ''} /> Refresh
+                      ) : (
+                        searchResults.map(result => (
+                          <button
+                            key={result.symbol}
+                            type="button"
+                            className="w-full text-left p-3 hover:bg-slate-50 rounded-xl transition-all border-b border-slate-50 last:border-0 group"
+                            onClick={() => handleSelectStock(result)}
+                          >
+                            <p className="font-black text-xs text-slate-900 group-hover:text-indigo-600 transition-colors">{displaySymbol(result.symbol)}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight truncate">{result.companyName}{result.exchange ? ` · ${result.exchange}` : ''}</p>
                           </button>
-                        )}
-                      </div>
-                      {quoteSnapshot?.currentPrice && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <div className="bg-white rounded-lg px-3 py-1.5 border border-gray-100">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Live</p>
-                            <p className="text-sm font-black text-gray-900">{formatNativeMoney(quoteSnapshot.currentPrice, assetCurrencyCode)}</p>
-                          </div>
-                          <div className="bg-white rounded-lg px-3 py-1.5 border border-gray-100">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Market</p>
-                            <p className="text-sm font-semibold text-gray-900">{quoteSnapshot.marketState === 'open' ? 'Open' : quoteSnapshot.marketState === 'closed' ? 'Closed' : quoteSnapshot.exchange || '-'}</p>
-                          </div>
-                        </div>
+                        ))
                       )}
                     </div>
                   )}
                 </div>
-              ) : (
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Investment Name *</label>
-                  <input type="text" value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:text-gray-300"
-                    placeholder="e.g., Gold, Bonds, Real Estate" required />
-                </div>
-              )}
-            </div>
 
-            {/* Qty + Price */}
-            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Quantity *</label>
-                  <input type="number" step="0.0001" value={formData.quantity || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
-                    placeholder="0.00" required />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Buy Price *</label>
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:bg-white transition-all">
-                    <span className="text-xs font-bold text-gray-400">{assetCurrency}</span>
-                    <input type="number" step="0.01" value={formData.purchasePrice || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, purchasePrice: parseFloat(e.target.value) || 0 }))}
-                      className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none" placeholder="0.00" required />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quantity</p>
+                    <input 
+                      type="number" 
+                      step="0.0001" 
+                      value={formData.quantity || ''} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))} 
+                      className="w-full h-14 px-5 bg-slate-50 border-none rounded-2xl font-black text-sm text-slate-900" 
+                      placeholder="0.00" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Buy Price ({assetCurrency})</p>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      value={formData.purchasePrice || ''} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, purchasePrice: parseFloat(e.target.value) || 0 }))} 
+                      className="w-full h-14 px-5 bg-slate-50 border-none rounded-2xl font-black text-sm text-slate-900" 
+                      placeholder="0.00" 
+                    />
                   </div>
                 </div>
               </div>
-              {!isMarketAsset && (
-                <div className="mt-3">
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Current Price *</label>
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:bg-white transition-all">
-                    <span className="text-xs font-bold text-gray-400">{assetCurrency}</span>
-                    <input type="number" step="0.01" value={formData.currentPrice || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, currentPrice: parseFloat(e.target.value) || 0 }))}
-                      className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none" placeholder="0.00" required />
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Portfolio preview */}
-            {formData.quantity > 0 && formData.purchasePrice > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { label: 'Invested', value: formatNativeMoney(totalInvested, assetCurrencyCode), cls: 'bg-indigo-50 border-indigo-100 text-indigo-900' },
-                  { label: 'Current', value: formatNativeMoney(currentValue, assetCurrencyCode), cls: 'bg-white border-gray-100 text-gray-900' },
-                  { label: investmentGain >= 0 ? 'Profit' : 'Loss', value: (investmentGain >= 0 ? '+' : '-') + formatNativeMoney(Math.abs(investmentGain), assetCurrencyCode), cls: investmentGain >= 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-rose-50 border-rose-100 text-rose-800' },
-                ].map(({ label, value, cls }) => (
-                  <div key={label} className={'rounded-xl border p-3 ' + cls}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide opacity-70">{label}</p>
-                    <p className="text-xs font-black mt-0.5 break-all">{value}</p>
+            {/* Financial Details Card */}
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-6">
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Funding Account</p>
+                  <SearchableDropdown
+                    options={fundingAccountOptions}
+                    value={formData.fundingAccountId ? String(formData.fundingAccountId) : ''}
+                    onChange={(accountId) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(accountId, 10) || 0 }))}
+                    placeholder="Select account"
+                    className="h-14"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Fees ({currency})</p>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      value={formData.purchaseFees || ''} 
+                      onChange={(e) => setFormData({ ...formData, purchaseFees: parseFloat(e.target.value) || 0 })} 
+                      className="w-full h-14 px-5 bg-slate-50 border-none rounded-2xl font-black text-sm text-slate-900" 
+                      placeholder="0.00" 
+                    />
                   </div>
-                ))}
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Date</p>
+                    <input 
+                      type="date" 
+                      value={formData.date} 
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })} 
+                      className="w-full h-14 px-5 bg-slate-50 border-none rounded-2xl font-black text-sm text-slate-900 uppercase" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Broker / Notes</p>
+                  <input 
+                    type="text" 
+                    value={formData.broker} 
+                    onChange={(e) => setFormData({ ...formData, broker: e.target.value })} 
+                    className="w-full h-14 px-5 bg-slate-50 border-none rounded-2xl font-bold text-slate-900 placeholder:text-slate-300" 
+                    placeholder="e.g. Fidelity, Zerodha" 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Live Preview / Stats Card */}
+            {(selectedSymbol || quoteSnapshot || (formData.quantity > 0 && formData.purchasePrice > 0)) && (
+              <div className="bg-slate-900 rounded-[32px] p-6 shadow-2xl relative overflow-hidden text-white">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
+                <div className="flex justify-between items-end relative z-10">
+                   <div className="space-y-1">
+                     <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Asset Preview</p>
+                     <p className="text-2xl font-black tracking-tighter">{displaySymbol(selectedSymbol || formData.name)}</p>
+                     {quoteSnapshot?.currentPrice && (
+                       <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Live: {formatNativeMoney(quoteSnapshot.currentPrice, assetCurrencyCode)}</p>
+                     )}
+                   </div>
+                   <div className="text-right">
+                     <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">Total Cost</p>
+                     <p className="text-2xl font-black tracking-tighter">
+                       <span className="text-white/30 mr-1">{currency}</span>
+                       {((formData.quantity || 0) * (formData.purchasePrice || 0) + (formData.purchaseFees || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                     </p>
+                   </div>
+                </div>
               </div>
             )}
-
-            {/* Account + Fees + Date + Notes */}
-            <div className="backdrop-blur-xl border border-white/40 shadow-glass rounded-[30px] p-4 space-y-3">
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Payment Account *</label>
-                <SearchableDropdown
-                  options={fundingAccountOptions}
-                  value={formData.fundingAccountId ? String(formData.fundingAccountId) : ''}
-                  onChange={(accountId) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(accountId, 10) || 0 }))}
-                  placeholder="Select an account"
-                  searchPlaceholder="Search accounts..."
-                  grouped
-                  required
-                />
-                {activeAccounts.length === 0 && <p className="mt-1 text-xs text-rose-600">Add an active account first.</p>}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Fees</label>
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:bg-white transition-all">
-                    <span className="text-xs font-bold text-gray-400">{currency}</span>
-                    <input type="number" step="0.01" min="0" value={formData.purchaseFees || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, purchaseFees: parseFloat(e.target.value) || 0 }))}
-                      className="flex-1 bg-transparent text-sm font-bold text-gray-900 outline-none" placeholder="0.00" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Purchase Date *</label>
-                  <input type="date" value={formData.date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all"
-                    required aria-label="Investment Date" title="Investment Date" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Broker <span className="normal-case font-normal">(optional)</span></label>
-                <input type="text" value={formData.broker}
-                  onChange={(e) => setFormData(prev => ({ ...prev, broker: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:text-gray-300"
-                  placeholder="e.g., Zerodha, Fidelity, Groww" />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Notes <span className="normal-case font-normal">(optional)</span></label>
-                <textarea value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white resize-none transition-all placeholder:text-gray-300"
-                  placeholder="Add a note if needed" rows={2} />
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom action bar */}
-          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-4 flex gap-3">
-            <button type="button" onClick={() => setCurrentPage('investments')}
-              className="px-5 py-3 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all">
-              Cancel
-            </button>
-            <button type="submit"
-              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-black shadow-md flex items-center justify-center gap-2">
-              <TrendingUp size={15} /> Add to Portfolio
-            </button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
       ) : (
-        <div className="finora-screen-page finora-investment-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans flex flex-col items-start justify-start p-8">
-          <div className="w-full max-w-[800px] mx-auto">
-            <div className="mb-6 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
-                <TrendingUp size={16} className="text-white" />
+        <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col items-center">
+          {/* Desktop Header */}
+          <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 sticky top-0 z-30 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF2D85] to-[#E6005C] flex items-center justify-center shadow-lg shadow-pink-200">
+                <TrendingUp size={20} className="text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Add Investment</h1>
-                <p className="text-xs text-gray-500">Smart entry for stocks, crypto, and real estate.</p>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Add Investment</h1>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Portfolio Asset Entry</p>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <button 
+                type="button" 
+                onClick={() => setCurrentPage('investments')}
+                className="px-6 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={handleSubmit}
+                className="px-8 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all active:scale-95"
+              >
+                Save Asset
+              </button>
+            </div>
+          </header>
 
-            <div className="bg-white rounded-lg p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
-              <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                
-                {/* Primary Horizontal Action Bar */}
-                <div className="flex flex-wrap items-end gap-4">
-                  
-                  {/* 1. Asset Type */}
-                  <div className="w-[180px] shrink-0">
-                    <SearchableDropdown
-                      label="Asset Type"
-                      options={investmentTypeOptions}
-                      value={formData.type}
-                      onChange={handleInvestmentTypeChange}
-                      placeholder="Select type"
-                      searchPlaceholder="Search investment type..."
-                      grouped
-                    />
-                  </div>
-
-                  {/* 2. Asset Name / Search */}
-                  <div className="flex-1 min-w-[200px] relative">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Asset Search</label>
-                    <div className="flex items-center bg-white border border-gray-200 focus-within:ring-2 focus-within:ring-black focus-within:border-black rounded-2xl px-4 py-4 transition-all">
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => {
-                          setSelectedSymbol(null);
-                          setQuoteSnapshot(null);
-                          setFormData(prev => ({ ...prev, name: e.target.value, currentPrice: 0 }));
-                          setShowSuggestions(true);
-                        }}
-                        onFocus={() => { if (formData.name.length >= 2) setShowSuggestions(true); }}
-                        className="w-full bg-transparent text-sm font-bold text-gray-900 border-none outline-none placeholder:text-gray-400"
-                        placeholder={formData.type === 'crypto' ? "Search BTC, ETH..." : "Search AAPL, INFY..."}
-                        required
+          <main className="w-full max-w-6xl p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Form Details */}
+            <div className="lg:col-span-8 space-y-6">
+              <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50">
+                <form onSubmit={handleSubmit} className="space-y-8">
+                  {/* Row 1: Type & Search */}
+                  <div className="grid grid-cols-12 gap-6">
+                    <div className="col-span-4 space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Asset Category</p>
+                      <SearchableDropdown
+                        options={investmentTypeOptions}
+                        value={formData.type}
+                        onChange={handleInvestmentTypeChange}
+                        placeholder="Select type"
+                        grouped
+                        className="h-16"
                       />
-                      {fetchingPrice && <Loader2 size={16} className="animate-spin text-gray-400 ml-2" />}
                     </div>
-                    {/* Suggestions Dropdown */}
-                    {showSuggestions && (searchResults.length > 0 || searching) && (
-                      <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-                        {searching ? (
-                          <div className="p-4 text-center text-sm text-gray-500 flex items-center justify-center gap-2">
-                            <Loader2 size={14} className="animate-spin" /> Searching...
-                          </div>
-                        ) : (
-                          searchResults.map(result => (
-                            <button
-                              key={result.symbol}
-                              type="button"
-                              className="w-full text-left px-4 py-3 hover:bg-white flex flex-col border-b border-gray-50 last:border-0"
-                              onClick={() => handleSelectStock(result)}
-                            >
-                              <span className="font-bold text-sm text-gray-900">{displaySymbol(result.symbol)}</span>
-                              <span className="text-xs text-gray-500">{result.companyName}{result.exchange ? `  ${result.exchange}` : ''}</span>
-                            </button>
-                          ))
-                        )}
+                    <div className="col-span-8 space-y-3 relative">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Asset Search (Stock/Crypto)</p>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => {
+                            setSelectedSymbol(null);
+                            setQuoteSnapshot(null);
+                            setFormData(prev => ({ ...prev, name: e.target.value, currentPrice: 0 }));
+                            setShowSuggestions(true);
+                          }}
+                          onFocus={() => { if (formData.name.length >= 2) setShowSuggestions(true); }}
+                          className="w-full h-16 px-6 bg-slate-50 border-none rounded-[24px] font-black text-lg text-slate-900 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                          placeholder={formData.type === 'crypto' ? "Search BTC, ETH, SOL..." : "Search AAPL, TSLA, RELIANCE..."}
+                          required
+                        />
+                        {fetchingPrice && <Loader2 size={20} className="absolute right-6 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
                       </div>
-                    )}
+
+                      {/* Desktop Suggestions */}
+                      {showSuggestions && (searchResults.length > 0 || searching) && (
+                        <div className="absolute z-40 w-full mt-2 bg-white border border-slate-100 rounded-[32px] shadow-2xl max-h-80 overflow-y-auto p-3 ring-1 ring-black/5">
+                          {searching ? (
+                            <div className="p-8 text-center text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center justify-center gap-3">
+                              <Loader2 size={16} className="animate-spin text-indigo-500" /> Searching Markets...
+                            </div>
+                          ) : (
+                            searchResults.map(result => (
+                              <button
+                                key={result.symbol}
+                                type="button"
+                                className="w-full text-left p-4 hover:bg-slate-50 rounded-2xl transition-all border-b border-slate-50 last:border-0 group flex items-center justify-between"
+                                onClick={() => handleSelectStock(result)}
+                              >
+                                <div>
+                                  <p className="font-black text-base text-slate-900 group-hover:text-indigo-600 transition-colors">{displaySymbol(result.symbol)}</p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{result.companyName}{result.exchange ? ` · ${result.exchange}` : ''}</p>
+                                </div>
+                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                   <TrendingUp size={14} />
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* 3. Quantity */}
-                  <div className="w-[140px] shrink-0">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Quantity</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      min="0"
-                      value={formData.quantity || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
-                      className="w-full bg-white border border-gray-200 focus:ring-2 focus:ring-black focus:border-black rounded-2xl py-4 px-4 text-sm font-bold text-gray-900 outline-none"
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-
-                  {/* 4. Buy Price Per Unit */}
-                  <div className="w-[160px] shrink-0">
-                    <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Buy Price</label>
-                    <div className="flex items-center bg-white border border-gray-200 focus-within:ring-2 focus-within:ring-black focus-within:border-black rounded-2xl px-4 py-4 transition-all">
-                      <span className="text-gray-500 font-bold mr-2 text-xs">{assetCurrency}</span>
+                  {/* Row 2: Qty & Price */}
+                  <div className="grid grid-cols-2 gap-8 pt-2">
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Holdings Quantity</p>
                       <input
                         type="number"
-                        step="0.01"
-                        min="0"
-                        value={formData.purchasePrice || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, purchasePrice: parseFloat(e.target.value) || 0 }))}
-                        className="w-full bg-transparent text-sm font-bold text-gray-900 border-none outline-none placeholder:text-gray-300"
-                        placeholder="0.00"
+                        step="0.0001"
+                        value={formData.quantity || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }))}
+                        className="w-full h-16 px-6 bg-slate-50 border-none rounded-[24px] font-black text-xl text-slate-900 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                        placeholder="0.0000"
                         required
                       />
                     </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Buy Price Per Unit ({assetCurrency})</p>
+                      <div className="relative">
+                         <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-lg">{assetCurrency}</span>
+                         <input
+                          type="number"
+                          step="0.01"
+                          value={formData.purchasePrice || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, purchasePrice: parseFloat(e.target.value) || 0 }))}
+                          className="w-full h-16 pl-14 pr-6 bg-slate-50 border-none rounded-[24px] font-black text-xl text-slate-900 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                  {/* 5. Submit Action */}
-                  <div className="shrink-0 pt-6">
-                    <button
-                      type="submit"
-                      className="h-14 px-8 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold shadow-lg hover:from-indigo-700 hover:to-violet-700 hover:shadow-xl transition-all active:scale-95 flex items-center gap-2"
-                    >
-                      <TrendingUp size={18} />
-                      Add
-                    </button>
-                  </div>
-                </div>
-
-                {/* Secondary Options Bar */}
-                <div className="flex flex-wrap gap-4 border-t border-gray-100 pt-6">
-                   {/* Payment Account */}
-                   <div className="w-[200px] shrink-0">
+                  {/* Row 3: Account & Date */}
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Payment Source</p>
                       <SearchableDropdown
-                        label="Payment Account"
                         options={fundingAccountOptions}
                         value={formData.fundingAccountId ? String(formData.fundingAccountId) : ''}
                         onChange={(accountId) => setFormData(prev => ({ ...prev, fundingAccountId: parseInt(accountId, 10) || 0 }))}
-                        placeholder="Select account"
-                        searchPlaceholder="Search accounts..."
-                        grouped
-                        required
+                        placeholder="Select funding account"
+                        className="h-16"
                       />
-                   </div>
-                   
-                   {/* Fees */}
-                   <div className="w-[140px] shrink-0">
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Fees</label>
-                      <div className="flex items-center bg-white border border-gray-200 focus-within:ring-2 focus-within:ring-black focus-within:border-black rounded-xl px-3 py-3 transition-all">
-                        <span className="text-gray-500 font-bold mr-2 text-xs">{currency}</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={formData.purchaseFees || ''}
-                          onChange={(e) => setFormData({ ...formData, purchaseFees: parseFloat(e.target.value) || 0 })}
-                          className="w-full bg-transparent text-sm font-bold text-gray-900 border-none outline-none placeholder:text-gray-300"
-                          placeholder="0.00"
-                        />
-                      </div>
-                   </div>
-
-                   {/* Date */}
-                   <div className="w-[140px] shrink-0">
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Date</label>
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Acquisition Date</p>
                       <input
                         type="date"
                         value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full bg-white border border-gray-200 focus:ring-2 focus:ring-black focus:border-black rounded-xl py-3 px-3 text-sm font-bold text-gray-900 outline-none"
+                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                        className="w-full h-16 px-6 bg-slate-50 border-none rounded-[24px] font-black text-sm text-slate-900 focus:ring-4 focus:ring-indigo-500/5 transition-all uppercase"
                         required
                       />
-                   </div>
+                    </div>
+                  </div>
 
-                   {/* Description / Broker */}
-                   <div className="flex-1">
-                      <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2 ml-1">Broker / Notes</label>
+                  {/* Row 4: Fees & Broker */}
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Transaction Fees ({currency})</p>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.purchaseFees || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, purchaseFees: parseFloat(e.target.value) || 0 }))}
+                        className="w-full h-16 px-6 bg-slate-50 border-none rounded-[24px] font-black text-sm text-slate-900 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Brokerage / Platform</p>
                       <input
                         type="text"
                         value={formData.broker}
-                        onChange={(e) => setFormData({ ...formData, broker: e.target.value })}
-                        className="w-full bg-white border border-gray-200 focus:ring-2 focus:ring-black focus:border-black rounded-xl py-3 px-3 text-sm font-bold text-gray-900 outline-none transition-all placeholder:font-medium placeholder:text-gray-400"
-                        placeholder="e.g., Fidelity, Zerodha..."
+                        onChange={(e) => setFormData(prev => ({ ...prev, broker: e.target.value }))}
+                        className="w-full h-16 px-6 bg-slate-50 border-none rounded-[24px] font-bold text-sm text-slate-900 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                        placeholder="e.g. Fidelity, Zerodha, Binance"
                       />
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Right Column: Summaries & Live Data */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Asset Snapshot Card */}
+              <div className="bg-slate-900 rounded-[40px] p-8 shadow-2xl relative overflow-hidden text-white min-h-[300px] flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
+                
+                <div className="relative z-10 space-y-6">
+                   <div>
+                     <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mb-2">Live Valuation</p>
+                     <div className="flex items-baseline gap-2">
+                       <span className="text-3xl font-black text-white/30 tracking-tighter">{currency}</span>
+                       <p className="text-5xl font-black tracking-tighter">
+                         {((formData.quantity || 0) * (formData.purchasePrice || 0) + (formData.purchaseFees || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                       </p>
+                     </div>
+                   </div>
+
+                   <div className="h-[1px] bg-white/10 w-full"></div>
+
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Asset Name</p>
+                        <p className="text-xs font-black uppercase tracking-tight">{displaySymbol(selectedSymbol || formData.name || '---')}</p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Current Unit Price</p>
+                        <p className="text-xs font-black text-emerald-400">
+                          {quoteSnapshot?.currentPrice ? formatNativeMoney(quoteSnapshot.currentPrice, assetCurrencyCode) : '---'}
+                        </p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Total Quantity</p>
+                        <p className="text-xs font-black">{formData.quantity.toLocaleString()}</p>
+                      </div>
                    </div>
                 </div>
 
-                {/* Smart Portfolio Preview UI */}
-                {(selectedSymbol || quoteSnapshot || (formData.quantity > 0 && formData.purchasePrice > 0)) && (
-                  <div className="mt-2 rounded-2xl border border-gray-200 bg-white p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex flex-col gap-1">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Live Preview</p>
-                        <p className="text-xl font-bold text-gray-900">
-                           {displaySymbol(selectedSymbol || formData.name)}
-                           {quoteSnapshot?.currentPrice && (
-                              <span className="text-sm font-semibold text-gray-500 ml-2 border-l border-gray-300 pl-2">
-                                 {formatNativeMoney(quoteSnapshot.currentPrice, assetCurrencyCode)} / unit
-                              </span>
-                           )}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Total Invested</p>
-                         <p className="text-xl font-bold text-gray-900">
-                            {currency} {((formData.quantity || 0) * (formData.purchasePrice || 0) + (formData.purchaseFees || 0)).toFixed(2)}
-                         </p>
-                      </div>
+                <div className="relative z-10 pt-4">
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                      <TrendingUp size={18} className="text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">Potential Gain</p>
+                      <p className={cn("text-base font-black tracking-tight", investmentGain >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                        {investmentGain >= 0 ? '+' : ''}{investmentGain.toLocaleString(undefined, { style: 'currency', currency: assetCurrencyCode })}
+                      </p>
                     </div>
                   </div>
-                )}
-              </form>
+                </div>
+              </div>
+
+              {/* Action Helper */}
+              <div className="bg-indigo-50 rounded-[32px] p-6 border border-indigo-100/50">
+                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 px-1">Smart Tip</p>
+                 <p className="text-xs font-bold text-indigo-900/70 leading-relaxed italic">
+                   "Investing regularly in small amounts is often safer than trying to time the market. Ensure your funding account has enough liquidity before proceeding."
+                 </p>
+              </div>
             </div>
-          </div>
+          </main>
         </div>
       )}
     </>

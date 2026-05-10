@@ -145,23 +145,22 @@ export const BookAdvisor: React.FC = () => {
 
   return (
     <div className="finora-screen-page finora-advisor-entry min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto flex items-center gap-3">
+      <header className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <button onClick={() => setCurrentPage('dashboard')} className="p-2 hover:bg-gray-100 rounded-xl md:hidden transition-colors">
             <ChevronLeft size={20} className="text-gray-600" />
           </button>
-          <div className="flex-1">
+          <div>
             <h1 className="text-xl font-black text-gray-900">Book a Financial Advisor</h1>
             <p className="text-sm text-gray-500 hidden sm:block">Get expert guidance on your finances</p>
           </div>
-          <button onClick={handleApplyAsAdvisor} disabled={applyingAsAdvisor}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all">
-            {applyingAsAdvisor ? <Loader2 size={13} className="animate-spin" /> : <Briefcase size={13} />}
-            Become an Advisor
-          </button>
         </div>
-      </div>
+        <button onClick={handleApplyAsAdvisor} disabled={applyingAsAdvisor}
+          className="hidden sm:flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold hover:bg-indigo-100 transition-all">
+          {applyingAsAdvisor ? <Loader2 size={13} className="animate-spin" /> : <Briefcase size={13} />}
+          Become an Advisor
+        </button>
+      </header>
 
       <div className="max-w-5xl mx-auto px-4 lg:px-8 py-6 space-y-6">
 

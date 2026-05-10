@@ -675,16 +675,14 @@
 ------------------------------------------------------------------- */
 .finora-screen-page {
   width: 100%;
-  height: calc(100dvh - var(--header-height) - var(--bottom-reserved-space)) !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
+  min-height: calc(100dvh - var(--header-height) - var(--bottom-reserved-space));
   background: linear-gradient(135deg, #f6fbff 0%, #eef4ff 36%, #f8fbf6 72%, #ffffff 100%) !important;
   color: #0f172a;
 }
 
 @media (min-width: 1024px) {
   .finora-screen-page {
-    height: calc(100dvh - var(--header-height)) !important;
+    min-height: calc(100dvh - var(--header-height));
   }
 }
 
@@ -730,7 +728,7 @@
 
 @media (max-width: 1023px) {
   .finora-screen-page {
-    height: calc(100dvh - var(--header-height) - var(--bottom-reserved-space)) !important;
+    min-height: calc(100dvh - var(--header-height) - var(--bottom-reserved-space));
   }
 
   .finora-transaction-entry.pb-\[64px\] {

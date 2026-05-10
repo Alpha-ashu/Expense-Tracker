@@ -182,13 +182,13 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           onClick={openDropdown}
           onKeyDown={handleKeyDown}
           className={cn(
-            'w-full flex items-center gap-2 rounded-lg border bg-gray-50 px-3 py-2.5 text-left transition-all',
+            'w-full flex items-center gap-2 rounded-2xl p-5 bg-white border border-slate-100 text-left transition-all shadow-sm',
             'focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:border-indigo-400',
             open
-              ? 'ring-2 ring-indigo-400/60 border-indigo-400 bg-white'
+              ? 'ring-2 ring-indigo-400/60 border-indigo-400'
               : error
               ? 'border-rose-400 bg-rose-50/50'
-              : 'border-gray-200 hover:border-gray-300',
+              : 'hover:border-slate-300',
             disabled && 'opacity-60 cursor-not-allowed',
           )}
         >
@@ -220,7 +220,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       {/* Dropdown panel */}
       {open && (
         <div
-          className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl shadow-gray-200/60 overflow-hidden"
+          className="absolute z-50 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
           style={{ maxHeight: '320px' }}
         >
           {/* Search */}

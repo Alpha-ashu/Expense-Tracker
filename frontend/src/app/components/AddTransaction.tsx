@@ -12,7 +12,7 @@ import {
   CalendarDays, Wallet, Tag, AlignLeft, Store, Sparkles,
   CreditCard, Banknote, Smartphone,
   Zap, ChevronDown, Search, Check, Users, UserPlus, Mail, Phone, Trash2,
-  Plus, Loader2, ArrowRightLeft,
+  Plus, Loader2, ArrowRightLeft, Menu, ArrowDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,6 +32,7 @@ import {
 import { ReceiptScanner, type ReceiptScanPayload } from '@/app/components/ReceiptScanner';
 import { getCategoryCartoonIcon } from '@/app/components/ui/CartoonCategoryIcons';
 import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
+import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { AutoSuggestTag } from '@/app/components/ui/AutoSuggestTag';
 import { categorizeText, learnCategorization } from '@/lib/smartCategorization';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -439,68 +440,452 @@ export function AddTransaction() {
   };
 
   const DesktopUI = () => (
-    <div className="hidden lg:flex finora-screen-page finora-transaction-entry flex-col h-screen bg-[#F8FAFC] overflow-hidden">
-      <header className="h-14 border-b bg-white flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setCurrentPage(returnPage)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500 md:hidden">
+    <div className="hidden lg:flex finora-screen-page finora-transaction-entry flex-col h-fit bg-[#F8FAFC]">
+      {/* Premium Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 sticky top-0 z-20 shrink-0">
+        <div className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <Zap className="text-indigo-600" size={22} />
+              Add Transaction
+            </h1>
+            
+            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
+              {(['expense', 'income', 'transfer'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => switchType(t)}
+                  className={cn(
+                    "px-6 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                    formData.type === t ? "bg-white text-slate-900 shadow-md scale-100" : "text-slate-400 hover:text-slate-600 scale-95"
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setShowScanner(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
+            >
+              <Camera size={14} />
+              <span>Scan Receipt</span>
+            </button>
+            <button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting || !formData.amount} 
+              className={cn("px-8 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-xl shadow-indigo-200 transition-all flex items-center gap-2", accent.btn)}
+            >
+              {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
+              <span>Save Transaction</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="p-6 w-full mx-auto h-fit">
+        <div className="flex flex-col gap-6">
+          {/* Amount Card Section */}
+          <section className={cn("rounded-[40px] p-8 shadow-2xl relative overflow-hidden shrink-0 text-white transition-all duration-500 min-h-[160px] flex flex-col justify-center", accent.amountCard)}>
+            {/* Background Sparkles */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+              <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white blur-[100px] rounded-full"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-white blur-[100px] rounded-full"></div>
+            </div>
+
+            <div className="flex justify-between items-start mb-2 relative z-10">
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-white/50 animate-pulse"></div>
+                 <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em]">Transaction Amount</p>
+              </div>
+              <button className="p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl transition-all border border-white/10">
+                <AlignLeft size={18} />
+              </button>
+            </div>
+            
+            <div className="flex items-baseline gap-4 relative z-10">
+              <span className="text-4xl font-black text-white/30 tracking-tighter uppercase">{currency}</span>
+              <input 
+                type="number" 
+                step="0.01" 
+                value={amountStr} 
+                onChange={(e) => handleAmountChange(e.target.value)} 
+                className="bg-transparent text-7xl font-black text-white outline-none placeholder:text-white/10 w-full tracking-tighter" 
+                placeholder="0.00" 
+                autoFocus 
+              />
+            </div>
+          </section>
+
+          {/* Form Content Area */}
+          <div className="flex flex-wrap gap-6 items-start">
+            {/* Left Panel: Primary Details */}
+            <div className="w-full max-w-[480px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col h-fit">
+              {formData.type === 'expense' && (
+                <div className="flex gap-1.5 p-1 bg-slate-50 rounded-2xl mb-8 w-fit border border-slate-100 animate-in fade-in zoom-in-95">
+                  {(['individual', 'group', 'loan'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setExpenseMode(mode)}
+                      className={cn(
+                        "px-8 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all",
+                        expenseMode === mode ? "bg-white text-slate-900 shadow-md scale-100" : "text-slate-400 hover:text-slate-600 scale-95"
+                      )}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-8">
+                {/* Description - Common for all but styled differently for Transfer */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                    {formData.type === 'transfer' ? 'Transfer Reference' : 'Description'}
+                  </label>
+                  <input 
+                    type="text" 
+                    value={formData.description} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} 
+                    className="w-full h-16 px-6 bg-slate-50/50 border-none rounded-3xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 text-lg placeholder:text-slate-200" 
+                    placeholder={formData.type === 'transfer' ? "Rent, Monthly Savings..." : "What was this for?"} 
+                  />
+                  {formData.type === 'expense' && smartCatResult && (
+                    <div className="flex items-center gap-3 bg-indigo-50/50 px-4 py-2.5 rounded-2xl border border-indigo-100 animate-in fade-in slide-in-from-top-2">
+                      <Sparkles size={16} className="text-indigo-500" />
+                      <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">Suggestion: {smartCatResult.category}</span>
+                      <button onClick={() => setFormData(prev => ({ ...prev, category: smartCatResult.category }))} className="text-[10px] font-black bg-indigo-600 text-white px-4 py-1 rounded-xl ml-auto hover:bg-indigo-700 transition-colors">APPLY</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Expense/Income Specific: Categories */}
+                {formData.type !== 'transfer' && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-left-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quick Category</label>
+                    <div className="grid grid-cols-4 gap-3">
+                      {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 8).map((cat: string) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, category: cat, subcategory: '' }))}
+                          className={cn(
+                            "flex flex-col items-center gap-2 p-4 rounded-[28px] border-2 transition-all group relative overflow-hidden",
+                            formData.category === cat
+                              ? "bg-slate-900 text-white border-slate-900 shadow-xl scale-105"
+                              : "bg-slate-50/50 text-slate-500 border-transparent hover:border-slate-200 hover:bg-white"
+                          )}
+                        >
+                          <span className="text-2xl group-hover:scale-125 transition-transform duration-300">{getCategoryCartoonIcon(cat)}</span>
+                          <span className="text-[9px] font-black uppercase tracking-tighter text-center leading-none px-1">{cat}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Merchant/Source - Hide for Transfer */}
+                {formData.type !== 'transfer' && (
+                  <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      {formData.type === 'income' ? 'Income Source' : 'Merchant / Vendor'}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={formData.merchant} 
+                      onChange={(e) => setFormData(prev => ({ ...prev, merchant: e.target.value }))} 
+                      className="w-full h-14 px-6 bg-slate-50/50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 placeholder:text-slate-200" 
+                      placeholder={formData.type === 'income' ? "Company, Client, Interest..." : "e.g. Starbucks, Amazon..."} 
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Panel: Transaction Configuration */}
+            <div className="w-full max-w-[480px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col h-fit">
+              <div className="space-y-8 flex-1">
+                {/* Account Selection */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                    {formData.type === 'transfer' ? 'Source Account' : 'Debit Account'}
+                  </label>
+                  <SearchableDropdown
+                    options={accounts.map(a => ({
+                      value: String(a.id),
+                      label: a.name,
+                      description: formatAccountBalance(a.balance),
+                      icon: <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-black text-[10px]">{(a.type || 'BK').substring(0, 2).toUpperCase()}</div>
+                    }))}
+                    value={String(formData.accountId)}
+                    onChange={(val) => setFormData(prev => ({ ...prev, accountId: parseInt(val) }))}
+                    placeholder="Select Account"
+                    className="h-16"
+                  />
+                </div>
+
+                {formData.type === 'transfer' ? (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-right-4">
+                    <div className="flex justify-center -my-4 relative z-10">
+                       <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl border-4 border-white">
+                          <ArrowDown size={20} />
+                       </div>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Target Account</label>
+                      <SearchableDropdown
+                        options={accounts.filter(a => a.id !== formData.accountId).map(a => ({
+                          value: String(a.id),
+                          label: a.name,
+                          description: formatAccountBalance(a.balance),
+                          icon: <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px]">{(a.type || 'BK').substring(0, 2).toUpperCase()}</div>
+                        }))}
+                        value={String(formData.toAccountId)}
+                        onChange={(val) => setFormData(prev => ({ ...prev, toAccountId: parseInt(val) }))}
+                        placeholder="Select Destination"
+                        className="h-16"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-8 animate-in fade-in slide-in-from-right-4">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Primary Category</label>
+                      <div className="flex gap-3">
+                        <CategoryDropdown 
+                          options={liveCategories[formData.type as 'expense' | 'income'] || []} 
+                          value={formData.category} 
+                          onChange={(val) => setFormData(prev => ({ ...prev, category: val, subcategory: '' }))} 
+                          className="flex-1 bg-slate-50/50 border-none rounded-2xl h-14 font-bold" 
+                        />
+                        <input 
+                          type="text" 
+                          value={subcategoryQuery} 
+                          onChange={(e) => setSubcategoryQuery(e.target.value)} 
+                          className="flex-shrink-0 w-32 bg-slate-50/50 border-none rounded-2xl px-4 h-14 text-sm font-bold text-slate-900 placeholder:text-slate-300" 
+                          placeholder="Sub..." 
+                        />
+                      </div>
+                    </div>
+
+                    {formData.type === 'expense' && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">GST / Tax Details</label>
+                        <div className="grid grid-cols-3 gap-2">
+                           <div className="space-y-1">
+                             <p className="text-[8px] font-black text-slate-400 text-center uppercase">CGST</p>
+                             <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="w-full bg-slate-50 rounded-xl px-2 h-10 text-[10px] font-black border-none text-center" placeholder="0.00" />
+                           </div>
+                           <div className="space-y-1">
+                             <p className="text-[8px] font-black text-slate-400 text-center uppercase">SGST</p>
+                             <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="w-full bg-slate-50 rounded-xl px-2 h-10 text-[10px] font-black border-none text-center" placeholder="0.00" />
+                           </div>
+                           <div className="space-y-1">
+                             <p className="text-[8px] font-black text-slate-400 text-center uppercase">IGST</p>
+                             <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="w-full bg-slate-50 rounded-xl px-2 h-10 text-[10px] font-black border-none text-center" placeholder="0.00" />
+                           </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Date</label>
+                  <input 
+                    type="date" 
+                    value={formData.date} 
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))} 
+                    className="w-full h-14 bg-slate-50/50 border-none rounded-2xl px-6 text-sm font-black text-slate-900" 
+                  />
+                </div>
+
+                {/* Conditional Sections: Group/Loan */}
+                {isExpense && expenseMode === 'group' && (
+                  <div className="p-6 bg-indigo-50/30 rounded-[32px] border border-indigo-100/50 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Group Title</label>
+                      <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="w-full h-12 px-5 bg-white border-none rounded-2xl font-bold text-slate-900 placeholder:text-indigo-200" placeholder="Trip Name..." />
+                    </div>
+                    <div className="space-y-4">
+                       <div className="flex items-center justify-between">
+                         <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Participants</p>
+                         <button onClick={() => setGroupParticipants(prev => [...prev, createEmptyParticipant()])} className="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"><Plus size={14} /></button>
+                       </div>
+                       <div className="grid grid-cols-2 gap-2">
+                         {groupParticipants.map((p) => (
+                           <div key={p.id} className="bg-white/80 p-2 rounded-xl flex items-center justify-between border border-indigo-50 shadow-sm">
+                             <input 
+                               type="text" 
+                               value={p.name} 
+                               onChange={(e) => setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: e.target.value } : item))}
+                               className="bg-transparent border-none text-[10px] font-black text-indigo-900 w-full focus:ring-0 p-0 px-1"
+                               placeholder="Name"
+                             />
+                             <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-rose-400 hover:text-rose-600"><Trash2 size={12} /></button>
+                           </div>
+                         ))}
+                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {isExpense && expenseMode === 'loan' && (
+                  <div className="p-6 bg-rose-50/30 rounded-[32px] border border-rose-100/50 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="flex gap-2 p-1 bg-white/50 rounded-xl border border-rose-100/30 mb-2">
+                      <button onClick={() => setLoanType('borrowed')} className={cn("flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all", loanType === 'borrowed' ? "bg-white text-rose-600 shadow-sm" : "text-rose-400")}>Borrowed</button>
+                      <button onClick={() => setLoanType('lent')} className={cn("flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all", loanType === 'lent' ? "bg-white text-emerald-600 shadow-sm" : "text-emerald-400")}>Lent</button>
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Person Name</label>
+                      <input type="text" value={loanDraft.contactName} onChange={(e) => setLoanDraft(prev => ({ ...prev, contactName: e.target.value }))} className="w-full h-12 px-5 bg-white border-none rounded-2xl font-bold text-slate-900" placeholder="Who?" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest text-center">Interest %</p>
+                         <input type="number" value={loanDraft.interestRate} onChange={(e) => setLoanDraft(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))} className="w-full h-10 bg-white border-none rounded-xl text-center font-black text-xs" />
+                       </div>
+                       <div className="space-y-2">
+                         <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest text-center">Due Date</p>
+                         <input type="date" value={loanDraft.dueDate} onChange={(e) => setLoanDraft(prev => ({ ...prev, dueDate: e.target.value }))} className="w-full h-10 bg-white border-none rounded-xl text-[10px] font-bold" />
+                       </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Ultra-Compact Summary Footer */}
+              <div className="pt-6 border-t border-slate-50 mt-4">
+                 <div className="bg-slate-900 rounded-2xl p-3 text-white shadow-lg flex items-center justify-between transition-all hover:bg-slate-800">
+                    <div className="flex items-center gap-2">
+                       <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/10">
+                          <Zap size={14} className="text-indigo-400" />
+                       </div>
+                       <div className="flex items-baseline gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-tight text-white/90">{formData.type}</span>
+                          {formData.type === 'expense' && (
+                             <span className="text-[9px] font-bold uppercase tracking-tight text-white/40 italic">{expenseMode}</span>
+                          )}
+                       </div>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                       <span className="text-white/30 text-[10px] font-black uppercase">{currency}</span>
+                       <span className="text-lg font-black tracking-tighter">{formData.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+
+  const MobileUI = () => (
+    <div className="flex lg:hidden flex-col bg-slate-50 relative min-h-screen mobile-safe-bottom">
+      <div className={cn("px-4 pb-8 rounded-b-[40px] shadow-2xl relative overflow-hidden shrink-0 text-white transition-all duration-500 mobile-safe-top-spacious", accent.amountCard)}>
+        {/* Background Sparkles */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+          <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white blur-[60px] rounded-full"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-32 h-32 bg-white blur-[60px] rounded-full"></div>
+        </div>
+
+        <div className="flex items-center justify-between mb-6 relative z-10">
+          <button 
+            onClick={() => setCurrentPage(returnPage)} 
+            className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full transition-all"
+          >
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-lg font-bold text-slate-900 tracking-tight">Add Transaction</h1>
+          
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowScanner(true)} className="w-10 h-10 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl transition-all">
+              <Camera size={18} />
+            </button>
+            <button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting || !formData.amount}
+              className="bg-white text-slate-900 px-6 h-10 rounded-xl text-[10px] font-black flex items-center gap-2 shadow-xl active:scale-95 transition-all uppercase tracking-widest"
+            >
+              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+              SAVE
+            </button>
+          </div>
         </div>
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl">
-          {(['expense', 'income', 'transfer'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => switchType(t)}
+
+        <div className="mb-6 relative z-10 px-2">
+          <div className="flex items-center gap-2 mb-1">
+             <div className="w-1.5 h-1.5 rounded-full bg-white/50 animate-pulse"></div>
+             <p className="text-white/60 text-[9px] font-black uppercase tracking-[0.3em]">{formData.type}</p>
+          </div>
+          <div className="flex items-baseline gap-2 overflow-hidden">
+            <span className="text-xl font-black text-white/30 shrink-0">{currency}</span>
+            <input 
+              type="number" 
+              step="0.01" 
+              value={amountStr} 
+              onChange={(e) => handleAmountChange(e.target.value)} 
+              className="bg-transparent text-4xl sm:text-5xl font-black text-white outline-none w-full placeholder:text-white/10" 
+              placeholder="0.00" 
+              autoFocus 
+            />
+          </div>
+        </div>
+
+        <div className={cn("flex rounded-2xl p-1 backdrop-blur-md relative z-10 border border-white/10", accent.switchShell)}>
+          {(['expense', 'income', 'transfer'] as const).map(t => (
+            <button 
+              key={t} 
+              onClick={() => switchType(t)} 
               className={cn(
-                "px-5 py-1.5 rounded-lg text-xs font-bold transition-all capitalize",
-                formData.type === t ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                "flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-300", 
+                formData.type === t ? "bg-white text-slate-900 shadow-lg scale-100" : "text-white/60 hover:text-white/90 scale-95"
               )}
             >
               {t}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowScanner(true)}
-            className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all"
-          >
-            <Camera size={14} />
-            <span>Scan Receipt</span>
-          </button>
-          <button onClick={handleSubmit} disabled={isSubmitting || !formData.amount} className={cn("px-5 py-1.5 rounded-lg text-xs font-bold text-white shadow-lg transition-all flex items-center gap-2", accent.btn)}>
-            {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
-            <span>Save Transaction</span>
-          </button>
-        </div>
-      </header>
+      </div>
 
-      <main className="flex-1 flex overflow-hidden p-4 gap-4">
-        <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-          <section className={cn("rounded-2xl p-5 shadow-xl relative overflow-hidden shrink-0 text-white", accent.amountCard)}>
-            <div className="flex justify-between items-start mb-1">
-              <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Transaction Amount</p>
-              <div className="flex gap-2">
-                 <button className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Attach Document"><AlignLeft size={14} /></button>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white/50">{currency}</span>
-              <input type="number" step="0.01" value={amountStr} onChange={(e) => handleAmountChange(e.target.value)} className="bg-transparent text-5xl font-black text-white outline-none placeholder:text-white/20 w-full" placeholder="0.00" autoFocus />
-            </div>
-          </section>
+      {/* Main Content - No gap, high density */}
+      <div className="px-4 py-4 space-y-4">
+        {/* Single Cohesive Form Card */}
+        <div className="bg-white rounded-[32px] p-5 shadow-sm border border-slate-100 space-y-6">
+          {/* Description & Mode Container */}
+          <div className="space-y-3">
+            <input 
+              type="text" 
+              value={formData.description} 
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} 
+              className="w-full min-h-[2.75rem] sm:min-h-[3rem] px-5 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-sm" 
+              placeholder="What was this for?" 
+            />
+            
+            {isExpense && formData.type === 'expense' && (
+              <input 
+                type="text" 
+                value={formData.merchant} 
+                onChange={(e) => setFormData(prev => ({ ...prev, merchant: e.target.value }))} 
+                className="w-full min-h-[2.5rem] sm:min-h-[2.75rem] px-5 bg-slate-50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 placeholder:text-slate-400 text-[11px]" 
+                placeholder="Merchant / Vendor" 
+              />
+            )}
 
-          <section className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 flex-1 overflow-hidden flex flex-col">
             {isExpense && (
-              <div className="flex gap-1 p-1 bg-slate-100 rounded-xl mb-5 w-fit">
+              <div className="flex gap-1 p-1 bg-slate-50 rounded-2xl">
                 {(['individual', 'group', 'loan'] as const).map(mode => (
                   <button
                     key={mode}
+                    type="button"
                     onClick={() => setExpenseMode(mode)}
                     className={cn(
-                      "px-6 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
-                      expenseMode === mode ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                      expenseMode === mode ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"
                     )}
                   >
                     {mode}
@@ -508,341 +893,191 @@ export function AddTransaction() {
                 ))}
               </div>
             )}
-
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Description</label>
-                  <input type="text" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-medium" placeholder="What was this for?" />
-                  {smartCatResult && (
-                    <div className="mt-2 flex items-center gap-2 bg-indigo-50 px-3 py-2 rounded-xl">
-                      <Sparkles size={14} className="text-indigo-500" />
-                      <span className="text-xs font-bold text-indigo-700">Suggestion: {smartCatResult.category}</span>
-                      <button onClick={() => setFormData(prev => ({ ...prev, category: smartCatResult.category }))} className="text-[10px] bg-indigo-600 text-white px-2 py-0.5 rounded-md ml-auto">Apply</button>
-                    </div>
-                  )}
-                </div>
-                {/* Quick Category Chips */}
-                {formData.type !== 'transfer' && (
-                  <div>
-                    <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Quick Category</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 8).map((cat: string) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, category: cat, subcategory: '' }))}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
-                            formData.category === cat
-                              ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                              : "bg-slate-50 text-slate-600 border-slate-100 hover:bg-slate-100 hover:border-slate-300"
-                          )}
-                        >
-                          <span>{getCategoryCartoonIcon(cat)}</span>
-                          <span>{cat}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-slate-500 text-[11px] font-bold mb-1.5">{formData.type === 'transfer' ? 'Internal Note' : 'Merchant / Source'}</label>
-                  <input type="text" value={formData.merchant} onChange={(e) => setFormData(prev => ({ ...prev, merchant: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-medium" placeholder="e.g. Starbucks, Client..." />
-                </div>
-                {isExpense && expenseMode === 'group' && (
-                  <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
-                    <div>
-                      <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Group Name</label>
-                      <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="w-full bg-indigo-50/50 border-indigo-100 rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="Trip to Goa, Dinner..." />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-slate-500 text-[11px] font-bold uppercase tracking-wider">Participants ({groupParticipants.length})</label>
-                        <button onClick={() => setGroupParticipants(prev => [...prev, createEmptyParticipant()])} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"><Plus size={10} /> Add</button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {groupParticipants.map((p, idx) => (
-                          <div key={p.id} className="bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-2 border border-indigo-100">
-                             <input 
-                               type="text" 
-                               value={p.name} 
-                               onChange={(e) => {
-                                 const val = e.target.value;
-                                 setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
-                               }}
-                               className="bg-transparent border-none text-[11px] font-bold text-indigo-700 w-24 focus:ring-0 p-0"
-                               placeholder={`Member ${idx + 1}`}
-                             />
-                             <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-indigo-400 hover:text-indigo-600"><Trash2 size={12} /></button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {isExpense && expenseMode === 'loan' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex gap-2 p-1 bg-rose-50 rounded-lg">
-                      <button onClick={() => setLoanType('borrowed')} className={cn("flex-1 py-1.5 rounded-md text-[9px] font-black uppercase transition-all", loanType === 'borrowed' ? "bg-white text-rose-600 shadow-sm" : "text-rose-400")}>Borrowed</button>
-                      <button onClick={() => setLoanType('lent')} className={cn("flex-1 py-1.5 rounded-md text-[9px] font-black uppercase transition-all", loanType === 'lent' ? "bg-white text-emerald-600 shadow-sm" : "text-emerald-400")}>Lent</button>
-                    </div>
-                    <div>
-                      <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Person Name</label>
-                      <input type="text" value={loanDraft.contactName} onChange={(e) => setLoanDraft(prev => ({ ...prev, contactName: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="Who?" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Interest (%)</label>
-                        <input type="number" value={loanDraft.interestRate} onChange={(e) => setLoanDraft(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="0%" />
-                      </div>
-                      <div>
-                        <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Due Date</label>
-                        <input type="date" value={loanDraft.dueDate} onChange={(e) => setLoanDraft(prev => ({ ...prev, dueDate: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                {formData.type === 'transfer' ? (
-                  <div>
-                    <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Destination Account</label>
-                    <select value={formData.toAccountId} onChange={(e) => setFormData(prev => ({ ...prev, toAccountId: parseInt(e.target.value) }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-medium">
-                      <option value="0">Select Destination</option>
-                      {accounts.filter(a => a.id !== formData.accountId).map(a => <option key={a.id} value={a.id}>{a.name} ({formatAccountBalance(a.balance)})</option>)}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Category</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <CategoryDropdown options={liveCategories[formData.type as 'expense' | 'income'] || []} value={formData.category} onChange={(val) => setFormData(prev => ({ ...prev, category: val, subcategory: '' }))} className="bg-slate-50 border-none rounded-xl h-[44px]" />
-                        <input type="text" value={subcategoryQuery} onChange={(e) => setSubcategoryQuery(e.target.value)} className="w-full bg-slate-50 border-none rounded-xl px-3 h-[44px] text-xs text-slate-900" placeholder="Subcategory..." />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-slate-500 text-[11px] font-bold mb-1.5">GST Details (India)</label>
-                      <div className="grid grid-cols-3 gap-2">
-                         <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="CGST" />
-                         <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="SGST" />
-                         <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="IGST" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div>
-                  <label className="block text-slate-500 text-[11px] font-bold mb-1.5">Date</label>
-                  <input type="date" value={formData.date} onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-medium" />
-                </div>
-              </div>
-            </div>
-            <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-              <div className="text-right ml-auto">
-                <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest">Total Summary</p>
-                <p className="text-xl font-black text-slate-900">{currency} {formData.amount.toFixed(2)}</p>
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <div className="w-72 flex flex-col gap-4 shrink-0 overflow-hidden">
-          <section className="bg-white rounded-2xl p-5 shadow-lg border border-slate-100 flex-1 flex flex-col overflow-hidden">
-            <h2 className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-3">Select {formData.type === 'transfer' ? 'From' : ''} Account</h2>
-            <div className="flex-1 overflow-y-auto pr-1 scrollbar-hide space-y-2">
-              {accounts.map(acc => (
-                <button key={acc.id} onClick={() => setFormData(prev => ({ ...prev, accountId: acc.id || 0 }))} className={cn("w-full flex items-center justify-between p-3 rounded-xl border transition-all", formData.accountId === acc.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-100 bg-white text-slate-700 hover:border-slate-300")}>
-                  <div className="text-left">
-                    <p className="text-xs font-bold truncate">{acc.name}</p>
-                    <p className={cn("text-[10px]", formData.accountId === acc.id ? "text-slate-400" : "text-slate-400")}>{formatAccountBalance(acc.balance)}</p>
-                  </div>
-                  {formData.accountId === acc.id && <Check size={14} />}
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
-  );
-
-  const MobileUI = () => (
-    <div className="flex lg:hidden finora-screen-page finora-transaction-entry flex-col h-[100dvh] bg-white overflow-hidden relative pb-[64px]">
-      <div className={cn("p-4 pt-6 rounded-b-2xl shadow-lg relative overflow-hidden shrink-0 text-white", accent.amountCard)}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setCurrentPage(returnPage)} className="text-white/80 p-1 md:hidden"><ChevronLeft size={20} /></button>
-            <button onClick={() => setShowScanner(true)} className="p-1.5 bg-white/10 rounded-lg"><Camera size={16} /></button>
-            <button className="p-1.5 bg-white/10 rounded-lg"><AlignLeft size={16} /></button>
           </div>
-          <button 
-            onClick={handleSubmit} 
-            disabled={isSubmitting || !formData.amount}
-            className="bg-white text-slate-900 px-5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 shadow-xl transition-all active:scale-95"
-          >
-            {isSubmitting ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-            Save
-          </button>
-        </div>
-        <div className="mb-3">
-          <p className="text-white/60 text-[8px] font-bold uppercase tracking-[0.2em] mb-0.5">{formData.type}</p>
-          <div className="flex items-baseline gap-1">
-            <span className="text-lg font-black text-white/40">{currency}</span>
-            <input type="number" step="0.01" value={amountStr} onChange={(e) => handleAmountChange(e.target.value)} className="bg-transparent text-3xl font-black text-white outline-none w-full" placeholder="0.00" autoFocus />
-          </div>
-        </div>
-        <div className={cn("flex rounded-lg p-0.5", accent.switchShell)}>
-          {(['expense', 'income', 'transfer'] as const).map(t => (
-            <button key={t} onClick={() => switchType(t)} className={cn("flex-1 py-1 rounded-md text-[8px] font-black uppercase transition-all", formData.type === t ? "bg-white text-slate-900" : "text-white/70")}>{t}</button>
-          ))}
-        </div>
-      </div>
 
-      <div className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto scrollbar-hide">
-        {/* Mode Selector */}
-        {isExpense && (
-          <div className="flex gap-1.5 p-1 bg-slate-50 rounded-xl">
-            {(['individual', 'group', 'loan'] as const).map(mode => (
-              <button
-                key={mode}
-                onClick={() => setExpenseMode(mode)}
-                className={cn(
-                  "flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all",
-                  expenseMode === mode ? "bg-white text-slate-900 shadow-sm" : "text-slate-400"
-                )}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          {/* Common Fields */}
-          <div className="space-y-3">
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Description</p>
-              <input type="text" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="What was this for?" />
-            </div>
-
-            {/* Mode Specific Fields */}
-            {isExpense && expenseMode === 'group' && (
-              <div className="animate-in fade-in slide-in-from-top-2 space-y-3">
+          {/* Mode Specific Sections (Nested inside main card) */}
+          {isExpense && expenseMode === 'group' && (
+            <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
+              <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-4">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Group Name</p>
-                  <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="w-full bg-indigo-50/50 border-indigo-100 rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="Trip to Goa, Dinner..." />
+                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Group Title</p>
+                  <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="w-full h-10 bg-white border-none rounded-xl px-4 text-sm text-slate-900 font-bold" placeholder="Trip to Goa..." />
                 </div>
                 <div>
-                   <div className="flex items-center justify-between mb-1 px-1">
-                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Participants</p>
-                     <button onClick={() => setGroupParticipants(prev => [...prev, createEmptyParticipant()])} className="text-[10px] font-bold text-indigo-600 flex items-center gap-1"><Plus size={10} /> Add</button>
-                   </div>
-                   <div className="flex flex-wrap gap-1.5">
-                     {groupParticipants.map((p, idx) => (
-                       <div key={p.id} className="bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-indigo-100">
-                         <input 
-                           type="text" 
-                           value={p.name} 
-                           onChange={(e) => {
-                             const val = e.target.value;
-                             setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
-                           }}
-                           className="bg-transparent border-none text-[10px] font-bold text-indigo-700 w-20 focus:ring-0 p-0"
-                           placeholder="Name"
-                         />
-                         <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-indigo-400"><Trash2 size={10} /></button>
-                       </div>
-                     ))}
-                   </div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Participants</p>
+                    <button type="button" onClick={() => setGroupParticipants(prev => [...prev, createEmptyParticipant()])} className="text-[9px] font-black text-indigo-600 flex items-center gap-1 bg-indigo-100 px-2 py-1 rounded-lg">ADD</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {groupParticipants.map((p) => (
+                      <div key={p.id} className="bg-white px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-sm border border-indigo-50">
+                        <input 
+                          type="text" 
+                          value={p.name} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
+                          }}
+                          className="bg-transparent border-none text-[10px] font-bold text-indigo-900 w-full min-w-0 focus:ring-0 p-0"
+                          placeholder="Name"
+                        />
+                        <button type="button" onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-rose-400"><Trash2 size={12} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {isExpense && expenseMode === 'loan' && (
-              <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                <div className="flex gap-2 p-1 bg-rose-50 rounded-lg">
-                  <button onClick={() => setLoanType('borrowed')} className={cn("flex-1 py-1.5 rounded-md text-[8px] font-black uppercase transition-all", loanType === 'borrowed' ? "bg-white text-rose-600 shadow-sm" : "text-rose-400")}>Borrowed</button>
-                  <button onClick={() => setLoanType('lent')} className={cn("flex-1 py-1.5 rounded-md text-[8px] font-black uppercase transition-all", loanType === 'lent' ? "bg-white text-emerald-600 shadow-sm" : "text-emerald-400")}>Lent</button>
+          {isExpense && expenseMode === 'loan' && (
+            <div className="animate-in fade-in slide-in-from-top-2">
+              <div className="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 space-y-4">
+                <div className="flex gap-2 p-1 bg-white/50 rounded-xl border border-rose-100">
+                  <button type="button" onClick={() => setLoanType('borrowed')} className={cn("flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all", loanType === 'borrowed' ? "bg-white text-rose-600 shadow-sm" : "text-rose-400")}>Borrowed</button>
+                  <button type="button" onClick={() => setLoanType('lent')} className={cn("flex-1 py-2 rounded-lg text-[9px] font-black uppercase transition-all", loanType === 'lent' ? "bg-white text-emerald-600 shadow-sm" : "text-emerald-400")}>Lent</button>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Person Name</p>
-                  <input type="text" value={loanDraft.contactName} onChange={(e) => setLoanDraft(prev => ({ ...prev, contactName: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="Who?" />
+                  <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1.5">Person Name</p>
+                  <input type="text" value={loanDraft.contactName} onChange={(e) => setLoanDraft(prev => ({ ...prev, contactName: e.target.value }))} className="w-full h-10 bg-white border-none rounded-xl px-4 text-sm text-slate-900 font-bold" placeholder="Who?" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Interest (%)</p>
-                    <input type="number" value={loanDraft.interestRate} onChange={(e) => setLoanDraft(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="0%" />
+                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1.5">Interest %</p>
+                    <input type="number" value={loanDraft.interestRate} onChange={(e) => setLoanDraft(prev => ({ ...prev, interestRate: parseFloat(e.target.value) || 0 }))} className="w-full h-10 bg-white border-none rounded-xl px-4 text-sm text-slate-900 font-bold" placeholder="0" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Due Date</p>
-                    <input type="date" value={loanDraft.dueDate} onChange={(e) => setLoanDraft(prev => ({ ...prev, dueDate: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" />
+                    <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-1.5">Due Date</p>
+                    <input type="date" value={loanDraft.dueDate} onChange={(e) => setLoanDraft(prev => ({ ...prev, dueDate: e.target.value }))} className="w-full h-10 bg-white border-none rounded-xl px-4 text-xs text-slate-900 font-bold" />
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
+          {/* Account & Date Selection Row */}
+          <div className="pt-2 border-t border-slate-50 space-y-6">
             {formData.type === 'transfer' ? (
-               <div>
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">To Account</p>
-                 <select value={formData.toAccountId} onChange={(e) => setFormData(prev => ({ ...prev, toAccountId: parseInt(e.target.value) }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold">
-                   <option value="0">Select Destination...</option>
-                   {accounts.filter(a => a.id !== formData.accountId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                 </select>
-               </div>
-            ) : (
-              <div className="space-y-3">
-                {/* Quick Category Chips — Mobile */}
+              <div className="space-y-4">
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</p>
-                  <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide">
-                    {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 10).map((cat: string) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, category: cat, subcategory: '' }))}
-                        className={cn(
-                          "flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition-all border whitespace-nowrap",
-                          formData.category === cat
-                            ? "bg-slate-900 text-white border-slate-900 shadow-md"
-                            : "bg-slate-50 text-slate-600 border-slate-100 active:bg-slate-100"
-                        )}
-                      >
-                        <span>{getCategoryCartoonIcon(cat)}</span>
-                        <span>{cat}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-2">
-                    <CategoryDropdown options={liveCategories[formData.type as 'expense' | 'income'] || []} value={formData.category} onChange={(val) => setFormData(prev => ({ ...prev, category: val, subcategory: '' }))} className="bg-slate-50 border-none rounded-xl h-[40px] font-bold text-xs" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Source Account</p>
+                  <SearchableDropdown
+                    options={accounts.map(a => ({
+                      value: String(a.id),
+                      label: a.name,
+                      description: formatAccountBalance(a.balance),
+                      icon: <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-black text-[10px]">{(a.type || 'BK').substring(0, 2).toUpperCase()}</div>
+                    }))}
+                    value={String(formData.accountId)}
+                    onChange={(val) => setFormData(prev => ({ ...prev, accountId: parseInt(val, 10) }))}
+                    placeholder="From..."
+                    className="h-14"
+                  />
+                </div>
+                <div className="flex justify-center -my-2 relative z-10">
+                  <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg border-2 border-white">
+                    <ArrowDown size={14} />
                   </div>
                 </div>
                 <div>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">GST / Tax</p>
-                  <div className="flex gap-1.5">
-                    <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="CGST" />
-                    <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="SGST" />
-                    <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="flex-1 bg-slate-50 rounded-lg h-[44px] text-[10px] font-bold border-none text-center" placeholder="IGST" />
-                  </div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Target Account</p>
+                  <SearchableDropdown
+                    options={accounts.filter(a => a.id !== formData.accountId).map(a => ({
+                      value: String(a.id),
+                      label: a.name,
+                      description: formatAccountBalance(a.balance),
+                      icon: <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px]">{(a.type || 'BK').substring(0, 2).toUpperCase()}</div>
+                    }))}
+                    value={String(formData.toAccountId)}
+                    onChange={(val) => setFormData(prev => ({ ...prev, toAccountId: parseInt(val, 10) }))}
+                    placeholder="To..."
+                    className="h-14"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">{formData.type === 'transfer' ? 'From' : ''} Account</p>
-              <select value={formData.accountId} onChange={(e) => setFormData(prev => ({ ...prev, accountId: parseInt(e.target.value) }))} className="w-full h-[44px] bg-slate-50 rounded-xl px-4 font-bold text-xs">
-                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Date</p>
-              <input type="date" value={formData.date} onChange={(e) => setFormData(prev => ({...prev, date: e.target.value}))} className="w-full h-[44px] bg-slate-50 rounded-xl px-4 font-bold text-[10px]" />
-            </div>
+            ) : (
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4">
+                <div className="w-full">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Debit Account</p>
+                  <SearchableDropdown
+                    options={accounts.map(a => ({
+                      value: String(a.id),
+                      label: a.name,
+                      description: formatAccountBalance(a.balance),
+                      icon: <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-black text-[10px]">{(a.type || 'BK').substring(0, 2).toUpperCase()}</div>
+                    }))}
+                    value={String(formData.accountId)}
+                    onChange={(val) => setFormData(prev => ({ ...prev, accountId: parseInt(val, 10) }))}
+                    placeholder="Select..."
+                    className="min-h-[3.5rem]"
+                  />
+                </div>
+                <div className="w-full">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Date</p>
+                    <input 
+                      type="date" 
+                      value={formData.date} 
+                      onChange={(e) => setFormData(prev => ({...prev, date: e.target.value}))} 
+                      className="w-full min-h-[3.5rem] px-4 bg-slate-50 border-none rounded-2xl font-black text-[11px] text-slate-900" 
+                    />
+                  </div>
+                </div>
+             )}
           </div>
         </div>
+
+        {/* Categorization Card */}
+        {formData.type !== 'transfer' && (
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-6">
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Categorization</p>
+              <div className="grid grid-cols-4 gap-2">
+                {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 12).map((cat: string) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, category: cat, subcategory: '' }))}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 p-2 rounded-2xl border transition-all",
+                      formData.category === cat
+                        ? "bg-slate-900 text-white border-slate-900 shadow-md scale-105"
+                        : "bg-slate-50 text-slate-600 border-slate-100 active:bg-slate-200"
+                    )}
+                  >
+                    <span className="text-lg">{getCategoryCartoonIcon(cat)}</span>
+                    <span className="text-[8px] font-black uppercase tracking-tighter text-center leading-none truncate w-full">{cat.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4">
+                <CategoryDropdown 
+                  options={liveCategories[formData.type as 'expense' | 'income'] || []} 
+                  value={formData.category} 
+                  onChange={(val) => setFormData(prev => ({ ...prev, category: val, subcategory: '' }))} 
+                  className="min-h-[3rem] rounded-2xl border-none bg-slate-50 font-black text-xs" 
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Tax Details (GST)</p>
+              <div className="flex flex-wrap sm:grid sm:grid-cols-3 gap-2">
+                 <div className="flex-1 min-w-[80px] space-y-1">
+                   <p className="text-[8px] font-black text-slate-400 text-center uppercase tracking-tighter">CGST</p>
+                   <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="w-full min-h-[2.25rem] bg-slate-50 rounded-xl text-[10px] font-black border-none text-center" placeholder="0.00" />
+                 </div>
+                 <div className="flex-1 min-w-[80px] space-y-1">
+                   <p className="text-[8px] font-black text-slate-400 text-center uppercase tracking-tighter">SGST</p>
+                   <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="w-full min-h-[2.25rem] bg-slate-50 rounded-xl text-[10px] font-black border-none text-center" placeholder="0.00" />
+                 </div>
+                 <div className="flex-1 min-w-[80px] space-y-1">
+                   <p className="text-[8px] font-black text-slate-400 text-center uppercase tracking-tighter">IGST</p>
+                   <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="w-full min-h-[2.25rem] bg-slate-50 rounded-xl text-[10px] font-black border-none text-center" placeholder="0.00" />
+                 </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

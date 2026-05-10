@@ -117,16 +117,23 @@ export const AddFriends: React.FC = () => {
         </CenteredLayout>
       </div>
 
-      <div className="hidden lg:block finora-screen-page finora-friends-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
-        <div className="w-full max-w-[800px] mx-auto px-8 py-6">
-          <div className="mb-6 flex items-center gap-3">
-            <button type="button" onClick={() => setCurrentPage('friends')} className="flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 shadow-sm"><ChevronLeft size={18} /></button>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md"><UserPlus size={16} className="text-white" /></div>
+      <div className="hidden lg:block finora-screen-page finora-friends-entry w-full min-h-[100dvh] bg-slate-50 font-sans">
+        <header className="w-full bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+              <UserPlus size={16} className="text-white" />
+            </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Add Friends</h1>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Add Friends</h1>
               <p className="text-xs text-gray-500">Manage your contacts for group expenses and loans</p>
             </div>
           </div>
+          <button type="button" onClick={() => setCurrentPage('friends')}
+            className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
+            Cancel
+          </button>
+        </header>
+        <div className="w-full max-w-[800px] mx-auto p-8">
 
           <div className="rounded-lg p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
             {/* Primary Row */}

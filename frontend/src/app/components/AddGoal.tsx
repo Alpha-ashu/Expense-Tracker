@@ -698,22 +698,23 @@ export const AddGoal: React.FC = () => {
           </form>
         </div>
       ) : (
-        <div className="finora-screen-page finora-goal-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
-          <div className="w-full max-w-[700px]">
-            {/* Header */}
-            <div className="mb-6 flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setCurrentPage('goals')}
-                className="flex h-12 w-12 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-500 shadow-sm transition-all hover:bg-gray-50 md:hidden"
-              >
-                <ChevronLeft size={20} />
-              </button>
+        <div className="finora-screen-page finora-goal-entry w-full min-h-[100dvh] bg-slate-50 font-sans">
+          <header className="w-full bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">
+                <Target size={16} className="text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-black text-gray-900">Create New Goal</h1>
-                <p className="text-sm text-gray-500">Plan and track your financial dreams</p>
+                <h1 className="text-xl font-bold text-gray-900 tracking-tight">Create New Goal</h1>
+                <p className="text-xs text-gray-500">Plan and track your financial dreams</p>
               </div>
             </div>
+            <button type="button" onClick={() => setCurrentPage('goals')}
+              className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 text-sm font-semibold hover:bg-gray-50 shadow-sm transition-all">
+              Cancel
+            </button>
+          </header>
+          <div className="w-full max-w-[700px] mx-auto p-8">
 
             {/* Main Card */}
             <div className="overflow-hidden rounded-[32px] shadow-xl shadow-purple-100/50">

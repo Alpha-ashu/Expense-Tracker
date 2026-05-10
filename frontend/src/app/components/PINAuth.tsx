@@ -363,7 +363,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         />
       </form>
 
-      <div className="bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.05)] w-full max-w-md flex flex-col overflow-hidden">
+      <div className="w-[440px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col">
         {/* Header */}
         <div className="pt-10 pb-6 flex flex-col items-center px-6">
           <div className="w-16 h-16 rounded-[20px] bg-gray-900 flex items-center justify-center mb-5 shadow-sm">
