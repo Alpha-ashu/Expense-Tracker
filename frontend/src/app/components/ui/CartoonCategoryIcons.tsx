@@ -35,20 +35,40 @@ export const FoodIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => 
   </svg>
 );
 
-// Cartoon Transportation Icon - Car/Jeep
-export const TransportIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+// Cartoon Public Transport Icon - Bus
+export const PublicTransportIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
     <circle cx="32" cy="32" r="30" fill="#F59E0B"/>
-    <rect x="14" y="28" width="36" height="14" rx="3" fill="#DC2626"/>
-    <path d="M18 28 L22 20 L42 20 L46 28" fill="#DC2626"/>
-    <rect x="24" y="22" width="6" height="5" rx="1" fill="#93C5FD"/>
-    <rect x="34" y="22" width="6" height="5" rx="1" fill="#93C5FD"/>
-    <rect x="16" y="32" width="4" height="4" rx="1" fill="#FDE047"/>
-    <rect x="44" y="32" width="4" height="4" rx="1" fill="#FDE047"/>
-    <circle cx="22" cy="44" r="5" fill="#1F2937"/>
-    <circle cx="22" cy="44" r="2" fill="#6B7280"/>
-    <circle cx="42" cy="44" r="5" fill="#1F2937"/>
-    <circle cx="42" cy="44" r="2" fill="#6B7280"/>
+    <rect x="18" y="20" width="28" height="24" rx="4" fill="#DC2626"/>
+    <rect x="22" y="24" width="6" height="6" rx="1" fill="#93C5FD"/>
+    <rect x="36" y="24" width="6" height="6" rx="1" fill="#93C5FD"/>
+    <rect x="22" y="34" width="20" height="2" fill="#FFFFFF" opacity="0.3"/>
+    <circle cx="24" cy="48" r="4" fill="#1F2937"/>
+    <circle cx="40" cy="48" r="4" fill="#1F2937"/>
+  </svg>
+);
+
+// Cartoon Personal Vehicle Icon - Car
+export const PersonalVehicleIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#F97316"/>
+    <rect x="14" y="30" width="36" height="12" rx="3" fill="#FFFFFF"/>
+    <path d="M18 30 L24 20 L40 20 L46 30" fill="#FFFFFF"/>
+    <rect x="26" y="22" width="12" height="6" rx="1" fill="#93C5FD"/>
+    <circle cx="22" cy="42" r="4" fill="#1F2937"/>
+    <circle cx="42" cy="42" r="4" fill="#1F2937"/>
+  </svg>
+);
+
+// Cartoon Housing Icon - House
+export const HomeIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#64748B"/>
+    <path d="M16 32 L32 16 L48 32 L48 50 L16 50 Z" fill="#F1F5F9"/>
+    <path d="M12 32 L32 12 L52 32" stroke="#475569" strokeWidth="4" fill="none" strokeLinecap="round"/>
+    <rect x="28" y="38" width="8" height="12" fill="#475569" rx="1"/>
+    <circle cx="24" cy="28" r="2" fill="#94A3B8"/>
+    <circle cx="40" cy="28" r="2" fill="#94A3B8"/>
   </svg>
 );
 
@@ -62,8 +82,6 @@ export const UtilitiesIcon: React.FC<IconProps> = ({ size = 48, className = '' }
     <rect x="28" y="48" width="8" height="2" rx="1" fill="#4B5563"/>
     <path d="M26 26 L32 34 L38 26" stroke="#FBBF24" strokeWidth="2" fill="none" strokeLinecap="round"/>
     <line x1="32" y1="16" x2="32" y2="10" stroke="#FEF9C3" strokeWidth="2" strokeLinecap="round"/>
-    <line x1="22" y1="18" x2="18" y2="14" stroke="#FEF9C3" strokeWidth="2" strokeLinecap="round"/>
-    <line x1="42" y1="18" x2="46" y2="14" stroke="#FEF9C3" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -85,7 +103,15 @@ export const ShoppingIcon: React.FC<IconProps> = ({ size = 48, className = '' })
     <path d="M24 26 Q24 18, 32 18 Q40 18, 40 26" fill="none" stroke="#1F2937" strokeWidth="3" strokeLinecap="round"/>
     <circle cx="28" cy="36" r="3" fill="#F472B6"/>
     <circle cx="36" cy="36" r="3" fill="#A855F7"/>
-    <rect x="26" y="42" width="12" height="4" rx="2" fill="#FDE047"/>
+  </svg>
+);
+
+// Cartoon Insurance Icon - Shield
+export const InsuranceIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#0EA5E9"/>
+    <path d="M32 16 L48 22 L48 36 Q48 50, 32 54 Q16 50, 16 36 L16 22 Z" fill="#E0F2FE"/>
+    <path d="M32 24 L38 32 L32 40 L26 32 Z" fill="#0EA5E9"/>
   </svg>
 );
 
@@ -122,8 +148,18 @@ export const TravelIcon: React.FC<IconProps> = ({ size = 48, className = '' }) =
   <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
     <circle cx="32" cy="32" r="30" fill="#6366F1"/>
     <path d="M32 16 L36 26 L48 30 L36 32 L32 48 L28 32 L16 30 L28 26 Z" fill="#FFFFFF"/>
-    <circle cx="32" cy="30" r="4" fill="#C7D2FE"/>
-    <path d="M30 38 L28 46 L32 44 L36 46 L34 38" fill="#FFFFFF"/>
+  </svg>
+);
+
+// Cartoon Subscriptions Icon - Play Button
+export const SubscriptionIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#8B5CF6"/>
+    <rect x="18" y="20" width="28" height="24" rx="4" fill="#FFFFFF"/>
+    <path d="M28 26 L40 32 L28 38 Z" fill="#8B5CF6"/>
+    <circle cx="22" cy="48" r="2" fill="#FFFFFF"/>
+    <circle cx="32" cy="48" r="2" fill="#FFFFFF"/>
+    <circle cx="42" cy="48" r="2" fill="#FFFFFF"/>
   </svg>
 );
 
@@ -158,8 +194,17 @@ export const GiftsIcon: React.FC<IconProps> = ({ size = 48, className = '' }) =>
     <rect x="16" y="28" width="32" height="22" rx="2" fill="#EC4899"/>
     <rect x="14" y="24" width="36" height="6" rx="2" fill="#F472B6"/>
     <rect x="30" y="24" width="4" height="26" fill="#FDE047"/>
-    <path d="M32 24 Q26 18, 20 20 Q24 14, 32 18" fill="none" stroke="#FDE047" strokeWidth="3" strokeLinecap="round"/>
-    <path d="M32 24 Q38 18, 44 20 Q40 14, 32 18" fill="none" stroke="#FDE047" strokeWidth="3" strokeLinecap="round"/>
+  </svg>
+);
+
+// Cartoon Family Icon - Two People
+export const FamilyIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#14B8A6"/>
+    <circle cx="24" cy="28" r="6" fill="#FFFFFF"/>
+    <path d="M16 48 Q16 38, 24 38 Q32 38, 32 48" fill="#FFFFFF"/>
+    <circle cx="40" cy="32" r="5" fill="#CCFBF1"/>
+    <path d="M34 48 Q34 40, 40 40 Q46 40, 46 48" fill="#CCFBF1"/>
   </svg>
 );
 
@@ -191,11 +236,30 @@ export const WorkIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => 
 export const MiscIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
     <circle cx="32" cy="32" r="30" fill="#64748B"/>
-    <path d="M20 20 L30 20 L30 24 Q34 24, 34 28 Q34 32, 30 32 L30 36 L20 36 Z" fill="#F472B6"/>
-    <path d="M34 20 L44 20 L44 36 L34 36 L34 32 Q30 32, 30 28 Q30 24, 34 24 Z" fill="#60A5FA"/>
-    <path d="M20 40 L30 40 L30 44 Q34 44, 34 48 L44 48 L44 44 L34 44 L34 40 L44 40 L44 56 L20 56 Z" fill="#34D399"/>
-    <circle cx="26" cy="28" r="2" fill="#FFFFFF" opacity="0.5"/>
-    <circle cx="38" cy="28" r="2" fill="#FFFFFF" opacity="0.5"/>
+    <path d="M24 24 L40 24 L40 40 L24 40 Z" fill="#F8FAFC"/>
+    <circle cx="32" cy="32" r="4" fill="#64748B"/>
+  </svg>
+);
+
+// Cartoon Taxes Icon - Bill with %
+export const TaxesIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#7C3AED"/>
+    <rect x="20" y="18" width="24" height="32" rx="2" fill="#F5F3FF"/>
+    <line x1="24" y1="26" x2="36" y2="26" stroke="#7C3AED" strokeWidth="2"/>
+    <line x1="24" y1="32" x2="36" y2="32" stroke="#7C3AED" strokeWidth="2"/>
+    <text x="32" y="44" textAnchor="middle" fontSize="12" fill="#7C3AED" fontWeight="black">%</text>
+  </svg>
+);
+
+// Cartoon Vehicle Maintenance Icon - Wrench
+export const VehicleMaintenanceIcon: React.FC<IconProps> = ({ size = 48, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 64 64" className={className}>
+    <circle cx="32" cy="32" r="30" fill="#F97316"/>
+    <path d="M44 20 L32 32 L20 44" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round"/>
+    <circle cx="20" cy="44" r="4" fill="#FFFFFF"/>
+    <path d="M40 16 Q48 16, 48 24 Q48 32, 40 32 Q32 32, 32 24 Q32 16, 40 16" fill="#FFFFFF"/>
+    <circle cx="40" cy="24" r="4" fill="#F97316"/>
   </svg>
 );
 
@@ -280,27 +344,27 @@ export const OtherIncomeIcon: React.FC<IconProps> = ({ size = 48, className = ''
 );
 
 // Category icon mapping
-export const getCategoryCartoonIcon = (categoryName: string, size: number = 40): React.ReactNode => {
+export const getCategoryCartoonIcon = (categoryName: string, size: number = 32): React.ReactNode => {
   const iconMap: Record<string, React.ReactNode> = {
     // Expense categories
-    'Housing': <UtilitiesIcon size={size} />,
-    'Housing / Rent': <UtilitiesIcon size={size} />,
+    'Housing': <HomeIcon size={size} />,
+    'Housing / Rent': <HomeIcon size={size} />,
     'Entertainment': <EntertainmentIcon size={size} />,
     'Food & Dining': <FoodIcon size={size} />,
-    'Transportation': <TransportIcon size={size} />,
-    'Vehicle': <TransportIcon size={size} />,
+    'Transportation': <PublicTransportIcon size={size} />,
+    'Vehicle': <PersonalVehicleIcon size={size} />,
     'Utilities': <UtilitiesIcon size={size} />,
     'Healthcare': <HealthcareIcon size={size} />,
     'Health & Medical': <HealthcareIcon size={size} />,
-    'Insurance': <FinanceIcon size={size} />,
+    'Insurance': <InsuranceIcon size={size} />,
     'Shopping': <ShoppingIcon size={size} />,
     'Education': <EducationIcon size={size} />,
-    'Family & Kids': <GiftsIcon size={size} />,
+    'Family & Kids': <FamilyIcon size={size} />,
     'Fitness & Sports': <FitnessIcon size={size} />,
     'Travel': <TravelIcon size={size} />,
     'Travel & Vacation': <TravelIcon size={size} />,
-    'Subscriptions': <EntertainmentIcon size={size} />,
-    'Subscriptions & Digital Services': <EntertainmentIcon size={size} />,
+    'Subscriptions': <SubscriptionIcon size={size} />,
+    'Subscriptions & Digital Services': <SubscriptionIcon size={size} />,
     'Personal Care': <PersonalCareIcon size={size} />,
     'Pets': <PetsIcon size={size} />,
     'Gifts & Donations': <GiftsIcon size={size} />,
@@ -310,10 +374,10 @@ export const getCategoryCartoonIcon = (categoryName: string, size: number = 40):
     'Work & Business': <WorkIcon size={size} />,
     'Business Expenses': <WorkIcon size={size} />,
     'Investments': <InvestmentIcon size={size} />,
-    'Taxes & Government': <FinanceIcon size={size} />,
-    'Vehicle Maintenance': <TransportIcon size={size} />,
+    'Taxes & Government': <TaxesIcon size={size} />,
+    'Vehicle Maintenance': <VehicleMaintenanceIcon size={size} />,
     'Electronics & Gadgets': <ShoppingIcon size={size} />,
-    'Home Maintenance': <UtilitiesIcon size={size} />,
+    'Home Maintenance': <HomeIcon size={size} />,
     'Loan / Debt Payments': <FinanceIcon size={size} />,
     'Miscellaneous': <MiscIcon size={size} />,
     'Miscellaneous / Other': <MiscIcon size={size} />,

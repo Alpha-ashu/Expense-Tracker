@@ -753,44 +753,45 @@ export const AddInvestment: React.FC = () => {
         </div>
       ) : (
         <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col items-center">
-          {/* Desktop Header */}
-          <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 sticky top-0 z-30 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF2D85] to-[#E6005C] flex items-center justify-center shadow-lg shadow-pink-200">
-                <TrendingUp size={20} className="text-white" />
+          <header className="w-full bg-white border-b border-slate-100 sticky top-0 z-30">
+            <div className="layout-container layout-header">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg">
+                  <TrendingUp size={18} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">Add Investment</h1>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Add Investment</h1>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Portfolio Asset Entry</p>
+              <div className="flex items-center gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setCurrentPage('investments')}
+                  className="finora-btn finora-btn-secondary"
+                >
+                  <span>Cancel</span>
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleSubmit}
+                  className="finora-btn finora-btn-primary !bg-slate-900"
+                >
+                  <span>Save Asset</span>
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button 
-                type="button" 
-                onClick={() => setCurrentPage('investments')}
-                className="px-6 py-2.5 rounded-xl border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button"
-                onClick={handleSubmit}
-                className="px-8 py-2.5 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-slate-800 transition-all active:scale-95"
-              >
-                Save Asset
-              </button>
             </div>
           </header>
 
-          <main className="w-full max-w-6xl p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Column: Form Details */}
-            <div className="lg:col-span-8 space-y-6">
-              <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50">
+          <main className="layout-container py-8">
+            <div className="grid grid-cols-12 gap-8">
+              {/* Left Column: Form Details */}
+              <div className="lg:col-span-8 space-y-6">
+                <div className="finora-card">
                 <form onSubmit={handleSubmit} className="space-y-8">
                   {/* Row 1: Type & Search */}
                   <div className="grid grid-cols-12 gap-6">
                     <div className="col-span-4 space-y-3">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Asset Category</p>
+                      <p className="finora-label">Asset Category</p>
                       <SearchableDropdown
                         options={investmentTypeOptions}
                         value={formData.type}
@@ -801,7 +802,7 @@ export const AddInvestment: React.FC = () => {
                       />
                     </div>
                     <div className="col-span-8 space-y-3 relative">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Asset Search (Stock/Crypto)</p>
+                      <p className="finora-label">Asset Search (Stock/Crypto)</p>
                       <div className="relative">
                         <input
                           type="text"
@@ -813,7 +814,7 @@ export const AddInvestment: React.FC = () => {
                             setShowSuggestions(true);
                           }}
                           onFocus={() => { if (formData.name.length >= 2) setShowSuggestions(true); }}
-                          className="w-full h-16 px-6 bg-slate-50 border-none rounded-[24px] font-black text-lg text-slate-900 placeholder:text-slate-300 focus:ring-4 focus:ring-indigo-500/5 transition-all"
+                          className="finora-input h-16 text-lg"
                           placeholder={formData.type === 'crypto' ? "Search BTC, ETH, SOL..." : "Search AAPL, TSLA, RELIANCE..."}
                           required
                         />

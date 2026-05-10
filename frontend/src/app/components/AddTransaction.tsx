@@ -439,25 +439,30 @@ export function AddTransaction() {
     setScanDocumentId(scan.scanDocumentId || null);
   };
 
-  const DesktopUI = () => (
-    <div className="hidden lg:flex finora-screen-page finora-transaction-entry flex-col h-fit bg-[#F8FAFC]">
+  const desktopView = (
+    <div className="hidden lg:flex flex-col h-fit bg-[#F8FAFC]">
       {/* Premium Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 sticky top-0 z-20 shrink-0">
-        <div className="w-full flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Zap className="text-indigo-600" size={22} />
-              Add Transaction
-            </h1>
+      <header className="layout-header-secondary sticky top-0 z-20 shrink-0">
+        <div className="layout-container layout-header">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
+                <Zap className="text-indigo-600" size={20} />
+              </div>
+              <div>
+                <h1 className="page-title">Add Transaction</h1>
+                <p className="page-subtitle">Module Entry</p>
+              </div>
+            </div>
             
-            <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
+            <div className="segment-control">
               {(['expense', 'income', 'transfer'] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => switchType(t)}
                   className={cn(
-                    "px-6 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                    formData.type === t ? "bg-white text-slate-900 shadow-md scale-100" : "text-slate-400 hover:text-slate-600 scale-95"
+                    "segment-btn",
+                    formData.type === t ? "segment-btn-active" : "segment-btn-inactive"
                   )}
                 >
                   {t}
@@ -466,10 +471,10 @@ export function AddTransaction() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowScanner(true)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
+              className="finora-btn finora-btn-secondary"
             >
               <Camera size={14} />
               <span>Scan Receipt</span>
@@ -477,7 +482,7 @@ export function AddTransaction() {
             <button 
               onClick={handleSubmit} 
               disabled={isSubmitting || !formData.amount} 
-              className={cn("px-8 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-xl shadow-indigo-200 transition-all flex items-center gap-2", accent.btn)}
+              className={cn("finora-btn text-white", accent.btn)}
             >
               {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <Zap size={14} />}
               <span>Save Transaction</span>
@@ -486,10 +491,10 @@ export function AddTransaction() {
         </div>
       </header>
 
-      <main className="p-6 w-full mx-auto h-fit">
-        <div className="flex flex-col gap-6">
+      <main className="layout-container py-8 flex-1 overflow-y-auto scrollbar-hide pb-20">
+        <div className="flex flex-col gap-8">
           {/* Amount Card Section */}
-          <section className={cn("rounded-[40px] p-8 shadow-2xl relative overflow-hidden shrink-0 text-white transition-all duration-500 min-h-[160px] flex flex-col justify-center", accent.amountCard)}>
+          <section className={cn("rounded-[40px] p-12 shadow-2xl relative overflow-hidden shrink-0 text-white transition-all duration-500 min-h-[200px] flex flex-col justify-center", accent.amountCard)}>
             {/* Background Sparkles */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
               <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white blur-[100px] rounded-full"></div>
@@ -521,9 +526,9 @@ export function AddTransaction() {
           </section>
 
           {/* Form Content Area */}
-          <div className="flex flex-wrap gap-6 items-start">
+          <div className="layout-grid">
             {/* Left Panel: Primary Details */}
-            <div className="w-full max-w-[480px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col h-fit">
+            <div className="finora-card">
               {formData.type === 'expense' && (
                 <div className="flex gap-1.5 p-1 bg-slate-50 rounded-2xl mb-8 w-fit border border-slate-100 animate-in fade-in zoom-in-95">
                   {(['individual', 'group', 'loan'] as const).map(mode => (
@@ -544,14 +549,14 @@ export function AddTransaction() {
               <div className="space-y-8">
                 {/* Description - Common for all but styled differently for Transfer */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                  <label className="finora-label">
                     {formData.type === 'transfer' ? 'Transfer Reference' : 'Description'}
                   </label>
                   <input 
                     type="text" 
                     value={formData.description} 
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} 
-                    className="w-full h-16 px-6 bg-slate-50/50 border-none rounded-3xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 text-lg placeholder:text-slate-200" 
+                    className="finora-input text-lg h-16" 
                     placeholder={formData.type === 'transfer' ? "Rent, Monthly Savings..." : "What was this for?"} 
                   />
                   {formData.type === 'expense' && smartCatResult && (
@@ -566,7 +571,7 @@ export function AddTransaction() {
                 {/* Expense/Income Specific: Categories */}
                 {formData.type !== 'transfer' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-left-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quick Category</label>
+                    <label className="finora-label">Quick Category</label>
                     <div className="grid grid-cols-4 gap-3">
                       {(liveCategories[formData.type as 'expense' | 'income'] || []).slice(0, 8).map((cat: string) => (
                         <button
@@ -591,14 +596,14 @@ export function AddTransaction() {
                 {/* Merchant/Source - Hide for Transfer */}
                 {formData.type !== 'transfer' && (
                   <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                    <label className="finora-label">
                       {formData.type === 'income' ? 'Income Source' : 'Merchant / Vendor'}
                     </label>
                     <input 
                       type="text" 
                       value={formData.merchant} 
                       onChange={(e) => setFormData(prev => ({ ...prev, merchant: e.target.value }))} 
-                      className="w-full h-14 px-6 bg-slate-50/50 border-none rounded-2xl focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold text-slate-900 placeholder:text-slate-200" 
+                      className="finora-input" 
                       placeholder={formData.type === 'income' ? "Company, Client, Interest..." : "e.g. Starbucks, Amazon..."} 
                     />
                   </div>
@@ -607,11 +612,11 @@ export function AddTransaction() {
             </div>
 
             {/* Right Panel: Transaction Configuration */}
-            <div className="w-full max-w-[480px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col h-fit">
+            <div className="finora-card">
               <div className="space-y-8 flex-1">
                 {/* Account Selection */}
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                  <label className="finora-label">
                     {formData.type === 'transfer' ? 'Source Account' : 'Debit Account'}
                   </label>
                   <SearchableDropdown
@@ -695,12 +700,12 @@ export function AddTransaction() {
                 )}
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Date</label>
+                  <label className="finora-label">Date</label>
                   <input 
                     type="date" 
                     value={formData.date} 
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))} 
-                    className="w-full h-14 bg-slate-50/50 border-none rounded-2xl px-6 text-sm font-black text-slate-900" 
+                    className="finora-input" 
                   />
                 </div>
 
@@ -785,7 +790,7 @@ export function AddTransaction() {
     </div>
   );
 
-  const MobileUI = () => (
+  const mobileView = (
     <div className="flex lg:hidden flex-col bg-slate-50 relative min-h-screen mobile-safe-bottom">
       <div className={cn("px-4 pb-8 rounded-b-[40px] shadow-2xl relative overflow-hidden shrink-0 text-white transition-all duration-500 mobile-safe-top-spacious", accent.amountCard)}>
         {/* Background Sparkles */}
@@ -1084,8 +1089,8 @@ export function AddTransaction() {
 
   return (
     <>
-      <DesktopUI />
-      <MobileUI />
+      {desktopView}
+      {mobileView}
       <AnimatePresence>
         {showScanner && (
           <ReceiptScanner isOpen={showScanner} onClose={() => setShowScanner(false)} initialAccountId={formData.accountId} expenseMode={expenseMode === 'group' ? 'group' : 'individual'} onApplyScan={(scan) => {
