@@ -217,7 +217,7 @@ export const AddGoal: React.FC = () => {
   return (
     <>
       {!isDesktop ? (
-        <div className="finora-screen-page finora-goal-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+        <div className="kanakku-screen-page kanakku-goal-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
           {/* Immersive Hero Header */}
           <div className="relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 px-4 pt-4 pb-6">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-400 via-purple-400 to-indigo-400" />
@@ -698,7 +698,7 @@ export const AddGoal: React.FC = () => {
           </form>
         </div>
       ) : (
-        <div className="finora-screen-page finora-goal-entry w-full min-h-[100dvh] bg-slate-50 font-sans">
+        <div className="kanakku-screen-page kanakku-goal-entry w-full min-h-[100dvh] bg-slate-50 font-sans">
           <header className="w-full bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-md">

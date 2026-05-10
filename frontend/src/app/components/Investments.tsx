@@ -196,10 +196,10 @@ export const Investments: React.FC = () => {
       >
         <Button
           onClick={() => setCurrentPage('add-investment')}
-          className="rounded-full h-9 sm:h-10 px-3 sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm"
+          className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-6 rounded-2xl font-bold flex items-center gap-2"
         >
-          <Plus size={14} className="sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          Add Investment
+          <Plus size={18} />
+          <span>Add Investment</span>
         </Button>
       </PageHeader>
 

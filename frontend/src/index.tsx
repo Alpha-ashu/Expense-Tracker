@@ -4,7 +4,11 @@ import App from '@/app/App';
 import { BrowserRouter } from 'react-router-dom';
 import { financialDataCaptureService } from '@/services/financialDataCaptureService';
 import { setupGlobalErrorHandlers } from '@/lib/errorHandling';
+import { runGlobalMigration } from '@/lib/migration';
 import '@/styles/index.css';
+
+// Perform global brand migration (Finora -> Kanakku) before anything else
+runGlobalMigration();
 
 // Capture uncaught errors and unhandled rejections from app startup
 setupGlobalErrorHandlers();

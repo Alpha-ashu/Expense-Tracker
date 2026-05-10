@@ -298,12 +298,7 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
       stack: error.stack,
       userId: req.userId
     });
-
-    return res.json({
-      success: true,
-      message: 'Profile update queued (backend sync pending)',
-      data: buildProfilePayload(req.userId || '', req.user, null, null),
-    });
+    return next(error);
   }
 };
 

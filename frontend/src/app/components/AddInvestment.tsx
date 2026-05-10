@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { Button } from '@/components/ui/button';
 import { SearchableDropdown } from '@/app/components/ui/SearchableDropdown';
 import { backendService } from '@/lib/backend-api';
 import { saveTransactionWithBackendSync } from '@/lib/auth-sync-integration';
@@ -753,45 +754,40 @@ export const AddInvestment: React.FC = () => {
         </div>
       ) : (
         <div className="flex-1 w-full bg-slate-50 min-h-screen flex flex-col items-center">
-          <header className="w-full bg-white border-b border-slate-100 sticky top-0 z-30">
-            <div className="layout-container layout-header">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg">
-                  <TrendingUp size={18} className="text-white" />
-                </div>
-                <div>
-                  <h1 className="text-lg font-black text-slate-900 tracking-tighter uppercase">Add Investment</h1>
-                </div>
-              </div>
+          <div className="layout-container py-4 sticky top-0 z-30">
+            <PageHeader
+              title="Add Investment"
+              subtitle="Build your portfolio"
+              icon={<TrendingUp size={24} />}
+            >
               <div className="flex items-center gap-3">
-                <button 
-                  type="button" 
+                <Button 
+                  variant="secondary"
                   onClick={() => setCurrentPage('investments')}
-                  className="finora-btn finora-btn-secondary"
+                  className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-12 px-5 rounded-2xl font-bold"
                 >
-                  <span>Cancel</span>
-                </button>
-                <button 
-                  type="button"
+                  Cancel
+                </Button>
+                <Button 
                   onClick={handleSubmit}
-                  className="finora-btn finora-btn-primary !bg-slate-900"
+                  className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-5 rounded-2xl font-bold"
                 >
-                  <span>Save Asset</span>
-                </button>
+                  Save Asset
+                </Button>
               </div>
-            </div>
-          </header>
+            </PageHeader>
+          </div>
 
           <main className="layout-container py-8">
             <div className="grid grid-cols-12 gap-8">
               {/* Left Column: Form Details */}
               <div className="lg:col-span-8 space-y-6">
-                <div className="finora-card">
+                <div className="kanakku-card">
                 <form onSubmit={handleSubmit} className="space-y-8">
                   {/* Row 1: Type & Search */}
                   <div className="grid grid-cols-12 gap-6">
                     <div className="col-span-4 space-y-3">
-                      <p className="finora-label">Asset Category</p>
+                      <p className="kanakku-label">Asset Category</p>
                       <SearchableDropdown
                         options={investmentTypeOptions}
                         value={formData.type}
@@ -802,7 +798,7 @@ export const AddInvestment: React.FC = () => {
                       />
                     </div>
                     <div className="col-span-8 space-y-3 relative">
-                      <p className="finora-label">Asset Search (Stock/Crypto)</p>
+                      <p className="kanakku-label">Asset Search (Stock/Crypto)</p>
                       <div className="relative">
                         <input
                           type="text"
@@ -814,7 +810,7 @@ export const AddInvestment: React.FC = () => {
                             setShowSuggestions(true);
                           }}
                           onFocus={() => { if (formData.name.length >= 2) setShowSuggestions(true); }}
-                          className="finora-input h-16 text-lg"
+                          className="kanakku-input h-16 text-lg"
                           placeholder={formData.type === 'crypto' ? "Search BTC, ETH, SOL..." : "Search AAPL, TSLA, RELIANCE..."}
                           required
                         />

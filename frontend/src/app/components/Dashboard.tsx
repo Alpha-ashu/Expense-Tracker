@@ -268,15 +268,19 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
 
         {/* Header */}
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-4 lg:pb-6">
-          <PageHeader title="Dashboard" subtitle="Manage your financial overview" icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />} />
-        </div>
-
-        {/* Time Filter */}
-        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <TimeFilter value={timePeriod} onChange={setTimePeriod} />
-            <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
-          </div>
+          <PageHeader 
+            title="Financial Overview" 
+            subtitle={`Hello! Here's what's happening with your money ${timePeriod === 'all' ? 'overall' : 'this ' + timePeriod.replace('ly', '')}`}
+            icon={<Activity size={24} />}
+          >
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <TimeFilter value={timePeriod} onChange={setTimePeriod} />
+              <div className="hidden xl:block h-8 w-px bg-slate-200 mx-2" />
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest hidden md:block">
+                {getPeriodLabel(timePeriod)}
+              </p>
+            </div>
+          </PageHeader>
         </div>
 
         {stockSetupHint && (

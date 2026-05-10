@@ -49,7 +49,7 @@ import {
   YAxis,
 } from 'recharts';
 
-//  FINORA AI ADMIN DASHBOARD
+//  kanakku AI ADMIN DASHBOARD
 // Enhanced with new AI learning metrics and insights
 
 //  Types 

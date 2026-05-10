@@ -8,6 +8,7 @@ import { Plus, Users, Trash2, Edit2, Check, X, CalendarDays } from 'lucide-react
 import { Button } from '@/app/components/ui/button';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/DeleteConfirmModal';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 import { readVoiceDraft, VOICE_GROUP_DRAFT_KEY, type VoiceGroupDraft } from '@/lib/voiceDrafts';
 
 const avatarToneClasses = [
@@ -217,56 +218,29 @@ export const Groups: React.FC = () => {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
       
-      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="w-6 h-6 text-gray-900" />
-            Group Expenses
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Track shared bills and pending collections</p>
-        </div>
+      <PageHeader
+        title="Group Expenses"
+        subtitle="Track shared bills and pending collections"
+        icon={<Users size={24} />}
+      >
         <div className="flex gap-3">
           <Button
+            variant="secondary"
             onClick={() => setCurrentPage('add-friends')}
-            className="shadow-sm bg-gray-100 text-gray-800 hover:bg-gray-200 text-sm font-semibold h-10 px-4 rounded-2xl"
+            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-12 px-5 rounded-2xl font-bold flex items-center gap-2"
           >
-            <Plus size={18} className="mr-2" />
-            Add Friend
+            <Plus size={18} />
+            <span>Friend</span>
           </Button>
           <Button
             onClick={openGroupExpenseForm}
-            className="shadow-lg bg-gray-900 text-white hover:bg-gray-800 text-sm font-semibold h-10 px-4 rounded-2xl transition-colors"
+            className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-5 rounded-2xl font-bold flex items-center gap-2"
           >
-            <Plus size={18} className="mr-2" />
-            Add Group Expense
+            <Plus size={18} />
+            <span>Expense</span>
           </Button>
         </div>
-      </div>
-
-      
-      <div className="lg:hidden flex flex-col gap-4 pt-12 pb-6 px-6 relative z-10">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <Users className="w-8 h-8" />
-            Group Expenses
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">Track shared bills and collections</p>
-        </div>
-        <div className="flex gap-2 w-full mt-2">
-          <button 
-            onClick={() => setCurrentPage('add-friends')}
-            className="flex-1 h-12 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-900 font-semibold text-sm transition-colors active:scale-95"
-          >
-            <Plus size={18} className="mr-1.5" /> Friend
-          </button>
-          <button 
-            onClick={openGroupExpenseForm}
-            className="flex-1 h-12 rounded-2xl bg-gray-900 flex items-center justify-center text-white font-semibold text-sm shadow-lg transition-colors active:scale-95"
-          >
-            <Plus size={18} className="mr-1.5" /> Expense
-          </button>
-        </div>
-      </div>
+      </PageHeader>
 
       <section className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -51,7 +51,7 @@ interface SyncQueueItem {
 
 const MAX_SYNC_RETRIES = 10;
 
-const SYNC_QUEUE_STORAGE_KEY = 'finora_sync_queue_v3';
+const SYNC_QUEUE_STORAGE_KEY = 'kanakku_sync_queue_v3';
 const CORE_SYNC_TABLES: SyncedTableName[] = [
   'accounts',
   'friends',
@@ -2004,7 +2004,7 @@ export function subscribeToUserCloudSync(userId: string) {
     };
   }
 
-  const channel = supabase.channel(`finora-user-sync-${userId}`);
+  const channel = supabase.channel(`kanakku-user-sync-${userId}`);
 
   for (const table of subscribableTables) {
     channel.on(

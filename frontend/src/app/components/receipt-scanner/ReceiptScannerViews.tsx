@@ -199,19 +199,22 @@ export const ResultsView: React.FC<{
   const effectiveCurrency = scanResult.currency || currency;
 
   return (
-    <div className="finora-receipt-review">
-      <div className="finora-receipt-review__top">
+    <div className="kanakku-receipt-review">
+      <div className="kanakku-receipt-review__top">
         <ConfidenceBadge confidence={scanResult.confidence ?? 0} />
         {scanResult.location && scanResult.location !== 'UNKNOWN' && (
           <LocationBadge location={scanResult.location} />
         )}
       </div>
 
-      {scanResult.validationResult && !scanResult.validationResult.isValid && (
+      {((scanResult.validationResult && !scanResult.validationResult.isValid) || scanResult.amountMismatchDetected) && (
         <ValidationWarning
-          calculated={scanResult.validationResult.calculated}
-          detected={scanResult.validationResult.detected}
+          calculated={scanResult.validationResult?.calculated ?? 0}
+          detected={scanResult.validationResult?.detected ?? scanResult.amount ?? 0}
           currency={effectiveCurrency}
+          amountMismatchDetected={scanResult.amountMismatchDetected}
+          amountCandidates={scanResult.amountCandidates}
+          onSelectCandidate={(val) => onFieldChange('amount', val)}
         />
       )}
 
@@ -229,41 +232,24 @@ export const ResultsView: React.FC<{
             </p>
           </div>
 
-          <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="col-span-2 sm:col-span-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <AmountField amount={scanResult.amount} currency={effectiveCurrency} onChange={(value) => onFieldChange('amount', value)} />
-            </div>
+            <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="col-span-2 sm:col-span-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                <AmountField 
+                  amount={scanResult.amount} 
+                  currency={effectiveCurrency} 
+                  hasError={scanResult.amountMismatchDetected}
+                  onChange={(value) => onFieldChange('amount', value)} 
+                />
+              </div>
 
-            <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <TextField label="Merchant" value={scanResult.merchantName || ''} onChange={(value) => onFieldChange('merchantName', value)} placeholder="Merchant name" />
-            </div>
-            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <DateField label="Date" value={scanResult.date} onChange={(date) => onFieldChange('date', date)} />
-            </div>
-            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <TextField label="Time" value={scanResult.time || ''} onChange={(value) => onFieldChange('time', value)} placeholder="18:45" />
-            </div>
+              <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                <TextField label="Merchant" value={scanResult.merchantName || ''} onChange={(value) => onFieldChange('merchantName', value)} placeholder="Merchant name" />
+              </div>
 
-            <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <SelectField label="Category" value={scanResult.category || ''} options={expenseCategoryOptions} onChange={(value) => onFieldChange('category', value)} />
+              <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                <NumberField label="Tax Amount" value={scanResult.taxAmount} onChange={(value) => onFieldChange('taxAmount', value)} />
+              </div>
             </div>
-            <div className="col-span-2 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <SubcategoryField category={scanResult.category || ''} value={scanResult.subcategory || ''} onChange={onSubcategoryChange} />
-            </div>
-
-            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <NumberField label="Subtotal" value={scanResult.subtotal} onChange={(value) => onFieldChange('subtotal', value)} />
-            </div>
-            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <NumberField label="Tax" value={scanResult.taxAmount} onChange={(value) => onFieldChange('taxAmount', value)} />
-            </div>
-            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <TextField label="Payment" value={scanResult.paymentMethod || ''} onChange={(value) => onFieldChange('paymentMethod', value)} placeholder="Card/UPI..." />
-            </div>
-            <div className="col-span-1 p-2 bg-gray-50 rounded-xl border border-gray-100">
-              <TextField label="Currency" value={effectiveCurrency} onChange={(value) => onFieldChange('currency', value.toUpperCase())} />
-            </div>
-          </div>
         </section>
 
         {/* Sidebar Area */}
@@ -352,14 +338,49 @@ const ValidationWarning: React.FC<{
   calculated: number;
   detected: number;
   currency: string;
-}> = ({ calculated, detected, currency }) => {
+  amountMismatchDetected?: boolean;
+  amountCandidates?: number[];
+  onSelectCandidate?: (amount: number) => void;
+}> = ({ calculated, detected, currency, amountMismatchDetected, amountCandidates, onSelectCandidate }) => {
+  if (amountMismatchDetected) {
+    return (
+      <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-3.5 mb-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={18} className="shrink-0 text-red-500 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold text-red-800">Possible amount mismatch detected</p>
+            <p className="text-xs text-red-700 mt-1">
+              The printed total on the receipt does not match the sum of items and taxes mathematically.
+            </p>
+          </div>
+        </div>
+        {amountCandidates && amountCandidates.length > 0 && onSelectCandidate && (
+          <div className="mt-2 pl-7">
+            <p className="text-[10px] font-bold text-red-800/60 mb-2 uppercase tracking-widest">Detected Candidates:</p>
+            <div className="flex flex-wrap gap-2">
+              {amountCandidates.map((candidate, i) => (
+                <button
+                  key={i}
+                  onClick={() => onSelectCandidate(candidate)}
+                  className="px-3 py-1.5 bg-white border border-red-100 rounded-lg text-sm font-bold text-red-600 hover:bg-red-50 transition-colors shadow-sm"
+                >
+                  {currency} {candidate.toFixed(2)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const calculatedIsHigher = calculated > detected;
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-3.5">
+    <div className="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-3.5 mb-4">
       <AlertTriangle size={18} className="shrink-0 text-amber-500 mt-0.5" />
       <div>
         <p className="text-sm font-bold text-amber-800">Amount verify needed</p>
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-amber-700 mt-1">
           {calculatedIsHigher ? (
             <>
               The printed figure <strong>{currency} {detected.toFixed(2)}</strong> may be a partial or pre-tax amount.
@@ -398,7 +419,7 @@ const TaxBreakdownPanel: React.FC<{
   const totalTax = taxes.reduce((s, t) => s + t.amount, 0);
 
   return (
-    <div className="finora-receipt-card overflow-hidden border-orange-100 bg-orange-50">
+    <div className="kanakku-receipt-card overflow-hidden border-orange-100 bg-orange-50">
       <div className="flex items-center gap-2 border-b border-orange-100 px-4 py-3">
         <Layers size={14} className="text-orange-500" />
         <p className="text-[10px] font-bold uppercase tracking-widest text-orange-600">
@@ -439,7 +460,7 @@ const ItemsPanel: React.FC<{
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="finora-receipt-card overflow-hidden border-gray-200 bg-white">
+    <div className="kanakku-receipt-card overflow-hidden border-gray-200 bg-white">
       <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
         <Receipt size={14} className="text-gray-500" />
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
@@ -474,20 +495,21 @@ const ItemsPanel: React.FC<{
 const AmountField: React.FC<{
   amount?: number;
   currency: string;
+  hasError?: boolean;
   onChange: (value: number) => void;
-}> = ({ amount, currency, onChange }) => (
-  <div className="finora-receipt-field finora-receipt-amount">
-    <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+}> = ({ amount, currency, hasError, onChange }) => (
+  <div className={cn("kanakku-receipt-field kanakku-receipt-amount transition-colors", hasError && "rounded-lg bg-red-50/80 p-2")}>
+    <label className={cn("mb-1 block text-[10px] font-bold uppercase tracking-widest", hasError ? "text-red-500" : "text-gray-400")}>
       Total Amount *
     </label>
     <div className="flex items-center gap-2">
-      <span className="text-sm font-bold text-gray-500">{currency}</span>
+      <span className={cn("text-sm font-bold", hasError ? "text-red-500" : "text-gray-500")}>{currency}</span>
       <input
         type="number"
         step="0.01"
         value={amount || ''}
         onChange={(event) => onChange(parseFloat(event.target.value) || 0)}
-        className="font-display flex-1 bg-transparent text-2xl font-bold text-gray-900 focus:outline-none"
+        className={cn("font-display flex-1 bg-transparent text-2xl font-bold focus:outline-none transition-colors", hasError ? "text-red-600" : "text-gray-900")}
         placeholder="0.00"
       />
     </div>
@@ -501,7 +523,7 @@ const TextField: React.FC<{
   placeholder?: string;
   className?: string;
 }> = ({ label, value, onChange, placeholder, className }) => (
-  <div className={cn('finora-receipt-field', className)}>
+  <div className={cn('kanakku-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -521,7 +543,7 @@ const NumberField: React.FC<{
   onChange: (value?: number) => void;
   className?: string;
 }> = ({ label, value, onChange, className }) => (
-  <div className={cn('finora-receipt-field', className)}>
+  <div className={cn('kanakku-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -543,7 +565,7 @@ const DateField: React.FC<{
   onChange: (date?: Date) => void;
   className?: string;
 }> = ({ label, value, onChange, className }) => (
-  <div className={cn('finora-receipt-field', className)}>
+  <div className={cn('kanakku-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -568,7 +590,7 @@ const SelectField: React.FC<{
   onChange: (value: string) => void;
   className?: string;
 }> = ({ label, value, options, onChange, className }) => (
-  <div className={cn('finora-receipt-field', className)}>
+  <div className={cn('kanakku-receipt-field', className)}>
     <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       {label}
     </label>
@@ -608,7 +630,7 @@ const SubcategoryField: React.FC<{
   };
 
   return (
-    <div className="finora-receipt-field finora-receipt-field--wide">
+    <div className="kanakku-receipt-field kanakku-receipt-field--wide">
       <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
         Subcategory
       </label>
@@ -663,7 +685,7 @@ const AccountSelector: React.FC<{
   currency: string;
   onChange: (id: number | null) => void;
 }> = ({ accounts, selectedId, currency, onChange }) => (
-  <div className="finora-receipt-card p-4">
+  <div className="kanakku-receipt-card p-4">
     <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
       Charge to Account *
     </label>
@@ -694,7 +716,7 @@ const ActionButtons: React.FC<{
   expenseMode: 'individual' | 'group';
   isDisabled: boolean;
 }> = ({ onRescan, onSubmit, isFormPrefillMode, expenseMode, isDisabled }) => (
-  <div className="finora-receipt-actions">
+  <div className="kanakku-receipt-actions">
     <button
       onClick={onRescan}
       className="flex-[0.4] flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-50"

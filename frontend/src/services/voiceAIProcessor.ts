@@ -1,4 +1,4 @@
-import { finoraAI } from './finoraIntelligenceEngine';
+import { kanakkuAI } from './kanakkuIntelligenceEngine';
 import { parseMultipleTransactions, parseVoiceExpense } from '@/lib/voiceExpenseParser';
 
 export interface VoiceExpenseResult {
@@ -222,7 +222,7 @@ class VoiceAIProcessor {
         date: this.extractDate(description),
       };
 
-      const aiResult = await finoraAI.extractExpenseData(description, 'voice', this.userId);
+      const aiResult = await kanakkuAI.extractExpenseData(description, 'voice', this.userId);
       result.category = result.category || aiResult.category;
       result.confidence = Math.max(result.confidence, aiResult.confidence);
 
@@ -271,7 +271,7 @@ class VoiceAIProcessor {
     result.date = this.extractDate(chunk);
     
     //  Use Kanakku AI for intelligent categorization
-    const aiResult = await finoraAI.extractExpenseData(chunk, 'voice', this.userId);
+    const aiResult = await kanakkuAI.extractExpenseData(chunk, 'voice', this.userId);
     
     result.category = aiResult.category;
     result.confidence = Math.max(result.confidence, aiResult.confidence);
@@ -469,7 +469,7 @@ class VoiceAIProcessor {
       const category = correctedExpense.category;
       
       if (merchant && category) {
-        await finoraAI.learnFromFeedback(
+        await kanakkuAI.learnFromFeedback(
           this.userId,
           merchant,
           category,

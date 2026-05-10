@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/app/
 import { NavigationItem } from '@/app/constants/navigation';
 import { useSharedMenu } from '@/hooks/useSharedMenu';
 import { GripVertical } from 'lucide-react';
-import { FinoraLogo } from './ui/FinoraLogo';
+import { KanakkuLogo } from './ui/KanakkuLogo';
 
 interface DraggableSidebarItemProps {
   item: NavigationItem;
@@ -81,7 +81,7 @@ export const Sidebar: React.FC = () => {
     >
       <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-floating rounded-[30px] flex flex-col items-center py-6 w-24 max-h-[90vh]">
         <div className="mb-8">
-          <FinoraLogo className="w-12 h-12 drop-shadow-md" />
+          <KanakkuLogo className="w-12 h-12 drop-shadow-md" />
         </div>
 
         <nav className="w-full px-4 flex flex-col items-center overflow-y-auto scrollbar-hide shrink-0 pb-2">

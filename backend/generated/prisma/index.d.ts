@@ -4214,11 +4214,11 @@ export namespace Prisma {
   }
 
   export type AccountAvgAggregateOutputType = {
-    balance: number | null
+    balance: Decimal | null
   }
 
   export type AccountSumAggregateOutputType = {
-    balance: number | null
+    balance: Decimal | null
   }
 
   export type AccountMinAggregateOutputType = {
@@ -4229,7 +4229,7 @@ export namespace Prisma {
     type: string | null
     provider: string | null
     country: string | null
-    balance: number | null
+    balance: Decimal | null
     currency: string | null
     isActive: boolean | null
     syncStatus: string | null
@@ -4246,7 +4246,7 @@ export namespace Prisma {
     type: string | null
     provider: string | null
     country: string | null
-    balance: number | null
+    balance: Decimal | null
     currency: string | null
     isActive: boolean | null
     syncStatus: string | null
@@ -4428,7 +4428,7 @@ export namespace Prisma {
     type: string
     provider: string | null
     country: string | null
-    balance: number
+    balance: Decimal
     currency: string
     isActive: boolean
     syncStatus: string
@@ -4562,7 +4562,7 @@ export namespace Prisma {
       type: string
       provider: string | null
       country: string | null
-      balance: number
+      balance: Prisma.Decimal
       currency: string
       isActive: boolean
       syncStatus: string
@@ -5003,7 +5003,7 @@ export namespace Prisma {
     readonly type: FieldRef<"Account", 'String'>
     readonly provider: FieldRef<"Account", 'String'>
     readonly country: FieldRef<"Account", 'String'>
-    readonly balance: FieldRef<"Account", 'Float'>
+    readonly balance: FieldRef<"Account", 'Decimal'>
     readonly currency: FieldRef<"Account", 'String'>
     readonly isActive: FieldRef<"Account", 'Boolean'>
     readonly syncStatus: FieldRef<"Account", 'String'>
@@ -7906,12 +7906,12 @@ export namespace Prisma {
 
   export type BookingRequestAvgAggregateOutputType = {
     duration: number | null
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type BookingRequestSumAggregateOutputType = {
     duration: number | null
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type BookingRequestMinAggregateOutputType = {
@@ -7923,7 +7923,7 @@ export namespace Prisma {
     proposedDate: Date | null
     proposedTime: string | null
     duration: number | null
-    amount: number | null
+    amount: Decimal | null
     status: string | null
     rejectionReason: string | null
     createdAt: Date | null
@@ -7939,7 +7939,7 @@ export namespace Prisma {
     proposedDate: Date | null
     proposedTime: string | null
     duration: number | null
-    amount: number | null
+    amount: Decimal | null
     status: string | null
     rejectionReason: string | null
     createdAt: Date | null
@@ -8118,7 +8118,7 @@ export namespace Prisma {
     proposedDate: Date
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal
     status: string
     rejectionReason: string | null
     createdAt: Date
@@ -8246,7 +8246,7 @@ export namespace Prisma {
       proposedDate: Date
       proposedTime: string
       duration: number
-      amount: number
+      amount: Prisma.Decimal
       status: string
       rejectionReason: string | null
       createdAt: Date
@@ -8685,7 +8685,7 @@ export namespace Prisma {
     readonly proposedDate: FieldRef<"BookingRequest", 'DateTime'>
     readonly proposedTime: FieldRef<"BookingRequest", 'String'>
     readonly duration: FieldRef<"BookingRequest", 'Int'>
-    readonly amount: FieldRef<"BookingRequest", 'Float'>
+    readonly amount: FieldRef<"BookingRequest", 'Decimal'>
     readonly status: FieldRef<"BookingRequest", 'String'>
     readonly rejectionReason: FieldRef<"BookingRequest", 'String'>
     readonly createdAt: FieldRef<"BookingRequest", 'DateTime'>
@@ -14819,13 +14819,13 @@ export namespace Prisma {
   }
 
   export type GoalAvgAggregateOutputType = {
-    targetAmount: number | null
-    currentAmount: number | null
+    targetAmount: Decimal | null
+    currentAmount: Decimal | null
   }
 
   export type GoalSumAggregateOutputType = {
-    targetAmount: number | null
-    currentAmount: number | null
+    targetAmount: Decimal | null
+    currentAmount: Decimal | null
   }
 
   export type GoalMinAggregateOutputType = {
@@ -14834,8 +14834,8 @@ export namespace Prisma {
     deviceId: string | null
     name: string | null
     description: string | null
-    targetAmount: number | null
-    currentAmount: number | null
+    targetAmount: Decimal | null
+    currentAmount: Decimal | null
     targetDate: Date | null
     category: string | null
     isGroupGoal: boolean | null
@@ -14851,8 +14851,8 @@ export namespace Prisma {
     deviceId: string | null
     name: string | null
     description: string | null
-    targetAmount: number | null
-    currentAmount: number | null
+    targetAmount: Decimal | null
+    currentAmount: Decimal | null
     targetDate: Date | null
     category: string | null
     isGroupGoal: boolean | null
@@ -15035,8 +15035,8 @@ export namespace Prisma {
     deviceId: string | null
     name: string
     description: string | null
-    targetAmount: number
-    currentAmount: number
+    targetAmount: Decimal
+    currentAmount: Decimal
     targetDate: Date
     category: string | null
     isGroupGoal: boolean
@@ -15163,8 +15163,8 @@ export namespace Prisma {
       deviceId: string | null
       name: string
       description: string | null
-      targetAmount: number
-      currentAmount: number
+      targetAmount: Prisma.Decimal
+      currentAmount: Prisma.Decimal
       targetDate: Date
       category: string | null
       isGroupGoal: boolean
@@ -15602,8 +15602,8 @@ export namespace Prisma {
     readonly deviceId: FieldRef<"Goal", 'String'>
     readonly name: FieldRef<"Goal", 'String'>
     readonly description: FieldRef<"Goal", 'String'>
-    readonly targetAmount: FieldRef<"Goal", 'Float'>
-    readonly currentAmount: FieldRef<"Goal", 'Float'>
+    readonly targetAmount: FieldRef<"Goal", 'Decimal'>
+    readonly currentAmount: FieldRef<"Goal", 'Decimal'>
     readonly targetDate: FieldRef<"Goal", 'DateTime'>
     readonly category: FieldRef<"Goal", 'String'>
     readonly isGroupGoal: FieldRef<"Goal", 'Boolean'>
@@ -16062,11 +16062,11 @@ export namespace Prisma {
   }
 
   export type GoalContributionAvgAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type GoalContributionSumAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type GoalContributionMinAggregateOutputType = {
@@ -16074,7 +16074,7 @@ export namespace Prisma {
     userId: string | null
     goalId: string | null
     accountId: string | null
-    amount: number | null
+    amount: Decimal | null
     date: Date | null
     memberName: string | null
     status: string | null
@@ -16088,7 +16088,7 @@ export namespace Prisma {
     userId: string | null
     goalId: string | null
     accountId: string | null
-    amount: number | null
+    amount: Decimal | null
     date: Date | null
     memberName: string | null
     status: string | null
@@ -16255,7 +16255,7 @@ export namespace Prisma {
     userId: string
     goalId: string
     accountId: string
-    amount: number
+    amount: Decimal
     date: Date
     memberName: string | null
     status: string | null
@@ -16377,7 +16377,7 @@ export namespace Prisma {
       userId: string
       goalId: string
       accountId: string
-      amount: number
+      amount: Prisma.Decimal
       date: Date
       memberName: string | null
       status: string | null
@@ -16814,7 +16814,7 @@ export namespace Prisma {
     readonly userId: FieldRef<"GoalContribution", 'String'>
     readonly goalId: FieldRef<"GoalContribution", 'String'>
     readonly accountId: FieldRef<"GoalContribution", 'String'>
-    readonly amount: FieldRef<"GoalContribution", 'Float'>
+    readonly amount: FieldRef<"GoalContribution", 'Decimal'>
     readonly date: FieldRef<"GoalContribution", 'DateTime'>
     readonly memberName: FieldRef<"GoalContribution", 'String'>
     readonly status: FieldRef<"GoalContribution", 'String'>
@@ -18512,21 +18512,21 @@ export namespace Prisma {
   }
 
   export type InvestmentAvgAggregateOutputType = {
-    quantity: number | null
-    buyPrice: number | null
-    currentPrice: number | null
-    totalInvested: number | null
-    currentValue: number | null
-    profitLoss: number | null
+    quantity: Decimal | null
+    buyPrice: Decimal | null
+    currentPrice: Decimal | null
+    totalInvested: Decimal | null
+    currentValue: Decimal | null
+    profitLoss: Decimal | null
   }
 
   export type InvestmentSumAggregateOutputType = {
-    quantity: number | null
-    buyPrice: number | null
-    currentPrice: number | null
-    totalInvested: number | null
-    currentValue: number | null
-    profitLoss: number | null
+    quantity: Decimal | null
+    buyPrice: Decimal | null
+    currentPrice: Decimal | null
+    totalInvested: Decimal | null
+    currentValue: Decimal | null
+    profitLoss: Decimal | null
   }
 
   export type InvestmentMinAggregateOutputType = {
@@ -18534,12 +18534,12 @@ export namespace Prisma {
     userId: string | null
     assetType: string | null
     assetName: string | null
-    quantity: number | null
-    buyPrice: number | null
-    currentPrice: number | null
-    totalInvested: number | null
-    currentValue: number | null
-    profitLoss: number | null
+    quantity: Decimal | null
+    buyPrice: Decimal | null
+    currentPrice: Decimal | null
+    totalInvested: Decimal | null
+    currentValue: Decimal | null
+    profitLoss: Decimal | null
     purchaseDate: Date | null
     lastUpdated: Date | null
     createdAt: Date | null
@@ -18552,12 +18552,12 @@ export namespace Prisma {
     userId: string | null
     assetType: string | null
     assetName: string | null
-    quantity: number | null
-    buyPrice: number | null
-    currentPrice: number | null
-    totalInvested: number | null
-    currentValue: number | null
-    profitLoss: number | null
+    quantity: Decimal | null
+    buyPrice: Decimal | null
+    currentPrice: Decimal | null
+    totalInvested: Decimal | null
+    currentValue: Decimal | null
+    profitLoss: Decimal | null
     purchaseDate: Date | null
     lastUpdated: Date | null
     createdAt: Date | null
@@ -18749,12 +18749,12 @@ export namespace Prisma {
     userId: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal
+    buyPrice: Decimal
+    currentPrice: Decimal
+    totalInvested: Decimal
+    currentValue: Decimal
+    profitLoss: Decimal
     purchaseDate: Date
     lastUpdated: Date
     createdAt: Date
@@ -18877,12 +18877,12 @@ export namespace Prisma {
       userId: string
       assetType: string
       assetName: string
-      quantity: number
-      buyPrice: number
-      currentPrice: number
-      totalInvested: number
-      currentValue: number
-      profitLoss: number
+      quantity: Prisma.Decimal
+      buyPrice: Prisma.Decimal
+      currentPrice: Prisma.Decimal
+      totalInvested: Prisma.Decimal
+      currentValue: Prisma.Decimal
+      profitLoss: Prisma.Decimal
       purchaseDate: Date
       lastUpdated: Date
       createdAt: Date
@@ -19316,12 +19316,12 @@ export namespace Prisma {
     readonly userId: FieldRef<"Investment", 'String'>
     readonly assetType: FieldRef<"Investment", 'String'>
     readonly assetName: FieldRef<"Investment", 'String'>
-    readonly quantity: FieldRef<"Investment", 'Float'>
-    readonly buyPrice: FieldRef<"Investment", 'Float'>
-    readonly currentPrice: FieldRef<"Investment", 'Float'>
-    readonly totalInvested: FieldRef<"Investment", 'Float'>
-    readonly currentValue: FieldRef<"Investment", 'Float'>
-    readonly profitLoss: FieldRef<"Investment", 'Float'>
+    readonly quantity: FieldRef<"Investment", 'Decimal'>
+    readonly buyPrice: FieldRef<"Investment", 'Decimal'>
+    readonly currentPrice: FieldRef<"Investment", 'Decimal'>
+    readonly totalInvested: FieldRef<"Investment", 'Decimal'>
+    readonly currentValue: FieldRef<"Investment", 'Decimal'>
+    readonly profitLoss: FieldRef<"Investment", 'Decimal'>
     readonly purchaseDate: FieldRef<"Investment", 'DateTime'>
     readonly lastUpdated: FieldRef<"Investment", 'DateTime'>
     readonly createdAt: FieldRef<"Investment", 'DateTime'>
@@ -19754,17 +19754,17 @@ export namespace Prisma {
   }
 
   export type LoanAvgAggregateOutputType = {
-    principalAmount: number | null
-    outstandingBalance: number | null
-    interestRate: number | null
-    emiAmount: number | null
+    principalAmount: Decimal | null
+    outstandingBalance: Decimal | null
+    interestRate: Decimal | null
+    emiAmount: Decimal | null
   }
 
   export type LoanSumAggregateOutputType = {
-    principalAmount: number | null
-    outstandingBalance: number | null
-    interestRate: number | null
-    emiAmount: number | null
+    principalAmount: Decimal | null
+    outstandingBalance: Decimal | null
+    interestRate: Decimal | null
+    emiAmount: Decimal | null
   }
 
   export type LoanMinAggregateOutputType = {
@@ -19773,10 +19773,10 @@ export namespace Prisma {
     deviceId: string | null
     type: string | null
     name: string | null
-    principalAmount: number | null
-    outstandingBalance: number | null
-    interestRate: number | null
-    emiAmount: number | null
+    principalAmount: Decimal | null
+    outstandingBalance: Decimal | null
+    interestRate: Decimal | null
+    emiAmount: Decimal | null
     dueDate: Date | null
     frequency: string | null
     status: string | null
@@ -19793,10 +19793,10 @@ export namespace Prisma {
     deviceId: string | null
     type: string | null
     name: string | null
-    principalAmount: number | null
-    outstandingBalance: number | null
-    interestRate: number | null
-    emiAmount: number | null
+    principalAmount: Decimal | null
+    outstandingBalance: Decimal | null
+    interestRate: Decimal | null
+    emiAmount: Decimal | null
     dueDate: Date | null
     frequency: string | null
     status: string | null
@@ -19996,10 +19996,10 @@ export namespace Prisma {
     deviceId: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate: number | null
-    emiAmount: number | null
+    principalAmount: Decimal
+    outstandingBalance: Decimal
+    interestRate: Decimal | null
+    emiAmount: Decimal | null
     dueDate: Date | null
     frequency: string | null
     status: string
@@ -20139,10 +20139,10 @@ export namespace Prisma {
       deviceId: string | null
       type: string
       name: string
-      principalAmount: number
-      outstandingBalance: number
-      interestRate: number | null
-      emiAmount: number | null
+      principalAmount: Prisma.Decimal
+      outstandingBalance: Prisma.Decimal
+      interestRate: Prisma.Decimal | null
+      emiAmount: Prisma.Decimal | null
       dueDate: Date | null
       frequency: string | null
       status: string
@@ -20581,10 +20581,10 @@ export namespace Prisma {
     readonly deviceId: FieldRef<"Loan", 'String'>
     readonly type: FieldRef<"Loan", 'String'>
     readonly name: FieldRef<"Loan", 'String'>
-    readonly principalAmount: FieldRef<"Loan", 'Float'>
-    readonly outstandingBalance: FieldRef<"Loan", 'Float'>
-    readonly interestRate: FieldRef<"Loan", 'Float'>
-    readonly emiAmount: FieldRef<"Loan", 'Float'>
+    readonly principalAmount: FieldRef<"Loan", 'Decimal'>
+    readonly outstandingBalance: FieldRef<"Loan", 'Decimal'>
+    readonly interestRate: FieldRef<"Loan", 'Decimal'>
+    readonly emiAmount: FieldRef<"Loan", 'Decimal'>
     readonly dueDate: FieldRef<"Loan", 'DateTime'>
     readonly frequency: FieldRef<"Loan", 'String'>
     readonly status: FieldRef<"Loan", 'String'>
@@ -21044,17 +21044,17 @@ export namespace Prisma {
   }
 
   export type LoanPaymentAvgAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type LoanPaymentSumAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type LoanPaymentMinAggregateOutputType = {
     id: string | null
     loanId: string | null
-    amount: number | null
+    amount: Decimal | null
     accountId: string | null
     date: Date | null
     notes: string | null
@@ -21065,7 +21065,7 @@ export namespace Prisma {
   export type LoanPaymentMaxAggregateOutputType = {
     id: string | null
     loanId: string | null
-    amount: number | null
+    amount: Decimal | null
     accountId: string | null
     date: Date | null
     notes: string | null
@@ -21217,7 +21217,7 @@ export namespace Prisma {
   export type LoanPaymentGroupByOutputType = {
     id: string
     loanId: string
-    amount: number
+    amount: Decimal
     accountId: string | null
     date: Date
     notes: string | null
@@ -21310,7 +21310,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       loanId: string
-      amount: number
+      amount: Prisma.Decimal
       accountId: string | null
       date: Date
       notes: string | null
@@ -21742,7 +21742,7 @@ export namespace Prisma {
   interface LoanPaymentFieldRefs {
     readonly id: FieldRef<"LoanPayment", 'String'>
     readonly loanId: FieldRef<"LoanPayment", 'String'>
-    readonly amount: FieldRef<"LoanPayment", 'Float'>
+    readonly amount: FieldRef<"LoanPayment", 'Decimal'>
     readonly accountId: FieldRef<"LoanPayment", 'String'>
     readonly date: FieldRef<"LoanPayment", 'DateTime'>
     readonly notes: FieldRef<"LoanPayment", 'String'>
@@ -23311,11 +23311,11 @@ export namespace Prisma {
   }
 
   export type PaymentAvgAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type PaymentSumAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
   }
 
   export type PaymentMinAggregateOutputType = {
@@ -23323,7 +23323,7 @@ export namespace Prisma {
     sessionId: string | null
     clientId: string | null
     advisorId: string | null
-    amount: number | null
+    amount: Decimal | null
     currency: string | null
     status: string | null
     paymentMethod: string | null
@@ -23338,7 +23338,7 @@ export namespace Prisma {
     sessionId: string | null
     clientId: string | null
     advisorId: string | null
-    amount: number | null
+    amount: Decimal | null
     currency: string | null
     status: string | null
     paymentMethod: string | null
@@ -23510,7 +23510,7 @@ export namespace Prisma {
     sessionId: string
     clientId: string
     advisorId: string
-    amount: number
+    amount: Decimal
     currency: string
     status: string
     paymentMethod: string | null
@@ -23637,7 +23637,7 @@ export namespace Prisma {
       sessionId: string
       clientId: string
       advisorId: string
-      amount: number
+      amount: Prisma.Decimal
       currency: string
       status: string
       paymentMethod: string | null
@@ -24075,7 +24075,7 @@ export namespace Prisma {
     readonly sessionId: FieldRef<"Payment", 'String'>
     readonly clientId: FieldRef<"Payment", 'String'>
     readonly advisorId: FieldRef<"Payment", 'String'>
-    readonly amount: FieldRef<"Payment", 'Float'>
+    readonly amount: FieldRef<"Payment", 'Decimal'>
     readonly currency: FieldRef<"Payment", 'String'>
     readonly status: FieldRef<"Payment", 'String'>
     readonly paymentMethod: FieldRef<"Payment", 'String'>
@@ -27759,12 +27759,12 @@ export namespace Prisma {
   }
 
   export type TransactionAvgAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
     version: number | null
   }
 
   export type TransactionSumAggregateOutputType = {
-    amount: number | null
+    amount: Decimal | null
     version: number | null
   }
 
@@ -27774,7 +27774,7 @@ export namespace Prisma {
     deviceId: string | null
     accountId: string | null
     type: string | null
-    amount: number | null
+    amount: Decimal | null
     category: string | null
     subcategory: string | null
     description: string | null
@@ -27807,7 +27807,7 @@ export namespace Prisma {
     deviceId: string | null
     accountId: string | null
     type: string | null
-    amount: number | null
+    amount: Decimal | null
     category: string | null
     subcategory: string | null
     description: string | null
@@ -28071,7 +28071,7 @@ export namespace Prisma {
     deviceId: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal
     category: string
     subcategory: string | null
     description: string | null
@@ -28288,7 +28288,7 @@ export namespace Prisma {
       deviceId: string | null
       accountId: string
       type: string
-      amount: number
+      amount: Prisma.Decimal
       category: string
       subcategory: string | null
       description: string | null
@@ -28744,7 +28744,7 @@ export namespace Prisma {
     readonly deviceId: FieldRef<"Transaction", 'String'>
     readonly accountId: FieldRef<"Transaction", 'String'>
     readonly type: FieldRef<"Transaction", 'String'>
-    readonly amount: FieldRef<"Transaction", 'Float'>
+    readonly amount: FieldRef<"Transaction", 'Decimal'>
     readonly category: FieldRef<"Transaction", 'String'>
     readonly subcategory: FieldRef<"Transaction", 'String'>
     readonly description: FieldRef<"Transaction", 'String'>
@@ -29215,11 +29215,11 @@ export namespace Prisma {
   }
 
   export type UserAvgAggregateOutputType = {
-    salary: number | null
+    salary: Decimal | null
   }
 
   export type UserSumAggregateOutputType = {
-    salary: number | null
+    salary: Decimal | null
   }
 
   export type UserMinAggregateOutputType = {
@@ -29232,7 +29232,7 @@ export namespace Prisma {
     isApproved: boolean | null
     firstName: string | null
     lastName: string | null
-    salary: number | null
+    salary: Decimal | null
     dateOfBirth: Date | null
     jobType: string | null
     lastSynced: Date | null
@@ -29256,7 +29256,7 @@ export namespace Prisma {
     isApproved: boolean | null
     firstName: string | null
     lastName: string | null
-    salary: number | null
+    salary: Decimal | null
     dateOfBirth: Date | null
     jobType: string | null
     lastSynced: Date | null
@@ -29473,7 +29473,7 @@ export namespace Prisma {
     isApproved: boolean
     firstName: string | null
     lastName: string | null
-    salary: number | null
+    salary: Decimal | null
     dateOfBirth: Date | null
     jobType: string | null
     lastSynced: Date | null
@@ -29705,7 +29705,7 @@ export namespace Prisma {
       isApproved: boolean
       firstName: string | null
       lastName: string | null
-      salary: number | null
+      salary: Prisma.Decimal | null
       dateOfBirth: Date | null
       jobType: string | null
       lastSynced: Date | null
@@ -30176,7 +30176,7 @@ export namespace Prisma {
     readonly isApproved: FieldRef<"User", 'Boolean'>
     readonly firstName: FieldRef<"User", 'String'>
     readonly lastName: FieldRef<"User", 'String'>
-    readonly salary: FieldRef<"User", 'Float'>
+    readonly salary: FieldRef<"User", 'Decimal'>
     readonly dateOfBirth: FieldRef<"User", 'DateTime'>
     readonly jobType: FieldRef<"User", 'String'>
     readonly lastSynced: FieldRef<"User", 'DateTime'>
@@ -38888,13 +38888,13 @@ export namespace Prisma {
   }
 
   export type GroupExpenseAvgAggregateOutputType = {
-    totalAmount: number | null
-    yourShare: number | null
+    totalAmount: Decimal | null
+    yourShare: Decimal | null
   }
 
   export type GroupExpenseSumAggregateOutputType = {
-    totalAmount: number | null
-    yourShare: number | null
+    totalAmount: Decimal | null
+    yourShare: Decimal | null
   }
 
   export type GroupExpenseMinAggregateOutputType = {
@@ -38902,7 +38902,7 @@ export namespace Prisma {
     userId: string | null
     deviceId: string | null
     name: string | null
-    totalAmount: number | null
+    totalAmount: Decimal | null
     paidBy: string | null
     date: Date | null
     members: string | null
@@ -38911,7 +38911,7 @@ export namespace Prisma {
     category: string | null
     subcategory: string | null
     splitType: string | null
-    yourShare: number | null
+    yourShare: Decimal | null
     expenseTransactionId: string | null
     createdBy: string | null
     createdByName: string | null
@@ -38928,7 +38928,7 @@ export namespace Prisma {
     userId: string | null
     deviceId: string | null
     name: string | null
-    totalAmount: number | null
+    totalAmount: Decimal | null
     paidBy: string | null
     date: Date | null
     members: string | null
@@ -38937,7 +38937,7 @@ export namespace Prisma {
     category: string | null
     subcategory: string | null
     splitType: string | null
-    yourShare: number | null
+    yourShare: Decimal | null
     expenseTransactionId: string | null
     createdBy: string | null
     createdByName: string | null
@@ -39157,7 +39157,7 @@ export namespace Prisma {
     userId: string
     deviceId: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal
     paidBy: string | null
     date: Date
     members: string | null
@@ -39166,7 +39166,7 @@ export namespace Prisma {
     category: string | null
     subcategory: string | null
     splitType: string | null
-    yourShare: number | null
+    yourShare: Decimal | null
     expenseTransactionId: string | null
     createdBy: string | null
     createdByName: string | null
@@ -39340,7 +39340,7 @@ export namespace Prisma {
       userId: string
       deviceId: string | null
       name: string
-      totalAmount: number
+      totalAmount: Prisma.Decimal
       paidBy: string | null
       date: Date
       members: string | null
@@ -39349,7 +39349,7 @@ export namespace Prisma {
       category: string | null
       subcategory: string | null
       splitType: string | null
-      yourShare: number | null
+      yourShare: Prisma.Decimal | null
       expenseTransactionId: string | null
       createdBy: string | null
       createdByName: string | null
@@ -39790,7 +39790,7 @@ export namespace Prisma {
     readonly userId: FieldRef<"GroupExpense", 'String'>
     readonly deviceId: FieldRef<"GroupExpense", 'String'>
     readonly name: FieldRef<"GroupExpense", 'String'>
-    readonly totalAmount: FieldRef<"GroupExpense", 'Float'>
+    readonly totalAmount: FieldRef<"GroupExpense", 'Decimal'>
     readonly paidBy: FieldRef<"GroupExpense", 'String'>
     readonly date: FieldRef<"GroupExpense", 'DateTime'>
     readonly members: FieldRef<"GroupExpense", 'String'>
@@ -39799,7 +39799,7 @@ export namespace Prisma {
     readonly category: FieldRef<"GroupExpense", 'String'>
     readonly subcategory: FieldRef<"GroupExpense", 'String'>
     readonly splitType: FieldRef<"GroupExpense", 'String'>
-    readonly yourShare: FieldRef<"GroupExpense", 'Float'>
+    readonly yourShare: FieldRef<"GroupExpense", 'Decimal'>
     readonly expenseTransactionId: FieldRef<"GroupExpense", 'String'>
     readonly createdBy: FieldRef<"GroupExpense", 'String'>
     readonly createdByName: FieldRef<"GroupExpense", 'String'>
@@ -40303,11 +40303,11 @@ export namespace Prisma {
   }
 
   export type GroupExpenseMemberAvgAggregateOutputType = {
-    shareAmount: number | null
+    shareAmount: Decimal | null
   }
 
   export type GroupExpenseMemberSumAggregateOutputType = {
-    shareAmount: number | null
+    shareAmount: Decimal | null
   }
 
   export type GroupExpenseMemberMinAggregateOutputType = {
@@ -40317,7 +40317,7 @@ export namespace Prisma {
     name: string | null
     email: string | null
     phone: string | null
-    shareAmount: number | null
+    shareAmount: Decimal | null
     hasPaid: boolean | null
     paidAt: Date | null
     createdAt: Date | null
@@ -40332,7 +40332,7 @@ export namespace Prisma {
     name: string | null
     email: string | null
     phone: string | null
-    shareAmount: number | null
+    shareAmount: Decimal | null
     hasPaid: boolean | null
     paidAt: Date | null
     createdAt: Date | null
@@ -40504,7 +40504,7 @@ export namespace Prisma {
     name: string
     email: string | null
     phone: string | null
-    shareAmount: number
+    shareAmount: Decimal
     hasPaid: boolean
     paidAt: Date | null
     createdAt: Date
@@ -40617,7 +40617,7 @@ export namespace Prisma {
       name: string
       email: string | null
       phone: string | null
-      shareAmount: number
+      shareAmount: Prisma.Decimal
       hasPaid: boolean
       paidAt: Date | null
       createdAt: Date
@@ -41053,7 +41053,7 @@ export namespace Prisma {
     readonly name: FieldRef<"GroupExpenseMember", 'String'>
     readonly email: FieldRef<"GroupExpenseMember", 'String'>
     readonly phone: FieldRef<"GroupExpenseMember", 'String'>
-    readonly shareAmount: FieldRef<"GroupExpenseMember", 'Float'>
+    readonly shareAmount: FieldRef<"GroupExpenseMember", 'Decimal'>
     readonly hasPaid: FieldRef<"GroupExpenseMember", 'Boolean'>
     readonly paidAt: FieldRef<"GroupExpenseMember", 'DateTime'>
     readonly createdAt: FieldRef<"GroupExpenseMember", 'DateTime'>
@@ -41486,24 +41486,24 @@ export namespace Prisma {
   }
 
   export type User_featuresAvgAggregateOutputType = {
-    avg_spend: number | null
-    monthly_income: number | null
-    savings_rate: number | null
+    avg_spend: Decimal | null
+    monthly_income: Decimal | null
+    savings_rate: Decimal | null
     risk_score: number | null
   }
 
   export type User_featuresSumAggregateOutputType = {
-    avg_spend: number | null
-    monthly_income: number | null
-    savings_rate: number | null
+    avg_spend: Decimal | null
+    monthly_income: Decimal | null
+    savings_rate: Decimal | null
     risk_score: number | null
   }
 
   export type User_featuresMinAggregateOutputType = {
     user_id: string | null
-    avg_spend: number | null
-    monthly_income: number | null
-    savings_rate: number | null
+    avg_spend: Decimal | null
+    monthly_income: Decimal | null
+    savings_rate: Decimal | null
     top_category: string | null
     risk_score: number | null
     peak_day: string | null
@@ -41512,9 +41512,9 @@ export namespace Prisma {
 
   export type User_featuresMaxAggregateOutputType = {
     user_id: string | null
-    avg_spend: number | null
-    monthly_income: number | null
-    savings_rate: number | null
+    avg_spend: Decimal | null
+    monthly_income: Decimal | null
+    savings_rate: Decimal | null
     top_category: string | null
     risk_score: number | null
     peak_day: string | null
@@ -41672,9 +41672,9 @@ export namespace Prisma {
 
   export type User_featuresGroupByOutputType = {
     user_id: string
-    avg_spend: number
-    monthly_income: number
-    savings_rate: number
+    avg_spend: Decimal
+    monthly_income: Decimal
+    savings_rate: Decimal
     top_category: string
     risk_score: number
     peak_day: string
@@ -41756,9 +41756,9 @@ export namespace Prisma {
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
       user_id: string
-      avg_spend: number
-      monthly_income: number
-      savings_rate: number
+      avg_spend: Prisma.Decimal
+      monthly_income: Prisma.Decimal
+      savings_rate: Prisma.Decimal
       top_category: string
       risk_score: number
       peak_day: string
@@ -42188,9 +42188,9 @@ export namespace Prisma {
    */
   interface user_featuresFieldRefs {
     readonly user_id: FieldRef<"user_features", 'String'>
-    readonly avg_spend: FieldRef<"user_features", 'Float'>
-    readonly monthly_income: FieldRef<"user_features", 'Float'>
-    readonly savings_rate: FieldRef<"user_features", 'Float'>
+    readonly avg_spend: FieldRef<"user_features", 'Decimal'>
+    readonly monthly_income: FieldRef<"user_features", 'Decimal'>
+    readonly savings_rate: FieldRef<"user_features", 'Decimal'>
     readonly top_category: FieldRef<"user_features", 'String'>
     readonly risk_score: FieldRef<"user_features", 'Float'>
     readonly peak_day: FieldRef<"user_features", 'String'>
@@ -44450,16 +44450,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Float'
+   * Reference to a field of type 'Decimal'
    */
-  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
     
 
 
   /**
-   * Reference to a field of type 'Float[]'
+   * Reference to a field of type 'Decimal[]'
    */
-  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
 
 
@@ -44499,6 +44499,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Json'
    */
   export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -44509,20 +44523,6 @@ export namespace Prisma {
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
-    
-
-
-  /**
-   * Reference to a field of type 'Decimal'
-   */
-  export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
-    
-
-
-  /**
-   * Reference to a field of type 'Decimal[]'
-   */
-  export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
     
   /**
    * Deep Input Types
@@ -44540,7 +44540,7 @@ export namespace Prisma {
     type?: StringFilter<"Account"> | string
     provider?: StringNullableFilter<"Account"> | string | null
     country?: StringNullableFilter<"Account"> | string | null
-    balance?: FloatFilter<"Account"> | number
+    balance?: DecimalFilter<"Account"> | Decimal | DecimalJsLike | number | string
     currency?: StringFilter<"Account"> | string
     isActive?: BoolFilter<"Account"> | boolean
     syncStatus?: StringFilter<"Account"> | string
@@ -44585,7 +44585,7 @@ export namespace Prisma {
     type?: StringFilter<"Account"> | string
     provider?: StringNullableFilter<"Account"> | string | null
     country?: StringNullableFilter<"Account"> | string | null
-    balance?: FloatFilter<"Account"> | number
+    balance?: DecimalFilter<"Account"> | Decimal | DecimalJsLike | number | string
     currency?: StringFilter<"Account"> | string
     isActive?: BoolFilter<"Account"> | boolean
     syncStatus?: StringFilter<"Account"> | string
@@ -44631,7 +44631,7 @@ export namespace Prisma {
     type?: StringWithAggregatesFilter<"Account"> | string
     provider?: StringNullableWithAggregatesFilter<"Account"> | string | null
     country?: StringNullableWithAggregatesFilter<"Account"> | string | null
-    balance?: FloatWithAggregatesFilter<"Account"> | number
+    balance?: DecimalWithAggregatesFilter<"Account"> | Decimal | DecimalJsLike | number | string
     currency?: StringWithAggregatesFilter<"Account"> | string
     isActive?: BoolWithAggregatesFilter<"Account"> | boolean
     syncStatus?: StringWithAggregatesFilter<"Account"> | string
@@ -44833,7 +44833,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFilter<"BookingRequest"> | Date | string
     proposedTime?: StringFilter<"BookingRequest"> | string
     duration?: IntFilter<"BookingRequest"> | number
-    amount?: FloatFilter<"BookingRequest"> | number
+    amount?: DecimalFilter<"BookingRequest"> | Decimal | DecimalJsLike | number | string
     status?: StringFilter<"BookingRequest"> | string
     rejectionReason?: StringNullableFilter<"BookingRequest"> | string | null
     createdAt?: DateTimeFilter<"BookingRequest"> | Date | string
@@ -44874,7 +44874,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFilter<"BookingRequest"> | Date | string
     proposedTime?: StringFilter<"BookingRequest"> | string
     duration?: IntFilter<"BookingRequest"> | number
-    amount?: FloatFilter<"BookingRequest"> | number
+    amount?: DecimalFilter<"BookingRequest"> | Decimal | DecimalJsLike | number | string
     status?: StringFilter<"BookingRequest"> | string
     rejectionReason?: StringNullableFilter<"BookingRequest"> | string | null
     createdAt?: DateTimeFilter<"BookingRequest"> | Date | string
@@ -44917,7 +44917,7 @@ export namespace Prisma {
     proposedDate?: DateTimeWithAggregatesFilter<"BookingRequest"> | Date | string
     proposedTime?: StringWithAggregatesFilter<"BookingRequest"> | string
     duration?: IntWithAggregatesFilter<"BookingRequest"> | number
-    amount?: FloatWithAggregatesFilter<"BookingRequest"> | number
+    amount?: DecimalWithAggregatesFilter<"BookingRequest"> | Decimal | DecimalJsLike | number | string
     status?: StringWithAggregatesFilter<"BookingRequest"> | string
     rejectionReason?: StringNullableWithAggregatesFilter<"BookingRequest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"BookingRequest"> | Date | string
@@ -45349,8 +45349,8 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Goal"> | string | null
     name?: StringFilter<"Goal"> | string
     description?: StringNullableFilter<"Goal"> | string | null
-    targetAmount?: FloatFilter<"Goal"> | number
-    currentAmount?: FloatFilter<"Goal"> | number
+    targetAmount?: DecimalFilter<"Goal"> | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFilter<"Goal"> | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFilter<"Goal"> | Date | string
     category?: StringNullableFilter<"Goal"> | string | null
     isGroupGoal?: BoolFilter<"Goal"> | boolean
@@ -45390,8 +45390,8 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Goal"> | string | null
     name?: StringFilter<"Goal"> | string
     description?: StringNullableFilter<"Goal"> | string | null
-    targetAmount?: FloatFilter<"Goal"> | number
-    currentAmount?: FloatFilter<"Goal"> | number
+    targetAmount?: DecimalFilter<"Goal"> | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFilter<"Goal"> | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFilter<"Goal"> | Date | string
     category?: StringNullableFilter<"Goal"> | string | null
     isGroupGoal?: BoolFilter<"Goal"> | boolean
@@ -45434,8 +45434,8 @@ export namespace Prisma {
     deviceId?: StringNullableWithAggregatesFilter<"Goal"> | string | null
     name?: StringWithAggregatesFilter<"Goal"> | string
     description?: StringNullableWithAggregatesFilter<"Goal"> | string | null
-    targetAmount?: FloatWithAggregatesFilter<"Goal"> | number
-    currentAmount?: FloatWithAggregatesFilter<"Goal"> | number
+    targetAmount?: DecimalWithAggregatesFilter<"Goal"> | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalWithAggregatesFilter<"Goal"> | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeWithAggregatesFilter<"Goal"> | Date | string
     category?: StringNullableWithAggregatesFilter<"Goal"> | string | null
     isGroupGoal?: BoolWithAggregatesFilter<"Goal"> | boolean
@@ -45453,7 +45453,7 @@ export namespace Prisma {
     userId?: StringFilter<"GoalContribution"> | string
     goalId?: StringFilter<"GoalContribution"> | string
     accountId?: StringFilter<"GoalContribution"> | string
-    amount?: FloatFilter<"GoalContribution"> | number
+    amount?: DecimalFilter<"GoalContribution"> | Decimal | DecimalJsLike | number | string
     date?: DateTimeFilter<"GoalContribution"> | Date | string
     memberName?: StringNullableFilter<"GoalContribution"> | string | null
     status?: StringNullableFilter<"GoalContribution"> | string | null
@@ -45490,7 +45490,7 @@ export namespace Prisma {
     userId?: StringFilter<"GoalContribution"> | string
     goalId?: StringFilter<"GoalContribution"> | string
     accountId?: StringFilter<"GoalContribution"> | string
-    amount?: FloatFilter<"GoalContribution"> | number
+    amount?: DecimalFilter<"GoalContribution"> | Decimal | DecimalJsLike | number | string
     date?: DateTimeFilter<"GoalContribution"> | Date | string
     memberName?: StringNullableFilter<"GoalContribution"> | string | null
     status?: StringNullableFilter<"GoalContribution"> | string | null
@@ -45529,7 +45529,7 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"GoalContribution"> | string
     goalId?: StringWithAggregatesFilter<"GoalContribution"> | string
     accountId?: StringWithAggregatesFilter<"GoalContribution"> | string
-    amount?: FloatWithAggregatesFilter<"GoalContribution"> | number
+    amount?: DecimalWithAggregatesFilter<"GoalContribution"> | Decimal | DecimalJsLike | number | string
     date?: DateTimeWithAggregatesFilter<"GoalContribution"> | Date | string
     memberName?: StringNullableWithAggregatesFilter<"GoalContribution"> | string | null
     status?: StringNullableWithAggregatesFilter<"GoalContribution"> | string | null
@@ -45663,12 +45663,12 @@ export namespace Prisma {
     userId?: StringFilter<"Investment"> | string
     assetType?: StringFilter<"Investment"> | string
     assetName?: StringFilter<"Investment"> | string
-    quantity?: FloatFilter<"Investment"> | number
-    buyPrice?: FloatFilter<"Investment"> | number
-    currentPrice?: FloatFilter<"Investment"> | number
-    totalInvested?: FloatFilter<"Investment"> | number
-    currentValue?: FloatFilter<"Investment"> | number
-    profitLoss?: FloatFilter<"Investment"> | number
+    quantity?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFilter<"Investment"> | Date | string
     lastUpdated?: DateTimeFilter<"Investment"> | Date | string
     createdAt?: DateTimeFilter<"Investment"> | Date | string
@@ -45704,12 +45704,12 @@ export namespace Prisma {
     userId?: StringFilter<"Investment"> | string
     assetType?: StringFilter<"Investment"> | string
     assetName?: StringFilter<"Investment"> | string
-    quantity?: FloatFilter<"Investment"> | number
-    buyPrice?: FloatFilter<"Investment"> | number
-    currentPrice?: FloatFilter<"Investment"> | number
-    totalInvested?: FloatFilter<"Investment"> | number
-    currentValue?: FloatFilter<"Investment"> | number
-    profitLoss?: FloatFilter<"Investment"> | number
+    quantity?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFilter<"Investment"> | Date | string
     lastUpdated?: DateTimeFilter<"Investment"> | Date | string
     createdAt?: DateTimeFilter<"Investment"> | Date | string
@@ -45749,12 +45749,12 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"Investment"> | string
     assetType?: StringWithAggregatesFilter<"Investment"> | string
     assetName?: StringWithAggregatesFilter<"Investment"> | string
-    quantity?: FloatWithAggregatesFilter<"Investment"> | number
-    buyPrice?: FloatWithAggregatesFilter<"Investment"> | number
-    currentPrice?: FloatWithAggregatesFilter<"Investment"> | number
-    totalInvested?: FloatWithAggregatesFilter<"Investment"> | number
-    currentValue?: FloatWithAggregatesFilter<"Investment"> | number
-    profitLoss?: FloatWithAggregatesFilter<"Investment"> | number
+    quantity?: DecimalWithAggregatesFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalWithAggregatesFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalWithAggregatesFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalWithAggregatesFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalWithAggregatesFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalWithAggregatesFilter<"Investment"> | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeWithAggregatesFilter<"Investment"> | Date | string
     lastUpdated?: DateTimeWithAggregatesFilter<"Investment"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"Investment"> | Date | string
@@ -45771,10 +45771,10 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Loan"> | string | null
     type?: StringFilter<"Loan"> | string
     name?: StringFilter<"Loan"> | string
-    principalAmount?: FloatFilter<"Loan"> | number
-    outstandingBalance?: FloatFilter<"Loan"> | number
-    interestRate?: FloatNullableFilter<"Loan"> | number | null
-    emiAmount?: FloatNullableFilter<"Loan"> | number | null
+    principalAmount?: DecimalFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    interestRate?: DecimalNullableFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: DecimalNullableFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
     dueDate?: DateTimeNullableFilter<"Loan"> | Date | string | null
     frequency?: StringNullableFilter<"Loan"> | string | null
     status?: StringFilter<"Loan"> | string
@@ -45818,10 +45818,10 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Loan"> | string | null
     type?: StringFilter<"Loan"> | string
     name?: StringFilter<"Loan"> | string
-    principalAmount?: FloatFilter<"Loan"> | number
-    outstandingBalance?: FloatFilter<"Loan"> | number
-    interestRate?: FloatNullableFilter<"Loan"> | number | null
-    emiAmount?: FloatNullableFilter<"Loan"> | number | null
+    principalAmount?: DecimalFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    interestRate?: DecimalNullableFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: DecimalNullableFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
     dueDate?: DateTimeNullableFilter<"Loan"> | Date | string | null
     frequency?: StringNullableFilter<"Loan"> | string | null
     status?: StringFilter<"Loan"> | string
@@ -45868,10 +45868,10 @@ export namespace Prisma {
     deviceId?: StringNullableWithAggregatesFilter<"Loan"> | string | null
     type?: StringWithAggregatesFilter<"Loan"> | string
     name?: StringWithAggregatesFilter<"Loan"> | string
-    principalAmount?: FloatWithAggregatesFilter<"Loan"> | number
-    outstandingBalance?: FloatWithAggregatesFilter<"Loan"> | number
-    interestRate?: FloatNullableWithAggregatesFilter<"Loan"> | number | null
-    emiAmount?: FloatNullableWithAggregatesFilter<"Loan"> | number | null
+    principalAmount?: DecimalWithAggregatesFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalWithAggregatesFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    interestRate?: DecimalNullableWithAggregatesFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: DecimalNullableWithAggregatesFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
     dueDate?: DateTimeNullableWithAggregatesFilter<"Loan"> | Date | string | null
     frequency?: StringNullableWithAggregatesFilter<"Loan"> | string | null
     status?: StringWithAggregatesFilter<"Loan"> | string
@@ -45888,7 +45888,7 @@ export namespace Prisma {
     NOT?: LoanPaymentWhereInput | LoanPaymentWhereInput[]
     id?: StringFilter<"LoanPayment"> | string
     loanId?: StringFilter<"LoanPayment"> | string
-    amount?: FloatFilter<"LoanPayment"> | number
+    amount?: DecimalFilter<"LoanPayment"> | Decimal | DecimalJsLike | number | string
     accountId?: StringNullableFilter<"LoanPayment"> | string | null
     date?: DateTimeFilter<"LoanPayment"> | Date | string
     notes?: StringNullableFilter<"LoanPayment"> | string | null
@@ -45915,7 +45915,7 @@ export namespace Prisma {
     OR?: LoanPaymentWhereInput[]
     NOT?: LoanPaymentWhereInput | LoanPaymentWhereInput[]
     loanId?: StringFilter<"LoanPayment"> | string
-    amount?: FloatFilter<"LoanPayment"> | number
+    amount?: DecimalFilter<"LoanPayment"> | Decimal | DecimalJsLike | number | string
     accountId?: StringNullableFilter<"LoanPayment"> | string | null
     date?: DateTimeFilter<"LoanPayment"> | Date | string
     notes?: StringNullableFilter<"LoanPayment"> | string | null
@@ -45946,7 +45946,7 @@ export namespace Prisma {
     NOT?: LoanPaymentScalarWhereWithAggregatesInput | LoanPaymentScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"LoanPayment"> | string
     loanId?: StringWithAggregatesFilter<"LoanPayment"> | string
-    amount?: FloatWithAggregatesFilter<"LoanPayment"> | number
+    amount?: DecimalWithAggregatesFilter<"LoanPayment"> | Decimal | DecimalJsLike | number | string
     accountId?: StringNullableWithAggregatesFilter<"LoanPayment"> | string | null
     date?: DateTimeWithAggregatesFilter<"LoanPayment"> | Date | string
     notes?: StringNullableWithAggregatesFilter<"LoanPayment"> | string | null
@@ -46047,7 +46047,7 @@ export namespace Prisma {
     sessionId?: StringFilter<"Payment"> | string
     clientId?: StringFilter<"Payment"> | string
     advisorId?: StringFilter<"Payment"> | string
-    amount?: FloatFilter<"Payment"> | number
+    amount?: DecimalFilter<"Payment"> | Decimal | DecimalJsLike | number | string
     currency?: StringFilter<"Payment"> | string
     status?: StringFilter<"Payment"> | string
     paymentMethod?: StringNullableFilter<"Payment"> | string | null
@@ -46086,7 +46086,7 @@ export namespace Prisma {
     NOT?: PaymentWhereInput | PaymentWhereInput[]
     clientId?: StringFilter<"Payment"> | string
     advisorId?: StringFilter<"Payment"> | string
-    amount?: FloatFilter<"Payment"> | number
+    amount?: DecimalFilter<"Payment"> | Decimal | DecimalJsLike | number | string
     currency?: StringFilter<"Payment"> | string
     status?: StringFilter<"Payment"> | string
     paymentMethod?: StringNullableFilter<"Payment"> | string | null
@@ -46127,7 +46127,7 @@ export namespace Prisma {
     sessionId?: StringWithAggregatesFilter<"Payment"> | string
     clientId?: StringWithAggregatesFilter<"Payment"> | string
     advisorId?: StringWithAggregatesFilter<"Payment"> | string
-    amount?: FloatWithAggregatesFilter<"Payment"> | number
+    amount?: DecimalWithAggregatesFilter<"Payment"> | Decimal | DecimalJsLike | number | string
     currency?: StringWithAggregatesFilter<"Payment"> | string
     status?: StringWithAggregatesFilter<"Payment"> | string
     paymentMethod?: StringNullableWithAggregatesFilter<"Payment"> | string | null
@@ -46350,7 +46350,7 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Transaction"> | string | null
     accountId?: StringFilter<"Transaction"> | string
     type?: StringFilter<"Transaction"> | string
-    amount?: FloatFilter<"Transaction"> | number
+    amount?: DecimalFilter<"Transaction"> | Decimal | DecimalJsLike | number | string
     category?: StringFilter<"Transaction"> | string
     subcategory?: StringNullableFilter<"Transaction"> | string | null
     description?: StringNullableFilter<"Transaction"> | string | null
@@ -46426,7 +46426,7 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Transaction"> | string | null
     accountId?: StringFilter<"Transaction"> | string
     type?: StringFilter<"Transaction"> | string
-    amount?: FloatFilter<"Transaction"> | number
+    amount?: DecimalFilter<"Transaction"> | Decimal | DecimalJsLike | number | string
     category?: StringFilter<"Transaction"> | string
     subcategory?: StringNullableFilter<"Transaction"> | string | null
     description?: StringNullableFilter<"Transaction"> | string | null
@@ -46502,7 +46502,7 @@ export namespace Prisma {
     deviceId?: StringNullableWithAggregatesFilter<"Transaction"> | string | null
     accountId?: StringWithAggregatesFilter<"Transaction"> | string
     type?: StringWithAggregatesFilter<"Transaction"> | string
-    amount?: FloatWithAggregatesFilter<"Transaction"> | number
+    amount?: DecimalWithAggregatesFilter<"Transaction"> | Decimal | DecimalJsLike | number | string
     category?: StringWithAggregatesFilter<"Transaction"> | string
     subcategory?: StringNullableWithAggregatesFilter<"Transaction"> | string | null
     description?: StringNullableWithAggregatesFilter<"Transaction"> | string | null
@@ -46542,7 +46542,7 @@ export namespace Prisma {
     isApproved?: BoolFilter<"User"> | boolean
     firstName?: StringNullableFilter<"User"> | string | null
     lastName?: StringNullableFilter<"User"> | string | null
-    salary?: FloatNullableFilter<"User"> | number | null
+    salary?: DecimalNullableFilter<"User"> | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: DateTimeNullableFilter<"User"> | Date | string | null
     jobType?: StringNullableFilter<"User"> | string | null
     lastSynced?: DateTimeNullableFilter<"User"> | Date | string | null
@@ -46647,7 +46647,7 @@ export namespace Prisma {
     isApproved?: BoolFilter<"User"> | boolean
     firstName?: StringNullableFilter<"User"> | string | null
     lastName?: StringNullableFilter<"User"> | string | null
-    salary?: FloatNullableFilter<"User"> | number | null
+    salary?: DecimalNullableFilter<"User"> | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: DateTimeNullableFilter<"User"> | Date | string | null
     jobType?: StringNullableFilter<"User"> | string | null
     lastSynced?: DateTimeNullableFilter<"User"> | Date | string | null
@@ -46730,7 +46730,7 @@ export namespace Prisma {
     isApproved?: BoolWithAggregatesFilter<"User"> | boolean
     firstName?: StringNullableWithAggregatesFilter<"User"> | string | null
     lastName?: StringNullableWithAggregatesFilter<"User"> | string | null
-    salary?: FloatNullableWithAggregatesFilter<"User"> | number | null
+    salary?: DecimalNullableWithAggregatesFilter<"User"> | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     jobType?: StringNullableWithAggregatesFilter<"User"> | string | null
     lastSynced?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
@@ -47238,7 +47238,7 @@ export namespace Prisma {
     userId?: StringFilter<"GroupExpense"> | string
     deviceId?: StringNullableFilter<"GroupExpense"> | string | null
     name?: StringFilter<"GroupExpense"> | string
-    totalAmount?: FloatFilter<"GroupExpense"> | number
+    totalAmount?: DecimalFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string
     paidBy?: StringNullableFilter<"GroupExpense"> | string | null
     date?: DateTimeFilter<"GroupExpense"> | Date | string
     members?: StringNullableFilter<"GroupExpense"> | string | null
@@ -47247,7 +47247,7 @@ export namespace Prisma {
     category?: StringNullableFilter<"GroupExpense"> | string | null
     subcategory?: StringNullableFilter<"GroupExpense"> | string | null
     splitType?: StringNullableFilter<"GroupExpense"> | string | null
-    yourShare?: FloatNullableFilter<"GroupExpense"> | number | null
+    yourShare?: DecimalNullableFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: StringNullableFilter<"GroupExpense"> | string | null
     createdBy?: StringNullableFilter<"GroupExpense"> | string | null
     createdByName?: StringNullableFilter<"GroupExpense"> | string | null
@@ -47301,7 +47301,7 @@ export namespace Prisma {
     userId?: StringFilter<"GroupExpense"> | string
     deviceId?: StringNullableFilter<"GroupExpense"> | string | null
     name?: StringFilter<"GroupExpense"> | string
-    totalAmount?: FloatFilter<"GroupExpense"> | number
+    totalAmount?: DecimalFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string
     paidBy?: StringNullableFilter<"GroupExpense"> | string | null
     date?: DateTimeFilter<"GroupExpense"> | Date | string
     members?: StringNullableFilter<"GroupExpense"> | string | null
@@ -47310,7 +47310,7 @@ export namespace Prisma {
     category?: StringNullableFilter<"GroupExpense"> | string | null
     subcategory?: StringNullableFilter<"GroupExpense"> | string | null
     splitType?: StringNullableFilter<"GroupExpense"> | string | null
-    yourShare?: FloatNullableFilter<"GroupExpense"> | number | null
+    yourShare?: DecimalNullableFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: StringNullableFilter<"GroupExpense"> | string | null
     createdBy?: StringNullableFilter<"GroupExpense"> | string | null
     createdByName?: StringNullableFilter<"GroupExpense"> | string | null
@@ -47365,7 +47365,7 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"GroupExpense"> | string
     deviceId?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
     name?: StringWithAggregatesFilter<"GroupExpense"> | string
-    totalAmount?: FloatWithAggregatesFilter<"GroupExpense"> | number
+    totalAmount?: DecimalWithAggregatesFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string
     paidBy?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
     date?: DateTimeWithAggregatesFilter<"GroupExpense"> | Date | string
     members?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
@@ -47374,7 +47374,7 @@ export namespace Prisma {
     category?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
     subcategory?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
     splitType?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
-    yourShare?: FloatNullableWithAggregatesFilter<"GroupExpense"> | number | null
+    yourShare?: DecimalNullableWithAggregatesFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
     createdBy?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
     createdByName?: StringNullableWithAggregatesFilter<"GroupExpense"> | string | null
@@ -47396,7 +47396,7 @@ export namespace Prisma {
     name?: StringFilter<"GroupExpenseMember"> | string
     email?: StringNullableFilter<"GroupExpenseMember"> | string | null
     phone?: StringNullableFilter<"GroupExpenseMember"> | string | null
-    shareAmount?: FloatFilter<"GroupExpenseMember"> | number
+    shareAmount?: DecimalFilter<"GroupExpenseMember"> | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFilter<"GroupExpenseMember"> | boolean
     paidAt?: DateTimeNullableFilter<"GroupExpenseMember"> | Date | string | null
     createdAt?: DateTimeFilter<"GroupExpenseMember"> | Date | string
@@ -47431,7 +47431,7 @@ export namespace Prisma {
     name?: StringFilter<"GroupExpenseMember"> | string
     email?: StringNullableFilter<"GroupExpenseMember"> | string | null
     phone?: StringNullableFilter<"GroupExpenseMember"> | string | null
-    shareAmount?: FloatFilter<"GroupExpenseMember"> | number
+    shareAmount?: DecimalFilter<"GroupExpenseMember"> | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFilter<"GroupExpenseMember"> | boolean
     paidAt?: DateTimeNullableFilter<"GroupExpenseMember"> | Date | string | null
     createdAt?: DateTimeFilter<"GroupExpenseMember"> | Date | string
@@ -47470,7 +47470,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"GroupExpenseMember"> | string
     email?: StringNullableWithAggregatesFilter<"GroupExpenseMember"> | string | null
     phone?: StringNullableWithAggregatesFilter<"GroupExpenseMember"> | string | null
-    shareAmount?: FloatWithAggregatesFilter<"GroupExpenseMember"> | number
+    shareAmount?: DecimalWithAggregatesFilter<"GroupExpenseMember"> | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolWithAggregatesFilter<"GroupExpenseMember"> | boolean
     paidAt?: DateTimeNullableWithAggregatesFilter<"GroupExpenseMember"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"GroupExpenseMember"> | Date | string
@@ -47483,9 +47483,9 @@ export namespace Prisma {
     OR?: user_featuresWhereInput[]
     NOT?: user_featuresWhereInput | user_featuresWhereInput[]
     user_id?: StringFilter<"user_features"> | string
-    avg_spend?: FloatFilter<"user_features"> | number
-    monthly_income?: FloatFilter<"user_features"> | number
-    savings_rate?: FloatFilter<"user_features"> | number
+    avg_spend?: DecimalFilter<"user_features"> | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalFilter<"user_features"> | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalFilter<"user_features"> | Decimal | DecimalJsLike | number | string
     top_category?: StringFilter<"user_features"> | string
     risk_score?: FloatFilter<"user_features"> | number
     peak_day?: StringFilter<"user_features"> | string
@@ -47510,9 +47510,9 @@ export namespace Prisma {
     AND?: user_featuresWhereInput | user_featuresWhereInput[]
     OR?: user_featuresWhereInput[]
     NOT?: user_featuresWhereInput | user_featuresWhereInput[]
-    avg_spend?: FloatFilter<"user_features"> | number
-    monthly_income?: FloatFilter<"user_features"> | number
-    savings_rate?: FloatFilter<"user_features"> | number
+    avg_spend?: DecimalFilter<"user_features"> | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalFilter<"user_features"> | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalFilter<"user_features"> | Decimal | DecimalJsLike | number | string
     top_category?: StringFilter<"user_features"> | string
     risk_score?: FloatFilter<"user_features"> | number
     peak_day?: StringFilter<"user_features"> | string
@@ -47542,9 +47542,9 @@ export namespace Prisma {
     OR?: user_featuresScalarWhereWithAggregatesInput[]
     NOT?: user_featuresScalarWhereWithAggregatesInput | user_featuresScalarWhereWithAggregatesInput[]
     user_id?: StringWithAggregatesFilter<"user_features"> | string
-    avg_spend?: FloatWithAggregatesFilter<"user_features"> | number
-    monthly_income?: FloatWithAggregatesFilter<"user_features"> | number
-    savings_rate?: FloatWithAggregatesFilter<"user_features"> | number
+    avg_spend?: DecimalWithAggregatesFilter<"user_features"> | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalWithAggregatesFilter<"user_features"> | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalWithAggregatesFilter<"user_features"> | Decimal | DecimalJsLike | number | string
     top_category?: StringWithAggregatesFilter<"user_features"> | string
     risk_score?: FloatWithAggregatesFilter<"user_features"> | number
     peak_day?: StringWithAggregatesFilter<"user_features"> | string
@@ -47683,7 +47683,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -47704,7 +47704,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -47723,7 +47723,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -47744,7 +47744,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -47764,7 +47764,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -47780,7 +47780,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -47797,7 +47797,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -48006,7 +48006,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -48025,7 +48025,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -48040,7 +48040,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48059,7 +48059,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48076,7 +48076,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -48090,7 +48090,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48106,7 +48106,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48581,8 +48581,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -48600,8 +48600,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -48617,8 +48617,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -48636,8 +48636,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -48654,8 +48654,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -48670,8 +48670,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -48687,8 +48687,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -48700,7 +48700,7 @@ export namespace Prisma {
 
   export type GoalContributionCreateInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -48717,7 +48717,7 @@ export namespace Prisma {
     userId: string
     goalId: string
     accountId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -48728,7 +48728,7 @@ export namespace Prisma {
 
   export type GoalContributionUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -48745,7 +48745,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     goalId?: StringFieldUpdateOperationsInput | string
     accountId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -48759,7 +48759,7 @@ export namespace Prisma {
     userId: string
     goalId: string
     accountId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -48770,7 +48770,7 @@ export namespace Prisma {
 
   export type GoalContributionUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -48784,7 +48784,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     goalId?: StringFieldUpdateOperationsInput | string
     accountId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -48936,12 +48936,12 @@ export namespace Prisma {
     id?: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal | DecimalJsLike | number | string
+    buyPrice: Decimal | DecimalJsLike | number | string
+    currentPrice: Decimal | DecimalJsLike | number | string
+    totalInvested: Decimal | DecimalJsLike | number | string
+    currentValue: Decimal | DecimalJsLike | number | string
+    profitLoss: Decimal | DecimalJsLike | number | string
     purchaseDate: Date | string
     lastUpdated: Date | string
     createdAt?: Date | string
@@ -48955,12 +48955,12 @@ export namespace Prisma {
     userId: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal | DecimalJsLike | number | string
+    buyPrice: Decimal | DecimalJsLike | number | string
+    currentPrice: Decimal | DecimalJsLike | number | string
+    totalInvested: Decimal | DecimalJsLike | number | string
+    currentValue: Decimal | DecimalJsLike | number | string
+    profitLoss: Decimal | DecimalJsLike | number | string
     purchaseDate: Date | string
     lastUpdated: Date | string
     createdAt?: Date | string
@@ -48972,12 +48972,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48991,12 +48991,12 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49009,12 +49009,12 @@ export namespace Prisma {
     userId: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal | DecimalJsLike | number | string
+    buyPrice: Decimal | DecimalJsLike | number | string
+    currentPrice: Decimal | DecimalJsLike | number | string
+    totalInvested: Decimal | DecimalJsLike | number | string
+    currentValue: Decimal | DecimalJsLike | number | string
+    profitLoss: Decimal | DecimalJsLike | number | string
     purchaseDate: Date | string
     lastUpdated: Date | string
     createdAt?: Date | string
@@ -49026,12 +49026,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49044,12 +49044,12 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -49062,10 +49062,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -49084,10 +49084,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -49104,10 +49104,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -49126,10 +49126,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -49147,10 +49147,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -49166,10 +49166,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -49186,10 +49186,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -49202,7 +49202,7 @@ export namespace Prisma {
 
   export type LoanPaymentCreateInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     accountId?: string | null
     date: Date | string
     notes?: string | null
@@ -49214,7 +49214,7 @@ export namespace Prisma {
   export type LoanPaymentUncheckedCreateInput = {
     id?: string
     loanId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     accountId?: string | null
     date: Date | string
     notes?: string | null
@@ -49224,7 +49224,7 @@ export namespace Prisma {
 
   export type LoanPaymentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49236,7 +49236,7 @@ export namespace Prisma {
   export type LoanPaymentUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     loanId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49247,7 +49247,7 @@ export namespace Prisma {
   export type LoanPaymentCreateManyInput = {
     id?: string
     loanId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     accountId?: string | null
     date: Date | string
     notes?: string | null
@@ -49257,7 +49257,7 @@ export namespace Prisma {
 
   export type LoanPaymentUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49268,7 +49268,7 @@ export namespace Prisma {
   export type LoanPaymentUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     loanId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49375,7 +49375,7 @@ export namespace Prisma {
 
   export type PaymentCreateInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -49393,7 +49393,7 @@ export namespace Prisma {
     sessionId: string
     clientId: string
     advisorId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -49405,7 +49405,7 @@ export namespace Prisma {
 
   export type PaymentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49423,7 +49423,7 @@ export namespace Prisma {
     sessionId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     advisorId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49438,7 +49438,7 @@ export namespace Prisma {
     sessionId: string
     clientId: string
     advisorId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -49450,7 +49450,7 @@ export namespace Prisma {
 
   export type PaymentUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49465,7 +49465,7 @@ export namespace Prisma {
     sessionId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     advisorId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49701,7 +49701,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -49736,7 +49736,7 @@ export namespace Prisma {
     deviceId?: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -49767,7 +49767,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49802,7 +49802,7 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     accountId?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49835,7 +49835,7 @@ export namespace Prisma {
     deviceId?: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -49866,7 +49866,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49898,7 +49898,7 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     accountId?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -49935,7 +49935,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -49986,7 +49986,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -50037,7 +50037,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50088,7 +50088,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50139,7 +50139,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -50163,7 +50163,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50187,7 +50187,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -50733,7 +50733,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -50741,7 +50741,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -50762,7 +50762,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     paidBy?: string | null
     date: Date | string
     members?: string | null
@@ -50771,7 +50771,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -50789,7 +50789,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50797,7 +50797,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50818,7 +50818,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paidBy?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50827,7 +50827,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50846,7 +50846,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     paidBy?: string | null
     date: Date | string
     members?: string | null
@@ -50855,7 +50855,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -50871,7 +50871,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50879,7 +50879,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50896,7 +50896,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paidBy?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50905,7 +50905,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -50923,7 +50923,7 @@ export namespace Prisma {
     name: string
     email?: string | null
     phone?: string | null
-    shareAmount?: number
+    shareAmount?: Decimal | DecimalJsLike | number | string
     hasPaid?: boolean
     paidAt?: Date | string | null
     createdAt?: Date | string
@@ -50939,7 +50939,7 @@ export namespace Prisma {
     name: string
     email?: string | null
     phone?: string | null
-    shareAmount?: number
+    shareAmount?: Decimal | DecimalJsLike | number | string
     hasPaid?: boolean
     paidAt?: Date | string | null
     createdAt?: Date | string
@@ -50953,7 +50953,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50969,7 +50969,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -50984,7 +50984,7 @@ export namespace Prisma {
     name: string
     email?: string | null
     phone?: string | null
-    shareAmount?: number
+    shareAmount?: Decimal | DecimalJsLike | number | string
     hasPaid?: boolean
     paidAt?: Date | string | null
     createdAt?: Date | string
@@ -50998,7 +50998,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -51013,7 +51013,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -51023,9 +51023,9 @@ export namespace Prisma {
 
   export type user_featuresCreateInput = {
     user_id: string
-    avg_spend: number
-    monthly_income: number
-    savings_rate: number
+    avg_spend: Decimal | DecimalJsLike | number | string
+    monthly_income: Decimal | DecimalJsLike | number | string
+    savings_rate: Decimal | DecimalJsLike | number | string
     top_category: string
     risk_score: number
     peak_day: string
@@ -51035,9 +51035,9 @@ export namespace Prisma {
 
   export type user_featuresUncheckedCreateInput = {
     user_id: string
-    avg_spend: number
-    monthly_income: number
-    savings_rate: number
+    avg_spend: Decimal | DecimalJsLike | number | string
+    monthly_income: Decimal | DecimalJsLike | number | string
+    savings_rate: Decimal | DecimalJsLike | number | string
     top_category: string
     risk_score: number
     peak_day: string
@@ -51047,9 +51047,9 @@ export namespace Prisma {
 
   export type user_featuresUpdateInput = {
     user_id?: StringFieldUpdateOperationsInput | string
-    avg_spend?: FloatFieldUpdateOperationsInput | number
-    monthly_income?: FloatFieldUpdateOperationsInput | number
-    savings_rate?: FloatFieldUpdateOperationsInput | number
+    avg_spend?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     top_category?: StringFieldUpdateOperationsInput | string
     risk_score?: FloatFieldUpdateOperationsInput | number
     peak_day?: StringFieldUpdateOperationsInput | string
@@ -51059,9 +51059,9 @@ export namespace Prisma {
 
   export type user_featuresUncheckedUpdateInput = {
     user_id?: StringFieldUpdateOperationsInput | string
-    avg_spend?: FloatFieldUpdateOperationsInput | number
-    monthly_income?: FloatFieldUpdateOperationsInput | number
-    savings_rate?: FloatFieldUpdateOperationsInput | number
+    avg_spend?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     top_category?: StringFieldUpdateOperationsInput | string
     risk_score?: FloatFieldUpdateOperationsInput | number
     peak_day?: StringFieldUpdateOperationsInput | string
@@ -51071,9 +51071,9 @@ export namespace Prisma {
 
   export type user_featuresCreateManyInput = {
     user_id: string
-    avg_spend: number
-    monthly_income: number
-    savings_rate: number
+    avg_spend: Decimal | DecimalJsLike | number | string
+    monthly_income: Decimal | DecimalJsLike | number | string
+    savings_rate: Decimal | DecimalJsLike | number | string
     top_category: string
     risk_score: number
     peak_day: string
@@ -51083,9 +51083,9 @@ export namespace Prisma {
 
   export type user_featuresUpdateManyMutationInput = {
     user_id?: StringFieldUpdateOperationsInput | string
-    avg_spend?: FloatFieldUpdateOperationsInput | number
-    monthly_income?: FloatFieldUpdateOperationsInput | number
-    savings_rate?: FloatFieldUpdateOperationsInput | number
+    avg_spend?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     top_category?: StringFieldUpdateOperationsInput | string
     risk_score?: FloatFieldUpdateOperationsInput | number
     peak_day?: StringFieldUpdateOperationsInput | string
@@ -51095,9 +51095,9 @@ export namespace Prisma {
 
   export type user_featuresUncheckedUpdateManyInput = {
     user_id?: StringFieldUpdateOperationsInput | string
-    avg_spend?: FloatFieldUpdateOperationsInput | number
-    monthly_income?: FloatFieldUpdateOperationsInput | number
-    savings_rate?: FloatFieldUpdateOperationsInput | number
+    avg_spend?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    monthly_income?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    savings_rate?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     top_category?: StringFieldUpdateOperationsInput | string
     risk_score?: FloatFieldUpdateOperationsInput | number
     peak_day?: StringFieldUpdateOperationsInput | string
@@ -51289,15 +51289,15 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+  export type DecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
   }
 
   export type BoolFilter<$PrismaModel = never> = {
@@ -51462,20 +51462,20 @@ export namespace Prisma {
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
     _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -52237,6 +52237,17 @@ export namespace Prisma {
     profitLoss?: SortOrder
   }
 
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
   export type LoanPaymentListRelationFilter = {
     every?: LoanPaymentWhereInput
     some?: LoanPaymentWhereInput
@@ -52319,6 +52330,22 @@ export namespace Prisma {
     outstandingBalance?: SortOrder
     interestRate?: SortOrder
     emiAmount?: SortOrder
+  }
+
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type LoanScalarRelationFilter = {
@@ -53071,6 +53098,17 @@ export namespace Prisma {
     attempts?: SortOrder
   }
 
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type IntNullableFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -53132,6 +53170,22 @@ export namespace Prisma {
   export type AiScanSumOrderByAggregateInput = {
     confidence?: SortOrder
     processingMs?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -53512,17 +53566,6 @@ export namespace Prisma {
     mode?: QueryMode
     not?: NestedUuidFilter<$PrismaModel> | string
   }
-
-  export type DecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
   export type JsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -53635,22 +53678,6 @@ export namespace Prisma {
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
   }
-
-  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
-  }
   export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
@@ -53734,12 +53761,12 @@ export namespace Prisma {
     set?: string | null
   }
 
-  export type FloatFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
+  export type DecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
   }
 
   export type BoolFieldUpdateOperationsInput = {
@@ -54280,6 +54307,14 @@ export namespace Prisma {
     connectOrCreate?: LoanPaymentCreateOrConnectWithoutLoanInput | LoanPaymentCreateOrConnectWithoutLoanInput[]
     createMany?: LoanPaymentCreateManyLoanInputEnvelope
     connect?: LoanPaymentWhereUniqueInput | LoanPaymentWhereUniqueInput[]
+  }
+
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
   }
 
   export type UserUpdateOneRequiredWithoutLoansNestedInput = {
@@ -55622,6 +55657,14 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
@@ -55766,14 +55809,6 @@ export namespace Prisma {
     update?: XOR<XOR<GroupExpenseUpdateToOneWithWhereWithoutGroupMembersInput, GroupExpenseUpdateWithoutGroupMembersInput>, GroupExpenseUncheckedUpdateWithoutGroupMembersInput>
   }
 
-  export type NullableDecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string | null
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
-  }
-
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -55802,15 +55837,15 @@ export namespace Prisma {
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
+  export type NestedDecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
   }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
@@ -55896,20 +55931,20 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+  export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
     _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
   }
 
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -55964,6 +55999,17 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
   export type NestedFloatNullableFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel> | null
     in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
@@ -55989,6 +56035,49 @@ export namespace Prisma {
     _sum?: NestedFloatNullableFilter<$PrismaModel>
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -56041,17 +56130,6 @@ export namespace Prisma {
     not?: NestedUuidFilter<$PrismaModel> | string
   }
 
-  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type NestedUuidWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -56064,22 +56142,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
     _max?: NestedStringFilter<$PrismaModel>
-  }
-
-  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -56115,7 +56177,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -56165,7 +56227,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -56212,7 +56274,7 @@ export namespace Prisma {
 
   export type GoalContributionCreateWithoutAccountInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -56227,7 +56289,7 @@ export namespace Prisma {
     id?: string
     userId: string
     goalId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -56250,7 +56312,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -56283,7 +56345,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -56324,7 +56386,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -56332,7 +56394,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -56352,7 +56414,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -56360,7 +56422,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -56405,7 +56467,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -56455,7 +56517,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -56519,7 +56581,7 @@ export namespace Prisma {
     userId?: StringFilter<"GoalContribution"> | string
     goalId?: StringFilter<"GoalContribution"> | string
     accountId?: StringFilter<"GoalContribution"> | string
-    amount?: FloatFilter<"GoalContribution"> | number
+    amount?: DecimalFilter<"GoalContribution"> | Decimal | DecimalJsLike | number | string
     date?: DateTimeFilter<"GoalContribution"> | Date | string
     memberName?: StringNullableFilter<"GoalContribution"> | string | null
     status?: StringNullableFilter<"GoalContribution"> | string | null
@@ -56553,7 +56615,7 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Transaction"> | string | null
     accountId?: StringFilter<"Transaction"> | string
     type?: StringFilter<"Transaction"> | string
-    amount?: FloatFilter<"Transaction"> | number
+    amount?: DecimalFilter<"Transaction"> | Decimal | DecimalJsLike | number | string
     category?: StringFilter<"Transaction"> | string
     subcategory?: StringNullableFilter<"Transaction"> | string | null
     description?: StringNullableFilter<"Transaction"> | string | null
@@ -56604,7 +56666,7 @@ export namespace Prisma {
     userId?: StringFilter<"GroupExpense"> | string
     deviceId?: StringNullableFilter<"GroupExpense"> | string | null
     name?: StringFilter<"GroupExpense"> | string
-    totalAmount?: FloatFilter<"GroupExpense"> | number
+    totalAmount?: DecimalFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string
     paidBy?: StringNullableFilter<"GroupExpense"> | string | null
     date?: DateTimeFilter<"GroupExpense"> | Date | string
     members?: StringNullableFilter<"GroupExpense"> | string | null
@@ -56613,7 +56675,7 @@ export namespace Prisma {
     category?: StringNullableFilter<"GroupExpense"> | string | null
     subcategory?: StringNullableFilter<"GroupExpense"> | string | null
     splitType?: StringNullableFilter<"GroupExpense"> | string | null
-    yourShare?: FloatNullableFilter<"GroupExpense"> | number | null
+    yourShare?: DecimalNullableFilter<"GroupExpense"> | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: StringNullableFilter<"GroupExpense"> | string | null
     createdBy?: StringNullableFilter<"GroupExpense"> | string | null
     createdByName?: StringNullableFilter<"GroupExpense"> | string | null
@@ -56635,7 +56697,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -56685,7 +56747,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -56751,7 +56813,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -56801,7 +56863,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -56851,7 +56913,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -56901,7 +56963,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -56953,7 +57015,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -56971,7 +57033,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -56993,7 +57055,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -57043,7 +57105,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -57114,7 +57176,7 @@ export namespace Prisma {
 
   export type PaymentCreateWithoutSessionInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -57130,7 +57192,7 @@ export namespace Prisma {
     id?: string
     clientId: string
     advisorId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -57166,7 +57228,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57216,7 +57278,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57274,7 +57336,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -57292,7 +57354,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -57320,7 +57382,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57370,7 +57432,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57450,7 +57512,7 @@ export namespace Prisma {
 
   export type PaymentUpdateWithoutSessionInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57466,7 +57528,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
     advisorId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -57525,7 +57587,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -57575,7 +57637,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -57630,7 +57692,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -57680,7 +57742,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -57791,7 +57853,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57841,7 +57903,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57902,7 +57964,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -57952,7 +58014,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58002,7 +58064,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58052,7 +58114,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58118,7 +58180,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58168,7 +58230,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58218,7 +58280,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58268,7 +58330,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58373,7 +58435,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58423,7 +58485,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58518,7 +58580,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58568,7 +58630,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58634,7 +58696,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58684,7 +58746,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58734,7 +58796,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58784,7 +58846,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -58850,7 +58912,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58900,7 +58962,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -58950,7 +59012,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59000,7 +59062,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59066,7 +59128,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59116,7 +59178,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59166,7 +59228,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59216,7 +59278,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59263,7 +59325,7 @@ export namespace Prisma {
 
   export type GoalContributionCreateWithoutGoalInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -59278,7 +59340,7 @@ export namespace Prisma {
     id?: string
     userId: string
     accountId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -59318,7 +59380,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59368,7 +59430,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59431,7 +59493,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -59451,7 +59513,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -59472,8 +59534,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -59490,8 +59552,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -59516,7 +59578,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59566,7 +59628,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59629,7 +59691,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -59649,7 +59711,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -59676,8 +59738,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -59694,8 +59756,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -59726,7 +59788,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59776,7 +59838,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59826,7 +59888,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59876,7 +59938,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -59942,7 +60004,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -59992,7 +60054,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60042,7 +60104,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60092,7 +60154,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60158,7 +60220,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60208,7 +60270,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60258,7 +60320,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60308,7 +60370,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60355,7 +60417,7 @@ export namespace Prisma {
 
   export type LoanPaymentCreateWithoutLoanInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     accountId?: string | null
     date: Date | string
     notes?: string | null
@@ -60365,7 +60427,7 @@ export namespace Prisma {
 
   export type LoanPaymentUncheckedCreateWithoutLoanInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     accountId?: string | null
     date: Date | string
     notes?: string | null
@@ -60404,7 +60466,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60454,7 +60516,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60516,7 +60578,7 @@ export namespace Prisma {
     NOT?: LoanPaymentScalarWhereInput | LoanPaymentScalarWhereInput[]
     id?: StringFilter<"LoanPayment"> | string
     loanId?: StringFilter<"LoanPayment"> | string
-    amount?: FloatFilter<"LoanPayment"> | number
+    amount?: DecimalFilter<"LoanPayment"> | Decimal | DecimalJsLike | number | string
     accountId?: StringNullableFilter<"LoanPayment"> | string | null
     date?: DateTimeFilter<"LoanPayment"> | Date | string
     notes?: StringNullableFilter<"LoanPayment"> | string | null
@@ -60529,10 +60591,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -60550,10 +60612,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -60585,10 +60647,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -60606,10 +60668,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -60630,7 +60692,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60680,7 +60742,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60746,7 +60808,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60796,7 +60858,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -60846,7 +60908,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60896,7 +60958,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -60951,7 +61013,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61001,7 +61063,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61106,7 +61168,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61156,7 +61218,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61217,7 +61279,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61267,7 +61329,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61362,7 +61424,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61412,7 +61474,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61478,7 +61540,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61528,7 +61590,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61578,7 +61640,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61628,7 +61690,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61694,7 +61756,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61744,7 +61806,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -61791,7 +61853,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -61811,7 +61873,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -61831,7 +61893,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -61839,7 +61901,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -61859,7 +61921,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     paidBy?: string | null
     date: Date | string
     members?: string | null
@@ -61868,7 +61930,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -61896,7 +61958,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -61946,7 +62008,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -62009,7 +62071,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -62029,7 +62091,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -62055,7 +62117,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -62063,7 +62125,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -62083,7 +62145,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paidBy?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
@@ -62092,7 +62154,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -62126,7 +62188,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -62176,7 +62238,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -62223,7 +62285,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -62242,7 +62304,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -62389,7 +62451,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -62406,7 +62468,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -62431,7 +62493,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -62448,7 +62510,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -62645,8 +62707,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -62662,8 +62724,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -62686,7 +62748,7 @@ export namespace Prisma {
 
   export type GoalContributionCreateWithoutUserInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -62701,7 +62763,7 @@ export namespace Prisma {
     id?: string
     goalId: string
     accountId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -62772,12 +62834,12 @@ export namespace Prisma {
     id?: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal | DecimalJsLike | number | string
+    buyPrice: Decimal | DecimalJsLike | number | string
+    currentPrice: Decimal | DecimalJsLike | number | string
+    totalInvested: Decimal | DecimalJsLike | number | string
+    currentValue: Decimal | DecimalJsLike | number | string
+    profitLoss: Decimal | DecimalJsLike | number | string
     purchaseDate: Date | string
     lastUpdated: Date | string
     createdAt?: Date | string
@@ -62789,12 +62851,12 @@ export namespace Prisma {
     id?: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal | DecimalJsLike | number | string
+    buyPrice: Decimal | DecimalJsLike | number | string
+    currentPrice: Decimal | DecimalJsLike | number | string
+    totalInvested: Decimal | DecimalJsLike | number | string
+    currentValue: Decimal | DecimalJsLike | number | string
+    profitLoss: Decimal | DecimalJsLike | number | string
     purchaseDate: Date | string
     lastUpdated: Date | string
     createdAt?: Date | string
@@ -62817,10 +62879,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -62837,10 +62899,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -62900,7 +62962,7 @@ export namespace Prisma {
 
   export type PaymentCreateWithoutAdvisorInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -62916,7 +62978,7 @@ export namespace Prisma {
     id?: string
     sessionId: string
     clientId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -62938,7 +63000,7 @@ export namespace Prisma {
 
   export type PaymentCreateWithoutClientInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -62954,7 +63016,7 @@ export namespace Prisma {
     id?: string
     sessionId: string
     advisorId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -63028,7 +63090,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -63061,7 +63123,7 @@ export namespace Prisma {
     deviceId?: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -63222,7 +63284,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -63230,7 +63292,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -63249,7 +63311,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     paidBy?: string | null
     date: Date | string
     members?: string | null
@@ -63258,7 +63320,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -63309,7 +63371,7 @@ export namespace Prisma {
     type?: StringFilter<"Account"> | string
     provider?: StringNullableFilter<"Account"> | string | null
     country?: StringNullableFilter<"Account"> | string | null
-    balance?: FloatFilter<"Account"> | number
+    balance?: DecimalFilter<"Account"> | Decimal | DecimalJsLike | number | string
     currency?: StringFilter<"Account"> | string
     isActive?: BoolFilter<"Account"> | boolean
     syncStatus?: StringFilter<"Account"> | string
@@ -63427,7 +63489,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFilter<"BookingRequest"> | Date | string
     proposedTime?: StringFilter<"BookingRequest"> | string
     duration?: IntFilter<"BookingRequest"> | number
-    amount?: FloatFilter<"BookingRequest"> | number
+    amount?: DecimalFilter<"BookingRequest"> | Decimal | DecimalJsLike | number | string
     status?: StringFilter<"BookingRequest"> | string
     rejectionReason?: StringNullableFilter<"BookingRequest"> | string | null
     createdAt?: DateTimeFilter<"BookingRequest"> | Date | string
@@ -63626,8 +63688,8 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Goal"> | string | null
     name?: StringFilter<"Goal"> | string
     description?: StringNullableFilter<"Goal"> | string | null
-    targetAmount?: FloatFilter<"Goal"> | number
-    currentAmount?: FloatFilter<"Goal"> | number
+    targetAmount?: DecimalFilter<"Goal"> | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFilter<"Goal"> | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFilter<"Goal"> | Date | string
     category?: StringNullableFilter<"Goal"> | string | null
     isGroupGoal?: BoolFilter<"Goal"> | boolean
@@ -63716,12 +63778,12 @@ export namespace Prisma {
     userId?: StringFilter<"Investment"> | string
     assetType?: StringFilter<"Investment"> | string
     assetName?: StringFilter<"Investment"> | string
-    quantity?: FloatFilter<"Investment"> | number
-    buyPrice?: FloatFilter<"Investment"> | number
-    currentPrice?: FloatFilter<"Investment"> | number
-    totalInvested?: FloatFilter<"Investment"> | number
-    currentValue?: FloatFilter<"Investment"> | number
-    profitLoss?: FloatFilter<"Investment"> | number
+    quantity?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFilter<"Investment"> | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFilter<"Investment"> | Date | string
     lastUpdated?: DateTimeFilter<"Investment"> | Date | string
     createdAt?: DateTimeFilter<"Investment"> | Date | string
@@ -63754,10 +63816,10 @@ export namespace Prisma {
     deviceId?: StringNullableFilter<"Loan"> | string | null
     type?: StringFilter<"Loan"> | string
     name?: StringFilter<"Loan"> | string
-    principalAmount?: FloatFilter<"Loan"> | number
-    outstandingBalance?: FloatFilter<"Loan"> | number
-    interestRate?: FloatNullableFilter<"Loan"> | number | null
-    emiAmount?: FloatNullableFilter<"Loan"> | number | null
+    principalAmount?: DecimalFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFilter<"Loan"> | Decimal | DecimalJsLike | number | string
+    interestRate?: DecimalNullableFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: DecimalNullableFilter<"Loan"> | Decimal | DecimalJsLike | number | string | null
     dueDate?: DateTimeNullableFilter<"Loan"> | Date | string | null
     frequency?: StringNullableFilter<"Loan"> | string | null
     status?: StringFilter<"Loan"> | string
@@ -63825,7 +63887,7 @@ export namespace Prisma {
     sessionId?: StringFilter<"Payment"> | string
     clientId?: StringFilter<"Payment"> | string
     advisorId?: StringFilter<"Payment"> | string
-    amount?: FloatFilter<"Payment"> | number
+    amount?: DecimalFilter<"Payment"> | Decimal | DecimalJsLike | number | string
     currency?: StringFilter<"Payment"> | string
     status?: StringFilter<"Payment"> | string
     paymentMethod?: StringNullableFilter<"Payment"> | string | null
@@ -64078,7 +64140,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64128,7 +64190,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64194,7 +64256,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64244,7 +64306,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64294,7 +64356,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64344,7 +64406,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64410,7 +64472,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64460,7 +64522,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64510,7 +64572,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64560,7 +64622,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64626,7 +64688,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64676,7 +64738,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64726,7 +64788,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64776,7 +64838,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -64842,7 +64904,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64892,7 +64954,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64936,7 +64998,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -64970,7 +65032,7 @@ export namespace Prisma {
     deviceId?: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -65013,7 +65075,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -65033,7 +65095,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -65059,7 +65121,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -65109,7 +65171,7 @@ export namespace Prisma {
     isApproved?: boolean
     firstName?: string | null
     lastName?: string | null
-    salary?: number | null
+    salary?: Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: Date | string | null
     jobType?: string | null
     lastSynced?: Date | string | null
@@ -65160,7 +65222,7 @@ export namespace Prisma {
     name: string
     email?: string | null
     phone?: string | null
-    shareAmount?: number
+    shareAmount?: Decimal | DecimalJsLike | number | string
     hasPaid?: boolean
     paidAt?: Date | string | null
     createdAt?: Date | string
@@ -65174,7 +65236,7 @@ export namespace Prisma {
     name: string
     email?: string | null
     phone?: string | null
-    shareAmount?: number
+    shareAmount?: Decimal | DecimalJsLike | number | string
     hasPaid?: boolean
     paidAt?: Date | string | null
     createdAt?: Date | string
@@ -65226,7 +65288,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -65246,7 +65308,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -65278,7 +65340,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -65328,7 +65390,7 @@ export namespace Prisma {
     isApproved?: BoolFieldUpdateOperationsInput | boolean
     firstName?: NullableStringFieldUpdateOperationsInput | string | null
     lastName?: NullableStringFieldUpdateOperationsInput | string | null
-    salary?: NullableFloatFieldUpdateOperationsInput | number | null
+    salary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dateOfBirth?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     jobType?: NullableStringFieldUpdateOperationsInput | string | null
     lastSynced?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -65394,7 +65456,7 @@ export namespace Prisma {
     name?: StringFilter<"GroupExpenseMember"> | string
     email?: StringNullableFilter<"GroupExpenseMember"> | string | null
     phone?: StringNullableFilter<"GroupExpenseMember"> | string | null
-    shareAmount?: FloatFilter<"GroupExpenseMember"> | number
+    shareAmount?: DecimalFilter<"GroupExpenseMember"> | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFilter<"GroupExpenseMember"> | boolean
     paidAt?: DateTimeNullableFilter<"GroupExpenseMember"> | Date | string | null
     createdAt?: DateTimeFilter<"GroupExpenseMember"> | Date | string
@@ -65406,7 +65468,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -65414,7 +65476,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -65434,7 +65496,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     paidBy?: string | null
     date: Date | string
     members?: string | null
@@ -65443,7 +65505,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -65476,7 +65538,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65484,7 +65546,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65504,7 +65566,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paidBy?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65513,7 +65575,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65530,7 +65592,7 @@ export namespace Prisma {
     id?: string
     userId: string
     goalId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -65544,7 +65606,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -65576,7 +65638,7 @@ export namespace Prisma {
     userId: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     date: Date | string
     members?: string | null
     items?: string | null
@@ -65584,7 +65646,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -65598,7 +65660,7 @@ export namespace Prisma {
 
   export type GoalContributionUpdateWithoutAccountInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65613,7 +65675,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     goalId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65626,7 +65688,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     goalId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65639,7 +65701,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65672,7 +65734,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65704,7 +65766,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65735,7 +65797,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65743,7 +65805,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65763,7 +65825,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65771,7 +65833,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65790,7 +65852,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65798,7 +65860,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65842,7 +65904,7 @@ export namespace Prisma {
     id?: string
     userId: string
     accountId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -65853,7 +65915,7 @@ export namespace Prisma {
 
   export type GoalContributionUpdateWithoutGoalInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65868,7 +65930,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     accountId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65881,7 +65943,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     accountId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65892,7 +65954,7 @@ export namespace Prisma {
 
   export type LoanPaymentCreateManyLoanInput = {
     id?: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     accountId?: string | null
     date: Date | string
     notes?: string | null
@@ -65902,7 +65964,7 @@ export namespace Prisma {
 
   export type LoanPaymentUpdateWithoutLoanInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65912,7 +65974,7 @@ export namespace Prisma {
 
   export type LoanPaymentUncheckedUpdateWithoutLoanInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65922,7 +65984,7 @@ export namespace Prisma {
 
   export type LoanPaymentUncheckedUpdateManyWithoutLoanInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     accountId?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     notes?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65937,7 +65999,7 @@ export namespace Prisma {
     type?: string
     provider?: string | null
     country?: string | null
-    balance?: number
+    balance?: Decimal | DecimalJsLike | number | string
     currency?: string
     isActive?: boolean
     syncStatus?: string
@@ -65994,7 +66056,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -66009,7 +66071,7 @@ export namespace Prisma {
     proposedDate: Date | string
     proposedTime: string
     duration: number
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     status?: string
     rejectionReason?: string | null
     createdAt?: Date | string
@@ -66083,8 +66145,8 @@ export namespace Prisma {
     deviceId?: string | null
     name: string
     description?: string | null
-    targetAmount: number
-    currentAmount?: number
+    targetAmount: Decimal | DecimalJsLike | number | string
+    currentAmount?: Decimal | DecimalJsLike | number | string
     targetDate: Date | string
     category?: string | null
     isGroupGoal?: boolean
@@ -66098,7 +66160,7 @@ export namespace Prisma {
     id?: string
     goalId: string
     accountId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     date: Date | string
     memberName?: string | null
     status?: string | null
@@ -66130,12 +66192,12 @@ export namespace Prisma {
     id?: string
     assetType: string
     assetName: string
-    quantity: number
-    buyPrice: number
-    currentPrice: number
-    totalInvested: number
-    currentValue: number
-    profitLoss: number
+    quantity: Decimal | DecimalJsLike | number | string
+    buyPrice: Decimal | DecimalJsLike | number | string
+    currentPrice: Decimal | DecimalJsLike | number | string
+    totalInvested: Decimal | DecimalJsLike | number | string
+    currentValue: Decimal | DecimalJsLike | number | string
+    profitLoss: Decimal | DecimalJsLike | number | string
     purchaseDate: Date | string
     lastUpdated: Date | string
     createdAt?: Date | string
@@ -66148,10 +66210,10 @@ export namespace Prisma {
     deviceId?: string | null
     type: string
     name: string
-    principalAmount: number
-    outstandingBalance: number
-    interestRate?: number | null
-    emiAmount?: number | null
+    principalAmount: Decimal | DecimalJsLike | number | string
+    outstandingBalance: Decimal | DecimalJsLike | number | string
+    interestRate?: Decimal | DecimalJsLike | number | string | null
+    emiAmount?: Decimal | DecimalJsLike | number | string | null
     dueDate?: Date | string | null
     frequency?: string | null
     status?: string
@@ -66179,7 +66241,7 @@ export namespace Prisma {
     id?: string
     sessionId: string
     clientId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -66193,7 +66255,7 @@ export namespace Prisma {
     id?: string
     sessionId: string
     advisorId: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     currency?: string
     status?: string
     paymentMethod?: string | null
@@ -66223,7 +66285,7 @@ export namespace Prisma {
     deviceId?: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -66276,7 +66338,7 @@ export namespace Prisma {
     id?: string
     deviceId?: string | null
     name: string
-    totalAmount: number
+    totalAmount: Decimal | DecimalJsLike | number | string
     paidBy?: string | null
     date: Date | string
     members?: string | null
@@ -66285,7 +66347,7 @@ export namespace Prisma {
     category?: string | null
     subcategory?: string | null
     splitType?: string | null
-    yourShare?: number | null
+    yourShare?: Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: string | null
     createdBy?: string | null
     createdByName?: string | null
@@ -66304,7 +66366,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -66323,7 +66385,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -66342,7 +66404,7 @@ export namespace Prisma {
     type?: StringFieldUpdateOperationsInput | string
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     country?: NullableStringFieldUpdateOperationsInput | string | null
-    balance?: FloatFieldUpdateOperationsInput | number
+    balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
     syncStatus?: StringFieldUpdateOperationsInput | string
@@ -66486,7 +66548,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66503,7 +66565,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66519,7 +66581,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66533,7 +66595,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66550,7 +66612,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66566,7 +66628,7 @@ export namespace Prisma {
     proposedDate?: DateTimeFieldUpdateOperationsInput | Date | string
     proposedTime?: StringFieldUpdateOperationsInput | string
     duration?: IntFieldUpdateOperationsInput | number
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     status?: StringFieldUpdateOperationsInput | string
     rejectionReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66764,8 +66826,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -66781,8 +66843,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -66798,8 +66860,8 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    targetAmount?: FloatFieldUpdateOperationsInput | number
-    currentAmount?: FloatFieldUpdateOperationsInput | number
+    targetAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     targetDate?: DateTimeFieldUpdateOperationsInput | Date | string
     category?: NullableStringFieldUpdateOperationsInput | string | null
     isGroupGoal?: BoolFieldUpdateOperationsInput | boolean
@@ -66811,7 +66873,7 @@ export namespace Prisma {
 
   export type GoalContributionUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66826,7 +66888,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     goalId?: StringFieldUpdateOperationsInput | string
     accountId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66839,7 +66901,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     goalId?: StringFieldUpdateOperationsInput | string
     accountId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     memberName?: NullableStringFieldUpdateOperationsInput | string | null
     status?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66909,12 +66971,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66926,12 +66988,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66943,12 +67005,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     assetType?: StringFieldUpdateOperationsInput | string
     assetName?: StringFieldUpdateOperationsInput | string
-    quantity?: FloatFieldUpdateOperationsInput | number
-    buyPrice?: FloatFieldUpdateOperationsInput | number
-    currentPrice?: FloatFieldUpdateOperationsInput | number
-    totalInvested?: FloatFieldUpdateOperationsInput | number
-    currentValue?: FloatFieldUpdateOperationsInput | number
-    profitLoss?: FloatFieldUpdateOperationsInput | number
+    quantity?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    buyPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    totalInvested?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    profitLoss?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     purchaseDate?: DateTimeFieldUpdateOperationsInput | Date | string
     lastUpdated?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -66961,10 +67023,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -66981,10 +67043,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -67001,10 +67063,10 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
-    principalAmount?: FloatFieldUpdateOperationsInput | number
-    outstandingBalance?: FloatFieldUpdateOperationsInput | number
-    interestRate?: NullableFloatFieldUpdateOperationsInput | number | null
-    emiAmount?: NullableFloatFieldUpdateOperationsInput | number | null
+    principalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    outstandingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    interestRate?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    emiAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     frequency?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -67056,7 +67118,7 @@ export namespace Prisma {
 
   export type PaymentUpdateWithoutAdvisorInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67072,7 +67134,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67086,7 +67148,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: StringFieldUpdateOperationsInput | string
     clientId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67098,7 +67160,7 @@ export namespace Prisma {
 
   export type PaymentUpdateWithoutClientInput = {
     id?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67114,7 +67176,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: StringFieldUpdateOperationsInput | string
     advisorId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67128,7 +67190,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     sessionId?: StringFieldUpdateOperationsInput | string
     advisorId?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currency?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     paymentMethod?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67187,7 +67249,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67220,7 +67282,7 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     accountId?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67252,7 +67314,7 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     accountId?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67349,7 +67411,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
     items?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67357,7 +67419,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67376,7 +67438,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paidBy?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67385,7 +67447,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67403,7 +67465,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     name?: StringFieldUpdateOperationsInput | string
-    totalAmount?: FloatFieldUpdateOperationsInput | number
+    totalAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     paidBy?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     members?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67412,7 +67474,7 @@ export namespace Prisma {
     category?: NullableStringFieldUpdateOperationsInput | string | null
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     splitType?: NullableStringFieldUpdateOperationsInput | string | null
-    yourShare?: NullableFloatFieldUpdateOperationsInput | number | null
+    yourShare?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     expenseTransactionId?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdByName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67430,7 +67492,7 @@ export namespace Prisma {
     deviceId?: string | null
     accountId: string
     type: string
-    amount: number
+    amount: Decimal | DecimalJsLike | number | string
     category: string
     subcategory?: string | null
     description?: string | null
@@ -67462,7 +67524,7 @@ export namespace Prisma {
     name: string
     email?: string | null
     phone?: string | null
-    shareAmount?: number
+    shareAmount?: Decimal | DecimalJsLike | number | string
     hasPaid?: boolean
     paidAt?: Date | string | null
     createdAt?: Date | string
@@ -67474,7 +67536,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67508,7 +67570,7 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     accountId?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67540,7 +67602,7 @@ export namespace Prisma {
     deviceId?: NullableStringFieldUpdateOperationsInput | string | null
     accountId?: StringFieldUpdateOperationsInput | string
     type?: StringFieldUpdateOperationsInput | string
-    amount?: FloatFieldUpdateOperationsInput | number
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     category?: StringFieldUpdateOperationsInput | string
     subcategory?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
@@ -67572,7 +67634,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -67586,7 +67648,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -67600,7 +67662,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phone?: NullableStringFieldUpdateOperationsInput | string | null
-    shareAmount?: FloatFieldUpdateOperationsInput | number
+    shareAmount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     hasPaid?: BoolFieldUpdateOperationsInput | boolean
     paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

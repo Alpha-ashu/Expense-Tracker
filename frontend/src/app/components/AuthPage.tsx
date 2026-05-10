@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { signIn, signUp } from '@/lib/supabase-helpers';
 import { Shield, Eye, EyeOff, Mail, Lock, User, Check, ArrowRight, Loader2 } from 'lucide-react';
-import { FinoraLogo } from './ui/FinoraLogo';
+import { KanakkuLogo } from './ui/KanakkuLogo';
 import { toast } from 'sonner';
 import { PrivacyPolicy } from './PrivacyPolicy';
 import { Terms } from './Terms';
@@ -103,7 +103,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onAuthSuccess }) => {
           {/* Logo/Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 mb-4 bg-gray-50 rounded-full p-2 shadow-sm border border-gray-100">
-              <FinoraLogo className="w-12 h-12" />
+              <KanakkuLogo className="w-12 h-12" />
             </div>
             <h1 className="text-3xl font-bold text-gray-900">Kanakku</h1>
             <p className="text-gray-500 mt-2">

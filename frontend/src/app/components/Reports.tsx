@@ -332,7 +332,7 @@ export const Reports: React.FC = () => {
         subtitle="Track performance, spot trends, and export insights"
         icon={<TrendingUp size={20} className="sm:w-6 sm:h-6" />}
       >
-        <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap">
+        <div className="flex flex-wrap gap-2">
           <Button
             onClick={() => {
               pulseExportAction('download');
@@ -340,11 +340,13 @@ export const Reports: React.FC = () => {
             }}
             aria-label="Download PDF"
             title="Download PDF"
-            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-xs sm:text-sm ${
-              activeExportAction === 'download' ? 'ring-2 ring-offset-2 ring-amber-300' : ''
+            className={`shadow-lg h-11 px-4 rounded-2xl font-semibold transition-all active:scale-95 flex items-center gap-2 ${
+              activeExportAction === 'download' 
+                ? 'bg-gray-900 text-white ring-2 ring-offset-2 ring-gray-900/20' 
+                : 'bg-white text-gray-900 border border-gray-100 hover:bg-gray-50'
             }`}
           >
-            <Download size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <Download size={18} />
             <span className="hidden sm:inline">Download PDF</span>
           </Button>
           <Button
@@ -354,13 +356,13 @@ export const Reports: React.FC = () => {
             }}
             aria-label="Share report"
             title="Share report"
-            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+            className={`shadow-lg h-11 px-4 rounded-2xl font-semibold transition-all active:scale-95 flex items-center gap-2 ${
               activeExportAction === 'share'
-                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
-                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                ? 'bg-gray-900 text-white ring-2 ring-offset-2 ring-gray-900/20'
+                : 'bg-white text-gray-900 border border-gray-100 hover:bg-gray-50'
             }`}
           >
-            <Share2 size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <Share2 size={18} />
             <span className="hidden sm:inline">Share Report</span>
           </Button>
           <Button
@@ -370,13 +372,13 @@ export const Reports: React.FC = () => {
             }}
             aria-label="Export report as CSV"
             title="Export CSV"
-            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+            className={`shadow-lg h-11 px-4 rounded-2xl font-semibold transition-all active:scale-95 flex items-center gap-2 ${
               activeExportAction === 'csv'
-                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
-                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                ? 'bg-gray-900 text-white ring-2 ring-offset-2 ring-gray-900/20'
+                : 'bg-white text-gray-900 border border-gray-100 hover:bg-gray-50'
             }`}
           >
-            <FileText size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <FileText size={18} />
             <span className="hidden sm:inline">Export CSV</span>
           </Button>
           <Button
@@ -386,13 +388,13 @@ export const Reports: React.FC = () => {
             }}
             aria-label="Export report as Excel"
             title="Export Excel"
-            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+            className={`shadow-lg h-11 px-4 rounded-2xl font-semibold transition-all active:scale-95 flex items-center gap-2 ${
               activeExportAction === 'excel'
-                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
-                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                ? 'bg-gray-900 text-white ring-2 ring-offset-2 ring-gray-900/20'
+                : 'bg-white text-gray-900 border border-gray-100 hover:bg-gray-50'
             }`}
           >
-            <FileSpreadsheet size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
+            <FileSpreadsheet size={18} />
             <span className="hidden sm:inline">Export Excel</span>
           </Button>
           <Button
@@ -402,14 +404,14 @@ export const Reports: React.FC = () => {
             }}
             aria-label="Open more export options"
             title="More Export Options"
-            className={`rounded-full h-10 w-10 p-0 sm:h-10 sm:w-auto sm:px-4 shadow-lg border transition-transform active:scale-95 text-xs sm:text-sm ${
+            className={`shadow-lg h-11 px-4 rounded-2xl font-semibold transition-all active:scale-95 flex items-center gap-2 ${
               activeExportAction === 'more'
-                ? 'bg-black text-white border-black ring-2 ring-offset-2 ring-black/20'
-                : 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50'
+                ? 'bg-gray-900 text-white ring-2 ring-offset-2 ring-gray-900/20'
+                : 'bg-white text-gray-900 border border-gray-100 hover:bg-gray-50'
             }`}
           >
-            <MoreHorizontal size={16} className="sm:w-4 sm:h-4 sm:mr-2" />
-            <span className="hidden sm:inline">More Export Options</span>
+            <MoreHorizontal size={18} />
+            <span className="hidden sm:inline">More</span>
           </Button>
         </div>
       </PageHeader>

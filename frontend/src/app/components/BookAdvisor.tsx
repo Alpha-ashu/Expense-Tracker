@@ -144,7 +144,7 @@ export const BookAdvisor: React.FC = () => {
   const clientBookings = myBookings.filter(b => !b.advisorId || b.advisorId !== user?.id);
 
   return (
-    <div className="finora-screen-page finora-advisor-entry min-h-screen bg-gray-50">
+    <div className="kanakku-screen-page kanakku-advisor-entry min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => setCurrentPage('dashboard')} className="p-2 hover:bg-gray-100 rounded-xl md:hidden transition-colors">
@@ -204,7 +204,7 @@ export const BookAdvisor: React.FC = () => {
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <Briefcase size={40} className="mx-auto text-gray-300 mb-3" />
             <h3 className="font-bold text-gray-700">No Advisors Available Yet</h3>
-            <p className="text-sm text-gray-500 mt-1 mb-5">Be the first financial advisor on Finora!</p>
+            <p className="text-sm text-gray-500 mt-1 mb-5">Be the first financial advisor on Kanakku!</p>
             <button onClick={handleApplyAsAdvisor} disabled={applyingAsAdvisor}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700">
               {applyingAsAdvisor ? <Loader2 size={14} className="animate-spin" /> : <Briefcase size={14} />}

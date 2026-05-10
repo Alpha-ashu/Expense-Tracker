@@ -4,11 +4,11 @@ export const ENVIRONMENT_CONFIG = {
   NODE_ENV: process.env.NODE_ENV || 'production',
   
   // API configuration
-  API_BASE_URL: process.env.VITE_API_BASE_URL || 'https://api.Kanakku.app',
+  API_BASE_URL: process.env.VITE_API_BASE_URL || 'https://api.finora.app',
   API_TIMEOUT: 30000, // 30 seconds
   
   // Database configuration
-  DB_NAME: 'FinoraDB',
+  DB_NAME: 'KanakkuDB',
   DB_VERSION: 3,
   DB_ENCRYPTION_ENABLED: true,
   
@@ -42,8 +42,8 @@ export const ENVIRONMENT_CONFIG = {
   
   // Mobile app settings
   MOBILE_APP_STORE_URL: {
-    ios: process.env.VITE_IOS_APP_STORE_URL || 'https://apps.apple.com/app/Kanakku',
-    android: process.env.VITE_ANDROID_APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.Kanakku'
+    ios: process.env.VITE_IOS_APP_STORE_URL || 'https://apps.apple.com/app/finora',
+    android: process.env.VITE_ANDROID_APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.finora'
   }
 };
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./finoraIntelligenceEngine', () => ({
-  finoraAI: {
+vi.mock('./kanakkuIntelligenceEngine', () => ({
+  kanakkuAI: {
     extractExpenseData: vi.fn(async () => ({
       amount: undefined,
       category: undefined,

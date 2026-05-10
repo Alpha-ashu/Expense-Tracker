@@ -8,9 +8,10 @@
  */
 
 //  Constants 
-export const GUEST_USER_ID = '__finora_guest__';
-const GUEST_MODE_KEY    = 'finora_guest_mode';
-const GUEST_CREATED_KEY = 'finora_guest_created_at';
+export const GUEST_USER_ID = '__kanakku_guest__';
+const LEGACY_GUEST_USER_ID = '__finora_guest__';
+const GUEST_MODE_KEY    = 'kanakku_guest_mode';
+const GUEST_CREATED_KEY = 'kanakku_guest_created_at';
 
 //  State helpers 
 export const isGuestMode = (): boolean =>
@@ -72,7 +73,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
   try {
     //  accounts 
     const accounts = await db.accounts.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of accounts) {
       await db.accounts.update(rec.id!, {
@@ -85,7 +86,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
     //  transactions 
     const txns = await db.transactions.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of txns) {
       await db.transactions.update(rec.id!, {
@@ -98,7 +99,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
     //  goals 
     const goals = await db.goals.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of goals) {
       await db.goals.update(rec.id!, {
@@ -111,7 +112,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
     //  loans 
     const loans = await db.loans.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of loans) {
       await db.loans.update(rec.id!, {
@@ -124,7 +125,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
     //  investments 
     const investments = await db.investments.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of investments) {
       await db.investments.update(rec.id!, {
@@ -137,7 +138,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
     //  friends 
     const friends = await db.friends.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of friends) {
       await db.friends.update(rec.id!, {
@@ -150,7 +151,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
     //  groupExpenses 
     const groups = await db.groupExpenses.filter(
-      (r: any) => !r.userId || r.userId === GUEST_USER_ID
+      (r: any) => !r.userId || r.userId === GUEST_USER_ID || r.userId === LEGACY_GUEST_USER_ID
     ).toArray();
     for (const rec of groups) {
       await db.groupExpenses.update(rec.id!, {

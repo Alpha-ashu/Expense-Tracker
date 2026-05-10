@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, TrendingUp, Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
-import { FinoraLogo } from '../../app/components/ui/FinoraLogo';
+import { KanakkuLogo } from '../../app/components/ui/KanakkuLogo';
 import { motion } from 'framer-motion';
 import { SignInForm } from './SignInForm';
 import { SignUpForm } from './SignUpForm';
@@ -21,13 +21,13 @@ const internalLog = {
   warn: (context: string, err?: unknown) => {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
-      console.warn(`[Kanakku/${context}]`, err instanceof Error ? err.message : err);
+      console.warn(`[Finora/${context}]`, err instanceof Error ? err.message : err);
     }
   },
   error: (context: string, err?: unknown) => {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
-      console.error(`[Kanakku/${context}]`, err instanceof Error ? err.message : err);
+      console.error(`[Finora/${context}]`, err instanceof Error ? err.message : err);
     }
   },
 };
@@ -397,7 +397,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       localStorage.removeItem('auth_flow_step');
       localStorage.removeItem('pending_auth_email');
 
-      toast.success('Setup complete! Welcome to Kanakku!');
+      toast.success('Setup complete! Welcome to Finora!');
 
       // Dispatch global event for other modules
       window.dispatchEvent(new CustomEvent('PROFILE_SETUP_COMPLETED', {
@@ -487,11 +487,11 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 className="absolute inset-0 rounded-[2rem] border-2 border-blue-200 border-dashed"
               />
               <div className="absolute inset-2 bg-white rounded-3xl flex items-center justify-center shadow-sm">
-                <FinoraLogo className="w-12 h-12 drop-shadow-sm" />
+                <KanakkuLogo className="w-12 h-12 drop-shadow-sm" />
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-              Kanakku
+              Finora
             </h1>
             <p className="text-base sm:text-lg text-gray-500 font-medium max-w-[280px] sm:max-w-md mx-auto leading-relaxed">
               Experience the future of personal finance. Track, grow, and master your wealth seamlessly.
@@ -919,7 +919,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 <span className="group-hover:-translate-x-0.5 transition-transform"></span> Back
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
-              <p className="text-gray-500 mt-1 text-sm">Join Kanakku to start mastering your wealth.</p>
+              <p className="text-gray-500 mt-1 text-sm">Join Finora to start mastering your wealth.</p>
             </div>
             <div className="p-6 sm:p-8 pt-6">
               <SignUpForm

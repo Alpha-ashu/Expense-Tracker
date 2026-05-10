@@ -60,6 +60,18 @@ export interface ReceiptScanResult {
 
   confidence?: number;
   rawText?: string;
+
+  // New Financial Total Validation Engine fields
+  merchant?: {
+    value: string;
+    confidence: number;
+  };
+  final_amount?: {
+    value: number;
+    confidence: number;
+  };
+  amountMismatchDetected?: boolean;
+  amountCandidates?: number[];
 }
 
 export interface ReceiptScanPayload extends ReceiptScanResult {

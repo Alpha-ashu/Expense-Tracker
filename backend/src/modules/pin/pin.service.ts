@@ -1,5 +1,6 @@
 import { prisma } from '../../db/prisma';
 import bcrypt from 'bcryptjs';
+import { logger } from '../../config/logger';
 
 export interface CreatePinRequest {
   userId: string;
@@ -106,7 +107,7 @@ class PinService {
       await this.ensureLocalUser(request);
 
       // Hash the PIN
-      const pinHash = await bcrypt.hash(pin, 10);
+      const pinHash = await bcrypt.hash(pin, 12);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + this.PIN_EXPIRY_DAYS);
 
@@ -126,7 +127,7 @@ class PinService {
         expiresAt: expiresAt.toISOString(),
       };
     } catch (error) {
-      console.error('Create PIN error:', error);
+      logger.error('[PinService] Create PIN error:', error);
       return {
         success: false,
         message: 'Failed to create PIN',
@@ -244,7 +245,7 @@ class PinService {
         expiresAt: userPin.expiresAt.toISOString(),
       };
     } catch (error) {
-      console.error('Verify PIN error:', error);
+      logger.error('[PinService] Verify PIN error:', error);
       return {
         success: false,
         message: 'Failed to verify PIN',
@@ -277,7 +278,7 @@ class PinService {
       }
 
       // Hash the new PIN
-      const newPinHash = await bcrypt.hash(newPin, 10);
+      const newPinHash = await bcrypt.hash(newPin, 12);
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + this.PIN_EXPIRY_DAYS);
 
@@ -299,7 +300,7 @@ class PinService {
         expiresAt: expiresAt.toISOString(),
       };
     } catch (error) {
-      console.error('Update PIN error:', error);
+      logger.error('[PinService] Update PIN error:', error);
       return {
         success: false,
         message: 'Failed to update PIN',
@@ -336,7 +337,7 @@ class PinService {
         lockedUntil,
       };
     } catch (error) {
-      console.error('Get PIN status error:', error);
+      logger.error('[PinService] Get PIN status error:', error);
       return {
         success: false,
         message: 'Failed to get PIN status',
@@ -360,7 +361,7 @@ class PinService {
           : 'PIN already reset. User must create a new PIN.',
       };
     } catch (error) {
-      console.error('Force reset PIN error:', error);
+      logger.error('[PinService] Force reset PIN error:', error);
       return {
         success: false,
         message: 'Failed to reset PIN',
@@ -393,7 +394,7 @@ class PinService {
 
       return userPin.expiresAt <= sevenDaysFromNow;
     } catch (error) {
-      console.error('Check PIN expiry error:', error);
+      logger.error('[PinService] Check PIN expiry error:', error);
       return false;
     }
   }
@@ -418,7 +419,7 @@ class PinService {
 
       return Math.max(0, diffDays);
     } catch (error) {
-      console.error('Get PIN days remaining error:', error);
+      logger.error('[PinService] Get PIN days remaining error:', error);
       return 0;
     }
   }
@@ -451,7 +452,7 @@ class PinService {
         message: 'PIN key backup saved successfully',
       };
     } catch (error) {
-      console.error('Save PIN key backup error:', error);
+      logger.error('[PinService] Save PIN key backup error:', error);
       return {
         success: false,
         message: 'Failed to save PIN key backup',
@@ -479,7 +480,7 @@ class PinService {
         backup: userPin.keyBackup,
       };
     } catch (error) {
-      console.error('Get PIN key backup error:', error);
+      logger.error('[PinService] Get PIN key backup error:', error);
       return {
         success: false,
         message: 'Failed to load PIN key backup',
@@ -506,7 +507,7 @@ class PinService {
         message: 'PIN key backup cleared successfully',
       };
     } catch (error) {
-      console.error('Clear PIN key backup error:', error);
+      logger.error('[PinService] Clear PIN key backup error:', error);
       return {
         success: false,
         message: 'Failed to clear PIN key backup',

@@ -32,8 +32,8 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBack, onGetStarted, 
         {
             icon: <Mail className="w-5 h-5 text-violet-600" />,
             label: "Email",
-            value: "support@finora.app",
-            link: "mailto:support@finora.app"
+            value: "support@kanakku.app",
+            link: "mailto:support@kanakku.app"
         },
         {
             icon: <MessageSquare className="w-5 h-5 text-pink-600" />,

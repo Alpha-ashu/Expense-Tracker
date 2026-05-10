@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, Target, Heart, Zap, Globe, Lock } from 'lucide-react';
-import { FinoraLogo } from './ui/FinoraLogo';
+import { KanakkuLogo } from './ui/KanakkuLogo';
 import { PublicNavbar } from './ui/PublicNavbar';
 
 interface AboutPageProps {
@@ -136,7 +136,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[3rem] p-10 lg:p-20 flex flex-col items-center text-center text-white overflow-hidden relative">
                         <div className="absolute bottom-0 right-0 w-64 h-64 bg-violet-500/20 rounded-full blur-3xl" />
-                        <FinoraLogo className="w-16 h-16 mb-6 mx-auto" />
+                        <KanakkuLogo className="w-16 h-16 mb-6 mx-auto" />
                         <h2 className="text-3xl lg:text-5xl font-bold mb-6">Join the Revolution</h2>
                         <p className="text-gray-400 max-w-xl mx-auto mb-10 text-lg">
                             Start managing your wealth smarter today. Join over 50k users who trust Kanakku for their financial journey.

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LogOut, KeyRound, AlertCircle, ChevronLeft, ShieldCheck, Eye, EyeOff, Lock } from 'lucide-react';
-import { FinoraLogo } from './ui/FinoraLogo';
+import { KanakkuLogo } from './ui/KanakkuLogo';
 import { clearSecurityData, isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
 import { toast } from 'sonner';
@@ -322,7 +322,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a56f0]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-            <FinoraLogo className="w-9 h-9" />
+            <KanakkuLogo className="w-9 h-9" />
           </div>
           <div className="w-7 h-7 border-3 border-white/30 border-t-white rounded-full animate-spin" />
         </div>

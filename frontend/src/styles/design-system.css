@@ -74,7 +74,7 @@
 
 /* ─── Standardized Components ────────────────────────────────────────────── */
 
-.finora-card {
+.kanakku-card {
   background-color: white;
   border-radius: var(--radius-xl);
   padding: var(--space-2xl);
@@ -84,7 +84,7 @@
   flex-direction: column;
 }
 
-.finora-btn {
+.kanakku-btn {
   height: var(--h-button);
   padding: 0 var(--space-xl);
   border-radius: var(--radius-md);
@@ -99,28 +99,28 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.finora-btn-primary {
+.kanakku-btn-primary {
   background-color: #EF4444; /* Standard Red */
   color: white;
   box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
 }
 
-.finora-btn-primary:hover {
+.kanakku-btn-primary:hover {
   background-color: #DC2626;
   transform: translateY(-1px);
 }
 
-.finora-btn-secondary {
+.kanakku-btn-secondary {
   background-color: #F8FAFC;
   color: #475569;
   border: 1px solid #E2E8F0;
 }
 
-.finora-btn-secondary:hover {
+.kanakku-btn-secondary:hover {
   background-color: #F1F5F9;
 }
 
-.finora-input {
+.kanakku-input {
   width: 100%;
   height: var(--h-input);
   background-color: #F8FAFC;
@@ -132,16 +132,16 @@
   transition: all 0.2s ease;
 }
 
-.finora-input:focus {
+.kanakku-input:focus {
   outline: none;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.05);
 }
 
-.finora-input::placeholder {
+.kanakku-input::placeholder {
   color: #CBD5E1;
 }
 
-.finora-search-bar {
+.kanakku-search-bar {
   background-color: #F8FAFC;
   border: 1px solid #F1F5F9;
   border-radius: var(--radius-md);
@@ -153,7 +153,7 @@
   transition: all 0.2s ease;
 }
 
-.finora-search-bar:focus {
+.kanakku-search-bar:focus {
   background-color: white;
   border-color: #E2E8F0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -162,7 +162,7 @@
 
 /* ─── Typography & Alignment Utilities ────────────────────────────────────── */
 
-.finora-label {
+.kanakku-label {
   font-size: 0.625rem; /* 10px */
   font-weight: 900;
   color: #94A3B8;

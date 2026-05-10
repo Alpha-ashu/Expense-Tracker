@@ -3,6 +3,7 @@ import axios, { AxiosInstance } from 'axios';
 import RealtimeDataManager from './realtimeData';
 import { db } from './database';
 import { createNotificationRecord } from './notifications';
+import { categorizeText as localCategorizeText } from './smartCategorization';
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
 const SHOULD_SKIP_OPTIONAL_BACKEND_REQUESTS = import.meta.env.DEV && !import.meta.env.VITE_API_URL;
@@ -384,8 +385,13 @@ class BackendService {
     confidence: number;
     matchedBy?: string;
   }> {
-    const response = await this.api.post('/categorize', { text });
-    return response.data?.data ?? response.data;
+    try {
+      const response = await this.api.post('/categorize', { text });
+      return response.data?.data ?? response.data;
+    } catch (error) {
+      console.warn('Backend categorization failed, falling back to local categorization engine.');
+      return localCategorizeText(text);
+    }
   }
 
   async learnCategorization(payload: {

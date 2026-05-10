@@ -243,7 +243,7 @@ export const TopBar: React.FC = () => {
                         <input
                             type="text"
                             placeholder="Search transactions, assets..."
-                            className="finora-search-bar"
+                            className="kanakku-search-bar"
                         />
                     </div>
                 </div>

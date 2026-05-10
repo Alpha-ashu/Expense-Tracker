@@ -133,13 +133,13 @@ export const Settings: React.FC = () => {
       // Step 3: Clear all storage (PIN preserved)
       try {
         const pinBackup = {
-          hash: localStorage.getItem('Finora_encrypted_key'),
-          salt: localStorage.getItem('Finora_salt'),
+          hash: localStorage.getItem('Kanakku_encrypted_key'),
+          salt: localStorage.getItem('Kanakku_salt'),
         };
         localStorage.clear();
         sessionStorage.clear();
-        if (pinBackup.hash) localStorage.setItem('Finora_encrypted_key', pinBackup.hash);
-        if (pinBackup.salt) localStorage.setItem('Finora_salt', pinBackup.salt);
+        if (pinBackup.hash) localStorage.setItem('Kanakku_encrypted_key', pinBackup.hash);
+        if (pinBackup.salt) localStorage.setItem('Kanakku_salt', pinBackup.salt);
       } catch (e) {
         console.warn('Storage clear error (non-blocking):', e);
       }
@@ -166,7 +166,7 @@ export const Settings: React.FC = () => {
 
       // Step 5: Delete the database
       try {
-        window.indexedDB.deleteDatabase('FinoraDB');
+        window.indexedDB.deleteDatabase('KanakkuDB');
       } catch (e) {
         console.warn('IndexedDB delete error (non-blocking):', e);
       }
@@ -183,13 +183,13 @@ export const Settings: React.FC = () => {
       // Force cleanup even on error (PIN preserved)
       try {
         const pinBackup = {
-          hash: localStorage.getItem('Finora_encrypted_key'),
-          salt: localStorage.getItem('Finora_salt'),
+          hash: localStorage.getItem('Kanakku_encrypted_key'),
+          salt: localStorage.getItem('Kanakku_salt'),
         };
         localStorage.clear();
         sessionStorage.clear();
-        if (pinBackup.hash) localStorage.setItem('Finora_encrypted_key', pinBackup.hash);
-        if (pinBackup.salt) localStorage.setItem('Finora_salt', pinBackup.salt);
+        if (pinBackup.hash) localStorage.setItem('Kanakku_encrypted_key', pinBackup.hash);
+        if (pinBackup.salt) localStorage.setItem('Kanakku_salt', pinBackup.salt);
       } catch (e) {
         // Ignore
       }
@@ -248,7 +248,7 @@ export const Settings: React.FC = () => {
           }
 
           // Prevent stale queued upserts from replaying after reload.
-          localStorage.removeItem('finora_sync_queue_v3');
+          localStorage.removeItem('kanakku_sync_queue_v3');
 
           await runWithCloudSyncSuppressed(async () => {
             await Promise.all([
@@ -382,26 +382,11 @@ export const Settings: React.FC = () => {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full pb-24">
       
-      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <SettingsIcon className="w-6 h-6 text-gray-900" />
-            Settings
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your preferences, data and privacy</p>
-        </div>
-      </div>
-
-      
-      <div className="lg:hidden flex items-center justify-between pt-12 pb-6 px-6 relative z-10">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <SettingsIcon className="w-8 h-8" />
-            Settings
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">Manage your preferences</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Settings"
+        subtitle="Manage your preferences, data and privacy"
+        icon={<SettingsIcon size={24} />}
+      />
 
       
       <div className="lg:hidden space-y-6">

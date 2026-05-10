@@ -54,7 +54,7 @@ export const AddFriends: React.FC = () => {
 
   return (
     <>
-      <div className="lg:hidden finora-screen-page finora-friends-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
+      <div className="lg:hidden kanakku-screen-page kanakku-friends-entry w-full min-h-[100dvh] bg-[radial-gradient(circle_at_top_left,#dbeafe_0%,#eef2ff_28%,#f8fafc_56%,#f8fafc_100%)] py-4 lg:py-7 font-sans">
         <CenteredLayout>
           <div className="space-y-6 max-w-lg w-full mx-auto pb-8">
             <PageHeader title="Add Friends" subtitle="Manage your contacts" icon={<UserPlus size={20} />} showBack backTo="friends" />
@@ -117,7 +117,7 @@ export const AddFriends: React.FC = () => {
         </CenteredLayout>
       </div>
 
-      <div className="hidden lg:block finora-screen-page finora-friends-entry w-full min-h-[100dvh] bg-slate-50 font-sans">
+      <div className="hidden lg:block kanakku-screen-page kanakku-friends-entry w-full min-h-[100dvh] bg-slate-50 font-sans">
         <header className="w-full bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">

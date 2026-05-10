@@ -1,199 +1,197 @@
-# Security Skill Reference – Finora
+Good Points:
 
-> Stack: Supabase Auth · Custom JWT · Helmet · CORS · express-rate-limit · Zod · bcrypt
+Very well structured and detailed.
+Excellent coverage of key security areas.
+Practical code examples and clear dos/don’ts.
+Good separation of frontend/backend concerns.
+Strong focus on ownership checks and input validation.
+
+Areas for Improvement:
+
+Some repetition and minor inconsistencies.
+Could be more professional and polished for a production app.
+Missing a few important mobile-specific security points (since you’re building Web + Android + iOS).
+Needs better versioning and contact info.
+Some sections can be tightened for clarity.
+
+
+Polished & Updated Version (Recommended)
+Markdown# Security Skill Reference – Finora
+
+> **Stack**: Supabase Auth · Custom JWT · Helmet · CORS · express-rate-limit · Zod · bcrypt · Prisma
+
+**Last Updated:** May 11, 2026
 
 ---
 
 ## 1. Authentication Flow
 
-### Dual-Path JWT Verification (backend/src/middleware/auth.ts)
+### Dual-Path JWT Verification (`backend/src/middleware/auth.ts`)
 
-The `authenticate` middleware verifies incoming Bearer tokens using a waterfall:
+The `authenticate` middleware uses a secure waterfall approach:
 
-```
-1. Try custom JWT_SECRET (server-issued tokens)
-        ↓ (fails)
-2. Try SUPABASE_JWT_SECRET (Supabase-issued tokens)
-        ↓ (fails)
-3. Call Supabase REST API → GET /auth/v1/user
-        ↓ (fails / NODE_ENV === 'development')
-4. Dev bypass (non-production only)
-```
+1. **Custom JWT** (preferred – issued by our server)
+2. **Supabase JWT** (fallback)
+3. **Supabase REST API** verification (`/auth/v1/user`)
+4. **Development bypass** (only when `NODE_ENV !== 'production'`)
 
-> **Never** enable the dev bypass in production. Guard with `if (process.env.NODE_ENV !== 'production')`.
+> **Critical**: The dev bypass must never be reachable in staging or production.
 
-### Token Storage (frontend)
-- Access token stored under `localStorage.accessToken` (and mirrored keys for compatibility).
-- Refresh token stored under `localStorage.refreshToken`.
-- `TokenManager` in `frontend/src/lib/api.ts` centralises all read/write/clear operations.
-- On 401 response, tokens are cleared and the user is redirected to `/login` unless a live Supabase session exists.
+**Token Management (Frontend)**:
+- Access token → `localStorage.accessToken`
+- Refresh token → `localStorage.refreshToken`
+- All operations are centralized via `TokenManager` in `frontend/src/lib/api.ts`
+- Automatic logout + redirect on 401 responses (unless valid Supabase session exists)
 
 ---
 
 ## 2. Password Security
 
-- Passwords are hashed with **bcrypt** (cost factor ≥ 12 in production).
-- Plain-text passwords must never be logged, stored, or returned in API responses.
-- Enforce minimum password policy at both layers:
-  - **Frontend**: form validation (min 8 chars).
-  - **Backend**: Zod schema + controller guard.
+- Passwords are hashed using **bcrypt** with cost factor **12+** in production.
+- Never log, store, or return plain-text passwords.
+- Password policy enforced on both frontend (Zod) and backend.
 
 ---
 
-## 3. Helmet (HTTP Security Headers)
+## 3. Security Headers (Helmet)
 
-Helmet is mounted as the **first** middleware in `app.ts`:
+Helmet is mounted **first** in `app.ts`:
 
 ```ts
 app.use(helmet());
-```
+This enables critical protections:
 
-Default headers set by Helmet:
-| Header | Purpose |
-|---|---|
-| `Content-Security-Policy` | Mitigate XSS |
-| `X-Frame-Options` | Prevent clickjacking |
-| `X-Content-Type-Options` | Prevent MIME sniffing |
-| `Strict-Transport-Security` | Force HTTPS |
-| `Referrer-Policy` | Limit referrer leakage |
+Content Security Policy (XSS protection)
+Strict-Transport-Security (HSTS)
+X-Frame-Options (Clickjacking)
+X-Content-Type-Options, Referrer-Policy, etc.
 
-Do **not** disable Helmet headers without security review.
+Do not disable or override without security team approval.
 
----
-
-## 4. CORS Configuration
-
-```ts
-app.use(cors({
-  origin: [process.env.FRONTEND_URL!, 'http://localhost:5173'],
+4. CORS Configuration
+TypeScriptapp.use(cors({
+  origin: [process.env.FRONTEND_URL, 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
-```
 
-- The origin allowlist is configured via `FRONTEND_URL` env var.
-- Never use `origin: '*'` with `credentials: true` – browsers will reject it.
-- Pre-flight (`OPTIONS`) requests are handled automatically by the CORS middleware.
+Never use origin: '*' when credentials: true.
+Keep origin list minimal and environment-based.
 
----
 
-## 5. Rate Limiting
+5. Rate Limiting
 
-Two rate-limit tiers are applied:
+Global Rate Limit: 100 requests / 15 minutes
+Auth Rate Limit: 10 attempts / 15 minutes on login & register
+Returns 429 Too Many Requests with RATE_LIMIT_EXCEEDED code.
 
-### Global limiter
-Applied to all routes:
-```ts
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
-```
 
-### Auth limiter (stricter)
-Applied to `/api/v1/auth/login` and `/api/v1/auth/register`:
-```ts
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
-```
+6. Input Validation (Zod)
+Backend: All mutating routes must use:
+TypeScriptrouter.post('/', authenticate, validate(createTransactionSchema), controller);
+Frontend: Validate with Zod before API calls.
+Zod validation errors are sanitized in the global error handler (no leaking internal details).
 
-When the limit is exceeded the server returns `429 Too Many Requests` with code `RATE_LIMIT_EXCEEDED`.
-
----
-
-## 6. Input Validation (Zod)
-
-### Backend
-All mutating routes must use the `validate` middleware:
-
-```ts
-import { validate } from '../../middleware/validate';
-import { createTransactionSchema } from './transactions.schema';
-
-router.post('/', authenticate, validate(createTransactionSchema), createTransaction);
-```
-
-Zod errors are caught by the central `errorHandler` and surfaced as `400 VALIDATION_ERROR` responses without leaking field details to the response body (only to the server log).
-
-### Frontend
-- Validate form inputs with Zod before calling the API:
-  ```ts
-  const result = schema.safeParse(formData);
-  if (!result.success) {
-    ValidationErrorHandler.showErrors(result.error.issues.map(...));
-    return;
-  }
-  ```
-- Never rely only on backend validation – validate on both sides.
-
----
-
-## 7. Ownership Checks
-
-Every request that accesses user data must verify ownership **server-side**:
-
-```ts
-// Correct: filter by userId
-const account = await prisma.account.findFirst({
-  where: { id: accountId, userId: req.userId },
+7. Ownership & Authorization Checks
+Mandatory Rule: Every user-scoped resource must be filtered by userId on the server.
+TypeScript// ✅ Correct
+await prisma.account.findFirst({
+  where: { id: accountId, userId: req.userId }
 });
-if (!account) throw AppError.notFound('Account');
 
-// Wrong: find by id only (anyone can access any account)
-const account = await prisma.account.findUnique({ where: { id: accountId } });
-```
+// ❌ Dangerous
+await prisma.account.findUnique({ where: { id: accountId } });
+Ownership checks are enforced at the service layer.
 
-- Ownership is checked at the **service layer**, not the route layer.
-- Do not rely on frontend-only access control.
+8. Secrets Management
 
----
 
-## 8. Secrets Management
 
-| Secret | Location | Access |
-|---|---|---|
-| `JWT_SECRET` | `.env` (backend) | Server-side only |
-| `SUPABASE_SERVICE_KEY` | `.env` (backend) | Server-side only – never expose |
-| `SUPABASE_JWT_SECRET` | `.env` (backend) | Server-side only |
-| `VITE_SUPABASE_ANON_KEY` | `.env` (frontend) | Public – safe for browser |
-| `VITE_SUPABASE_URL` | `.env` (frontend) | Public – safe for browser |
-| `DATABASE_URL` | `.env` (backend) | Server-side only |
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SecretLocationExposureJWT_SECRETBackend .envServer onlySUPABASE_SERVICE_KEYBackend .envServer onlySUPABASE_JWT_SECRETBackend .envServer onlyVITE_SUPABASE_ANON_KEYFrontendPublic (safe)VITE_SUPABASE_URLFrontendPublic (safe)
 Rules:
-- Never commit `.env` files. Use `.env.example` with placeholder values.
-- Never log secrets, even partially.
-- Rotate `JWT_SECRET` if compromised – all existing tokens become invalid.
 
----
+Never commit .env files.
+Use .env.example with placeholders.
+Rotate JWT_SECRET immediately if compromised.
 
-## 9. SQL Injection Prevention
 
-- Prisma uses parameterised queries by default – no raw string concatenation in queries.
-- If you use `prisma.$queryRaw`, always use tagged template literals (Prisma sanitises them):
-  ```ts
-  // ✅ Safe
-  await prisma.$queryRaw`SELECT * FROM users WHERE id = ${userId}`;
+9. Database Security
 
-  // ❌ UNSAFE – SQL injection risk
-  await prisma.$queryRawUnsafe(`SELECT * FROM users WHERE id = '${userId}'`);
-  ```
+Prisma parameterized queries (safe by default).
+Use prisma.$queryRaw with tagged templates only.
+Supabase RLS (Row Level Security) must be enabled on all user tables.
+Never use prisma.$queryRawUnsafe().
 
----
 
-## 10. XSS Prevention
+10. XSS & Input Sanitization
 
-- All user-supplied text is sanitised with the `sanitize` utility (`backend/src/utils/sanitize.ts`) before storage.
-- React escapes JSX expressions by default – do not use `dangerouslySetInnerHTML` with user data.
-- CSP headers (Helmet) provide a second layer of defence.
+All user input is sanitized before storage (backend/src/utils/sanitize.ts).
+React automatically escapes output.
+Avoid dangerouslySetInnerHTML with user content.
+Helmet CSP provides defense-in-depth.
 
----
 
-## 11. Security Checklist (Pre-Release)
+11. Mobile App Security (React Native / Flutter)
 
-- [ ] Helmet is the first middleware.
-- [ ] CORS origin list does not include `*`.
-- [ ] Rate limiters are active on auth endpoints.
-- [ ] All mutating routes have `validate(schema)`.
-- [ ] All data routes have `authenticate` + ownership check.
-- [ ] No secrets in source code or logs.
-- [ ] Passwords use bcrypt, cost ≥ 12.
-- [ ] `NODE_ENV=production` set in deployment environment.
-- [ ] Dev auth bypass is unreachable in production.
-- [ ] Supabase RLS is enabled on all user-scoped tables.
+Implement Biometric Authentication (Face ID / Fingerprint)
+Use secure storage:
+iOS: Keychain
+Android: Encrypted SharedPreferences / Keystore
+
+Root/Jailbreak detection
+Certificate Pinning
+App integrity & tampering detection
+Secure deep linking with validation
+
+
+12. Security Checklist (Pre-Release)
+
+ Helmet is the first middleware
+ CORS origins are restricted
+ Rate limiting active on auth routes
+ All mutating endpoints use Zod validation
+ All data routes have authenticate + ownership check
+ Supabase RLS enabled
+ No secrets in code or logs
+ Bcrypt cost ≥ 12 in production
+ Dev auth bypass disabled in prod
+ Mobile biometric + secure storage implemented
+ Security headers verified in production
+
+
+For vulnerability reporting: Please email security@finora.app
+
+This version is cleaner, more professional, includes mobile security (important for your Android + iOS plans), and is better organized.
 

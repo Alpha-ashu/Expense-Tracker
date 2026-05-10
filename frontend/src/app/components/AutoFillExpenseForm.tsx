@@ -3,7 +3,7 @@ import { Camera, Mic, Upload, X, Check, AlertCircle, Zap, Brain } from 'lucide-r
 import { motion } from 'motion/react';
 import { ocrEngine, ExpenseData } from '../../services/tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from '../../services/voiceAIProcessor';
-import { finoraAI } from '../../services/finoraIntelligenceEngine';
+import { kanakkuAI } from '../../services/kanakkuIntelligenceEngine';
 
 //  AUTO-FILL EXPENSE FORM LOGIC
 // This component provides instant UX with AI-powered form filling
@@ -187,7 +187,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     try {
       // Learn from user feedback
       if ('merchant' in extractedData && extractedData.merchant) {
-        await finoraAI.learnFromFeedback(
+        await kanakkuAI.learnFromFeedback(
           userId,
           extractedData.merchant,
           extractedData.category || 'Others',

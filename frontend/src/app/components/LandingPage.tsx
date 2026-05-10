@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FinoraLogo } from './ui/FinoraLogo';
+import { KanakkuLogo } from './ui/KanakkuLogo';
 import { PublicNavbar } from './ui/PublicNavbar';
 
 interface LandingPageProps {
@@ -414,7 +414,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLogin,
       <footer className="border-t border-gray-100 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <FinoraLogo className="w-7 h-7" />
+            <KanakkuLogo className="w-7 h-7" />
             <span className="text-sm font-bold text-gray-700">Kanakku</span>
           </div>
           <p className="text-xs text-gray-400">

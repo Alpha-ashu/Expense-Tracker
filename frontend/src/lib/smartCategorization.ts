@@ -30,7 +30,7 @@ export interface LearnedMapping {
 // Storage keys
 // 
 
-const LEARNED_MAPPINGS_KEY = 'finora.smartCategorization.learnedMappings.v1';
+const LEARNED_MAPPINGS_KEY = 'kanakku.smartCategorization.learnedMappings.v1';
 
 // 
 // Keyword Database - extended with Indian context

@@ -3,6 +3,7 @@ import { User, RegisterInput, LoginInput, AuthTokens } from './auth.types';
 import { prisma } from '../../db/prisma';
 import { generateTokens } from '../../utils/auth';
 import { Prisma } from '../../db/prisma-client';
+import { logger } from '../../config/logger';
 
 export class AuthService {
   async register(input: RegisterInput & {
@@ -52,7 +53,7 @@ export class AuthService {
       const tokens = generateTokens(user);
       return tokens;
     } catch (error) {
-      console.error('Error in AuthService.register:', error);
+      logger.error('[AuthService] Registration error:', error);
       throw error;
     }
   }
@@ -90,7 +91,7 @@ export class AuthService {
     } = data;
     const resolvedPhone = phone ?? mobile ?? null;
 
-    console.log(`[AuthService] Processing profile update for userId: ${userId}`);
+    logger.info(`[AuthService] Processing profile update for userId: ${userId}`);
 
     // Standardize income - handle potential float/string/null
     let decimalMonthlyIncome: Prisma.Decimal | null = null;
@@ -104,7 +105,7 @@ export class AuthService {
         }
       }
     } catch (e) {
-      console.warn('[AuthService] Income conversion error:', e);
+      logger.warn('[AuthService] Income conversion error:', e);
     }
 
     // Standardize DOB
@@ -116,13 +117,13 @@ export class AuthService {
           dob = parsedDate;
         }
       } catch (e) {
-        console.warn('[AuthService] DOB conversion error:', e);
+        logger.warn('[AuthService] DOB conversion error:', e);
       }
     }
 
     // 1. Primary Update: local User table (PostgreSQL public schema)
     try {
-      console.log(`[AuthService] Updating User table for ID: ${userId}, Email: ${email || 'none'}`);
+      logger.info(`[AuthService] Updating User table for ID: ${userId}, Email: ${email || 'none'}`);
 
       // Safety: Ensure email is never empty if we are creating a new record
       // In a hybrid system, we prefer the email from the JWT/Session
@@ -163,11 +164,11 @@ export class AuthService {
           createdAt: new Date(),
         } as any
       });
-      console.log('[AuthService] User table updated successfully');
+      logger.info('[AuthService] User table updated successfully');
 
       // 2. Best-effort Sync: profiles table (often managed by Supabase)
       try {
-        console.log('[AuthService] Syncing to public.profiles table...');
+        logger.info('[AuthService] Syncing to public.profiles table...');
         // We use raw SQL for the profiles table because it might have foreign keys or 
         // schema issues that conflict with Prisma's standard ORM expectations for multi-schema.
         await prisma.$executeRaw`
@@ -199,18 +200,19 @@ export class AuthService {
             job_type = EXCLUDED.job_type,
             updated_at = NOW();
         `;
-        console.log('[AuthService] profiles table synced successfully');
+        logger.info('[AuthService] profiles table synced successfully');
       } catch (syncError: any) {
         // Non-blocking error for the profiles table sync
-        console.warn(`[AuthService] Non-blocking profiles sync failed: ${syncError.message}`, {
+        logger.warn('[AuthService] Non-blocking profiles sync failed', {
+          message: syncError.message,
           code: syncError.code,
-          meta: syncError.meta
+          meta: syncError.meta,
         });
       }
 
       return user;
     } catch (primaryError: any) {
-      console.error('[AuthService] Critical User update failed:', primaryError);
+      logger.error('[AuthService] Critical User update failed:', primaryError);
       throw primaryError; // This will return 500 to the client correctly
     }
   }

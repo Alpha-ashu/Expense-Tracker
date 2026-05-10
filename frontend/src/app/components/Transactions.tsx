@@ -11,7 +11,7 @@ import { Button } from '@/app/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, getSubcategoriesForCategory } from '@/lib/expenseCategories';
-import { CategoryDropdown } from '@/app/components/ui/CategoryDropdown';
+
 import { TimeFilter, TimeFilterPeriod, filterByTimePeriod, getPeriodLabel } from '@/app/components/ui/TimeFilter';
 import { formatLocalDate, parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 import type { TaxComponent } from '@/types/receipt.types';
@@ -261,61 +261,29 @@ export const Transactions: React.FC = () => {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
       
-      {isDesktop && (
-        <div className="flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <Wallet className="w-6 h-6 text-gray-900" />
-              Transactions
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Track your financial activity</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => setShowScanModal(true)}
-              className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-10 px-4 rounded-2xl"
-            >
-              <Camera size={18} className="mr-2" />
-              Scan Bill
-            </Button>
-            <Button
-              onClick={() => setShowTransactionTypeModal(true)}
-              className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-10 px-4 rounded-2xl"
-            >
-              <Plus size={18} className="mr-2" />
-              Add Transaction
-            </Button>
-          </div>
-        </div>
-      )}
-
-      
-      {!isDesktop && (
-        <div className="flex items-center justify-between pt-12 pb-6 px-6 relative z-10">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <Wallet className="w-8 h-8" />
-            Transactions
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">Track your financial activity</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
+      <PageHeader
+        title="Transactions"
+        subtitle="Track your financial activity"
+        icon={<Wallet size={24} />}
+      >
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
             onClick={() => setShowScanModal(true)}
-            className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 shadow-sm"
+            className="shadow-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 h-12 px-5 rounded-2xl font-bold"
           >
-            <Camera size={20} />
-          </button>
-          <button
+            <Camera size={18} className="mr-2" />
+            Scan Bill
+          </Button>
+          <Button
             onClick={() => setShowTransactionTypeModal(true)}
-            className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg"
+            className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-5 rounded-2xl font-bold"
           >
-            <Plus size={24} />
-          </button>
+            <Plus size={18} className="mr-2" />
+            Add Transaction
+          </Button>
         </div>
-      </div>
-      )}
+      </PageHeader>
 
       {/* Time Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

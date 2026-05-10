@@ -5,7 +5,7 @@ import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend 
 import { isBoilerplateDescription } from '@/services/smartExpenseImportService';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
-import type { SyncStats } from '@/lib/offline-sync-engine';
+import { type SyncStats, useSyncStats, offlineSyncEngine } from '@/lib/offline-sync-engine';
 import { saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { backendSyncService } from '@/lib/backend-sync-service';
 import {
@@ -69,11 +69,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const { role, user, dataReady } = useAuth();
   const attemptedBalanceRepairKeyRef = useRef<string | null>(null);
-  const syncStats = useMemo<SyncStats>(() => ({
-    pendingCount: 0,
-    lastSyncedAt: null,
-    status: isOnline ? 'synced' : 'offline',
-  }), [isOnline]);
+  const syncStats = useSyncStats();
 
   const applyStoredPreferences = useCallback(() => {
     const preferences = readStoredAppPreferences();
@@ -119,7 +115,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Uses the stored merchant field that was saved alongside the transaction.
   useEffect(() => {
     if (transactions.length === 0) return;
-    const REPAIR_KEY = 'finora_description_repair_v2';
+    const REPAIR_KEY = 'kanakku_description_repair_v2';
     if (localStorage.getItem(REPAIR_KEY)) return;
 
     const toRepair = transactions.filter(
@@ -473,7 +469,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           newVisibility[key] = isVisible;
         });
 
-        console.log(' AppContext applying admin feature settings:', { role, newVisibility });
         setVisibleFeaturesState(newVisibility as unknown as FeatureVisibility);
       } catch (e) {
         console.error('Failed to apply admin feature settings:', e);
@@ -485,19 +480,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'admin_global_feature_settings' || e.key === 'featureFlagsOverride') {
-        console.log(' Storage change detected for feature settings');
         applyAdminFeatureSettings();
       }
     };
 
     const handleAdminFeatureUpdate = (event: CustomEvent) => {
-      console.log(' Admin feature update event received:', event.detail);
       applyAdminFeatureSettings();
     };
 
     const handleBroadcastMessage = (event: MessageEvent) => {
       if (event.data.type === 'FEATURE_UPDATE') {
-        console.log(' Broadcast feature update received:', event.data);
         applyAdminFeatureSettings();
       }
     };

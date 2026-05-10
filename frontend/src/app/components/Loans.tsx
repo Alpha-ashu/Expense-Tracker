@@ -9,6 +9,7 @@ import { Card } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/app/components/ui/PageHeader';
 
 const isOpenLoan = (loan: { status?: string; outstandingBalance: number }) =>
   loan.outstandingBalance > 0 && loan.status !== 'completed';
@@ -147,14 +148,11 @@ export const Loans: React.FC = () => {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
       
-      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <DollarSign className="w-6 h-6 text-gray-900" />
-            Loans & EMIs
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Manage your debts and lending</p>
-        </div>
+      <PageHeader
+        title="Loans & EMIs"
+        subtitle="Manage your debts and lending"
+        icon={<DollarSign size={24} />}
+      >
         <Button
           onClick={() => {
             localStorage.setItem('quickFormType', 'expense');
@@ -162,34 +160,12 @@ export const Loans: React.FC = () => {
             localStorage.setItem('quickBackPage', 'loans');
             setCurrentPage('add-transaction');
           }}
-          className="shadow-lg bg-gray-900 text-white hover:bg-gray-800 text-sm font-semibold h-10 px-6 rounded-2xl transition-colors flex items-center gap-2"
+          className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-6 rounded-2xl font-bold flex items-center gap-2"
         >
           <Plus size={18} />
-          Add Loan
+          <span>Add Loan</span>
         </Button>
-      </div>
-
-      
-      <div className="lg:hidden flex items-center justify-between pt-12 pb-6 px-6 relative z-10">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <DollarSign className="w-8 h-8" />
-            Loans
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">Manage debts and lending</p>
-        </div>
-        <button 
-          onClick={() => {
-            localStorage.setItem('quickFormType', 'expense');
-            localStorage.setItem('quickExpenseMode', 'loan');
-            localStorage.setItem('quickBackPage', 'loans');
-            setCurrentPage('add-transaction');
-          }}
-          className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg transition-transform active:scale-95"
-        >
-          <Plus size={24} />
-        </button>
-      </div>
+      </PageHeader>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

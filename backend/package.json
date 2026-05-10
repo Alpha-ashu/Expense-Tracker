@@ -1,5 +1,5 @@
 {
-  "name": "expense-tracker-backend",
+  "name": "kanakku-backend",
   "version": "1.0.0",
   "description": "Backend API for Expense Tracker with TypeScript, Express, Prisma, JWT, Socket.IO",
   "main": "dist/server.js",

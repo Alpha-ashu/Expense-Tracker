@@ -36,7 +36,7 @@ export interface ExpenseSubcategorySuggestion {
   isCustom?: boolean;
 }
 
-const CUSTOM_EXPENSE_SUBCATEGORIES_STORAGE_KEY = 'finora.customExpenseSubcategories.v1';
+const CUSTOM_EXPENSE_SUBCATEGORIES_STORAGE_KEY = 'kanakku.customExpenseSubcategories.v1';
 
 const normalizeText = (value: string) =>
   value

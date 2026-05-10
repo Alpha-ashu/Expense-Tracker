@@ -158,39 +158,19 @@ export const Goals: React.FC = () => {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-10 w-full space-y-6 sm:space-y-8 pb-24">
       
-      <div className="hidden lg:flex items-center justify-between p-8 border-b border-gray-100 bg-white rounded-t-[32px] mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Target className="w-6 h-6 text-gray-900" />
-            Goals & Savings
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Track and achieve your financial goals</p>
-        </div>
-        <button
+      <PageHeader
+        title="Goals & Savings"
+        subtitle="Track and achieve your financial goals"
+        icon={<Target size={24} />}
+      >
+        <Button
           onClick={() => setCurrentPage('add-goal')}
-          className="px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-2xl transition-colors flex items-center gap-2"
+          className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-6 rounded-2xl font-bold flex items-center gap-2"
         >
           <Plus size={18} />
-          Add Goal
-        </button>
-      </div>
-
-      
-      <div className="lg:hidden flex items-center justify-between pt-12 pb-6 px-6 relative z-10">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-            <Target className="w-8 h-8" />
-            Goals
-          </h1>
-          <p className="text-sm text-gray-500 mt-2">Track your financial goals</p>
-        </div>
-        <button 
-          onClick={() => setCurrentPage('add-goal')}
-          className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white shadow-lg"
-        >
-          <Plus size={24} />
-        </button>
-      </div>
+          <span>Add Goal</span>
+        </Button>
+      </PageHeader>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 items-stretch">

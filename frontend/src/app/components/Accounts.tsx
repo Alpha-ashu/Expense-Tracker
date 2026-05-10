@@ -646,10 +646,10 @@ export const Accounts: React.FC = () => {
           >
             <Button
               onClick={() => setCurrentPage("add-account")}
-              className="rounded-full h-10 px-4 shadow-lg bg-black text-white hover:bg-gray-900 transition-transform active:scale-95 text-sm"
+              className="shadow-lg bg-gray-900 hover:bg-gray-800 text-white h-12 px-6 rounded-2xl font-bold flex items-center gap-2"
             >
-              <Plus size={16} className="mr-2" />
-              Add Account
+              <Plus size={18} />
+              <span>Add Account</span>
             </Button>
           </PageHeader>
         </div>

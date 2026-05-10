@@ -104,7 +104,7 @@ export const UserProfile: React.FC = () => {
 
       // Step 5: Delete the database
       try {
-        window.indexedDB.deleteDatabase('FinoraDB');
+        window.indexedDB.deleteDatabase('KanakkuDB');
       } catch (e) {
         console.warn('IndexedDB delete error (non-blocking):', e);
       }

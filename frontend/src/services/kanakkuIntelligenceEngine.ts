@@ -34,7 +34,7 @@ export interface AIPrediction {
   timestamp: string;
 }
 
-class FinoraIntelligenceEngine {
+class KanakkuIntelligenceEngine {
   private merchantPatterns: Map<string, AIMerchantPattern[]> = new Map();
   private learningData: AILearningData[] = [];
   private initialized = false;
@@ -307,7 +307,7 @@ class FinoraIntelligenceEngine {
 
   private async loadLearningData(): Promise<void> {
     try {
-      const stored = localStorage.getItem('finora_learning_data');
+      const stored = localStorage.getItem('kanakku_learning_data');
       if (stored) {
         this.learningData = JSON.parse(stored);
         console.log(` Loaded ${this.learningData.length} learning entries`);
@@ -319,7 +319,7 @@ class FinoraIntelligenceEngine {
 
   private async saveLearningData(): Promise<void> {
     try {
-      localStorage.setItem('finora_learning_data', JSON.stringify(this.learningData));
+      localStorage.setItem('kanakku_learning_data', JSON.stringify(this.learningData));
     } catch (error) {
       console.error('Failed to save learning data:', error);
     }
@@ -327,7 +327,7 @@ class FinoraIntelligenceEngine {
 
   private async loadMerchantPatterns(): Promise<void> {
     try {
-      const stored = localStorage.getItem('finora_merchant_patterns');
+      const stored = localStorage.getItem('kanakku_merchant_patterns');
       if (stored) {
         const patterns = JSON.parse(stored);
         patterns.forEach((pattern: AIMerchantPattern) => {
@@ -348,7 +348,7 @@ class FinoraIntelligenceEngine {
       this.merchantPatterns.forEach(patterns => {
         allPatterns.push(...patterns);
       });
-      localStorage.setItem('finora_merchant_patterns', JSON.stringify(allPatterns));
+      localStorage.setItem('kanakku_merchant_patterns', JSON.stringify(allPatterns));
     } catch (error) {
       console.error('Failed to save merchant patterns:', error);
     }
@@ -380,7 +380,7 @@ class FinoraIntelligenceEngine {
 }
 
 // Singleton instance
-export const finoraAI = new FinoraIntelligenceEngine();
+export const kanakkuAI = new KanakkuIntelligenceEngine();
 
 // Auto-initialize on module load
-finoraAI.initialize().catch(console.error);
+kanakkuAI.initialize().catch(console.error);

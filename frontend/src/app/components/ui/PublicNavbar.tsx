@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Star, MessageSquare, Shield, FileText } from 'lucide-react';
-import { FinoraLogo } from './FinoraLogo';
+import { KanakkuLogo } from './KanakkuLogo';
 
 interface PublicNavbarProps {
     onNavigate: (page: string) => void;
@@ -60,7 +60,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
         setMenuOpen(false);
     };
 
-    const logoIcon = <FinoraLogo className="w-8 h-8 drop-shadow-md" />;
+    const logoIcon = <KanakkuLogo className="w-8 h-8 drop-shadow-md" />;
 
     return (
         <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">

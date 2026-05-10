@@ -136,7 +136,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku...</p>
+          <p className="text-white text-base font-medium">Loading Finora...</p>
         </div>
       </div>
     );
@@ -297,6 +297,7 @@ const AppContent: React.FC = () => {
     switch (action) {
       case 'add-expense':
         localStorage.setItem('quickFormType', 'expense');
+        localStorage.setItem('quickExpenseMode', 'individual');
         localStorage.setItem('quickBackPage', 'transactions');
         setCurrentPage('add-transaction');
         break;
@@ -312,8 +313,18 @@ const AppContent: React.FC = () => {
         localStorage.setItem('quickBackPage', 'groups');
         setCurrentPage('add-transaction');
         break;
+      case 'add-loan':
+        localStorage.setItem('quickFormType', 'expense');
+        localStorage.setItem('quickExpenseMode', 'loan');
+        localStorage.setItem('quickBackPage', 'loans');
+        setCurrentPage('add-transaction');
+        break;
       case 'add-goal': setCurrentPage('add-goal'); break;
-      case 'transfer': setCurrentPage('transfer'); break;
+      case 'transfer': 
+        localStorage.setItem('quickFormType', 'transfer');
+        localStorage.setItem('quickBackPage', 'transactions');
+        setCurrentPage('add-transaction'); 
+        break;
       case 'voice-entry': setCurrentPage('voice-input'); break;
       case 'calendar': setCurrentPage('calendar'); break;
     }
@@ -325,7 +336,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku...</p>
+          <p className="text-white text-base font-medium">Loading Finora...</p>
         </div>
       </div>
     );
@@ -494,7 +505,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku...</p>
+          <p className="text-white text-base font-medium">Loading Finora...</p>
         </div>
       </div>
     );
@@ -533,12 +544,20 @@ const AppContent: React.FC = () => {
       case 'book-advisor': return <BookAdvisor />;
       case 'add-transaction': return <AddTransaction />;
       case 'loans': return <Loans />;
-      case 'add-loan': return <AddLoan />;
+      case 'add-loan': 
+        // Redirect to unified AddTransaction with loan mode
+        localStorage.setItem('quickFormType', 'expense');
+        localStorage.setItem('quickExpenseMode', 'loan');
+        return <AddTransaction />;
       case 'goals': return <Goals />;
       case 'goal-detail': return <GoalDetail />;
       case 'add-goal': return <AddGoal />;
       case 'groups': return <Groups />;
-      case 'add-group': return <AddGroup />;
+      case 'add-group': 
+        // Redirect to unified AddTransaction with group mode
+        localStorage.setItem('quickFormType', 'expense');
+        localStorage.setItem('quickExpenseMode', 'group');
+        return <AddTransaction />;
       case 'add-friends': return <AddFriends />;
       case 'investments': return <Investments />;
       case 'add-investment': return <AddInvestment />;
@@ -577,7 +596,10 @@ const AppContent: React.FC = () => {
       case 'voice-input': return <VoiceInput />;
       case 'voice-review': return <VoiceReview />;
       case 'pay-emi': return <PayEMI />;
-      case 'transfer': return <Transfer />;
+      case 'transfer': 
+        // Redirect to unified AddTransaction with transfer mode
+        localStorage.setItem('quickFormType', 'transfer');
+        return <AddTransaction />;
       default: return <Dashboard setCurrentPage={setCurrentPage} />;
     }
   };

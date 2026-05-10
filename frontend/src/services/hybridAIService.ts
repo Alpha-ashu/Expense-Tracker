@@ -1,7 +1,7 @@
 import { TokenManager } from '@/lib/api';
 import { ocrEngine, ExpenseData } from './tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from './voiceAIProcessor';
-import { finoraAI } from './finoraIntelligenceEngine';
+import { kanakkuAI } from './kanakkuIntelligenceEngine';
 
 //  HYBRID OFFLINE/ONLINE AI SUPPORT
 // This service provides intelligent fallback between offline and online AI processing

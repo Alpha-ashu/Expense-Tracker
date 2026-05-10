@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { NavigationItem } from '@/app/constants/navigation';
 import { useSharedMenu } from '@/hooks/useSharedMenu';
 import { Reorder, useDragControls } from 'framer-motion';
-import { FinoraLogo } from './ui/FinoraLogo';
+import { KanakkuLogo } from './ui/KanakkuLogo';
 
 interface DraggableMobileMenuItemProps {
   item: NavigationItem;
@@ -114,7 +114,7 @@ export const Header: React.FC = () => {
     <header className="bg-white border-b border-gray-100 px-4 lg:px-8 py-4 sticky top-0 z-10 shadow-sm flex items-center justify-between">
       <>
         {/* Dynamic Logo */}
-        <FinoraLogo className="h-8 w-8 mr-3 drop-shadow-sm" />
+        <KanakkuLogo className="h-8 w-8 mr-3 drop-shadow-sm" />
         
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
@@ -127,8 +127,8 @@ export const Header: React.FC = () => {
             <SheetDescription className="sr-only">Main navigation menu with links to all app sections</SheetDescription>
             <div className="flex flex-col h-full bg-white">
               <div className="p-6 border-b border-slate-100">
-                <FinoraLogo className="h-10 w-10 mb-4" />
-                <h1 className="text-2xl font-black text-indigo-600 tracking-tight">Finora</h1>
+                <KanakkuLogo className="h-10 w-10 mb-4" />
+                <h1 className="text-2xl font-black text-indigo-600 tracking-tight">Kanakku</h1>
               </div>
 ...
               <nav className="flex-1 p-4 overflow-y-auto">

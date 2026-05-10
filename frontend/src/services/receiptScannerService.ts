@@ -886,83 +886,111 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
   const merchantName = normalizedMerchant
     ? documentIntelligenceService.toTitleCase(normalizedMerchant)
     : merchantLine;
+
+  // STEP 1 - DETECT ALL NUMERIC VALUES
+  const allAmounts = lines.flatMap(line => extractAmounts(line, { allowLooseIntegers: true }));
+  const maxDetectedAmount = allAmounts.length > 0 ? Math.max(...allAmounts) : undefined;
+
+  // Extract items first to compute product_total
+  const items = extractItems(lines, maxDetectedAmount);
+  const product_total = toRoundedAmount(items.reduce((sum, item) => sum + item.amount, 0));
+
+  const taxBreakdown = extractTaxBreakdown(lines);
+  const resolvedTaxAmount = extractTaxAmount(lines, taxBreakdown);
+  
   const subtotal = extractSectionAmount(lines, RECEIPT_SUBTOTAL_PATTERNS);
   const pretaxAmount = extractPretaxAmount(lines);
-  const taxBreakdown = extractTaxBreakdown(lines);
-  const taxAmount = extractTaxAmount(lines, taxBreakdown);
-  const amountFromLabels = extractBestTotalAmount(lines)
-    ?? extractSectionAmount(lines, RECEIPT_TOTAL_PATTERNS);
-  const fallbackAmounts = lines
-    .filter((line) => {
-      const normalizedLine = normalizeForMatching(line);
-      return /total|amount|price|pay|due|balance|subtotal|tax|vat|net|grand/i.test(normalizedLine);
-    })
-    .flatMap((line) => extractAmounts(line, { allowLooseIntegers: true }));
+  const resolvedSubtotal = subtotal || pretaxAmount;
 
-  let amount = amountFromLabels
-    ?? (fallbackAmounts.length > 0 ? Math.max(...fallbackAmounts) : undefined);
-  let detectedAmountForValidation = amount;
+  // STEP 2 & 3 - CLASSIFY BY CONTEXT AND POSITIONAL UNDERSTANDING
+  const candidates: Array<{ amount: number; score: number; isKeywordMatch: boolean; lineIndex: number }> = [];
+  
+  lines.forEach((line, index) => {
+    const normalized = normalizeWhitespace(line).toLowerCase();
+    
+    // Ignore low priority keywords entirely for total candidates
+    if (/\b(?:qty|quantity|token|table|serial\s*no|w\.?\s*no)\b/i.test(normalized)) return;
 
-  let resolvedSubtotal = subtotal;
-  let resolvedTaxAmount = taxAmount;
+    const amounts = extractAmounts(line, { allowLooseIntegers: true });
+    const nextLine = lines[index + 1] || '';
+    const nextAmounts = extractAmounts(nextLine, { allowLooseIntegers: true });
+    
+    const maxLineAmount = amounts.length > 0 ? Math.max(...amounts) : (nextAmounts.length > 0 ? Math.max(...nextAmounts) : 0);
+    
+    if (maxLineAmount > 0) {
+      let score = index * 0.05; // Y-axis positional priority (bottom is highest)
+      let isKeywordMatch = false;
 
-  if (
-    !resolvedSubtotal
-    && pretaxAmount
-    && (
-      !amount
-      || pretaxAmount < amount
-      || (resolvedTaxAmount !== undefined && pretaxAmount + resolvedTaxAmount > amount)
-    )
-  ) {
-    resolvedSubtotal = pretaxAmount;
-  }
-
-  if (amount && resolvedTaxAmount && resolvedTaxAmount > amount * 0.35) {
-    resolvedTaxAmount = undefined;
-  }
-
-  if (amount && resolvedSubtotal && resolvedSubtotal > amount * 1.2) {
-    resolvedSubtotal = undefined;
-  }
-
-  if (!amount && resolvedSubtotal && resolvedTaxAmount) {
-    amount = resolvedSubtotal + resolvedTaxAmount;
-  }
-
-  if (amount && resolvedSubtotal && !resolvedTaxAmount && amount > resolvedSubtotal) {
-    const derivedTax = amount - resolvedSubtotal;
-    if (derivedTax <= amount * 0.35) {
-      resolvedTaxAmount = Number(derivedTax.toFixed(2));
-    }
-  }
-
-  if (amount && resolvedTaxAmount && !resolvedSubtotal && amount > resolvedTaxAmount) {
-    resolvedSubtotal = Number((amount - resolvedTaxAmount).toFixed(2));
-  }
-
-  if (amount && resolvedSubtotal && resolvedTaxAmount !== undefined) {
-    const combined = Number((resolvedSubtotal + resolvedTaxAmount).toFixed(2));
-    const variance = Math.abs(combined - amount);
-    const tolerance = Math.max(2, amount * 0.05);
-    const amountLooksPartial = combined > amount && amount <= combined * 0.92;
-
-    if (variance > tolerance && amountLooksPartial) {
-      detectedAmountForValidation = amount;
-      amount = combined;
-    } else if (variance > tolerance && amount > resolvedSubtotal) {
-      const derivedTax = amount - resolvedSubtotal;
-      if (derivedTax >= 0 && derivedTax <= amount * 0.35) {
-        resolvedTaxAmount = Number(derivedTax.toFixed(2));
+      // High priority keywords
+      if (/grand\s*total|final\s*total|net\s*total|net\s*amount|amount\s*payable|total\s*payable|total\s*amount/i.test(line)) {
+        score += 5;
+        isKeywordMatch = true;
+      } else if (/\btotal\b/i.test(line) && !/sub\s*total|tax/i.test(line)) {
+        score += 2;
+        isKeywordMatch = true;
       }
+      
+      // Ignore subtotal / tax explicitly
+      if (/sub\s*total/i.test(line)) score -= 5;
+      if (/tax/i.test(line)) score -= 5;
+
+      candidates.push({ amount: maxLineAmount, score, isKeywordMatch, lineIndex: index });
     }
+  });
+
+  // STEP 4 - MATHEMATICAL VALIDATION
+  const expectedCalculatedTotal = toRoundedAmount(product_total + (resolvedTaxAmount || 0));
+  candidates.sort((a, b) => b.score - a.score);
+
+  let amount: number | undefined;
+  let finalConfidence = 0;
+  let amountMismatchDetected = false;
+  
+  for (const candidate of candidates) {
+    // RULE: If quantity number selected as total (exact integer <= 100, no keyword, doesn't match math) Reject.
+    if (candidate.amount <= 100 && Number.isInteger(candidate.amount) && !candidate.isKeywordMatch && candidate.amount !== expectedCalculatedTotal) {
+       continue;
+    }
+    
+    // RULE: If final_amount < product_total Reject.
+    if (product_total > 0 && candidate.amount < product_total) {
+       continue;
+    }
+    
+    // RULE: If final_amount < tax_amount Reject.
+    if (resolvedTaxAmount && candidate.amount < resolvedTaxAmount) {
+       continue;
+    }
+    
+    amount = candidate.amount;
+    
+    // RULE: If product_total + tax_total != detected_total Mark low confidence
+    if (expectedCalculatedTotal > 0 && product_total > 0) {
+      const isMathValid = Math.abs(expectedCalculatedTotal - amount) <= Math.max(2, amount * 0.05);
+      if (!isMathValid) {
+         finalConfidence = 0.4;
+         amountMismatchDetected = true;
+      } else {
+         finalConfidence = Math.min(0.99, 0.7 + (candidate.score * 0.02) + (candidate.isKeywordMatch ? 0.15 : 0));
+      }
+    } else {
+      finalConfidence = Math.min(0.9, 0.5 + (candidate.score * 0.02) + (candidate.isKeywordMatch ? 0.2 : 0));
+    }
+    break;
   }
+
+  if (!amount && expectedCalculatedTotal > 0) {
+    amount = expectedCalculatedTotal;
+    finalConfidence = 0.85; // High confidence because we derived it mathematically
+  }
+  
+  // Extract unique top 5 candidates for UI
+  const amountCandidates = Array.from(new Set(candidates.map(c => c.amount))).slice(0, 5);
 
   const date = extractDate(lines);
   const time = extractTime(lines);
   const paymentMethod = extractPaymentMethod(lines);
   const invoiceNumber = extractInvoiceNumber(lines);
-  const items = extractItems(lines, amount);
   const currency = documentIntelligenceService.detectCurrency(rawText);
   const categoryHint = deriveCategoryHint(rawText, merchantName, items);
   const categoryPrediction = await documentIntelligenceService.predictCategory({
@@ -972,45 +1000,44 @@ export async function parseReceiptText(rawText: string, userId?: string): Promis
     userId,
   });
   const resolvedCategory = categoryHint || categoryPrediction.category;
-  const notes = resolvedCategory !== 'Others'
-    ? `${resolvedCategory.toLowerCase()} receipt`
-    : 'receipt import';
+
   const validationResult = buildValidationResult({
     amount,
-    detectedAmount: detectedAmountForValidation,
+    detectedAmount: amount,
     subtotal: resolvedSubtotal,
     taxAmount: resolvedTaxAmount,
     taxBreakdown,
     items,
   });
 
+  // STEP 5 - CONFIDENCE ENGINE
+  const merchantConfidence = merchantName ? (normalizedMerchant ? 0.96 : 0.6) : 0.0;
+  
+  // Clean up overlap in items
+  const cleanedItems = items.map(item => {
+    const amountStr = item.amount.toFixed(2);
+    // Remove the amount and generic adjacent text from the item name if OCR merged them
+    const cleanedName = item.name.replace(new RegExp(`\\b${amountStr}\\b`, 'g'), '').replace(/seth|inr|rs/ig, '').trim();
+    return { ...item, name: cleanedName || item.name };
+  });
+
   return {
     merchantName,
+    merchant: merchantName ? { value: merchantName, confidence: merchantConfidence } : undefined,
     amount,
+    final_amount: amount ? { value: amount, confidence: finalConfidence } : undefined,
+    amountMismatchDetected,
+    amountCandidates,
+    taxAmount: resolvedTaxAmount,
+    items: cleanedItems,
+    confidence: finalConfidence > 0 ? finalConfidence : (merchantName ? 0.3 : 0),
+    validationResult,
+    currency,
     date,
     time,
-    currency,
-    taxAmount: resolvedTaxAmount,
-    taxBreakdown: taxBreakdown.length > 0 ? taxBreakdown : undefined,
-    subtotal: resolvedSubtotal,
     paymentMethod,
     invoiceNumber,
     category: resolvedCategory,
-    subcategory: (items[0]?.name && items[0].name.length >= 3 && /[a-z]{2,}/i.test(items[0].name))
-      ? items[0].name
-      : '',
-    notes,
-    items,
-    validationResult,
-    confidence: [
-      merchantName ? 0.16 : 0,
-      amount ? 0.26 : 0,
-      date ? 0.16 : 0,
-      paymentMethod ? 0.08 : 0,
-      invoiceNumber ? 0.08 : 0,
-      items.length > 0 ? 0.12 : 0,
-      categoryPrediction.confidence * 0.14,
-    ].reduce((sum, score) => sum + score, 0),
     rawText,
   };
 }
