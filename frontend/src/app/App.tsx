@@ -608,7 +608,7 @@ const AppContent: React.FC = () => {
         <div className="w-full lg:max-w-[90%] xl:max-w-[85%] mx-auto flex flex-col flex-1 mobile-content relative">
           <LimitedModeBanner />
           <TopBar />
-          <main className="w-full overflow-x-hidden mobile-safe-bottom mobile-main flex-1 bg-transparent">
+          <main className="w-full pt-16 overflow-x-hidden mobile-safe-bottom mobile-main flex-1 bg-transparent">
           {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">

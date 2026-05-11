@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,16 +23,10 @@ interface SearchableDropdownProps {
   disabled?: boolean;
   className?: string;
   id?: string;
-  /** Show option groups as section headers */
   grouped?: boolean;
-  /** Render a custom trigger button */
   renderTrigger?: (selected: DropdownOption | undefined, open: boolean) => React.ReactNode;
 }
 
-/**
- * Fully accessible, searchable, keyboard-navigable dropdown.
- * Supports grouped options, icons, descriptions.
- */
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   options,
   value,
@@ -53,10 +48,9 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
   const selected = options.find((o) => o.value === value);
-
-  // Filter options based on search query
   const filtered = query.trim()
     ? options.filter(
         (o) =>
@@ -66,7 +60,6 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
       )
     : options;
 
-  // Group filtered options
   const groupedOptions = grouped
     ? filtered.reduce<Record<string, DropdownOption[]>>((acc, opt) => {
         const group = opt.group ?? 'Other';
@@ -78,13 +71,25 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
   const flatFiltered = filtered;
 
+  const updateCoords = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
+
   const openDropdown = useCallback(() => {
     if (disabled) return;
+    updateCoords();
     setOpen(true);
     setQuery('');
     setHighlighted(0);
     setTimeout(() => searchRef.current?.focus(), 50);
-  }, [disabled]);
+  }, [disabled, updateCoords]);
 
   const closeDropdown = useCallback(() => {
     setOpen(false);
@@ -99,10 +104,23 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     [onChange, closeDropdown],
   );
 
-  // Close on outside click
+  useEffect(() => {
+    if (open) {
+      window.addEventListener('resize', updateCoords);
+      window.addEventListener('scroll', updateCoords, true);
+    }
+    return () => {
+      window.removeEventListener('resize', updateCoords);
+      window.removeEventListener('scroll', updateCoords, true);
+    };
+  }, [open, updateCoords]);
+
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        // Also check if click is inside the portal
+        const portal = document.getElementById('dropdown-portal-root');
+        if (portal && portal.contains(e.target as Node)) return;
         closeDropdown();
       }
     };
@@ -110,7 +128,6 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     return () => document.removeEventListener('mousedown', handler);
   }, [open, closeDropdown]);
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open) {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
@@ -138,12 +155,11 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
     }
   };
 
-  // Scroll highlighted item into view
   useEffect(() => {
     if (!listRef.current) return;
     const items = listRef.current.querySelectorAll('[data-option]');
     items[highlighted]?.scrollIntoView({ block: 'nearest' });
-  }, [highlighted]);
+  }, [highlighted, open]);
 
   const inputId = id ?? (label ? label.toLowerCase().replace(/\s+/g, '-') : 'searchable-dropdown');
 
@@ -156,7 +172,6 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
         </label>
       )}
 
-      {/* Trigger */}
       {renderTrigger ? (
         <div
           id={inputId}
@@ -177,53 +192,37 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           role="combobox"
           aria-expanded={open}
           aria-haspopup="listbox"
-          aria-label={label ?? placeholder}
           disabled={disabled}
           onClick={openDropdown}
           onKeyDown={handleKeyDown}
           className={cn(
             'w-full flex items-center gap-2 rounded-2xl p-5 bg-white border border-slate-100 text-left transition-all shadow-sm',
             'focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:border-indigo-400',
-            open
-              ? 'ring-2 ring-indigo-400/60 border-indigo-400'
-              : error
-              ? 'border-rose-400 bg-rose-50/50'
-              : 'hover:border-slate-300',
+            open ? 'ring-2 ring-indigo-400/60 border-indigo-400' : error ? 'border-rose-400 bg-rose-50/50' : 'hover:border-slate-300',
             disabled && 'opacity-60 cursor-not-allowed',
           )}
         >
-          {selected?.icon && (
-            <span className="shrink-0 text-base">{selected.icon}</span>
-          )}
-          <span
-            className={cn(
-              'flex-1 text-sm font-medium truncate',
-              selected ? 'text-gray-900' : 'text-gray-400',
-            )}
-          >
+          {selected?.icon && <span className="shrink-0 text-base">{selected.icon}</span>}
+          <span className={cn('flex-1 text-sm font-medium truncate', selected ? 'text-gray-900' : 'text-gray-400')}>
             {selected?.label ?? placeholder}
           </span>
-          <ChevronDown
-            size={16}
-            className={cn(
-              'shrink-0 text-gray-400 transition-transform duration-200',
-              open && 'rotate-180',
-            )}
-          />
+          <ChevronDown size={16} className={cn('shrink-0 text-gray-400 transition-transform duration-200', open && 'rotate-180')} />
         </button>
       )}
 
-      {error && !open && (
-        <p className="mt-1 text-xs text-rose-600 font-medium">{error}</p>
-      )}
+      {error && !open && <p className="mt-1 text-xs text-rose-600 font-medium">{error}</p>}
 
-      {/* Dropdown panel */}
-      {open && (
+      {open && createPortal(
         <div
-          className="absolute z-50 left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
-          style={{ maxHeight: '320px' }}
+          id="dropdown-portal-root"
+          className="fixed z-[9999] bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+          style={{ 
+            top: coords.top + 8, 
+            left: coords.left, 
+            width: coords.width,
+            maxHeight: '320px' 
+          }}
         >
-          {/* Search */}
           <div className="p-2 border-b border-gray-100 sticky top-0 bg-white z-10">
             <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
               <Search size={14} className="text-gray-400 shrink-0" />
@@ -238,22 +237,15 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                 onKeyDown={handleKeyDown}
                 placeholder={searchPlaceholder}
                 className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                aria-label="Search options"
               />
               {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  className="text-gray-400 hover:text-gray-600"
-                  aria-label="Clear search"
-                >
+                <button type="button" onClick={() => setQuery('')} className="text-gray-400 hover:text-gray-600">
                   <X size={12} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Options list */}
           <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: '256px' }} role="listbox">
             {flatFiltered.length === 0 ? (
               <div className="py-8 text-center text-sm text-gray-400">
@@ -296,7 +288,8 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -322,18 +315,10 @@ const OptionItem: React.FC<{
       isSelected && 'bg-indigo-50/70',
     )}
   >
-    {option.icon && (
-      <span className="text-lg shrink-0 w-7 flex items-center justify-center">
-        {option.icon}
-      </span>
-    )}
+    {option.icon && <span className="text-lg shrink-0 w-7 flex items-center justify-center">{option.icon}</span>}
     <div className="flex-1 min-w-0">
-      <p className={cn('text-sm font-semibold truncate', isSelected ? 'text-indigo-700' : 'text-gray-900')}>
-        {option.label}
-      </p>
-      {option.description && (
-        <p className="text-xs text-gray-500 truncate">{option.description}</p>
-      )}
+      <p className={cn('text-sm font-semibold truncate', isSelected ? 'text-indigo-700' : 'text-gray-900')}>{option.label}</p>
+      {option.description && <p className="text-xs text-gray-500 truncate">{option.description}</p>}
     </div>
     {isSelected && <Check size={15} className="text-indigo-600 shrink-0" />}
   </button>

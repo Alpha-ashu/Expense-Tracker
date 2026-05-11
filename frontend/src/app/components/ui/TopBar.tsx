@@ -188,7 +188,7 @@ export const TopBar: React.FC = () => {
     };
 
     return (
-        <header className="w-full sticky top-0 z-[60] bg-transparent">
+        <header className="fixed top-0 left-0 right-0 z-[60] bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm shadow-slate-200/20 transition-all duration-300">
             {/* Notification Popup */}
             <NotificationPopup
                 isOpen={notificationPopupOpen}
@@ -198,7 +198,7 @@ export const TopBar: React.FC = () => {
             />
 
             {/* Top Header Row - Menu, Search, Bell, Profile */}
-            <div className="layout-container layout-header">
+            <div className="layout-container layout-header flex items-center justify-between px-4 lg:px-8">
                 {/* Left: Menu and Search */}
                 <div className="flex items-center gap-2 md:gap-3 lg:gap-4 flex-1 max-w-2xl">
                     {/* Mobile Menu Button */}
