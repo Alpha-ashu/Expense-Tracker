@@ -3,6 +3,7 @@ import { AuthRequest, getUserId } from '../../middleware/auth';
 import { requireRole, requireApproved } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
 import { logger } from '../../config/logger';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 // List all approved advisors
 export const listAdvisors = async (req: AuthRequest, res: Response) => {
@@ -22,6 +23,9 @@ export const listAdvisors = async (req: AuthRequest, res: Response) => {
 
     res.json(advisors);
   } catch (error: any) {
+    if (isDatabaseUnavailableError(error)) {
+      return res.status(503).json({ error: 'Database is temporarily offline', code: 'DB_OFFLINE' });
+    }
     res.status(500).json({ error: 'Failed to fetch advisors' });
   }
 };

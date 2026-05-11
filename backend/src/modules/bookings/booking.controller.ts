@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { requireFeature, requireRole, requireApproved } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
+import { isDatabaseUnavailableError } from '../../utils/databaseAvailability';
 
 // Create a new booking request
 export const createBooking = async (req: AuthRequest, res: Response) => {
@@ -68,6 +69,9 @@ export const createBooking = async (req: AuthRequest, res: Response) => {
     res.status(201).json(booking);
   } catch (error: any) {
     console.error('Create booking error:', error);
+    if (isDatabaseUnavailableError(error)) {
+      return res.status(503).json({ error: 'Service temporarily unavailable', code: 'DB_OFFLINE' });
+    }
     res.status(500).json({ error: 'Failed to create booking' });
   }
 };
@@ -104,6 +108,9 @@ export const getBookings = async (req: AuthRequest, res: Response) => {
       return res.json(bookings);
     }
   } catch (error: any) {
+    if (isDatabaseUnavailableError(error)) {
+      return res.status(503).json({ error: 'Database is temporarily offline', code: 'DB_OFFLINE' });
+    }
     res.status(500).json({ error: 'Failed to fetch bookings' });
   }
 };

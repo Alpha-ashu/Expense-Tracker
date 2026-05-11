@@ -40,33 +40,19 @@ export const PageHeaderCard: React.FC<PageHeaderProps> = ({
             className
         )}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
+                <div className="flex items-center gap-4">
                     {showBack && (
                         <button
                             onClick={handleBackClick}
-                            className="lg:hidden w-12 h-12 flex items-center justify-center bg-white shadow-md border border-slate-100 hover:bg-slate-50 rounded-2xl transition-all shrink-0 active:scale-95 group"
+                            className="w-10 h-10 flex items-center justify-center bg-transparent border border-slate-200 hover:bg-slate-100/50 rounded-xl transition-all shrink-0 active:scale-95 group"
                             aria-label="Go back"
                         >
-                            <ChevronLeft size={22} className="text-slate-700 group-hover:-translate-x-0.5 transition-transform" />
+                            <ChevronLeft size={20} className="text-slate-700 group-hover:-translate-x-0.5 transition-transform" />
                         </button>
                     )}
-                    <div className="flex items-center gap-5">
-                        {icon && (
-                            <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-100 shrink-0">
-                                {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement, { size: 28 }) : icon}
-                            </div>
-                        )}
-                        <div>
-                            <h1 className="text-3xl lg:text-[32px] font-black text-slate-900 tracking-tight leading-tight mb-1">
-                                {title}
-                            </h1>
-                            {subtitle && (
-                                <p className="text-sm font-bold text-slate-500 tracking-wide opacity-80">
-                                    {subtitle}
-                                </p>
-                            )}
-                        </div>
-                    </div>
+                    <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">
+                        {title}
+                    </h1>
                 </div>
 
                 {children && (

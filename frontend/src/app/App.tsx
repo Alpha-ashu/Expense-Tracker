@@ -10,69 +10,69 @@ import { toast } from 'sonner';
 import { initializeSmsTransactionDetection } from '@/services/smsTransactionDetectionService';
 
 //  Shell components (always visible - eager load) 
-import { Sidebar } from '@/app/components/Sidebar';
+import { Sidebar } from '@/app/components/core/Sidebar';
 import { TopBar } from '@/app/components/ui/TopBar';
-import { BottomNav } from '@/app/components/BottomNav';
-import { QuickActionModal } from '@/app/components/QuickActionModal';
-import { PWAInstallPrompt } from '@/app/components/PWAInstallPrompt';
-import { LimitedModeBanner } from '@/components/common/LimitedModeBanner';
-import { OfflineBanner } from '@/app/components/OfflineBanner';
+import { BottomNav } from '@/app/components/core/BottomNav';
+import { QuickActionModal } from '@/app/components/shared/QuickActionModal';
+import { PWAInstallPrompt } from '@/app/components/shared/PWAInstallPrompt';
+import { LimitedModeBanner } from '@/app/components/shared/LimitedModeBanner';
+import { OfflineBanner } from '@/app/components/shared/OfflineBanner';
 
 //  Auth / Security (shown before app shell - eager load) 
-import { AuthFlow } from '@/components/auth/AuthFlow';
-import { PINAuth } from '@/app/components/PINAuth';
-import { PINSetup } from '@/components/auth/PINSetup';
-import { LandingPage } from '@/app/components/LandingPage';
-import { AboutPage } from '@/app/components/AboutPage';
-import { PricingPage } from '@/app/components/PricingPage';
-import { ContactPage } from '@/app/components/ContactPage';
-import { PrivacyPolicy } from '@/app/components/PrivacyPolicy';
-import { Terms } from '@/app/components/Terms';
+import { AuthFlow } from '@/app/components/auth/AuthFlow';
+import { PINAuth } from '@/app/components/auth/PINAuth';
+import { PINSetup } from '@/app/components/auth/PINSetup';
+import { LandingPage } from '@/app/components/marketing/LandingPage';
+import { AboutPage } from '@/app/components/marketing/AboutPage';
+import { PricingPage } from '@/app/components/marketing/PricingPage';
+import { ContactPage } from '@/app/components/marketing/ContactPage';
+import { PrivacyPolicy } from '@/app/components/marketing/PrivacyPolicy';
+import { Terms } from '@/app/components/marketing/Terms';
 
 //  Page components - lazy loaded, each gets its own async chunk 
-const Dashboard = lazy(() => import('@/app/components/Dashboard').then(m => ({ default: m.Dashboard })));
-const Accounts = lazy(() => import('@/app/components/Accounts').then(m => ({ default: m.Accounts })));
-const Transactions = lazy(() => import('@/app/components/Transactions').then(m => ({ default: m.Transactions })));
-const Loans = lazy(() => import('@/app/components/Loans').then(m => ({ default: m.Loans })));
-const Goals = lazy(() => import('@/app/components/Goals').then(m => ({ default: m.Goals })));
-const GoalDetail = lazy(() => import('@/app/components/GoalDetail').then(m => ({ default: m.GoalDetail })));
-const Groups = lazy(() => import('@/app/components/Groups').then(m => ({ default: m.Groups })));
-const Investments = lazy(() => import('@/app/components/Investments').then(m => ({ default: m.Investments })));
-const Reports = lazy(() => import('@/app/components/Reports').then(m => ({ default: m.Reports })));
-const Settings = lazy(() => import('@/app/components/Settings').then(m => ({ default: m.Settings })));
-const Calendar = lazy(() => import('@/app/components/Calendar').then(m => ({ default: m.Calendar })));
-const Transfer = lazy(() => import('@/app/components/Transfer').then(m => ({ default: m.Transfer })));
-const VoiceInput = lazy(() => import('@/app/components/VoiceInput').then(m => ({ default: m.VoiceInput })));
-const VoiceReview = lazy(() => import('@/app/components/VoiceReview').then(m => ({ default: m.VoiceReview })));
-const AuthCallback = lazy(() => import('@/app/components/AuthCallback').then(m => ({ default: m.AuthCallback })));
-const AdminDashboard = lazy(() => import('@/app/components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
-const AdminAIDashboard = lazy(() => import('@/app/components/AdminAIDashboard').then(m => ({ default: m.AdminAIDashboard })));
-const SyncMonitorDashboard = lazy(() => import('@/app/components/SyncMonitorDashboard').then(m => ({ default: m.SyncMonitorDashboard })));
-const AdvisorWorkspace = lazy(() => import('@/app/components/AdvisorWorkspace').then(m => ({ default: m.AdvisorWorkspace })));
-const AdminFeaturePanel = lazy(() => import('@/app/components/AdminFeaturePanel').then(m => ({ default: m.AdminFeaturePanel })));
-const AdvisorPanel = lazy(() => import('@/app/components/AdvisorPanel').then(m => ({ default: m.AdvisorPanel })));
-const BookAdvisor = lazy(() => import('@/app/components/BookAdvisor').then(m => ({ default: m.BookAdvisor })));
-const AdminAdvisorVerification = lazy(() => import('@/app/components/AdminAdvisorVerification').then(m => ({ default: m.AdminAdvisorVerification })));
-const PayEMI = lazy(() => import('@/app/components/PayEMI').then(m => ({ default: m.PayEMI })));
-const Diagnostics = lazy(() => import('@/app/components/Diagnostics').then(m => ({ default: m.Diagnostics })));
-const ExportReports = lazy(() => import('@/app/components/ExportReports').then(m => ({ default: m.ExportReports })));
-const ToDoLists = lazy(() => import('@/app/components/ToDoLists').then(m => ({ default: m.ToDoLists })));
-const ToDoListDetail = lazy(() => import('@/app/components/ToDoListDetail').then(m => ({ default: m.ToDoListDetail })));
-const ToDoListShare = lazy(() => import('@/app/components/ToDoListShare').then(m => ({ default: m.ToDoListShare })));
-const AddAccount = lazy(() => import('@/app/components/AddAccount').then(m => ({ default: m.AddAccount })));
-const EditAccount = lazy(() => import('@/app/components/EditAccount').then(m => ({ default: m.EditAccount })));
-const AddTransaction = lazy(() => import('@/app/components/AddTransaction').then(m => ({ default: m.AddTransaction })));
-const AddGoal = lazy(() => import('@/app/components/AddGoal').then(m => ({ default: m.AddGoal })));
-const AddGroup = lazy(() => import('@/app/components/AddGroup').then(m => ({ default: m.AddGroup })));
-const AddInvestment = lazy(() => import('@/app/components/AddInvestment').then(m => ({ default: m.AddInvestment })));
-const EditInvestment = lazy(() => import('@/app/components/EditInvestment').then(m => ({ default: m.EditInvestment })));
-const AddLoan = lazy(() => import('@/app/components/AddLoan').then(m => ({ default: m.AddLoan })));
-const AddGold = lazy(() => import('@/app/components/AddGold').then(m => ({ default: m.AddGold })));
-const AddFriends = lazy(() => import('@/app/components/AddFriends').then(m => ({ default: m.AddFriends })));
-const UserProfile = lazy(() => import('@/app/components/UserProfile').then(m => ({ default: m.UserProfile })));
-const Notifications = lazy(() => import('@/app/components/Notifications').then(m => ({ default: m.Notifications })));
-const SimpleAutoTest = lazy(() => import('@/components/ui/SimpleAutoTest').then(m => ({ default: m.SimpleAutoTest })));
-const NewUserOnboarding = lazy(() => import('@/components/onboarding/NewUserOnboarding').then(m => ({ default: m.NewUserOnboarding })));
+const Dashboard = lazy(() => import('@/app/components/core/Dashboard').then(m => ({ default: m.Dashboard })));
+const Accounts = lazy(() => import('@/app/components/core/Accounts').then(m => ({ default: m.Accounts })));
+const Transactions = lazy(() => import('@/app/components/core/Transactions').then(m => ({ default: m.Transactions })));
+const Loans = lazy(() => import('@/app/components/loans/Loans').then(m => ({ default: m.Loans })));
+const Goals = lazy(() => import('@/app/components/goals/Goals').then(m => ({ default: m.Goals })));
+const GoalDetail = lazy(() => import('@/app/components/goals/GoalDetail').then(m => ({ default: m.GoalDetail })));
+const Groups = lazy(() => import('@/app/components/groups/Groups').then(m => ({ default: m.Groups })));
+const Investments = lazy(() => import('@/app/components/investments/Investments').then(m => ({ default: m.Investments })));
+const Reports = lazy(() => import('@/app/components/features/Reports').then(m => ({ default: m.Reports })));
+const Settings = lazy(() => import('@/app/components/profile/Settings').then(m => ({ default: m.Settings })));
+const Calendar = lazy(() => import('@/app/components/features/Calendar').then(m => ({ default: m.Calendar })));
+const Transfer = lazy(() => import('@/app/components/transactions/Transfer').then(m => ({ default: m.Transfer })));
+const VoiceInput = lazy(() => import('@/app/components/features/VoiceInput').then(m => ({ default: m.VoiceInput })));
+const VoiceReview = lazy(() => import('@/app/components/features/VoiceReview').then(m => ({ default: m.VoiceReview })));
+const AuthCallback = lazy(() => import('@/app/components/auth/AuthCallback').then(m => ({ default: m.AuthCallback })));
+const AdminDashboard = lazy(() => import('@/app/components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminAIDashboard = lazy(() => import('@/app/components/admin/AdminAIDashboard').then(m => ({ default: m.AdminAIDashboard })));
+const SyncMonitorDashboard = lazy(() => import('@/app/components/admin/SyncMonitorDashboard').then(m => ({ default: m.SyncMonitorDashboard })));
+const AdvisorWorkspace = lazy(() => import('@/app/components/advisor/AdvisorWorkspace').then(m => ({ default: m.AdvisorWorkspace })));
+const AdminFeaturePanel = lazy(() => import('@/app/components/admin/AdminFeaturePanel').then(m => ({ default: m.AdminFeaturePanel })));
+const AdvisorPanel = lazy(() => import('@/app/components/advisor/AdvisorPanel').then(m => ({ default: m.AdvisorPanel })));
+const BookAdvisor = lazy(() => import('@/app/components/advisor/BookAdvisor').then(m => ({ default: m.BookAdvisor })));
+const AdminAdvisorVerification = lazy(() => import('@/app/components/admin/AdminAdvisorVerification').then(m => ({ default: m.AdminAdvisorVerification })));
+const PayEMI = lazy(() => import('@/app/components/transactions/PayEMI').then(m => ({ default: m.PayEMI })));
+const Diagnostics = lazy(() => import('@/app/components/shared/Diagnostics').then(m => ({ default: m.Diagnostics })));
+const ExportReports = lazy(() => import('@/app/components/features/ExportReports').then(m => ({ default: m.ExportReports })));
+const ToDoLists = lazy(() => import('@/app/components/features/ToDoLists').then(m => ({ default: m.ToDoLists })));
+const ToDoListDetail = lazy(() => import('@/app/components/features/ToDoListDetail').then(m => ({ default: m.ToDoListDetail })));
+const ToDoListShare = lazy(() => import('@/app/components/features/ToDoListShare').then(m => ({ default: m.ToDoListShare })));
+const AddAccount = lazy(() => import('@/app/components/core/AddAccount').then(m => ({ default: m.AddAccount })));
+const EditAccount = lazy(() => import('@/app/components/core/EditAccount').then(m => ({ default: m.EditAccount })));
+const AddTransaction = lazy(() => import('@/app/components/transactions/AddTransaction').then(m => ({ default: m.AddTransaction })));
+const AddGoal = lazy(() => import('@/app/components/goals/AddGoal').then(m => ({ default: m.AddGoal })));
+const AddGroup = lazy(() => import('@/app/components/groups/AddGroup').then(m => ({ default: m.AddGroup })));
+const AddInvestment = lazy(() => import('@/app/components/investments/AddInvestment').then(m => ({ default: m.AddInvestment })));
+const EditInvestment = lazy(() => import('@/app/components/investments/EditInvestment').then(m => ({ default: m.EditInvestment })));
+const AddLoan = lazy(() => import('@/app/components/loans/AddLoan').then(m => ({ default: m.AddLoan })));
+const AddGold = lazy(() => import('@/app/components/investments/AddGold').then(m => ({ default: m.AddGold })));
+const AddFriends = lazy(() => import('@/app/components/groups/AddFriends').then(m => ({ default: m.AddFriends })));
+const UserProfile = lazy(() => import('@/app/components/profile/UserProfile').then(m => ({ default: m.UserProfile })));
+const Notifications = lazy(() => import('@/app/components/profile/Notifications').then(m => ({ default: m.Notifications })));
+const SimpleAutoTest = lazy(() => import('@/app/components/ui/SimpleAutoTest').then(m => ({ default: m.SimpleAutoTest })));
+const NewUserOnboarding = lazy(() => import('@/app/components/auth/onboarding/NewUserOnboarding').then(m => ({ default: m.NewUserOnboarding })));
 
 //  Capacitor (native only) 
 import { App as CapacitorApp } from '@capacitor/app';
@@ -253,8 +253,8 @@ const AppContent: React.FC = () => {
 
       if (!criticalPagesPrefetched) {
         // Preload critical pages right after login to avoid first-click lag
-        void import('@/app/components/Dashboard');
-        void import('@/app/components/Transactions');
+        void import('@/app/components/core/Dashboard');
+        void import('@/app/components/core/Transactions');
         setCriticalPagesPrefetched(true);
       }
     } else if (!authLoading) {
@@ -544,20 +544,12 @@ const AppContent: React.FC = () => {
       case 'book-advisor': return <BookAdvisor />;
       case 'add-transaction': return <AddTransaction />;
       case 'loans': return <Loans />;
-      case 'add-loan': 
-        // Redirect to unified AddTransaction with loan mode
-        localStorage.setItem('quickFormType', 'expense');
-        localStorage.setItem('quickExpenseMode', 'loan');
-        return <AddTransaction />;
+      case 'add-loan': return <AddLoan />;
       case 'goals': return <Goals />;
       case 'goal-detail': return <GoalDetail />;
       case 'add-goal': return <AddGoal />;
       case 'groups': return <Groups />;
-      case 'add-group': 
-        // Redirect to unified AddTransaction with group mode
-        localStorage.setItem('quickFormType', 'expense');
-        localStorage.setItem('quickExpenseMode', 'group');
-        return <AddTransaction />;
+      case 'add-group': return <AddGroup />;
       case 'add-friends': return <AddFriends />;
       case 'investments': return <Investments />;
       case 'add-investment': return <AddInvestment />;
@@ -596,16 +588,13 @@ const AppContent: React.FC = () => {
       case 'voice-input': return <VoiceInput />;
       case 'voice-review': return <VoiceReview />;
       case 'pay-emi': return <PayEMI />;
-      case 'transfer': 
-        // Redirect to unified AddTransaction with transfer mode
-        localStorage.setItem('quickFormType', 'transfer');
-        return <AddTransaction />;
+      case 'transfer': return <Transfer />;
       default: return <Dashboard setCurrentPage={setCurrentPage} />;
     }
   };
 
   return (
-    <div className="w-full min-h-screen flex overflow-x-hidden bg-gray-50 app-container">
+    <div className="w-full min-h-screen flex overflow-x-hidden app-container">
       {/* OfflineBanner is fixed-position - stays outside document flow, never disrupts the flex row */}
       <OfflineBanner />
 
@@ -616,10 +605,10 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Area - Center scaled for Desktop */}
       <div className="flex-1 lg:ml-28 flex flex-col min-h-screen relative overflow-x-hidden">
-        <div className="w-full lg:max-w-[90%] xl:max-w-[85%] mx-auto flex flex-col h-fit mobile-content relative">
+        <div className="w-full lg:max-w-[90%] xl:max-w-[85%] mx-auto flex flex-col flex-1 mobile-content relative">
           <LimitedModeBanner />
           <TopBar />
-          <main className="w-full overflow-x-hidden mobile-safe-bottom bg-gray-50 mobile-main h-fit">
+          <main className="w-full overflow-x-hidden mobile-safe-bottom mobile-main flex-1 bg-transparent">
           {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
@@ -677,3 +666,4 @@ const App: React.FC = () => (
 );
 
 export default App;
+
