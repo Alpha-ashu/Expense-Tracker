@@ -1,4 +1,7 @@
-# Expense Tracker
+# Kanakku: Modern Expense Tracker
+
+> [!IMPORTANT]
+> **AI DEVELOPER NOTICE**: Before making any changes, please read the [KANAKKU_DEVELOPER_CONTEXT.md](./KANAKKU_DEVELOPER_CONTEXT.md) for architecture rules and the design system guide.
 
 Expense Tracker is a full-stack finance app with a React frontend, an Express/Prisma backend, Supabase integration, offline-first local storage, and AI-assisted import and receipt flows.
 

@@ -1,4 +1,4 @@
-# Database Skill Reference – Finora
+# Database Skill Reference – Kanakku
 
 > Stack: PostgreSQL · Prisma ORM · Supabase (managed Postgres + Auth + RLS)
 

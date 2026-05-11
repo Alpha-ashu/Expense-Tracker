@@ -1,4 +1,4 @@
-# Frontend Skill Reference – Finora
+# Frontend Skill Reference – Kanakku
 
 > Stack: React 18 · TypeScript (strict) · Vite · Capacitor · Dexie · Sonner · Tailwind CSS
 
@@ -55,6 +55,8 @@ const data: any = await api.transactions.getAll();
 ## 3. Vite Configuration
 
 - Alias `@/` maps to `frontend/src/` (set in `vite.config.ts`).
+- **Standard Root**: All components live under `@/app/components/`.
+- **Absolute Imports**: Always use `@/app/components/{module}/{Component}`. Avoid `../../`.
 - Environment variables must be prefixed `VITE_` to be exposed to the browser.
 - Use `import.meta.env.VITE_API_URL` – never `process.env`.
 - Build output goes to `dist/` which Capacitor syncs to the native project.
@@ -124,9 +126,12 @@ try {
 ## 7. Styling (Tailwind CSS)
 
 - Use design tokens defined in `tailwind.config.ts` (colours, spacing, breakpoints).
+- **Glassmorphism**: Use `bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl`.
+- **Gradients**: Use `bg-gradient-to-br from-indigo-600 to-purple-600` for primary actions.
+- **Rounded Corners**: Standardize on `rounded-2xl` or `rounded-3xl` for a premium feel.
 - Mobile-first breakpoints: `sm:` → 640px, `md:` → 768px, `lg:` → 1024px.
 - Dark mode is handled via `class` strategy – add `dark` to `<html>` rather than `prefers-color-scheme`.
-- Prefer utility classes over custom CSS. Only add custom CSS in `globals.css` for base resets or animations not achievable with utilities.
+- Prefer utility classes over custom CSS.
 
 ---
 

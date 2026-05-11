@@ -12,11 +12,11 @@ import { PageHeader } from '@/app/components/ui/PageHeader';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { cn } from '@/lib/utils';
-import { LiveMarket } from '@/app/components/investments/Investments/LiveMarket';
-import { LiveMarketTicker } from '@/app/components/investments/Investments/LiveMarketTicker';
+import { LiveMarket } from '@/app/components/investments/LiveMarket';
+import { LiveMarketTicker } from '@/app/components/investments/LiveMarketTicker';
 import { fetchMultipleQuotes, StockQuote } from '@/lib/stockApi';
 import { formatCurrencyAmount, formatNativeMoney } from '@/lib/currencyUtils';
-import { CloseInvestmentModal } from '@/app/components/investments/Investments/CloseInvestmentModal';
+import { CloseInvestmentModal } from '@/app/components/investments/CloseInvestmentModal';
 import {
   getInvestmentDisplayName,
   getInvestmentMetrics,

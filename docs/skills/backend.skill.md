@@ -1,4 +1,4 @@
-# Backend Skill Reference – Finora
+# Backend Skill Reference – Kanakku
 
 > Stack: Node.js · TypeScript · Express · Prisma · PostgreSQL · Zod · Winston
 

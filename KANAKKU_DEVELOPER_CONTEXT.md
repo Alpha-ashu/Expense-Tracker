@@ -1,4 +1,4 @@
-# Finora Project: Master Developer Context & Changelog
+# Kanakku Project: Master Developer Context & Changelog
 
 This document serves as the single source of truth for the project's architecture, design system, and implementation history. **Any AI assistant or developer working on this project must read this file first to ensure consistency.**
 
@@ -6,7 +6,7 @@ This document serves as the single source of truth for the project's architectur
 
 ## 🏗 Core Architecture
 
-Finora follows a **feature-modular structure** within the frontend to ensure scalability and clarity.
+Kanakku follows a **feature-modular structure** within the frontend to ensure scalability and clarity.
 
 - **Root Directory**: Contains global configuration (`package.json`, `vite.config.ts`, `tsconfig.json`).
 - **`frontend/src/app/components/`**: The unified home for all UI components.
@@ -62,7 +62,7 @@ Finora uses a **Premium Glassmorphic Aesthetic**. All new features must adhere t
     - Standardized `shared/` layout components (`AppLayout`, `LimitedModeBanner`).
 2.  **Project Root Cleanup**:
     - Moved 70+ standalone documentation files to the `docs/` folder.
-    - Moved legacy/unused files to `frontend/src/unused/`.
+    - Moved truly dead code to `frontend/src/unused/`. (Note: `realTime.ts` and `enhanced-sync.ts` were restored to `src/lib/` after being identified as dependencies).
 3.  **Path Stabilization**:
     - Fixed lazy-loading paths in `App.tsx` (standardized on feature-folders).
     - Resolved Vite build errors regarding broken relative imports in `AuthFlow.tsx`.
@@ -70,6 +70,19 @@ Finora uses a **Premium Glassmorphic Aesthetic**. All new features must adhere t
     - Restructured `AddTransaction` header for mobile responsiveness.
     - Standardized mobile back button placement (left of title) to avoid burger-menu overlap.
     - Optimized bottom navigation spacing for "safe-area" (notch) devices.
+
+---
+
+## 🤖 Core Intelligence Systems
+*   **OCR Bill Scanner**: Tesseract.js engine with multi-variant scoring for high-accuracy receipt extraction.
+*   **Bank Statement Parser**: Regex-based engine for PDF/Image bank statements (extracts account details & transactions).
+*   **Voice Assistant**: Web Speech API integrated with custom NLP for hands-free expense entry.
+*   *Reference*: [INTELLIGENCE_SYSTEMS.md](./docs/intelligence/INTELLIGENCE_SYSTEMS.md)
+
+---
+
+## 📚 Project Documentation
+- [Frontend Architecture](./frontend/FRONTEND_ARCHITECTURE.md)
 
 ---
 

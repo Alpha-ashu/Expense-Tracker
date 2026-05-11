@@ -1,21 +1,23 @@
-# Finora - Master Technical Documentation
+# Kanakku - Master Technical Documentation
 
 ## Executive Summary
 
-Finora is a comprehensive personal finance management platform with web (PWA), mobile (Capacitor), and AI-powered features. It combines a React frontend, Express backend, Supabase-managed PostgreSQL database, and AI services for receipt OCR and financial insights.
+Kanakku is a comprehensive personal finance management platform with web (PWA), mobile (Capacitor), and AI-powered features. It combines a React frontend, Express backend, Supabase-managed PostgreSQL database, and AI services for receipt OCR and financial insights.
 
 ---
 
 ## 1. Tech Stack Overview
 
-### 1.1 Frontend Architecture
+### 1.1 [Intelligence Systems (OCR, Bank, Voice)](./intelligence/INTELLIGENCE_SYSTEMS.md)
+
+### 1.2 Frontend Architecture
 
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
 | Framework | React | 18.3.1 | UI library with hooks |
 | Build Tool | Vite | 6.3.5 | Fast dev server & bundling |
 | Language | TypeScript | 5.3.3 | Type-safe development |
-| Styling | Tailwind CSS | 4.1.12 | Utility-first CSS |
+| Styling | Tailwind CSS | 4.1.12 | Utility-first CSS (Glassmorphism focus) |
 | UI Components | Radix UI | 1.2.3+ | Accessible primitives |
 | UI Components | MUI (Material) | 7.3.5 | Complex components |
 | Animation | Framer Motion | 12.23.24 | Page transitions & micro-interactions |
@@ -26,7 +28,13 @@ Finora is a comprehensive personal finance management platform with web (PWA), m
 | Mobile Wrapper | Capacitor | 8.0.2 | iOS/Android native apps |
 | PWA | Workbox | 7.4.0 | Service workers & offline |
 
-### 1.2 Backend Architecture
+**Architecture Style**: Feature-Modular Unified Structure
+- **Root**: `frontend/src/app/`
+- **Components**: `frontend/src/app/components/{feature}/`
+- **Imports**: Absolute aliases via `@/app/components/...`
+- **Design**: Premium Glassmorphism (HSL, Backdrop-blur-xl)
+
+### 1.3 Backend Architecture
 
 | Layer | Technology | Version | Purpose |
 |-------|------------|---------|---------|
@@ -47,7 +55,7 @@ Finora is a comprehensive personal finance management platform with web (PWA), m
 | Security | Helmet | 8.1.0 | Security headers |
 | CORS | cors | 2.8.5 | Cross-origin requests |
 
-### 1.3 Database & Storage
+### 1.4 Database & Storage
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -57,7 +65,7 @@ Finora is a comprehensive personal finance management platform with web (PWA), m
 | File Storage | Supabase Storage | Receipt images & bills |
 | Offline Storage | Dexie.js (IndexedDB) | Client-side caching |
 
-### 1.4 Infrastructure & Deployment
+### 1.5 Infrastructure & Deployment
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -68,7 +76,7 @@ Finora is a comprehensive personal finance management platform with web (PWA), m
 | Local Dev | Docker Compose | Postgres + API containers |
 | CI/CD | (Not configured) | Manual deployment |
 
-### 1.5 Third-Party Integrations
+### 1.6 Third-Party Integrations
 
 | Service | Integration Point | Purpose |
 |---------|-------------------|---------|
@@ -98,7 +106,8 @@ Finora is a comprehensive personal finance management platform with web (PWA), m
 │                           │                                                  │
 │                    ┌──────┴──────┐                                           │
 │                    │  React + Vite│                                           │
-│                    │  (Shared Code)│                                           │
+│                    │  (Feature-   │                                           │
+│                    │   Modular)   │                                           │
 │                    └──────┬───────┘                                           │
 └───────────────────────────┼─────────────────────────────────────────────────┘
                             │ HTTPS/WebSocket
@@ -1179,6 +1188,11 @@ Finora/
 │   │   │   └── logger.ts      # Winston logging
 │   │   ├── sockets/           # Socket.IO handlers
 │   │   └── app.ts             # Express app setup
+│   ├── 3. Intelligence Layer:
+│       *   OCR: Tesseract.js with multi-variant scoring.
+│       *   Bank: Regex-based structured document parser.
+│       *   Voice: Web Speech API with natural language expense extraction.
+│       *   Reference: [INTELLIGENCE_SYSTEMS.md](./docs/intelligence/INTELLIGENCE_SYSTEMS.md)
 │   ├── prisma/
 │   │   ├── schema.prisma      # Database schema
 │   │   └── migrations/        # Database migrations

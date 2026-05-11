@@ -1,22 +1,4 @@
-Good Points:
-
-Very well structured and detailed.
-Excellent coverage of key security areas.
-Practical code examples and clear dos/don’ts.
-Good separation of frontend/backend concerns.
-Strong focus on ownership checks and input validation.
-
-Areas for Improvement:
-
-Some repetition and minor inconsistencies.
-Could be more professional and polished for a production app.
-Missing a few important mobile-specific security points (since you’re building Web + Android + iOS).
-Needs better versioning and contact info.
-Some sections can be tightened for clarity.
-
-
-Polished & Updated Version (Recommended)
-Markdown# Security Skill Reference – Finora
+# Security Skill Reference – Kanakku
 
 > **Stack**: Supabase Auth · Custom JWT · Helmet · CORS · express-rate-limit · Zod · bcrypt · Prisma
 
