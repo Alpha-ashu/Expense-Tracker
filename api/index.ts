@@ -59,7 +59,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
         success: false,
         error: 'Service temporarily unavailable. Please try again later.',
         code: 'FUNCTION_STARTUP_ERROR',
-        details: process.env.NODE_ENV !== 'production' ? err?.message : undefined,
+        details: err?.message,
       });
     }
   }
