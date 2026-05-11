@@ -26,6 +26,7 @@ const loadApp = async () => {
     // Load from compiled JS output (backend/dist/app.js).
     // The vercel-build script compiles backend TS before deployment.
     // Use dynamic import for ESM/CJS compatibility in Vercel environment.
+    // @ts-ignore - Compiled JS may not have declaration files at this location during build
     const mod = await import('../backend/dist/app.js');
     _app = mod.default?.app ?? mod.app ?? mod.default ?? mod;
     
