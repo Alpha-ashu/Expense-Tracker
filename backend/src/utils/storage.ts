@@ -1,20 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-const storageClient = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+let _storageClient: any = null;
+const getStorageClient = () => {
+  if (_storageClient) return _storageClient;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (url && key && key !== 'undefined') {
+    try {
+      _storageClient = createClient(url, key);
+      return _storageClient;
+    } catch (err) {
+      console.error('Failed to init Supabase storage client:', err);
+    }
+  }
+  return null;
+};
 
 export const STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'secure-uploads';
 export const SIGNED_URL_TTL = Number(process.env.SUPABASE_SIGNED_URL_TTL || 600);
 
 export const requireStorageClient = () => {
-  if (!storageClient) {
+  const client = getStorageClient();
+  if (!client) {
     throw new Error('Supabase storage is not configured');
   }
-  return storageClient;
+  return client;
 };
 
 export const uploadBuffer = async (path: string, buffer: Buffer, contentType: string) => {

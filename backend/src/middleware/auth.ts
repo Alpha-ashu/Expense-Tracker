@@ -17,14 +17,23 @@ export interface AuthRequest extends Request {
   file?: Express.Multer.File;
 }
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+let _supabase: any = null;
+const getSupabase = () => {
+  if (_supabase) return _supabase;
+  const url = process.env.SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (url && serviceKey && !serviceKey.startsWith('sb_publishable_') && serviceKey !== 'undefined') {
+    try {
+      _supabase = createClient(url, serviceKey);
+      return _supabase;
+    } catch (err) {
+      logger.error('Failed to init Supabase in auth middleware:', err);
+    }
+  }
+  return null;
+};
 // Supabase JWT Secret — found in Supabase Dashboard → Project Settings → API → JWT Settings
-// This lets us verify Supabase access tokens locally without the service role key.
 const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || '';
-const supabase = (supabaseUrl && supabaseServiceKey && !supabaseServiceKey.startsWith('sb_publishable_'))
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null;
 const AUTH_STATUS_LOOKUP_TIMEOUT_MS = Number(process.env.AUTH_STATUS_LOOKUP_TIMEOUT_MS || 250);
 const STATUS_LOOKUP_TIMEOUT = Symbol('auth-status-timeout');
 const ALLOW_TEST_ROLE_FALLBACK = process.env.NODE_ENV === 'test';
@@ -161,10 +170,10 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       }
     }
 
-    // 3. Try Supabase API verification (requires valid service role key)
-    if (supabase && process.env.NODE_ENV !== 'test') {
+    const sb = getSupabase();
+    if (sb && process.env.NODE_ENV !== 'test') {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { data: { user }, error } = await sb.auth.getUser(token);
         
         if (user && !error) {
           const authSnapshot = await getUserAuthSnapshot(user.id);

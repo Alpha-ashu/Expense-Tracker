@@ -3,14 +3,38 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const getSupabaseClient = (key?: string) => {
+  const url = process.env.SUPABASE_URL;
+  const k = key || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export const supabase = (supabaseUrl && supabaseKey) 
-  ? createClient(supabaseUrl, supabaseKey) 
-  : new Proxy({} as any, { get() { throw new Error('Supabase URL and Key must be provided in environment variables'); } });
+  if (!url || !k || k === 'undefined' || k.startsWith('sb_publishable_')) {
+    return null;
+  }
 
-export const supabaseAnon = (supabaseUrl && supabaseAnonKey)
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : supabase;
+  try {
+    return createClient(url, k);
+  } catch (err) {
+    console.error('[supabase] Failed to create client:', err);
+    return null;
+  }
+};
+
+/** Lazy-loaded Supabase Service Role client */
+export const supabase = new Proxy({} as any, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    if (!client) throw new Error('Supabase Service Role client is not configured');
+    const value = (client as any)[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  }
+});
+
+/** Lazy-loaded Supabase Anon client */
+export const supabaseAnon = new Proxy({} as any, {
+  get(target, prop) {
+    const client = getSupabaseClient(process.env.SUPABASE_ANON_KEY);
+    if (!client) throw new Error('Supabase Anon client is not configured');
+    const value = (client as any)[prop];
+    return typeof value === 'function' ? value.bind(client) : value;
+  }
+});
