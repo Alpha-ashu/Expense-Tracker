@@ -10,7 +10,7 @@ let _app: ((req: any, res: any) => void) | null = null;
 let _initError: Error | null = null;
 let _initAttempted = false;
 
-const loadApp = () => {
+const loadApp = async () => {
   if (_app) return _app;
   if (_initError && _initAttempted) throw _initError;
   _initAttempted = true;
@@ -25,9 +25,10 @@ const loadApp = () => {
 
     // Load from compiled JS output (backend/dist/app.js).
     // The vercel-build script compiles backend TS before deployment.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require('../backend/dist/app');
-    _app = mod.default ?? mod.app ?? mod;
+    // Use dynamic import for ESM/CJS compatibility in Vercel environment.
+    const mod = await import('../backend/dist/app.js');
+    _app = mod.default?.app ?? mod.app ?? mod.default ?? mod;
+    
     if (typeof _app !== 'function') {
       throw new Error(`backend/dist/app did not export a valid Express handler. Got: ${typeof _app}`);
     }
@@ -41,7 +42,7 @@ const loadApp = () => {
   }
 };
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const nodeRes = res as NodeCompatibleResponse;
 
   // Health check that doesn't require the full app
@@ -50,7 +51,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const app = loadApp();
+    const app = await loadApp();
     return app(req as any, res as any);
   } catch (err: any) {
     console.error('[api/index] Unhandled error during request:', err?.message ?? err);
