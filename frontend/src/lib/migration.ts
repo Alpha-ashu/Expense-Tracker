@@ -54,7 +54,7 @@ export function runGlobalMigration() {
 
   // ── v2: Kanakku → Finora ─────────────────────────────────────────
   if (!localStorage.getItem(MIGRATION_V2_KEY)) {
-    console.info('[Finora/Migration] Starting v2 brand migration (Kanakku → Finora)...');
+    console.info('[Finora/Migration] Starting v2 brand migration (Finora → Kanakku)...');
 
     const v2Migrations = [
       // Encryption keys (critical — must migrate before app reads them)

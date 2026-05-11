@@ -1,8 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { AuthTokens } from '../modules/auth/auth.types';
 
-const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
-if (!secret) throw new Error('JWT_SECRET or SUPABASE_JWT_SECRET environment variable is required');
+const getSecret = () => {
+  const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET or SUPABASE_JWT_SECRET environment variable is required');
+  return secret;
+};
 
 // API Keys and Credentials
 export const getApiKey = (key: string): string | undefined => {
@@ -47,7 +50,7 @@ export const generateTokens = (user: {
       role: user.role,
       isApproved: user.isApproved,
     },
-    secret,
+    getSecret(),
     { expiresIn: '15m' }
   );
 
@@ -58,7 +61,7 @@ export const generateTokens = (user: {
       role: user.role,
       isApproved: user.isApproved,
     },
-    secret,
+    getSecret(),
     { expiresIn: '7d' }
   );
 
@@ -77,7 +80,7 @@ export const generateTokens = (user: {
 
 export const verifyToken = (token: string): any => {
   try {
-    return jwt.verify(token, secret);
+    return jwt.verify(token, getSecret());
   } catch (error) {
     throw new Error('Invalid token');
   }
