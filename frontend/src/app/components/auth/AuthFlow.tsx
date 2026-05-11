@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, TrendingUp, Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
-import { KanakkuLogo } from '../../app/components/ui/KanakkuLogo';
+import { KanakkuLogo } from '@/app/components/ui/KanakkuLogo';
 import { motion } from 'framer-motion';
 import { SignInForm } from './SignInForm';
 import { SignUpForm } from './SignUpForm';
