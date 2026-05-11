@@ -186,18 +186,18 @@ export const createTransaction = async (req: AuthRequest, res: Response, next: N
           throw AppError.forbidden('Invalid source account', 'INVALID_SOURCE_ACCOUNT');
         }
 
-        if (sourceAccount.balance < numericAmount) {
+        if (Number(sourceAccount.balance) < numericAmount) {
           throw AppError.badRequest('Insufficient balance', 'INSUFFICIENT_BALANCE');
         }
 
         // Update both balances atomically
         await tx.account.update({
           where: { id: accountId },
-          data: { balance: sourceAccount.balance - numericAmount },
+          data: { balance: Number(sourceAccount.balance) - numericAmount },
         });
         await tx.account.update({
           where: { id: transferToAccountId },
-          data: { balance: destinationAccount.balance + numericAmount },
+          data: { balance: Number(destinationAccount.balance) + numericAmount },
         });
       } else {
         // Validate account ownership
@@ -211,7 +211,7 @@ export const createTransaction = async (req: AuthRequest, res: Response, next: N
         const balanceAdjustment = type === 'income' ? numericAmount : -numericAmount;
         await tx.account.update({
           where: { id: accountId },
-          data: { balance: account.balance + balanceAdjustment },
+          data: { balance: Number(account.balance) + balanceAdjustment },
         });
       }
 

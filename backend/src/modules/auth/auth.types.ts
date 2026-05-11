@@ -8,8 +8,8 @@ export interface User {
   country?: string | null;
   state?: string | null;
   city?: string | null;
-  salary?: number | null;
-  monthlyIncome?: number | null;
+  salary?: any;
+  monthlyIncome?: any;
   dateOfBirth?: Date | string | null;
   jobType?: string | null;
   role: string;

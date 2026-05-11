@@ -307,7 +307,7 @@ export const getRevenueReport = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
+    const totalRevenue = payments.reduce((sum, p) => sum + Number(p.amount), 0);
     const byAdvisor = payments.reduce(
       (acc, p) => {
         const advisorName = p.advisor.name;
@@ -315,7 +315,7 @@ export const getRevenueReport = async (req: AuthRequest, res: Response) => {
           acc[advisorName] = { count: 0, total: 0 };
         }
         acc[advisorName].count += 1;
-        acc[advisorName].total += p.amount;
+        acc[advisorName].total += Number(p.amount);
         return acc;
       },
       {} as Record<string, { count: number; total: number }>

@@ -160,8 +160,8 @@ const buildFeatureSnapshot = async (userId: string): Promise<UserFeatureSnapshot
   const expenseTransactions = transactions.filter((tx) => tx.type === 'expense');
   const incomeTransactions = transactions.filter((tx) => tx.type === 'income');
 
-  const expenseTotal = expenseTransactions.reduce((sum, tx) => sum + tx.amount, 0);
-  const incomeTotal = incomeTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const expenseTotal = expenseTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
+  const incomeTotal = incomeTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
 
   const periodDays = transactions.length > 1
     ? Math.max(1, Math.ceil((transactions[transactions.length - 1]!.date.getTime() - transactions[0]!.date.getTime()) / (24 * 60 * 60 * 1000)))
@@ -173,7 +173,7 @@ const buildFeatureSnapshot = async (userId: string): Promise<UserFeatureSnapshot
 
   const categoryTotals = expenseTransactions.reduce<Record<string, number>>((acc, tx) => {
     const key = tx.category || 'Uncategorized';
-    acc[key] = (acc[key] ?? 0) + tx.amount;
+    acc[key] = (acc[key] ?? 0) + Number(tx.amount);
     return acc;
   }, {});
 
@@ -182,14 +182,14 @@ const buildFeatureSnapshot = async (userId: string): Promise<UserFeatureSnapshot
 
   const weekdayTotals = expenseTransactions.reduce<Record<string, number>>((acc, tx) => {
     const day = getWeekdayName(tx.date);
-    acc[day] = (acc[day] ?? 0) + tx.amount;
+    acc[day] = (acc[day] ?? 0) + Number(tx.amount);
     return acc;
   }, {});
 
   const peakDay = Object.entries(weekdayTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';
 
   const avgExpenseTransaction = expenseTransactions.length > 0 ? expenseTotal / expenseTransactions.length : 0;
-  const maxExpenseTransaction = expenseTransactions.reduce((max, tx) => Math.max(max, tx.amount), 0);
+  const maxExpenseTransaction = expenseTransactions.reduce((max, tx) => Math.max(max, Number(tx.amount)), 0);
 
   const overspendPressure = incomeTotal > 0 ? expenseTotal / incomeTotal : (expenseTotal > 0 ? 1.2 : 0);
   const categoryConcentration = expenseTotal > 0 ? topCategoryAmount / expenseTotal : 0;
@@ -197,8 +197,8 @@ const buildFeatureSnapshot = async (userId: string): Promise<UserFeatureSnapshot
 
   const loanPressure = loans.length > 0
     ? loans.reduce((sum, loan) => {
-      if (loan.principalAmount <= 0) return sum;
-      return sum + clamp(loan.outstandingBalance / loan.principalAmount, 0, 1.5);
+      if (Number(loan.principalAmount) <= 0) return sum;
+      return sum + clamp(Number(loan.outstandingBalance) / Number(loan.principalAmount), 0, 1.5);
     }, 0) / loans.length
     : 0;
 
@@ -295,7 +295,7 @@ const buildRecurringCandidates = async (userId: string) => {
   const buckets = new Map<string, { count: number; amount: number; category: string }>();
 
   recentExpenses.forEach((expense) => {
-    const rounded = Math.round(expense.amount);
+    const rounded = Math.round(Number(expense.amount));
     const category = expense.category || 'Uncategorized';
     const key = `${category}::${rounded}`;
     const item = buckets.get(key) ?? { count: 0, amount: rounded, category };
@@ -349,9 +349,9 @@ const buildGoalInsights = async (userId: string, snapshot: UserFeatureSnapshot) 
 
   for (const goal of goals) {
     const daysLeft = Math.max(0, Math.ceil((goal.targetDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
-    const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
-    const projected = goal.currentAmount + (dailySavingsPotential * daysLeft);
-    const confidence = clamp(daysLeft > 0 ? projected / Math.max(goal.targetAmount, 1) : 0, 0, 1);
+    const remaining = Math.max(0, Number(goal.targetAmount) - Number(goal.currentAmount));
+    const projected = Number(goal.currentAmount) + (dailySavingsPotential * daysLeft);
+    const confidence = clamp(daysLeft > 0 ? projected / Math.max(Number(goal.targetAmount), 1) : 0, 0, 1);
 
     if (remaining <= 0) {
       continue;
@@ -373,7 +373,7 @@ const buildGoalInsights = async (userId: string, snapshot: UserFeatureSnapshot) 
       continue;
     }
 
-    if (projected < goal.targetAmount) {
+    if (projected < Number(goal.targetAmount)) {
       results.push({
         insightType: 'goal_risk_prediction',
         insightData: {
@@ -491,14 +491,14 @@ const runPredictionsForUser = async (snapshot: UserFeatureSnapshot) => {
   });
 
   const expenseAvg = recentExpenses.length > 0
-    ? recentExpenses.reduce((sum, tx) => sum + tx.amount, 0) / recentExpenses.length
+    ? recentExpenses.reduce((sum, tx) => sum + Number(tx.amount), 0) / recentExpenses.length
     : 0;
-  const spike = recentExpenses.find((tx) => tx.amount > (expenseAvg * 2.5));
+  const spike = recentExpenses.find((tx) => Number(tx.amount) > (expenseAvg * 2.5));
   if (spike && expenseAvg > 0) {
     insights.push({
       insightType: 'unusual_spend_spike',
       insightData: {
-        amount: toTwoDecimals(spike.amount),
+        amount: toTwoDecimals(Number(spike.amount)),
         category: spike.category,
         date: spike.date.toISOString(),
         baseline: toTwoDecimals(expenseAvg),

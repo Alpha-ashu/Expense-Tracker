@@ -234,7 +234,7 @@ export const addLoanPayment = async (req: AuthRequest, res: Response, next: Next
     });
 
     // Update outstanding balance
-    const newBalance = Math.max(0, loan.outstandingBalance - numericAmount);
+    const newBalance = Math.max(0, Number(loan.outstandingBalance) - numericAmount);
     await prisma.loan.update({
       where: { id },
       data: {

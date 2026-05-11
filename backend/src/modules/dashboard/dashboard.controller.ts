@@ -71,7 +71,7 @@ export const getDashboardSummary = async (req: AuthRequest, res: Response, next:
 
     const income = monthlyTotals.find((r) => r.type === 'income')?._sum ?? 0;
     const expense = monthlyTotals.find((r) => r.type === 'expense')?._sum ?? 0;
-    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
 
     res.json({
       success: true,
