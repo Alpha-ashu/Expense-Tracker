@@ -313,7 +313,7 @@ export function AddTransaction() {
 
       {/* Optimized Header - High Density */}
       <header className="bg-white border-b border-slate-100 flex flex-col">
-        <div className="flex items-center justify-between px-4 lg:px-6 py-4">
+        <div className="flex flex-row flex-wrap items-center justify-between gap-4 w-full px-4 lg:px-6 py-4">
           <div className="flex items-center gap-3">
             <button onClick={() => setCurrentPage(returnPage)} className="lg:hidden p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
               <ArrowLeft size={20} />

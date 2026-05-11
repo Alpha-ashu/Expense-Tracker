@@ -274,7 +274,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
             subtitle={`Hello! Here's what's happening with your money ${timePeriod === 'all' ? 'overall' : 'this ' + timePeriod.replace('ly', '')}`}
             icon={<Activity size={24} />}
           >
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex flex-row flex-wrap items-center gap-4">
               <TimeFilter value={timePeriod} onChange={setTimePeriod} />
               <div className="hidden xl:block h-8 w-px bg-slate-200 mx-2" />
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest hidden md:block">

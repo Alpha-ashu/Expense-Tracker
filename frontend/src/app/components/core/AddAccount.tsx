@@ -176,7 +176,8 @@ export const AddAccount: React.FC = () => {
     <div className="flex flex-col min-h-screen lg:h-screen bg-[#F8FAFC]">
 
       {/* Header - Stays at top with Glassmorphism */}
-      <header className="flex-shrink-0 flex items-center justify-between px-4 lg:px-10 py-5 bg-white/80 backdrop-blur-2xl border-b border-slate-100/50 z-30 sticky top-0 shadow-sm shadow-slate-200/30">
+      <header className="flex-shrink-0 px-4 lg:px-10 py-5 bg-white/80 backdrop-blur-2xl border-b border-slate-100/50 z-30 sticky top-0 shadow-sm shadow-slate-200/30">
+        <div className="flex flex-row flex-wrap items-center justify-between gap-4 w-full">
         <div className="flex items-center gap-3">
           <button onClick={() => setCurrentPage('accounts')} className="lg:hidden p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
             <ArrowLeft size={20} />
@@ -196,6 +197,7 @@ export const AddAccount: React.FC = () => {
             Create Account
           </button>
         </div>
+        </div>
       </header>
 
       {/* Main Single-Page Content Area - Flexible and Scrollable */}
@@ -205,9 +207,9 @@ export const AddAccount: React.FC = () => {
           {/* Left Column: Configuration (xl:col-7) */}
           <div className="xl:col-span-7 flex flex-col gap-6 order-2 xl:order-1 w-full">
             <div className="premium-glass-card p-4 space-y-4">
-              <div className="space-y-2">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">1. Asset Type</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">1. Asset Type</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full md:w-auto">
                   {accountTypes.map(t => (
                     <button key={t.id} onClick={() => setFormData(prev => ({ ...prev, type: t.id as any }))} className={cn("flex flex-col items-center gap-2 p-3 rounded-xl transition-all", formData.type === t.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "bg-slate-50 text-slate-400 hover:bg-slate-100")}>
                       <t.icon size={20} />
@@ -220,11 +222,12 @@ export const AddAccount: React.FC = () => {
               {formData.type !== 'cash' && (
                 <div className="space-y-4 pt-2">
                   {formData.type !== 'wallet' && (
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                        2. {formData.type === 'wallet' ? 'Wallet Provider' : 'Institution / Provider'}
-                      </label>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                      2. {formData.type === 'wallet' ? 'Wallet Provider' : 'Institution / Provider'}
+                    </label>
 
+                    <div className="w-full md:max-w-md">
                       {(formData.type === 'bank' || formData.type === 'card') ? (
                         <SearchableDropdown
                           options={bankOptions}
@@ -262,25 +265,25 @@ export const AddAccount: React.FC = () => {
                           />
                         </div>
                       )}
-
                     </div>
+                  </div>
                   )}
 
-                  <div className="space-y-1">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">3. Custom Label (Optional)</label>
-                    <div className="relative">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">3. Custom Label (Optional)</label>
+                    <div className="relative w-full md:max-w-md">
                       <Wallet className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" size={12} />
                       <input type="text" value={formData.name} onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} className="w-full bg-slate-50 border-none rounded-xl py-2.5 pl-9 pr-3 font-bold text-slate-900 text-xs" placeholder="e.g. My Savings" />
                     </div>
                   </div>
 
-                  <div className="space-y-2 pt-2">
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full pt-2">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">
                       4. {formData.type === 'card' ? 'Card Network' : formData.type === 'wallet' ? 'Select Wallet Brand' : 'Account Category'}
                     </label>
 
                     {formData.type === 'wallet' ? (
-                      <div className="grid grid-cols-5 sm:grid-cols-8 gap-1 pt-1">
+                      <div className="grid grid-cols-5 sm:grid-cols-8 gap-1 pt-1 w-full md:max-w-md">
                         {INDIAN_WALLETS.map(w => (
                           <button
                             key={w.name}
@@ -303,7 +306,7 @@ export const AddAccount: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         {formData.type === 'card' ? (
                           CARD_NETWORKS.map(net => (
                             <button
@@ -423,59 +426,61 @@ export const AddAccount: React.FC = () => {
                 {selectedColor.id === 'custom' && (
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 via-green-500 via-blue-500 to-purple-500 animate-pulse opacity-70" />
                 )}
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-4">Choose Card Aesthetic</label>
-                <div className="flex flex-wrap items-center gap-3 md:gap-4">
-                  {CARD_COLORS.map(color => (
-                    <button
-                      key={color.id}
-                      type="button"
-                      onClick={() => setSelectedColor(color)}
-                      className={cn(
-                        "w-10 h-10 md:w-12 md:h-12 rounded-full border-2 transition-all relative flex items-center justify-center shadow-sm hover:scale-105 active:scale-90",
-                        selectedColor.id === color.id ? "border-indigo-500 scale-110 shadow-lg shadow-indigo-500/20" : "border-white hover:border-slate-100"
-                      )}
-                      style={{ backgroundColor: color.color }}
-                    >
-                      {selectedColor.id === color.id && (
-                        <div className="w-2.5 h-2.5 bg-white rounded-full shadow-md z-10" />
-                      )}
-                    </button>
-                  ))}
+                
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-6">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">Choose Card Aesthetic</label>
+                  <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                    {CARD_COLORS.map(color => (
+                      <button
+                        key={color.id}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={cn(
+                          "w-10 h-10 md:w-12 md:h-12 rounded-full border-2 transition-all relative flex items-center justify-center shadow-sm hover:scale-105 active:scale-90",
+                          selectedColor.id === color.id ? "border-indigo-500 scale-110 shadow-lg shadow-indigo-500/20" : "border-white hover:border-slate-100"
+                        )}
+                        style={{ backgroundColor: color.color }}
+                      >
+                        {selectedColor.id === color.id && (
+                          <div className="w-2.5 h-2.5 bg-white rounded-full shadow-md z-10" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                  {/* Custom Hue Selection */}
-                  <div className="flex flex-col gap-3 min-w-[120px] flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Custom Spectrum</span>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                  <div className="flex items-center justify-between w-full md:w-auto gap-4">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Custom Spectrum</span>
+                    <div
+                      className="w-4 h-4 rounded-full shadow-sm border border-white shrink-0"
+                      style={{ backgroundColor: selectedColor.id === 'custom' ? selectedColor.color : '#6366f1' }}
+                    />
+                  </div>
+                  <div className="relative h-2 w-full max-w-md rounded-full bg-slate-100 group cursor-pointer">
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                      onChange={(e) => {
+                        const hue = e.target.value;
+                        setSelectedColor({
+                          id: 'custom',
+                          bg: `custom`,
+                          glow: 'bg-white/10',
+                          color: `hsl(${hue}, 70%, 50%)`
+                        });
+                      }}
+                    />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#ff0000] via-[#ffff00] via-[#00ff00] via-[#00ffff] via-[#0000ff] via-[#ff00ff] to-[#ff0000] z-10" />
+                    {/* Slider Thumb Replacement */}
+                    {selectedColor.id === 'custom' && (
                       <div
-                        className="w-4 h-4 rounded-full shadow-sm border border-white"
-                        style={{ backgroundColor: selectedColor.id === 'custom' ? selectedColor.color : '#6366f1' }}
+                        className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-indigo-500 shadow-lg z-30 pointer-events-none transition-all"
+                        style={{ left: `calc(${(parseInt(selectedColor.color.match(/\d+/)?.[0] || '0') / 360) * 100}% - 8px)` }}
                       />
-                    </div>
-                    <div className="relative h-2 w-full rounded-full bg-slate-100 group cursor-pointer">
-                      <input
-                        type="range"
-                        min="0"
-                        max="360"
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                        onChange={(e) => {
-                          const hue = e.target.value;
-                          setSelectedColor({
-                            id: 'custom',
-                            bg: `custom`,
-                            glow: 'bg-white/10',
-                            color: `hsl(${hue}, 70%, 50%)`
-                          });
-                        }}
-                      />
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#ff0000] via-[#ffff00] via-[#00ff00] via-[#00ffff] via-[#0000ff] via-[#ff00ff] to-[#ff0000] z-10" />
-                      {/* Slider Thumb Replacement */}
-                      {selectedColor.id === 'custom' && (
-                        <div
-                          className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full border-2 border-indigo-500 shadow-lg z-30 pointer-events-none transition-all"
-                          style={{ left: `calc(${(parseInt(selectedColor.color.match(/\d+/)?.[0] || '0') / 360) * 100}% - 8px)` }}
-                        />
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -486,9 +491,16 @@ export const AddAccount: React.FC = () => {
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent" />
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-indigo-500/5 blur-[50px] rounded-full group-hover:bg-indigo-500/10 transition-colors duration-700" />
 
-              <div className="flex flex-col items-center gap-1 mb-6">
-                <span className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.3em]">Setup Initial Capital</span>
-                <h3 className="text-sm font-bold text-slate-800">Opening Balance</h3>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full mb-6">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-indigo-400/60 uppercase tracking-[0.3em]">Setup Initial Capital</span>
+                  <h3 className="text-sm font-bold text-slate-800">Opening Balance</h3>
+                </div>
+                <div className="h-px flex-1 bg-slate-100 hidden md:block mx-4" />
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Info size={14} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Starting Amount</span>
+                </div>
               </div>
 
               <div className="relative flex items-center justify-center w-full py-6 px-4 rounded-3xl bg-slate-50/50 border border-slate-100/50 group-focus-within:border-indigo-200 group-focus-within:bg-white transition-all duration-300">
@@ -507,9 +519,10 @@ export const AddAccount: React.FC = () => {
               </div>
 
               <div className="w-full mt-8 flex flex-col gap-3">
-                <div className="flex items-center gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Quick Balance Presets</p>
-                  <div className="flex-1 h-[1px] bg-slate-100" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 shrink-0">Quick Balance Presets</p>
+                  <div className="flex-1 h-[1px] bg-slate-100 hidden md:block" />
+                  <div className="text-[10px] font-bold text-indigo-500/60 uppercase tracking-widest hidden md:block">Add to balance</div>
                 </div>
                 <div className="flex justify-center gap-2">
                   {QUICK_BALANCE_PRESETS.filter(p => p > 0).map(amt => (

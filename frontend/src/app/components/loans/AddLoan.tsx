@@ -155,7 +155,8 @@ export const AddLoan: React.FC = () => {
     <div className="flex flex-col h-auto lg:h-screen bg-[#F8FAFC] lg:overflow-hidden">
 
       {/* Header */}
-      <header className="flex items-center justify-between px-4 lg:px-6 py-4 bg-white border-b border-slate-100">
+      <header className="px-4 lg:px-6 py-4 bg-white border-b border-slate-100">
+        <div className="flex flex-row flex-wrap items-center justify-between gap-4 w-full">
         <div className="flex items-center gap-3">
           <button onClick={() => setCurrentPage('loans')} className="lg:hidden p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all">
             <ArrowLeft size={20} />
@@ -173,6 +174,7 @@ export const AddLoan: React.FC = () => {
             {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
             Create Loan
           </button>
+        </div>
         </div>
       </header>
 

@@ -39,7 +39,7 @@ export const PageHeaderCard: React.FC<PageHeaderProps> = ({
             "relative mb-8 w-full",
             className
         )}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full">
+            <div className="flex flex-row flex-wrap items-center justify-between gap-4 w-full">
                 <div className="flex items-center gap-4">
                     {showBack && (
                         <button
@@ -56,7 +56,7 @@ export const PageHeaderCard: React.FC<PageHeaderProps> = ({
                 </div>
 
                 {children && (
-                    <div className="flex-shrink-0 w-full xl:w-auto overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
+                    <div className="flex-shrink-0 w-auto overflow-x-auto hide-scrollbar pb-1 xl:pb-0">
                         {children}
                     </div>
                 )}
