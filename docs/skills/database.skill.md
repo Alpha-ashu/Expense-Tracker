@@ -192,4 +192,6 @@ Opens at `http://localhost:5555`. Use for quick local inspection – never in pr
 - [ ] RLS policies are defined in Supabase for every user-scoped table.
 - [ ] Ownership checks exist before every read/write operation.
 - [ ] Coupled balance + transaction writes use `prisma.$transaction`.
+- [ ] **Decimal Casting**: Always wrap Prisma Decimal results in `Number()` before performing arithmetic in JavaScript logic to prevent `TS2365` errors.
+- [ ] **Sync Consistency**: Use the `MIGRATION_V2_KEY` strategy for frontend brand migration to ensure data continuity during renaming.
 

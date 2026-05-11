@@ -8,7 +8,7 @@ Kanakku is a comprehensive personal finance management platform with web (PWA), 
 
 ## 1. Tech Stack Overview
 
-### 1.1 [Intelligence Systems (OCR, Bank, Voice)](./intelligence/INTELLIGENCE_SYSTEMS.md)
+### 1.1 [Intelligence Systems (OCR & Voice NLP)](./intelligence/INTELLIGENCE_SYSTEMS.md)
 
 ### 1.2 Frontend Architecture
 

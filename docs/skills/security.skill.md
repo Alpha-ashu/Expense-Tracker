@@ -140,9 +140,10 @@ Never use prisma.$queryRawUnsafe().
 10. XSS & Input Sanitization
 
 All user input is sanitized before storage (backend/src/utils/sanitize.ts).
-React automatically escapes output.
-Avoid dangerouslySetInnerHTML with user content.
-Helmet CSP provides defense-in-depth.
+- **AI Sanitization**: Raw OCR text and Voice transcripts are filtered for prompt injection patterns before being sent to LLMs.
+- React automatically escapes output.
+- Avoid dangerouslySetInnerHTML with user content.
+- Helmet CSP provides defense-in-depth.
 
 
 11. Mobile App Security (React Native / Flutter)
@@ -173,7 +174,14 @@ Secure deep linking with validation
  Security headers verified in production
 
 
-For vulnerability reporting: Please email security@finora.app
+For vulnerability reporting: Please email security@kanakku.app
 
-This version is cleaner, more professional, includes mobile security (important for your Android + iOS plans), and is better organized.
+---
+
+## 13. Serverless Security (Vercel)
+
+- **Environment Variables**: Managed via Vercel dashboard; never included in code bundles or frontend logs.
+- **Cold Starts**: Optimized via lazy module loading for `PrismaClient`, `SupabaseClient`, and `JWT_SECRET` to prevent initialization crashes.
+- **Timeouts**: Functions are configured with a 30s maximum duration to prevent resource exhaustion from hanging AI calls.
+- **Lazy Init**: All critical third-party connectors use the singleton-lazy-proxy pattern to ensure the server starts even if a dependency is momentarily unreachable.
 

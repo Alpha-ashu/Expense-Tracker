@@ -184,3 +184,12 @@ Every response must follow this shape:
 - [ ] No `console.log` – replaced with `logger.*`.
 - [ ] DB balance mutations wrapped in `prisma.$transaction`.
 
+---
+
+## 11. Intelligence Systems (OCR & Voice)
+
+- **OCR Engine**: Uses a Hybrid Pipeline (Tesseract.js for text extraction + Gemini 1.5 Flash for semantic structuring).
+- **Voice NLP**: Uses Keyword-based segmentation + Gemini enhancement for ambiguous transcripts.
+- **Circuit Breaker**: All AI calls must be wrapped in `withCircuitBreaker` to handle service downtime without crashing the backend.
+- **Lazy Initialization**: Critical environment variables for AI/Auth are resolved lazily to prevent `FUNCTION_STARTUP_ERROR` in serverless environments.
+

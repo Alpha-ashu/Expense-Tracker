@@ -32,6 +32,12 @@ This document provides the standard quality assurance and testing protocols for 
 - [ ] **Airplane Mode**: Add transactions while offline and verify they save to Dexie.
 - [ ] **Reconnection**: Go back online and verify background sync to Supabase.
 - [ ] **Conflict Resolution**: Simulate simultaneous edits on two devices and verify timestamp-based wins.
+- [ ] **Brand Migration**: Verify that local storage keys are correctly migrated from `Finora` to `Kanakku` namespace without data loss.
+
+### AI Engine Reliability
+- [ ] **Tesseract Fallback**: Disable Gemini API key and verify that the heuristic engine still extracts Merchant/Amount/GST correctly.
+- [ ] **Voice Ambiguity**: Test voice inputs with ambiguous phrasing and verify that Gemini refinement (if active) provides higher confidence results.
+- [ ] **PDF Statement Scanner**: Upload digital bank statements and verify text-layer extraction accuracy.
 
 ## 3. UI/UX Regression Checklist
 - [ ] **Mobile Notch**: Check for safe-area-inset padding on iPhone headers and bottom navs.

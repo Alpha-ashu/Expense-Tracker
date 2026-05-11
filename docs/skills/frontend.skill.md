@@ -127,8 +127,10 @@ try {
 
 - Use design tokens defined in `tailwind.config.ts` (colours, spacing, breakpoints).
 - **Glassmorphism**: Use `bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl`.
-- **Gradients**: Use `bg-gradient-to-br from-indigo-600 to-purple-600` for primary actions.
-- **Rounded Corners**: Standardize on `rounded-2xl` or `rounded-3xl` for a premium feel.
+- **Gradients**: Standardize on the Kanakku gradient: `#7B4CFF` to `#4A9EFF`.
+- **Typography**: Use **Outfit** or **Inter** as the primary font for a premium fintech feel.
+- **Rounded Corners**: Standardize on `rounded-2xl` for cards and `rounded-3xl` for containers.
+- **Micro-animations**: Use `framer-motion` for all state-driven UI changes.
 - Mobile-first breakpoints: `sm:` → 640px, `md:` → 768px, `lg:` → 1024px.
 - Dark mode is handled via `class` strategy – add `dark` to `<html>` rather than `prefers-color-scheme`.
 - Prefer utility classes over custom CSS.

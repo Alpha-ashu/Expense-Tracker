@@ -28,6 +28,11 @@ This document outlines the standards and checklist for code reviews in the Kanak
 - [ ] **Local-First**: (Frontend) Does the UI update the local `Dexie` state before background syncing?
 - [ ] **PIN Protection**: Are sensitive actions guarded by PIN verification if required?
 
-## 5. Documentation
-- [ ] **Context Update**: If a major architectural decision was made, has `FINORA_DEVELOPER_CONTEXT.md` been updated?
+## 5. Technical Rigour
+- [ ] **Decimal Arithmetic**: Does the code cast Prisma `Decimal` values to `Number()` before performing addition/subtraction?
+- [ ] **Lazy Initialization**: Are new database or third-party client instances created lazily (via singleton/getter) to avoid serverless startup crashes?
+- [ ] **Circuit Breakers**: Are all outbound AI/API calls wrapped in the `withCircuitBreaker` utility?
+
+## 6. Documentation
+- [ ] **Context Update**: If a major architectural decision was made, has `KANAKKU_DEVELOPER_CONTEXT.md` been updated?
 - [ ] **Comments**: Are complex logic blocks explained with clear, concise comments?

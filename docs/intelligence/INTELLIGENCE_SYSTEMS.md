@@ -7,61 +7,52 @@ This document outlines the architecture, logic, and implementation details for K
 ## 1. OCR Intelligence Engine (Bill & Receipt Scanner)
 
 ### **Overview**
-The OCR engine converts physical receipt images into structured transaction data. It is designed for high accuracy even with low-quality mobile photos.
+The OCR engine converts physical receipt images and digital PDFs into structured transaction data. It uses a **Hybrid Pipeline** to balance reliability and semantic accuracy.
 
 ### **Implementation Logic**
-1.  **Preprocessing (Multi-Variant Strategy)**:
-    *   Instead of one pass, the system generates 3 variants of the image: `Original`, `Clean` (Grayscale/Contrast), and `Enhanced` (Sharpened).
-    *   This increases the chance of successful character recognition on wrinkled or dimly lit receipts.
-2.  **Engine**: Powered by **Tesseract.js**, lazy-loaded to optimize initial bundle size.
-3.  **Result Scoring**:
-    *   Each variant is processed, and the resulting text is "scored" based on financial signals.
-    *   **Signals**: Presence of `INR/Rs` symbols, valid dates, recognized merchant names, and line-item tables.
-    *   The highest-scoring variant is selected as the primary result.
-4.  **Garbage Detection**:
-    *   A proprietary `looksLikeGarbageMerchant` algorithm filters out OCR noise (e.g., "aiatea", random character strings) to ensure only valid merchant names are suggested.
-5.  **Multilingual Support**:
-    *   If confidence is < 55%, the engine retries with a combined language model (`eng+hin+spa`) to support regional receipts.
+1.  **Stage 1: Raw Extraction (Tesseract.js)**:
+    *   Powered by open-source **Tesseract.js**, lazy-loaded for performance.
+    *   Extracts raw text strings from images with support for multiple languages.
+2.  **Stage 2: Semantic Mapping (Gemini 1.5 Flash)**:
+    *   The raw text is processed by **Gemini 1.5 Flash** to map unstructured strings into a strictly typed JSON schema.
+    *   Gemini corrects OCR errors, identifies merchant names, and extracts itemized breakdowns.
+3.  **Heuristic Fallback**:
+    *   If Gemini is unreachable, a local **Heuristic Parser** takes over.
+    *   **Signals**: Specialized regex for **Indian Taxes (CGST, SGST, IGST)**, **GSTIN** validation, and line-item table parsing.
+4.  **Math Validation**:
+    *   Every result is cross-checked: `(Subtotal - Discount + Taxes) ≈ Grand Total`. Results with high variance are flagged for review.
 
 ---
 
-## 2. Bank Statement Scanner
+## 2. Bank Statement & PDF Scanner
 
 ### **Overview**
-Designed for structured documents (PDFs or long screenshots), this engine extracts entire transaction histories rather than single entries.
+Designed for structured documents (PDFs), this engine extracts entire transaction histories. For digital PDFs, it skips OCR and performs direct text stream analysis.
 
 ### **Implementation Logic**
-1.  **Metadata Extraction**:
-    *   Uses regex anchors to find `Account Number`, `Statement Period`, and `Opening/Closing Balances`.
-2.  **Transaction Table Parsing**:
-    *   **Line-by-Line Scan**: Detects date-prefixed lines and parses trailing amount columns.
-    *   **Column Inference**: Intelligently identifies `Debit` vs `Credit` based on:
-        *   Suffixes (`CR` / `DR`).
-        *   Column alignment (multi-value line parsing).
-        *   Keyword analysis (`Salary`, `Refund` -> Credit; `ATM`, `POS` -> Debit).
+1.  **Text Stream Extraction**:
+    *   Uses `pdf-parse` to extract clean text layers from digital PDFs.
+2.  **Semantic Structuring**:
+    *   Passes extracted text to the Gemini structuring pipeline for professional-grade accuracy in identifying transaction dates, descriptions, and amounts.
 3.  **Automatic Categorization**:
-    *   Maps bank narration strings to Finora categories using a keyword dictionary (e.g., `NEFT`, `UPI`, `IMPS`).
-4.  **Confidence Calculation**:
-    *   Weighted score based on the successful extraction of account details and the number of valid transactions found.
+    *   Maps narration strings (NEFT, UPI, etc.) to Kanakku categories using LLM insights and a local keyword dictionary.
 
 ---
 
-## 3. Voice Financial Assistant
+## 3. Voice Financial Assistant (NLP)
 
 ### **Overview**
-Allows hands-free expense logging using natural language. It supports both live speech and transcript file uploads.
+Allows hands-free logging using natural language. Supports complex, multi-action sentences.
 
 ### **Implementation Logic**
-1.  **Speech Engine**: Uses the **Web Speech API** (`SpeechRecognition`) for real-time, low-latency transcription.
-2.  **NLP Parsing (The "Kanakku" Logic)**:
-    *   **Pattern Matching**: Extracts amounts, merchants, and dates from raw strings.
-    *   **Multi-Transaction Support**: Splits sentences on conjunctions ("and", "also", "then") to log multiple expenses at once.
-    *   **Word-to-Number**: A normalization layer converts verbal numbers ("fifty five hundred") into numeric values (`5500`).
-3.  **Contextual Awareness**:
-    *   Handles relative dates like "today", "yesterday", or "last Friday".
-    *   Learns from user feedback; if a user corrects an AI-suggested category, the system saves that merchant-category pair for future accuracy.
-4.  **Fallback Strategy**:
-    *   If the primary NLP parser fails, it passes the text to the `KanakkuIntelligenceEngine` for a more intensive strategic analysis.
+1.  **Segmentation**:
+    *   Splits multi-part sentences (e.g., "Spent 500 on dinner and sent 200 to Rahul") into individual transactional segments.
+2.  **Intent Classification**:
+    *   Categorizes transcripts into intents: `expense`, `income`, `transfer`, `loan`, `goal`, and `investment`.
+3.  **Gemini Enhancement**:
+    *   For ambiguous segments (confidence < 0.7), the system uses Gemini to refine entities like Merchant, Category, and Person.
+4.  **Currency & Goal Logic**:
+    *   Robustly extracts Indian currency terms and goal-specific durations ("save 2 Lakhs in 1 year").
 
 ---
 
