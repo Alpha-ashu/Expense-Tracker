@@ -53,6 +53,14 @@ Finora uses a **Premium Glassmorphic Aesthetic**. All new features must adhere t
 
 ## 📜 Change Log & Evolution
 
+### **Last Updated: 2026-05-12**
+**Refactor: Account Module Finalization & Design Standardization**
+
+1.  **Account Module Stabilization**:
+    - The **Account Page** and **Add Account** sub-page have been finalized with a premium responsive layout.
+    - Standardized glassmorphic cards, balance entry, and brand-specific iconography (Bank/Credit Card/Wallet).
+    - **Note**: These pages are considered "Perfect" and should not be edited unless explicitly requested.
+
 ### **Last Updated: 2026-05-11**
 **Refactor: Unified Component Architecture & Project De-cluttering**
 
@@ -100,3 +108,4 @@ Finora uses a **Premium Glassmorphic Aesthetic**. All new features must adhere t
 2. **Standard Headers**: Use `PageHeader` from UI for consistency across modules.
 3. **Local-First**: Always ensure data is saved to `localStorage` or `Dexie` before syncing to the cloud.
 4. **Theme Check**: If a component looks like "Standard Tailwind/Bootstrap," it is wrong. Apply glassmorphism and the primary gradient.
+5. **Frozen Pages**: The **Account Page** and **Add Account** sub-page are finalized. **DO NOT** modify their layout, logic, or features unless the user specifically requests changes to them.
