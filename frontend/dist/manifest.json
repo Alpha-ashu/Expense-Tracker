@@ -46,7 +46,7 @@
   },
   "protocol_handlers": [
     {
-      "protocol": "web+finora",
+      "protocol": "web+kanakku",
       "url": "/?action=%s"
     }
   ],

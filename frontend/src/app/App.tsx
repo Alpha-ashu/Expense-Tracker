@@ -136,7 +136,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Finora...</p>
+          <p className="text-white text-base font-medium">Loading Kanakku...</p>
         </div>
       </div>
     );
@@ -336,7 +336,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Finora...</p>
+          <p className="text-white text-base font-medium">Loading Kanakku...</p>
         </div>
       </div>
     );
@@ -505,7 +505,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Finora...</p>
+          <p className="text-white text-base font-medium">Loading Kanakku...</p>
         </div>
       </div>
     );

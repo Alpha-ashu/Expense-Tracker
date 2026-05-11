@@ -181,7 +181,7 @@ export const BookAdvisor: React.FC = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Professional Financial Consultation</p>
           </div>
         </div>
-        
+        </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={handleApplyAsAdvisor} 
