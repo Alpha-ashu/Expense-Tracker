@@ -63,9 +63,17 @@ const decodeName = (value: string) => {
 };
 
 const getFilename = (value: string) => {
-  const cleaned = value.split('?')[0];
-  const parts = cleaned.split('/');
+  const parts = value.split('?')[0].split('/');
   return decodeName(parts[parts.length - 1] || '');
+};
+
+const getSeed = (value: string) => {
+  try {
+    const url = new URL(value);
+    return url.searchParams.get('seed');
+  } catch {
+    return null;
+  }
 };
 
 const buildOptions = (): AvatarOption[] => {
@@ -106,11 +114,21 @@ export const getAvatarById = (id?: string | null) =>
   AVATAR_OPTIONS.find((option) => option.id === id) || null;
 
 export const getAvatarByUrl = (url?: string | null) => {
-  const path = toPath(url);
-  if (!path) return null;
-  const direct = AVATAR_OPTIONS.find((option) => option.url === path);
+  if (!url) return null;
+  
+  // Try exact match
+  const direct = AVATAR_OPTIONS.find((option) => option.url === url);
   if (direct) return direct;
-  const filename = getFilename(path);
+
+  // Try matching by seed (for DiceBear 7.x)
+  const seed = getSeed(url);
+  if (seed) {
+    const bySeed = AVATAR_OPTIONS.find((option) => getSeed(option.url) === seed);
+    if (bySeed) return bySeed;
+  }
+
+  // Fallback to filename match
+  const filename = getFilename(url);
   if (!filename) return null;
   return AVATAR_OPTIONS.find((option) => getFilename(option.url) === filename) || null;
 };

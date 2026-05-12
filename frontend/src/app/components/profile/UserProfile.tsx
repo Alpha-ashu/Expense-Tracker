@@ -441,8 +441,8 @@ export const UserProfile: React.FC = () => {
   const ageGroupLabel = getAgeGroupLabel(ageGroup);
   const ageSource = isEditingBasic ? tempData.dateOfBirth : profileData.dateOfBirth;
   const activeAvatar = resolveAvatarSelection({
-    avatarId: (isEditingBasic || showAvatarGallery ? tempData.avatarId : profileData.avatarId) || null,
-    avatarUrl: (isEditingBasic || showAvatarGallery ? tempData.profilePhoto : profileData.profilePhoto) || null,
+    avatarId: tempData.avatarId || profileData.avatarId || null,
+    avatarUrl: tempData.profilePhoto || profileData.profilePhoto || null,
   });
 
   const handleSaveProfile = async () => {
