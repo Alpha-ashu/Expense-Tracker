@@ -9,8 +9,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Backend optimization
-backend/src
+# Backend optimization (Keep src for build)
 backend/tests
 backend/node_modules
 backend/logs
@@ -19,11 +18,9 @@ backend/.pg-testdata2
 backend/jest_results*
 backend/*.sql
 backend/*.txt
-backend/*.js
 backend/Dockerfile
 backend/docker-compose.yml
 backend/jest.config.ts
-backend/.eslintrc.json
 backend/README.md
 backend/API_DOCUMENTATION.md
 !backend/dist
