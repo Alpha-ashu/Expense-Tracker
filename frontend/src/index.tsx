@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@/app/App';
 import { BrowserRouter } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { setupGlobalErrorHandlers } from '@/lib/errorHandling';
 import { runGlobalMigration } from '@/lib/migration';
 import '@/styles/index.css';
 
-// Perform global brand migration (Kanakku  -> Kanakku) before anything else
+// Perform global brand migration (KANKU -> KANKU) before anything else
 runGlobalMigration();
 
 // Capture uncaught errors and unhandled rejections from app startup
@@ -22,3 +22,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>
 );
+

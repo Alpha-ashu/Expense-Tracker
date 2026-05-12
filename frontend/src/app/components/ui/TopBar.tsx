@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { Search, Bell, Menu, GripVertical, Wallet, Target, Users, CalendarClock, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/app/components/ui/sheet';
@@ -9,7 +9,7 @@ import { motion, Reorder, useDragControls } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Notification as AppNotification } from '@/lib/database';
 import { SyncStatusBar } from '@/app/components/ui/SyncStatusBar';
-import { KanakkuLogo } from '@/app/components/ui/KanakkuLogo';
+import { KANKULogo } from '@/app/components/ui/KANKULogo';
 
 interface DraggablePageMenuItemProps {
     item: NavigationItem;
@@ -212,16 +212,16 @@ export const TopBar: React.FC = () => {
 
                         {/* Desktop Logo & Name */}
                         <div className="hidden lg:flex items-center gap-3 mr-4">
-                            <KanakkuLogo className="w-8 h-8" />
-                            <span className="text-xl font-bold font-display text-gray-900 tracking-tight">Kanakku</span>
+                            <KANKULogo className="w-8 h-8" />
+                            <span className="text-xl font-bold font-display text-gray-900 tracking-tight">KANKU</span>
                         </div>
                         <SheetContent side="left" className="w-[280px] p-0 bg-white border-r border-gray-100 text-gray-900 z-[100]">
                             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                             <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
                             <div className="flex flex-col h-full">
                                 <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-                                    <KanakkuLogo className="w-8 h-8" />
-                                    <h1 className="text-2xl font-bold font-display text-gray-900">Kanakku</h1>
+                                    <KANKULogo className="w-8 h-8" />
+                                    <h1 className="text-2xl font-bold font-display text-gray-900">KANKU</h1>
                                 </div>
 
                                 <nav className="flex-1 p-4 overflow-y-auto scrollbar-hide">
@@ -251,7 +251,7 @@ export const TopBar: React.FC = () => {
                         <input
                             type="text"
                             placeholder="Search transactions, assets..."
-                            className="kanakku-search-bar"
+                            className="KANKU-search-bar"
                         />
                     </div>
                 </div>
@@ -318,3 +318,4 @@ export const TopBar: React.FC = () => {
         </header>
     );
 };
+

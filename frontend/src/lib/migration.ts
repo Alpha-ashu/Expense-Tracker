@@ -1,38 +1,38 @@
-/**
+﻿/**
  * migration.ts
  *
  * Handles one-time migration of legacy localStorage keys:
- *   v1: Kanakku  (original) → Kanakku (intermediate brand)
- *   v2: Kanakku → Kanakku   (current brand, migrating back)
+ *   v1: KANKU (original) â†’ KANKU(intermediate brand)
+ *   v2: KANKUâ†’ KANKU  (current brand, migrating back)
  */
 
-const MIGRATION_V1_KEY = 'kanakku_global_migration_v1';
-const MIGRATION_V2_KEY = 'Kanakku _global_migration_v2';
+const MIGRATION_V1_KEY = 'KANKU_global_migration_v1';
+const MIGRATION_V2_KEY = 'KANKU_global_migration_v2';
 
 export function runGlobalMigration() {
   if (typeof window === 'undefined' || !window.localStorage) return;
 
-  // ── v1: Kanakku  (original) → Kanakku ──────────────────────────────
+  // â”€â”€ v1: KANKU (original) â†’ KANKUâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!localStorage.getItem(MIGRATION_V1_KEY)) {
     const v1Migrations = [
       // Encryption keys
-      { old: 'Kanakku _encrypted_key', new: 'Kanakku_encrypted_key' },
-      { old: 'Kanakku _salt', new: 'Kanakku_salt' },
-      { old: 'Kanakku _encrypted_key', new: 'Kanakku_encrypted_key' },
-      { old: 'Kanakku _salt', new: 'Kanakku_salt' },
+      { old: 'KANKU_encrypted_key', new: 'KANKU_encrypted_key' },
+      { old: 'KANKU_salt', new: 'KANKU_salt' },
+      { old: 'KANKU_encrypted_key', new: 'KANKU_encrypted_key' },
+      { old: 'KANKU_salt', new: 'KANKU_salt' },
 
       // Guest Mode
-      { old: 'Kanakku _guest_mode', new: 'kanakku_guest_mode' },
-      { old: 'Kanakku _guest_created_at', new: 'kanakku_guest_created_at' },
+      { old: 'KANKU_guest_mode', new: 'KANKU_guest_mode' },
+      { old: 'KANKU_guest_created_at', new: 'KANKU_guest_created_at' },
 
       // Sync & Engine
-      { old: 'Kanakku _sync_queue_v3', new: 'kanakku_sync_queue_v3' },
-      { old: 'Kanakku _learning_data', new: 'kanakku_learning_data' },
-      { old: 'Kanakku _merchant_patterns', new: 'kanakku_merchant_patterns' },
-      { old: 'Kanakku _description_repair_v2', new: 'kanakku_description_repair_v2' },
+      { old: 'KANKU_sync_queue_v3', new: 'KANKU_sync_queue_v3' },
+      { old: 'KANKU_learning_data', new: 'KANKU_learning_data' },
+      { old: 'KANKU_merchant_patterns', new: 'KANKU_merchant_patterns' },
+      { old: 'KANKU_description_repair_v2', new: 'KANKU_description_repair_v2' },
 
       // App State
-      { old: 'Kanakku _onboarding_completed', new: 'onboarding_completed' },
+      { old: 'KANKU_onboarding_completed', new: 'onboarding_completed' },
     ];
 
     let v1Count = 0;
@@ -48,31 +48,31 @@ export function runGlobalMigration() {
 
     localStorage.setItem(MIGRATION_V1_KEY, 'done');
     if (v1Count > 0) {
-      console.info(`[Kanakku /Migration] v1 complete. ${v1Count} keys migrated.`);
+      console.info(`[KANKU/Migration] v1 complete. ${v1Count} keys migrated.`);
     }
   }
 
-  // ── v2: Kanakku → Kanakku  ─────────────────────────────────────────
+  // â”€â”€ v2: KANKUâ†’ KANKU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!localStorage.getItem(MIGRATION_V2_KEY)) {
-    console.info('[Kanakku /Migration] Starting v2 brand migration (Kanakku  → Kanakku)...');
+    console.info('[KANKU/Migration] Starting v2 brand migration (KANKU â†’ KANKU)...');
 
     const v2Migrations = [
-      // Encryption keys (critical — must migrate before app reads them)
-      { old: 'Kanakku_encrypted_key', new: 'Kanakku _encrypted_key' },
-      { old: 'Kanakku_salt', new: 'Kanakku _salt' },
+      // Encryption keys (critical â€” must migrate before app reads them)
+      { old: 'KANKU_encrypted_key', new: 'KANKU_encrypted_key' },
+      { old: 'KANKU_salt', new: 'KANKU_salt' },
 
       // Guest Mode
-      { old: 'kanakku_guest_mode', new: 'Kanakku _guest_mode' },
-      { old: 'kanakku_guest_created_at', new: 'Kanakku _guest_created_at' },
+      { old: 'KANKU_guest_mode', new: 'KANKU_guest_mode' },
+      { old: 'KANKU_guest_created_at', new: 'KANKU_guest_created_at' },
 
       // Sync & Engine
-      { old: 'kanakku_sync_queue_v3', new: 'Kanakku _sync_queue_v3' },
-      { old: 'kanakku_learning_data', new: 'Kanakku _learning_data' },
-      { old: 'kanakku_merchant_patterns', new: 'Kanakku _merchant_patterns' },
-      { old: 'kanakku_description_repair_v2', new: 'Kanakku _description_repair_v2' },
+      { old: 'KANKU_sync_queue_v3', new: 'KANKU_sync_queue_v3' },
+      { old: 'KANKU_learning_data', new: 'KANKU_learning_data' },
+      { old: 'KANKU_merchant_patterns', new: 'KANKU_merchant_patterns' },
+      { old: 'KANKU_description_repair_v2', new: 'KANKU_description_repair_v2' },
 
       // Internal repair flags
-      { old: 'kanakku_global_migration_v1', new: MIGRATION_V1_KEY },
+      { old: 'KANKU_global_migration_v1', new: MIGRATION_V1_KEY },
     ];
 
     let v2Count = 0;
@@ -88,6 +88,7 @@ export function runGlobalMigration() {
     });
 
     localStorage.setItem(MIGRATION_V2_KEY, 'done');
-    console.info(`[Kanakku /Migration] v2 complete. ${v2Count} keys migrated.`);
+    console.info(`[KANKU/Migration] v2 complete. ${v2Count} keys migrated.`);
   }
 }
+

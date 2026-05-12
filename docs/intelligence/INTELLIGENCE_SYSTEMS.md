@@ -1,6 +1,6 @@
-# Kanakku Intelligence Systems Documentation
+﻿# KANKUIntelligence Systems Documentation
 
-This document outlines the architecture, logic, and implementation details for Kanakku's core intelligence features: **OCR Bill Scanning**, **Bank Statement Analysis**, and **Voice Financial Assistance**.
+This document outlines the architecture, logic, and implementation details for KANKU's core intelligence features: **OCR Bill Scanning**, **Bank Statement Analysis**, and **Voice Financial Assistance**.
 
 ---
 
@@ -20,7 +20,7 @@ The OCR engine converts physical receipt images and digital PDFs into structured
     *   If Gemini is unreachable, a local **Heuristic Parser** takes over.
     *   **Signals**: Specialized regex for **Indian Taxes (CGST, SGST, IGST)**, **GSTIN** validation, and line-item table parsing.
 4.  **Math Validation**:
-    *   Every result is cross-checked: `(Subtotal - Discount + Taxes) ≈ Grand Total`. Results with high variance are flagged for review.
+    *   Every result is cross-checked: `(Subtotal - Discount + Taxes) â‰ˆ Grand Total`. Results with high variance are flagged for review.
 
 ---
 
@@ -35,7 +35,7 @@ Designed for structured documents (PDFs), this engine extracts entire transactio
 2.  **Semantic Structuring**:
     *   Passes extracted text to the Gemini structuring pipeline for professional-grade accuracy in identifying transaction dates, descriptions, and amounts.
 3.  **Automatic Categorization**:
-    *   Maps narration strings (NEFT, UPI, etc.) to Kanakku categories using LLM insights and a local keyword dictionary.
+    *   Maps narration strings (NEFT, UPI, etc.) to KANKUcategories using LLM insights and a local keyword dictionary.
 
 ---
 
@@ -60,3 +60,4 @@ Allows hands-free logging using natural language. Supports complex, multi-action
 *   **Shared Types**: All systems return standardized results compatible with the `Transaction` interface.
 *   **Deduplication**: Every scanned transaction is hashed to prevent duplicate entries if the same bill or statement is scanned twice.
 *   **Security**: All processing (OCR/Voice) happens **locally on the device** where possible to ensure financial privacy.
+

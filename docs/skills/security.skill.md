@@ -1,6 +1,6 @@
-# Security Skill Reference – Kanakku
+﻿# Security Skill Reference â€“ KANKU
 
-> **Stack**: Supabase Auth · Custom JWT · Helmet · CORS · express-rate-limit · Zod · bcrypt · Prisma
+> **Stack**: Supabase Auth Â· Custom JWT Â· Helmet Â· CORS Â· express-rate-limit Â· Zod Â· bcrypt Â· Prisma
 
 **Last Updated:** May 11, 2026
 
@@ -12,7 +12,7 @@
 
 The `authenticate` middleware uses a secure waterfall approach:
 
-1. **Custom JWT** (preferred – issued by our server)
+1. **Custom JWT** (preferred â€“ issued by our server)
 2. **Supabase JWT** (fallback)
 3. **Supabase REST API** verification (`/auth/v1/user`)
 4. **Development bypass** (only when `NODE_ENV !== 'production'`)
@@ -20,8 +20,8 @@ The `authenticate` middleware uses a secure waterfall approach:
 > **Critical**: The dev bypass must never be reachable in staging or production.
 
 **Token Management (Frontend)**:
-- Access token → `localStorage.accessToken`
-- Refresh token → `localStorage.refreshToken`
+- Access token â†’ `localStorage.accessToken`
+- Refresh token â†’ `localStorage.refreshToken`
 - All operations are centralized via `TokenManager` in `frontend/src/lib/api.ts`
 - Automatic logout + redirect on 401 responses (unless valid Supabase session exists)
 
@@ -76,12 +76,12 @@ Zod validation errors are sanitized in the global error handler (no leaking inte
 
 7. Ownership & Authorization Checks
 Mandatory Rule: Every user-scoped resource must be filtered by userId on the server.
-TypeScript// ✅ Correct
+TypeScript// âœ… Correct
 await prisma.account.findFirst({
   where: { id: accountId, userId: req.userId }
 });
 
-// ❌ Dangerous
+// âŒ Dangerous
 await prisma.account.findUnique({ where: { id: accountId } });
 Ownership checks are enforced at the service layer.
 
@@ -168,13 +168,13 @@ Secure deep linking with validation
  All data routes have authenticate + ownership check
  Supabase RLS enabled
  No secrets in code or logs
- Bcrypt cost ≥ 12 in production
+ Bcrypt cost â‰¥ 12 in production
  Dev auth bypass disabled in prod
  Mobile biometric + secure storage implemented
  Security headers verified in production
 
 
-For vulnerability reporting: Please email security@kanakku.app
+For vulnerability reporting: Please email security@KANKU.app
 
 ---
 
@@ -184,4 +184,5 @@ For vulnerability reporting: Please email security@kanakku.app
 - **Cold Starts**: Optimized via lazy module loading for `PrismaClient`, `SupabaseClient`, and `JWT_SECRET` to prevent initialization crashes.
 - **Timeouts**: Functions are configured with a 30s maximum duration to prevent resource exhaustion from hanging AI calls.
 - **Lazy Init**: All critical third-party connectors use the singleton-lazy-proxy pattern to ensure the server starts even if a dependency is momentarily unreachable.
+
 

@@ -1,4 +1,4 @@
-export interface AIMerchantPattern {
+﻿export interface AIMerchantPattern {
   merchant: string;
   category: string;
   confidence: number;
@@ -34,7 +34,7 @@ export interface AIPrediction {
   timestamp: string;
 }
 
-class KanakkuIntelligenceEngine {
+class KANKUIntelligenceEngine {
   private merchantPatterns: Map<string, AIMerchantPattern[]> = new Map();
   private learningData: AILearningData[] = [];
   private initialized = false;
@@ -42,19 +42,19 @@ class KanakkuIntelligenceEngine {
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
-    console.log(' Initializing Kanakku Intelligence Engine...');
-    
+    console.log(' Initializing KANKUIntelligence Engine...');
+
     // Load learning data from localStorage (privacy-first - client-side only)
     await this.loadLearningData();
     await this.loadMerchantPatterns();
-    
+
     this.initialized = true;
-    console.log(' Kanakku Intelligence Engine Ready');
+    console.log(' KANKUIntelligence Engine Ready');
   }
 
   //  CORE AI LOGIC - This is the important layer!
   async extractExpenseData(
-    rawText: string, 
+    rawText: string,
     source: 'ocr' | 'voice',
     userId: string
   ): Promise<{
@@ -139,7 +139,7 @@ class KanakkuIntelligenceEngine {
     ];
 
     const lowerText = text.toLowerCase();
-    
+
     // Check for known merchants first
     for (const merchant of knownMerchants) {
       if (lowerText.includes(merchant)) {
@@ -152,7 +152,7 @@ class KanakkuIntelligenceEngine {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     for (let i = 0; i < Math.min(5, lines.length); i++) {
       const line = lines[i].toLowerCase();
-      
+
       // Skip lines that are clearly not merchant names
       if (/date|time|invoice|bill|receipt|order|cash|card|payment|thank|visit|total|amount/i.test(line)) {
         continue;
@@ -182,7 +182,7 @@ class KanakkuIntelligenceEngine {
       const match = text.match(pattern);
       if (match) {
         let date: Date;
-        
+
         if (match.length === 4) {
           const [_, day, month, year] = match;
           date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -215,7 +215,7 @@ class KanakkuIntelligenceEngine {
     };
 
     const lowerText = text.toLowerCase();
-    
+
     for (const [category, keywords] of Object.entries(categories)) {
       for (const keyword of keywords) {
         if (lowerText.includes(keyword)) {
@@ -236,11 +236,11 @@ class KanakkuIntelligenceEngine {
   async predictCategory(merchant: string, userId: string): Promise<AIMerchantPattern | null> {
     const normalizedMerchant = merchant.toLowerCase().trim();
     const patterns = this.merchantPatterns.get(userId) || [];
-    
+
     // Look for exact or partial matches
     for (const pattern of patterns) {
-      if (pattern.merchant.toLowerCase().includes(normalizedMerchant) || 
-          normalizedMerchant.includes(pattern.merchant.toLowerCase())) {
+      if (pattern.merchant.toLowerCase().includes(normalizedMerchant) ||
+        normalizedMerchant.includes(pattern.merchant.toLowerCase())) {
         return pattern;
       }
     }
@@ -257,8 +257,8 @@ class KanakkuIntelligenceEngine {
   ): Promise<void> {
     const normalizedMerchant = merchant.toLowerCase().trim();
     let patterns = this.merchantPatterns.get(userId) || [];
-    
-    const existingPattern = patterns.find(p => 
+
+    const existingPattern = patterns.find(p =>
       p.merchant.toLowerCase() === normalizedMerchant
     );
 
@@ -286,13 +286,13 @@ class KanakkuIntelligenceEngine {
 
     this.merchantPatterns.set(userId, patterns);
     await this.saveMerchantPatterns();
-    
+
     console.log(` Learned: ${merchant}  ${correctCategory} (${feedback})`);
   }
 
   private async storeLearningData(data: AILearningData): Promise<void> {
     this.learningData.push(data);
-    
+
     // Keep only last 1000 entries per user for privacy
     const userEntries = this.learningData.filter(d => d.userId === data.userId);
     if (userEntries.length > 1000) {
@@ -301,13 +301,13 @@ class KanakkuIntelligenceEngine {
         ...userEntries.slice(-1000)
       ];
     }
-    
+
     await this.saveLearningData();
   }
 
   private async loadLearningData(): Promise<void> {
     try {
-      const stored = localStorage.getItem('kanakku_learning_data');
+      const stored = localStorage.getItem('KANKU_learning_data');
       if (stored) {
         this.learningData = JSON.parse(stored);
         console.log(` Loaded ${this.learningData.length} learning entries`);
@@ -319,7 +319,7 @@ class KanakkuIntelligenceEngine {
 
   private async saveLearningData(): Promise<void> {
     try {
-      localStorage.setItem('kanakku_learning_data', JSON.stringify(this.learningData));
+      localStorage.setItem('KANKU_learning_data', JSON.stringify(this.learningData));
     } catch (error) {
       console.error('Failed to save learning data:', error);
     }
@@ -327,7 +327,7 @@ class KanakkuIntelligenceEngine {
 
   private async loadMerchantPatterns(): Promise<void> {
     try {
-      const stored = localStorage.getItem('kanakku_merchant_patterns');
+      const stored = localStorage.getItem('KANKU_merchant_patterns');
       if (stored) {
         const patterns = JSON.parse(stored);
         patterns.forEach((pattern: AIMerchantPattern) => {
@@ -348,7 +348,7 @@ class KanakkuIntelligenceEngine {
       this.merchantPatterns.forEach(patterns => {
         allPatterns.push(...patterns);
       });
-      localStorage.setItem('kanakku_merchant_patterns', JSON.stringify(allPatterns));
+      localStorage.setItem('KANKU_merchant_patterns', JSON.stringify(allPatterns));
     } catch (error) {
       console.error('Failed to save merchant patterns:', error);
     }
@@ -380,7 +380,8 @@ class KanakkuIntelligenceEngine {
 }
 
 // Singleton instance
-export const kanakkuAI = new KanakkuIntelligenceEngine();
+export const KANKUAI = new KANKUIntelligenceEngine();
 
 // Auto-initialize on module load
-kanakkuAI.initialize().catch(console.error);
+KANKUAI.initialize().catch(console.error);
+

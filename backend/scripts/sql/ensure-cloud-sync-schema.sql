@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.Kanakku _set_updated_at()
+CREATE OR REPLACE FUNCTION public.KANKU_set_updated_at()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
@@ -281,89 +281,89 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _profiles_set_updated_at'
+    WHERE tgname = 'KANKU_profiles_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _profiles_set_updated_at
+    CREATE TRIGGER KANKU_profiles_set_updated_at
       BEFORE UPDATE ON public.profiles
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _accounts_set_updated_at'
+    WHERE tgname = 'KANKU_accounts_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _accounts_set_updated_at
+    CREATE TRIGGER KANKU_accounts_set_updated_at
       BEFORE UPDATE ON public.accounts
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _friends_sync_set_updated_at'
+    WHERE tgname = 'KANKU_friends_sync_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _friends_sync_set_updated_at
+    CREATE TRIGGER KANKU_friends_sync_set_updated_at
       BEFORE UPDATE ON public.friends_sync
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _goals_set_updated_at'
+    WHERE tgname = 'KANKU_goals_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _goals_set_updated_at
+    CREATE TRIGGER KANKU_goals_set_updated_at
       BEFORE UPDATE ON public.goals
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _group_expenses_sync_set_updated_at'
+    WHERE tgname = 'KANKU_group_expenses_sync_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _group_expenses_sync_set_updated_at
+    CREATE TRIGGER KANKU_group_expenses_sync_set_updated_at
       BEFORE UPDATE ON public.group_expenses_sync
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _transactions_set_updated_at'
+    WHERE tgname = 'KANKU_transactions_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _transactions_set_updated_at
+    CREATE TRIGGER KANKU_transactions_set_updated_at
       BEFORE UPDATE ON public.transactions
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _loans_set_updated_at'
+    WHERE tgname = 'KANKU_loans_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _loans_set_updated_at
+    CREATE TRIGGER KANKU_loans_set_updated_at
       BEFORE UPDATE ON public.loans
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM pg_trigger
-    WHERE tgname = 'Kanakku _investments_set_updated_at'
+    WHERE tgname = 'KANKU_investments_set_updated_at'
   ) THEN
-    CREATE TRIGGER Kanakku _investments_set_updated_at
+    CREATE TRIGGER KANKU_investments_set_updated_at
       BEFORE UPDATE ON public.investments
       FOR EACH ROW
-      EXECUTE FUNCTION public.Kanakku _set_updated_at();
+      EXECUTE FUNCTION public.KANKU_set_updated_at();
   END IF;
 END $$;
 

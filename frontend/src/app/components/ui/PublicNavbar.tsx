@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Menu, X, Star, MessageSquare, Shield, FileText } from 'lucide-react';
-import { KanakkuLogo } from './KanakkuLogo';
+import { KANKULogo } from './KANKULogo';
 
 interface PublicNavbarProps {
     onNavigate: (page: string) => void;
@@ -60,7 +60,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
         setMenuOpen(false);
     };
 
-    const logoIcon = <KanakkuLogo className="w-8 h-8 drop-shadow-md" />;
+    const logoIcon = <KANKULogo className="w-8 h-8 drop-shadow-md" />;
 
     return (
         <header className="fixed top-6 inset-x-4 z-50 pointer-events-none">
@@ -70,7 +70,7 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
                     <div className="w-10 h-10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                         {logoIcon}
                     </div>
-                    <span className="text-xl font-extrabold text-gray-900 tracking-tight">Kanakku</span>
+                    <span className="text-xl font-extrabold text-gray-900 tracking-tight">KANKU</span>
                 </div>
 
                 {/* Desktop nav */}
@@ -149,3 +149,4 @@ export const PublicNavbar: React.FC<PublicNavbarProps> = ({
         </header>
     );
 };
+

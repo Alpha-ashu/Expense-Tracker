@@ -1,6 +1,6 @@
-{
-  "appId": "com.kanakku.app",
-  "appName": "Kanakku",
+﻿{
+  "appId": "com.KANKU.app",
+  "appName": "KANKU",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
@@ -40,7 +40,7 @@
     "backgroundColor": "#ffffff"
   },
   "ios": {
-    "scheme": "Kanakku",
+    "scheme": "KANKU",
     "contentInset": "automatic",
     "allowsLinkPreview": false,
     "backgroundColor": "#ffffff",
@@ -50,3 +50,4 @@
     }
   }
 }
+

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { logger } from '../../config/logger';
 import { prisma } from '../../db/prisma';
@@ -6,8 +6,8 @@ import { sanitizeAIInput } from '../../utils/sanitize';
 import { incrementAIUsage } from '../../utils/aiUsageTracker';
 import { audit } from '../../utils/auditLogger';
 
-// 🔥 BACKEND AI EXTRACTION LOGIC
-// Simplified version of kanakku AI for backend processing
+// ðŸ”¥ BACKEND AI EXTRACTION LOGIC
+// Simplified version of KANKUAI for backend processing
 
 async function extractExpenseDataBackend(text: string, source: 'ocr' | 'voice'): Promise<{
   amount?: number;
@@ -16,7 +16,7 @@ async function extractExpenseDataBackend(text: string, source: 'ocr' | 'voice'):
   category?: string;
   confidence: number;
 }> {
-  console.log(`🧠 Backend AI extracting from ${source}: "${text}"`);
+  console.log(`ðŸ§  Backend AI extracting from ${source}: "${text}"`);
 
   const result = {
     amount: extractAmount(text),
@@ -29,22 +29,22 @@ async function extractExpenseDataBackend(text: string, source: 'ocr' | 'voice'):
   // Calculate confidence based on extracted data
   let dataPoints = 0;
   let totalConfidence = 0;
-  
+
   if (result.amount) { dataPoints++; totalConfidence += 0.9; }
   if (result.merchant) { dataPoints++; totalConfidence += 0.8; }
   if (result.date) { dataPoints++; totalConfidence += 0.7; }
   if (result.category) { dataPoints++; totalConfidence += 0.6; }
-  
+
   result.confidence = dataPoints > 0 ? totalConfidence / dataPoints : 0.5;
 
-  console.log('📋 Backend AI extracted:', result);
+  console.log('ðŸ“‹ Backend AI extracted:', result);
   return result;
 }
 
 function extractAmount(text: string): number | undefined {
   const amountPatterns = [
-    /(?:total|amount|sum|payable|due|bill|charge|spent|cost|price|rupees?|rs|₹)\s*([\d,]+(?:\.\d{2})?)/i,
-    /([\d,]+(?:\.\d{2})?)\s*(?:rupees?|rs|₹)/i,
+    /(?:total|amount|sum|payable|due|bill|charge|spent|cost|price|rupees?|rs|â‚¹)\s*([\d,]+(?:\.\d{2})?)/i,
+    /([\d,]+(?:\.\d{2})?)\s*(?:rupees?|rs|â‚¹)/i,
   ];
 
   for (const pattern of amountPatterns) {
@@ -68,7 +68,7 @@ function extractMerchant(text: string): string | undefined {
   const lowerText = text.toLowerCase();
   for (const merchant of merchants) {
     if (lowerText.includes(merchant)) {
-      return merchant.split(' ').map(word => 
+      return merchant.split(' ').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1)
       ).join(' ');
     }
@@ -108,7 +108,7 @@ function classifyCategory(text: string): string {
   return 'Others';
 }
 
-// 🔥 AI PROCESSOR BACKEND APIs
+// ðŸ”¥ AI PROCESSOR BACKEND APIs
 // These endpoints handle the core AI processing logic
 
 export const processOCRRequest = async (req: AuthRequest, res: Response) => {
@@ -120,14 +120,14 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Image data is required' });
     }
 
-    // ── AI quota enforcement ────────────────────────────────────
+    // â”€â”€ AI quota enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const quota = await incrementAIUsage(userId);
     if (!quota.allowed) {
       audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
       return res.status(429).json({ error: 'Daily AI limit reached. Try again tomorrow.', limit: quota.limit });
     }
 
-    // ── Sanitise input ──────────────────────────────────────────
+    // â”€â”€ Sanitise input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const { sanitized: cleanData, flagged } = sanitizeAIInput(imageData);
     if (flagged) {
       audit({ event: 'ai.prompt_injection', userId, resource: 'ocr', meta: { inputLength: imageData.length } });
@@ -143,11 +143,11 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    // 🧠 Backend AI extraction logic (simplified version of kanakku AI)
+    // ðŸ§  Backend AI extraction logic (simplified version of KANKUAI)
     const extractedData = await extractExpenseDataBackend(cleanData, 'ocr');
-    
+
     const processingTime = performance.now() - startTime;
-    console.log(`⚡ OCR processing completed in ${processingTime.toFixed(2)}ms`);
+    console.log(`âš¡ OCR processing completed in ${processingTime.toFixed(2)}ms`);
 
     // Store prediction for learning
     await storeAIPrediction(userId, 'ocr', rawInputId, extractedData, processingTime);
@@ -159,7 +159,7 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
       success: true,
       data: extractedData,
       processingTime,
-      source: 'kanakku-ai',
+      source: 'KANKU-ai',
     });
 
   } catch (error) {
@@ -177,7 +177,7 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Transcript or audio data is required' });
     }
 
-    // ── AI quota enforcement ────────────────────────────────────
+    // â”€â”€ AI quota enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const quota = await incrementAIUsage(userId);
     if (!quota.allowed) {
       audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
@@ -186,7 +186,7 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
 
     const voiceData = transcript || audioData;
 
-    // ── Sanitise input ──────────────────────────────────────────
+    // â”€â”€ Sanitise input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const { sanitized: cleanData, flagged } = sanitizeAIInput(voiceData);
     if (flagged) {
       audit({ event: 'ai.prompt_injection', userId, resource: 'voice', meta: { inputLength: voiceData.length } });
@@ -202,11 +202,11 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
       hasAudio: !!audioData,
     });
 
-    // 🧠 Backend AI extraction logic
+    // ðŸ§  Backend AI extraction logic
     const extractedData = await extractExpenseDataBackend(cleanData, 'voice');
-    
+
     const processingTime = performance.now() - startTime;
-    console.log(`⚡ Voice processing completed in ${processingTime.toFixed(2)}ms`);
+    console.log(`âš¡ Voice processing completed in ${processingTime.toFixed(2)}ms`);
 
     // Store prediction for learning
     await storeAIPrediction(userId, 'voice', rawInputId, extractedData, processingTime);
@@ -218,7 +218,7 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
       success: true,
       data: extractedData,
       processingTime,
-      source: 'kanakku-ai',
+      source: 'KANKU-ai',
     });
 
   } catch (error) {
@@ -236,7 +236,7 @@ export const submitAIFeedback = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Prediction ID and corrected data are required' });
     }
 
-    console.log('🎓 Storing AI feedback for user:', userId);
+    console.log('ðŸŽ“ Storing AI feedback for user:', userId);
 
     // Store feedback for learning
     await prisma.$executeRaw`
@@ -258,9 +258,9 @@ export const submitAIFeedback = async (req: AuthRequest, res: Response) => {
       WHERE id = ${predictionId}
     `;
 
-    // 🧠 Update learning patterns based on feedback (backend logic)
+    // ðŸ§  Update learning patterns based on feedback (backend logic)
     if (correctedData.merchant && correctedData.category) {
-      console.log(`🎓 Backend learning: ${correctedData.merchant} → ${correctedData.category}`);
+      console.log(`ðŸŽ“ Backend learning: ${correctedData.merchant} â†’ ${correctedData.category}`);
       // Pattern update is handled in updateLearningPatterns function
     }
 
@@ -323,7 +323,7 @@ export const getAIPersonalization = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// 🔐 ADMIN-ONLY ENDPOINTS
+// ðŸ” ADMIN-ONLY ENDPOINTS
 
 export const getAIAnalytics = async (req: AuthRequest, res: Response) => {
   try {
@@ -446,16 +446,16 @@ export const getAIPatterns = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// 🔐 HELPER FUNCTIONS (Privacy-first)
+// ðŸ” HELPER FUNCTIONS (Privacy-first)
 
 async function storeAIData(
-  userId: string, 
-  inputType: 'ocr' | 'voice' | 'manual', 
-  rawInput: string, 
+  userId: string,
+  inputType: 'ocr' | 'voice' | 'manual',
+  rawInput: string,
   metadata: any
 ): Promise<string> {
   const id = `raw_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   await prisma.$executeRaw`
     INSERT INTO ai_raw_data (
       id, user_id, input_type, raw_input, processed_data, 
@@ -479,7 +479,7 @@ async function storeAIPrediction(
   processingTime: number
 ): Promise<string> {
   const id = `pred_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
+
   await prisma.$executeRaw`
     INSERT INTO ai_predictions (
       id, user_id, prediction_type, input_hash, prediction, 
@@ -487,7 +487,7 @@ async function storeAIPrediction(
     )
     VALUES (
       ${id}, ${userId}, 'expense', ${hashInput(rawInputId)}, ${JSON.stringify(prediction)},
-      ${prediction.confidence || 0.5}, ${processingTime}, 'kanakku-v1.0', ${new Date()}
+      ${prediction.confidence || 0.5}, ${processingTime}, 'KANKU-v1.0', ${new Date()}
     )
   `;
 
@@ -532,3 +532,4 @@ function hashInput(input: string): string {
   }
   return hash.toString(36);
 }
+

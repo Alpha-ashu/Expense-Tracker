@@ -1,4 +1,4 @@
-# Kanakku Project: Master Developer Context & Changelog
+# KANKUProject: Master Developer Context & Changelog
 
 This document serves as the single source of truth for the project's architecture, design system, and implementation history. **Any AI assistant or developer working on this project must read this file first to ensure consistency.**
 
@@ -6,7 +6,7 @@ This document serves as the single source of truth for the project's architectur
 
 ## 🏗 Core Architecture
 
-Kanakku follows a **feature-modular structure** within the frontend to ensure scalability and clarity.
+KANKUfollows a **feature-modular structure** within the frontend to ensure scalability and clarity.
 
 - **Root Directory**: Contains global configuration (`package.json`, `vite.config.ts`, `tsconfig.json`).
 - **`frontend/src/app/components/`**: The unified home for all UI components.
@@ -29,7 +29,7 @@ Kanakku follows a **feature-modular structure** within the frontend to ensure sc
 
 ## 🎨 Design System & Theme
 
-Kanakku  uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to these standards:
+KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to these standards:
 
 ### **Color Palette**
 - **Primary Gradient**: `#7B4CFF` (Purple) to `#4A9EFF` (Blue).

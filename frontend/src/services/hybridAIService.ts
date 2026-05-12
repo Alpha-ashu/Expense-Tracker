@@ -1,7 +1,7 @@
-import { TokenManager } from '@/lib/api';
+﻿import { TokenManager } from '@/lib/api';
 import { ocrEngine, ExpenseData } from './tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from './voiceAIProcessor';
-import { kanakkuAI } from './kanakkuIntelligenceEngine';
+import { KANKUAI } from './KANKUIntelligenceEngine';
 
 //  HYBRID OFFLINE/ONLINE AI SUPPORT
 // This service provides intelligent fallback between offline and online AI processing
@@ -70,7 +70,7 @@ class HybridAIService {
       if (this.config.enableOnlineFallback) {
         console.log(' Falling back to online OCR...');
         const onlineResult = await this.processOnlineOCR(imageFile, startTime);
-        
+
         if (onlineResult) {
           const totalTime = performance.now() - startTime;
           console.log(` Online OCR successful (${totalTime.toFixed(2)}ms)`);
@@ -100,7 +100,7 @@ class HybridAIService {
     } catch (error) {
       console.error(' Hybrid OCR processing failed:', error);
       const totalTime = performance.now() - startTime;
-      
+
       // Last resort: try offline only
       try {
         const offlineResult = await this.processOfflineOCR(imageFile);
@@ -125,8 +125,8 @@ class HybridAIService {
     try {
       // For voice, we primarily use offline processing since Web Speech API is already offline-capable
       console.log(' Processing voice with offline AI...');
-      
-      const voiceResults = audioFile 
+
+      const voiceResults = audioFile
         ? await this.processOfflineVoice(audioFile)
         : await this.voiceProcessor.startListening();
 
@@ -149,11 +149,11 @@ class HybridAIService {
 
   //  OFFLINE PROCESSING METHODS
   private async processOfflineOCR(imageFile: File): Promise<ExpenseData> {
-    console.log(' Processing OCR offline with Tesseract + Kanakku AI...');
-    
-    // Use Tesseract OCR + Kanakku AI
+    console.log(' Processing OCR offline with Tesseract + KANKUAI...');
+
+    // Use Tesseract OCR + KANKUAI
     const result = await ocrEngine.extractExpenseData(imageFile);
-    
+
     console.log(` Offline OCR result:`, result);
     return result;
   }
@@ -172,7 +172,7 @@ class HybridAIService {
     }
 
     console.log(' Processing OCR online...');
-    
+
     // Create timeout promise
     const timeoutPromise = new Promise<null>((_, reject) => {
       setTimeout(() => reject(new Error('Online OCR timeout')), this.config.onlineTimeout);
@@ -234,7 +234,7 @@ class HybridAIService {
         if (result.confidence < this.config.confidenceThreshold && this.config.enableOnlineFallback) {
           console.log(' Offline result poor, trying online fallback...');
           const onlineResult = await this.processOnlineOCR(imageFile, startTime);
-          
+
           if (onlineResult && onlineResult.confidence > result.confidence) {
             result = onlineResult;
             source = 'hybrid';
@@ -243,7 +243,7 @@ class HybridAIService {
       } else {
         // Primary online method
         const onlineResult = await this.processOnlineOCR(imageFile, startTime);
-        
+
         if (onlineResult) {
           result = onlineResult;
           source = 'online';
@@ -299,7 +299,7 @@ class HybridAIService {
         const onlineStart = performance.now();
         const onlineResult = await this.processOnlineOCR(imageFile, onlineStart);
         const onlineTime = performance.now() - onlineStart;
-        
+
         if (onlineResult) {
           onlineBenchmark = {
             time: onlineTime,
@@ -347,7 +347,7 @@ class HybridAIService {
 
 //  FACTORY FUNCTION
 export function createHybridAIService(
-  userId: string, 
+  userId: string,
   config: Partial<HybridAIConfig> = {}
 ): HybridAIService {
   return new HybridAIService(userId, config);
@@ -390,3 +390,4 @@ export const HYBRID_CONFIGS = {
 
 // Export singleton instance
 export const hybridAI = createHybridAIService('default-user', HYBRID_CONFIGS.BALANCED);
+

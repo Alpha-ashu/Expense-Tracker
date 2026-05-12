@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Application Constants
  * Centralized configuration and constant values
  */
@@ -367,7 +367,7 @@ export const SUPABASE_CONFIG = {
 // ==================== App Configuration ====================
 
 export const APP_CONFIG = {
-  NAME: 'Kanakku',
+  NAME: 'KANKU',
   VERSION: '1.0.0',
   DESCRIPTION: 'Personal Finance Management Platform',
   SUPPORT_EMAIL: 'support@expensetracker.app',
@@ -523,3 +523,4 @@ export default {
   QUICK_ACTIONS,
   NAVIGATION,
 };
+

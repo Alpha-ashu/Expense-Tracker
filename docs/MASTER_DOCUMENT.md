@@ -1,8 +1,8 @@
-# Kanakku - Master Technical Documentation
+# KANKU- Master Technical Documentation
 
 ## Executive Summary
 
-Kanakku is a comprehensive personal finance management platform with web (PWA), mobile (Capacitor), and AI-powered features. It combines a React frontend, Express backend, Supabase-managed PostgreSQL database, and AI services for receipt OCR and financial insights.
+KANKUis a comprehensive personal finance management platform with web (PWA), mobile (Capacitor), and AI-powered features. It combines a React frontend, Express backend, Supabase-managed PostgreSQL database, and AI services for receipt OCR and financial insights.
 
 ---
 
@@ -983,7 +983,7 @@ USING (auth.uid()::text = (storage.foldername(name))[1])
 
 ```env
 # API Configuration
-VITE_API_URL=https://api.Kanakku .app
+VITE_API_URL=https://api.KANKU.app
 VITE_API_PROXY_TARGET=http://localhost:3000
 
 # Supabase Configuration
@@ -1042,7 +1042,7 @@ PIN_EXPIRY_DAYS=90
 ```bash
 # 1. Clone & install
 git clone <repo>
-cd Kanakku 
+cd KANKU
 npm install
 
 # 2. Setup environment
@@ -1144,7 +1144,7 @@ npm run dev
 ## 12. File Structure
 
 ```
-Kanakku /
+KANKU/
 ├── frontend/                    # React web application
 │   ├── src/
 │   │   ├── app/                # Main application code
@@ -1220,7 +1220,7 @@ Kanakku /
 
 ## 13. Contact & Support
 
-- **Project**: Kanakku  Personal Finance
+- **Project**: KANKU Personal Finance
 - **Repository**: Private
 - **Deployment**: Vercel + Supabase
 - **Support**: Via in-app chat (Advisor system)

@@ -1,5 +1,5 @@
-{
-  "name": "kanakku",
+﻿{
+  "name": "KANKU",
   "private": true,
   "version": "1.0.0",
   "description": "A comprehensive personal finance management platform",
@@ -169,3 +169,4 @@
     }
   }
 }
+

@@ -1,6 +1,6 @@
-# Backend Skill Reference – Kanakku
+﻿# Backend Skill Reference â€“ KANKU
 
-> Stack: Node.js · TypeScript · Express · Prisma · PostgreSQL · Zod · Winston
+> Stack: Node.js Â· TypeScript Â· Express Â· Prisma Â· PostgreSQL Â· Zod Â· Winston
 
 ---
 
@@ -9,17 +9,17 @@
 The order of Express middleware registration in `backend/src/app.ts` is **critical**. Follow this sequence:
 
 ```
-helmet()              → Security headers
-cors()                → CORS policy
-rateLimit()           → Global rate limiter
-express.json()        → Body parser
-requestId middleware  → Attach req.id
-routes (/api/v1/...)  → All feature routes
-404 handler           → Catch-all for unknown paths
-errorHandler          → Central error formatter (MUST be last)
+helmet()              â†’ Security headers
+cors()                â†’ CORS policy
+rateLimit()           â†’ Global rate limiter
+express.json()        â†’ Body parser
+requestId middleware  â†’ Attach req.id
+routes (/api/v1/...)  â†’ All feature routes
+404 handler           â†’ Catch-all for unknown paths
+errorHandler          â†’ Central error formatter (MUST be last)
 ```
 
-> ⚠️ The `errorHandler` must be registered **after** all routes. It will never be reached if mounted before them.
+> âš ï¸ The `errorHandler` must be registered **after** all routes. It will never be reached if mounted before them.
 
 ---
 
@@ -38,7 +38,7 @@ router.put('/:id', authenticate, validate(updateAccountSchema), updateAccount);
 
 ---
 
-## 3. Error Handling – AppError Pattern
+## 3. Error Handling â€“ AppError Pattern
 
 **Never** build inline `res.status(400).json({ error: '...' })` in controllers. Instead:
 
@@ -88,7 +88,7 @@ await prisma.$transaction(async (tx) => {
 });
 ```
 
-- Prisma errors `P2002` (unique), `P2025` (not found), `P2003` (FK) are caught centrally by `errorHandler` – no need to handle in controllers.
+- Prisma errors `P2002` (unique), `P2025` (not found), `P2003` (FK) are caught centrally by `errorHandler` â€“ no need to handle in controllers.
 
 ---
 
@@ -129,7 +129,7 @@ export const createTransactionSchema = z.object({
 ## 7. Logging
 
 - Winston logger is configured in `backend/src/config/logger.ts`.
-- Use `logger.info`, `logger.warn`, `logger.error` – never `console.log` in production code.
+- Use `logger.info`, `logger.warn`, `logger.error` â€“ never `console.log` in production code.
 - Structured logging: always pass a second argument object with context fields.
 
 ```ts
@@ -142,14 +142,14 @@ logger.error('Transaction creation failed', {
 });
 ```
 
-- HTTP request logging is handled by Morgan middleware – do not log `req`/`res` manually.
+- HTTP request logging is handled by Morgan middleware â€“ do not log `req`/`res` manually.
 
 ---
 
 ## 8. Database Transactions & Monetary Integrity
 
 - All balance mutations **must** use `prisma.$transaction`.
-- Monetary amounts are stored as integers (cents) or `Decimal` – never `Float`.
+- Monetary amounts are stored as integers (cents) or `Decimal` â€“ never `Float`.
 - Ownership checks must precede any read or write:
 
 ```ts
@@ -180,8 +180,8 @@ Every response must follow this shape:
 - [ ] All new routes are under `/api/v1/`.
 - [ ] All mutating routes have `validate(schema)` middleware.
 - [ ] All protected routes have `authenticate` middleware.
-- [ ] No secrets hardcoded – all from `process.env`.
-- [ ] No `console.log` – replaced with `logger.*`.
+- [ ] No secrets hardcoded â€“ all from `process.env`.
+- [ ] No `console.log` â€“ replaced with `logger.*`.
 - [ ] DB balance mutations wrapped in `prisma.$transaction`.
 
 ---
@@ -192,4 +192,5 @@ Every response must follow this shape:
 - **Voice NLP**: Uses Keyword-based segmentation + Gemini enhancement for ambiguous transcripts.
 - **Circuit Breaker**: All AI calls must be wrapped in `withCircuitBreaker` to handle service downtime without crashing the backend.
 - **Lazy Initialization**: Critical environment variables for AI/Auth are resolved lazily to prevent `FUNCTION_STARTUP_ERROR` in serverless environments.
+
 

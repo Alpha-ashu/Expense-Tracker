@@ -85,7 +85,7 @@ export const AIInsightsCard: React.FC<{ compact?: boolean }> = ({ compact = fals
           </div>
           <div>
             <p className="text-sm font-bold text-slate-900">AI Insights</p>
-            <p className="text-[10px] text-slate-400">Powered by Kanakku Intelligence</p>
+            <p className="text-[10px] text-slate-400">Powered by KANKUIntelligence</p>
           </div>
         </div>
         {data.healthScore !== undefined && (

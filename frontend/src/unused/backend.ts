@@ -1,4 +1,4 @@
-import { db } from './database';
+﻿import { db } from './database';
 import { encryptData, decryptData } from './encryption';
 
 // Backend API interface for cloud sync functionality
@@ -244,7 +244,7 @@ export class CloudSyncService {
   }
 
   constructor() {
-    this.apiEndpoint = process.env.VITE_API_BASE_URL || 'https://api.Kanakku.app';
+    this.apiEndpoint = process.env.VITE_API_BASE_URL || 'https://api.KANKU.app';
     this.authToken = localStorage.getItem('auth_token');
   }
 
@@ -639,3 +639,4 @@ export class CloudSyncService {
 
 // Export singleton instance
 export const cloudSyncService = CloudSyncService.getInstance();
+

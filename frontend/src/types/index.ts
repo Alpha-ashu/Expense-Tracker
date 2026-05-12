@@ -1,5 +1,5 @@
-/**
- * Global Type Definitions for Kanakku
+﻿/**
+ * Global Type Definitions for KANKU
  * Centralized type system for consistency across the application
  */
 
@@ -486,3 +486,4 @@ export interface SecurityContextType {
   verifyPin: (pin: string) => boolean;
   setPin: (pin: string) => void;
 }
+

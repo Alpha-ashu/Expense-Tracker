@@ -1,18 +1,18 @@
-# Database Skill Reference – Kanakku
+﻿# Database Skill Reference â€“ KANKU
 
-> Stack: PostgreSQL · Prisma ORM · Supabase (managed Postgres + Auth + RLS)
+> Stack: PostgreSQL Â· Prisma ORM Â· Supabase (managed Postgres + Auth + RLS)
 
 ---
 
 ## 1. Architecture Overview
 
 ```
-Frontend (Dexie – local SQLite)
-        │  background sync
-        ▼
-Backend (Express + Prisma)  ──►  PostgreSQL (hosted on Supabase)
-        │
-        └──► Supabase Auth service (separate JWT issuer)
+Frontend (Dexie â€“ local SQLite)
+        â”‚  background sync
+        â–¼
+Backend (Express + Prisma)  â”€â”€â–º  PostgreSQL (hosted on Supabase)
+        â”‚
+        â””â”€â”€â–º Supabase Auth service (separate JWT issuer)
 ```
 
 - **Prisma** is the single source of truth for the DB schema.
@@ -45,7 +45,7 @@ model Transaction {
 ```
 
 ### Monetary amounts
-- Store monetary values as `Decimal` (or integer cents) – **never** `Float`.
+- Store monetary values as `Decimal` (or integer cents) â€“ **never** `Float`.
 - Prisma type: `amount  Decimal @db.Decimal(12, 2)`
 
 ---
@@ -59,7 +59,7 @@ npx prisma migrate dev --name <descriptive_name>
 # Apply migrations in production (CI/CD)
 npx prisma migrate deploy
 
-# Reset (DEV ONLY – destroys data)
+# Reset (DEV ONLY â€“ destroys data)
 npx prisma migrate reset
 
 # Generate the Prisma client after schema changes
@@ -77,7 +77,7 @@ npx prisma generate
 
 ### Row-Level Security (RLS)
 - RLS is enabled on all tables in Supabase.
-- Backend bypasses RLS by using the **service role key** (`SUPABASE_SERVICE_KEY`) – never expose this to the frontend.
+- Backend bypasses RLS by using the **service role key** (`SUPABASE_SERVICE_KEY`) â€“ never expose this to the frontend.
 - Frontend Supabase client uses the **anon key** (`VITE_SUPABASE_ANON_KEY`) and operates under RLS.
 
 ### RLS Policy Pattern
@@ -98,10 +98,10 @@ CREATE POLICY "user_isolation" ON transactions
 
 ```env
 # Direct connection (migrations, prisma studio)
-DATABASE_URL="postgresql://user:pass@host:5432/Kanakku "
+DATABASE_URL="postgresql://user:pass@host:5432/KANKU"
 
 # Pooled connection (app runtime via PgBouncer / Supabase pooler)
-DATABASE_URL_POOLED="postgresql://user:pass@pooler.supabase.com:6543/Kanakku ?pgbouncer=true"
+DATABASE_URL_POOLED="postgresql://user:pass@pooler.supabase.com:6543/KANKU?pgbouncer=true"
 ```
 
 - Use pooled URL in the Express app (`datasource db { url = env("DATABASE_URL") }`).
@@ -117,7 +117,7 @@ DATABASE_URL_POOLED="postgresql://user:pass@pooler.supabase.com:6543/Kanakku ?pg
 import { PrismaClient } from '@prisma/client';
 export const prisma = new PrismaClient();
 ```
-Import `prisma` from this file everywhere – never instantiate `PrismaClient` directly.
+Import `prisma` from this file everywhere â€“ never instantiate `PrismaClient` directly.
 
 ### Ownership Check (mandatory before any read/write)
 ```ts
@@ -170,7 +170,7 @@ npx prisma db seed
 
 - Seed file: `backend/prisma/seed.ts`.
 - Use `faker` for realistic mock data.
-- Never seed production – guard with `if (process.env.NODE_ENV === 'development')`.
+- Never seed production â€“ guard with `if (process.env.NODE_ENV === 'development')`.
 
 ---
 
@@ -180,7 +180,7 @@ npx prisma db seed
 cd backend
 npx prisma studio
 ```
-Opens at `http://localhost:5555`. Use for quick local inspection – never in production.
+Opens at `http://localhost:5555`. Use for quick local inspection â€“ never in production.
 
 ---
 
@@ -194,4 +194,5 @@ Opens at `http://localhost:5555`. Use for quick local inspection – never in pr
 - [ ] Coupled balance + transaction writes use `prisma.$transaction`.
 - [ ] **Decimal Casting**: Always wrap Prisma Decimal results in `Number()` before performing arithmetic in JavaScript logic to prevent `TS2365` errors.
 - [ ] **Sync Consistency**: Use the `MIGRATION_V2_KEY` strategy for frontend brand migration to ensure data continuity during renaming.
+
 

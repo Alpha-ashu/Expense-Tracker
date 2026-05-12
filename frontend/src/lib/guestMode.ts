@@ -1,4 +1,4 @@
-/**
+﻿/**
  * guestMode.ts
  * 
  * Guest Mode: allows the app to be used without an account.
@@ -8,10 +8,10 @@
  */
 
 //  Constants 
-export const GUEST_USER_ID = '__kanakku_guest__';
-const LEGACY_GUEST_USER_ID = '__Kanakku _guest__';
-const GUEST_MODE_KEY = 'kanakku_guest_mode';
-const GUEST_CREATED_KEY = 'kanakku_guest_created_at';
+export const GUEST_USER_ID = '__KANKU_guest__';
+const LEGACY_GUEST_USER_ID = '__KANKU_guest__';
+const GUEST_MODE_KEY = 'KANKU_guest_mode';
+const GUEST_CREATED_KEY = 'KANKU_guest_created_at';
 
 //  State helpers 
 export const isGuestMode = (): boolean =>
@@ -164,7 +164,7 @@ export async function migrateGuestDataToUser(realUserId: string): Promise<{
 
   } catch (err) {
     if (import.meta.env.DEV) {
-      console.warn('[Kanakku/GuestMigration] Migration error:', err);
+      console.warn('[KANKU/GuestMigration] Migration error:', err);
     }
   }
 
@@ -183,3 +183,4 @@ export function migrateGuestLocalStorage(): void {
   if (profile) localStorage.setItem('profile_sync_pending', 'true');
   if (settings) localStorage.setItem('settings_sync_pending', 'true');
 }
+

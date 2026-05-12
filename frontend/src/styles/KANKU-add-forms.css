@@ -1,5 +1,5 @@
-/**
- * Kanakku Add-Form Shared Style Enhancement
+﻿/**
+ * KANKUAdd-Form Shared Style Enhancement
  * Applied to: AddAccount, AddGoal, AddInvestment, AddLoan,
  *             AddTransaction, AddGroup, AddGold, AddFriends
  *
@@ -7,42 +7,42 @@
  * No existing classes are overridden; these are additive enhancers.
  */
 
-/* ── Design tokens ─────────────────────────────────────────────────── */
+/* â”€â”€ Design tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 :root {
-  --kanakku-blue-start: #2563eb;
-  --kanakku-blue-end: #4f46e5;
-  --kanakku-purple-start: #7c3aed;
-  --kanakku-purple-end: #4f46e5;
-  --kanakku-green-start: #059669;
-  --kanakku-green-end: #0d9488;
-  --kanakku-gold-start: #d97706;
-  --kanakku-gold-end: #b45309;
+  --KANKU-blue-start: #2563eb;
+  --KANKU-blue-end: #4f46e5;
+  --KANKU-purple-start: #7c3aed;
+  --KANKU-purple-end: #4f46e5;
+  --KANKU-green-start: #059669;
+  --KANKU-green-end: #0d9488;
+  --KANKU-gold-start: #d97706;
+  --KANKU-gold-end: #b45309;
 
-  --kanakku-page-bg: radial-gradient(ellipse at top left, #dbeafe 0%, #eef2ff 30%, #f8fafc 60%, #ffffff 100%);
-  --kanakku-card-shadow: 0 20px 60px rgba(37, 99, 235, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04);
-  --kanakku-card-radius: 1.75rem;
-  --kanakku-input-radius: 0.875rem;
-  --kanakku-section-radius: 1.25rem;
+  --KANKU-page-bg: radial-gradient(ellipse at top left, #dbeafe 0%, #eef2ff 30%, #f8fafc 60%, #ffffff 100%);
+  --KANKU-card-shadow: 0 20px 60px rgba(37, 99, 235, 0.08), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --KANKU-card-radius: 1.75rem;
+  --KANKU-input-radius: 0.875rem;
+  --KANKU-section-radius: 1.25rem;
 
-  --kanakku-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --KANKU-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Page wrapper ─────────────────────────────────────────────────── */
-.kanakku-add-page {
+/* â”€â”€ Page wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-add-page {
   width: 100%;
   min-height: 100dvh;
-  background: var(--kanakku-page-bg);
+  background: var(--KANKU-page-bg);
   font-family: 'Inter', 'Outfit', system-ui, sans-serif;
   padding: 1.25rem 0 5rem; /* bottom padding for mobile nav */
 }
 
 @media (min-width: 1024px) {
-  .kanakku-add-page {
+  .KANKU-add-page {
     padding: 2rem 0 2rem;
   }
 }
 
-.kanakku-add-page-inner {
+.KANKU-add-page-inner {
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
@@ -50,20 +50,20 @@
 }
 
 @media (min-width: 1024px) {
-  .kanakku-add-page-inner {
+  .KANKU-add-page-inner {
     padding: 0 1.5rem;
   }
 }
 
-/* ── Page header ─────────────────────────────────────────────────── */
-.kanakku-page-header {
+/* â”€â”€ Page header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-page-header {
   display: flex;
   align-items: center;
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.kanakku-back-btn {
+.KANKU-back-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,18 +74,18 @@
   border: 1px solid #e5e7eb;
   color: #374151;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   flex-shrink: 0;
   cursor: pointer;
 }
 
-.kanakku-back-btn:hover {
+.KANKU-back-btn:hover {
   background: #f3f4f6;
   border-color: #d1d5db;
   transform: translateX(-1px);
 }
 
-.kanakku-page-title {
+.KANKU-page-title {
   font-size: 1.625rem;
   font-weight: 800;
   color: #111827;
@@ -93,35 +93,35 @@
   line-height: 1.2;
 }
 
-.kanakku-page-subtitle {
+.KANKU-page-subtitle {
   font-size: 0.875rem;
   color: #6b7280;
   margin-top: 0.25rem;
 }
 
 @media (min-width: 1024px) {
-  .kanakku-page-title {
+  .KANKU-page-title {
     font-size: 2rem;
   }
 }
 
-/* ── Hero gradient strip (used in goal/investment pages) ──────────── */
-.kanakku-hero-strip {
+/* â”€â”€ Hero gradient strip (used in goal/investment pages) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-hero-strip {
   position: relative;
   overflow: hidden;
-  border-radius: var(--kanakku-card-radius) var(--kanakku-card-radius) 0 0;
+  border-radius: var(--KANKU-card-radius) var(--KANKU-card-radius) 0 0;
   padding: 2rem 2rem 2.5rem;
-  background: linear-gradient(135deg, var(--kanakku-blue-start) 0%, var(--kanakku-purple-start) 60%, var(--kanakku-blue-end) 100%);
+  background: linear-gradient(135deg, var(--KANKU-blue-start) 0%, var(--KANKU-purple-start) 60%, var(--KANKU-blue-end) 100%);
 }
 
-.kanakku-hero-strip::before {
+.KANKU-hero-strip::before {
   content: '';
   position: absolute;
   inset: 0;
   background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
-.kanakku-hero-strip-blob1 {
+.KANKU-hero-strip-blob1 {
   position: absolute;
   top: -3rem;
   right: -2rem;
@@ -133,7 +133,7 @@
   pointer-events: none;
 }
 
-.kanakku-hero-strip-blob2 {
+.KANKU-hero-strip-blob2 {
   position: absolute;
   bottom: -2rem;
   left: -2rem;
@@ -145,41 +145,41 @@
   pointer-events: none;
 }
 
-/* ── Main form card ─────────────────────────────────────────────── */
-.kanakku-form-card {
+/* â”€â”€ Main form card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-form-card {
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: var(--kanakku-card-radius);
-  box-shadow: var(--kanakku-card-shadow);
+  border-radius: var(--KANKU-card-radius);
+  box-shadow: var(--KANKU-card-shadow);
   overflow: hidden;
 }
 
-.kanakku-form-card-body {
+.KANKU-form-card-body {
   padding: 1.25rem;
 }
 
 @media (min-width: 1024px) {
-  .kanakku-form-card-body {
+  .KANKU-form-card-body {
     padding: 2rem;
   }
 }
 
-/* ── Section dividers within form ────────────────────────────────── */
-.kanakku-form-section {
+/* â”€â”€ Section dividers within form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-form-section {
   background: #f9fafb;
   border: 1px solid #f3f4f6;
-  border-radius: var(--kanakku-section-radius);
+  border-radius: var(--KANKU-section-radius);
   padding: 1.25rem;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
 }
 
-.kanakku-form-section:focus-within {
+.KANKU-form-section:focus-within {
   border-color: #dbeafe;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.06);
 }
 
-.kanakku-section-label {
+.KANKU-section-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -191,8 +191,8 @@
   margin-bottom: 0.875rem;
 }
 
-/* ── Step indicator ─────────────────────────────────────────────── */
-.kanakku-step-badge {
+/* â”€â”€ Step indicator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-step-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -201,45 +201,45 @@
   border-radius: 50%;
   font-size: 0.7rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--kanakku-blue-start), var(--kanakku-purple-start));
+  background: linear-gradient(135deg, var(--KANKU-blue-start), var(--KANKU-purple-start));
   color: white;
   margin-right: 0.5rem;
   flex-shrink: 0;
 }
 
-/* ── Input fields ──────────────────────────────────────────────── */
-.kanakku-input {
+/* â”€â”€ Input fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-input {
   width: 100%;
   padding: 0.875rem 1rem;
   background: #ffffff;
   border: 1.5px solid #e5e7eb;
-  border-radius: var(--kanakku-input-radius);
+  border-radius: var(--KANKU-input-radius);
   font-size: 1rem;
   font-weight: 500;
   color: #111827;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   outline: none;
   -webkit-appearance: none;
 }
 
-.kanakku-input:focus {
+.KANKU-input:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   background: #ffffff;
 }
 
-.kanakku-input::placeholder {
+.KANKU-input::placeholder {
   color: #d1d5db;
   font-weight: 400;
 }
 
-.kanakku-input-lg {
+.KANKU-input-lg {
   font-size: 1.375rem;
   font-weight: 700;
   padding: 1rem 1.25rem;
 }
 
-.kanakku-input-amount {
+.KANKU-input-amount {
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -251,43 +251,43 @@
   padding: 0;
 }
 
-.kanakku-input-wrapper {
+.KANKU-input-wrapper {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   background: #ffffff;
   border: 1.5px solid #e5e7eb;
-  border-radius: var(--kanakku-input-radius);
-  transition: var(--kanakku-transition);
+  border-radius: var(--KANKU-input-radius);
+  transition: var(--KANKU-transition);
 }
 
-.kanakku-input-wrapper:focus-within {
+.KANKU-input-wrapper:focus-within {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.kanakku-currency-prefix {
+.KANKU-currency-prefix {
   font-size: 1rem;
   font-weight: 700;
   color: #9ca3af;
   flex-shrink: 0;
 }
 
-/* ── Type selector cards ─────────────────────────────────────────── */
-.kanakku-type-grid {
+/* â”€â”€ Type selector cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-type-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
 
 @media (min-width: 640px) {
-  .kanakku-type-grid-4 {
+  .KANKU-type-grid-4 {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
-.kanakku-type-card {
+.KANKU-type-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -297,13 +297,13 @@
   border: 1.5px solid #e5e7eb;
   border-radius: 1rem;
   cursor: pointer;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   text-align: left;
   position: relative;
   overflow: hidden;
 }
 
-.kanakku-type-card::after {
+.KANKU-type-card::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -313,23 +313,23 @@
   background: linear-gradient(135deg, rgba(37, 99, 235, 0.03), rgba(79, 70, 229, 0.03));
 }
 
-.kanakku-type-card:hover {
+.KANKU-type-card:hover {
   border-color: #93c5fd;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
-.kanakku-type-card.selected {
+.KANKU-type-card.selected {
   border-color: #2563eb;
   background: linear-gradient(135deg, #eff6ff, #eef2ff);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
 }
 
-.kanakku-type-card.selected::after {
+.KANKU-type-card.selected::after {
   opacity: 1;
 }
 
-.kanakku-type-icon {
+.KANKU-type-icon {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 0.625rem;
@@ -338,22 +338,22 @@
   justify-content: center;
   flex-shrink: 0;
   background: #f3f4f6;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
 }
 
-.kanakku-type-card.selected .kanakku-type-icon {
+.KANKU-type-card.selected .KANKU-type-icon {
   background: rgba(37, 99, 235, 0.12);
 }
 
-/* ── Quick preset buttons ─────────────────────────────────────────── */
-.kanakku-presets {
+/* â”€â”€ Quick preset buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-presets {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
 
-.kanakku-preset-btn {
+.KANKU-preset-btn {
   padding: 0.375rem 0.75rem;
   border-radius: 0.5rem;
   background: #f3f4f6;
@@ -362,24 +362,24 @@
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
 }
 
-.kanakku-preset-btn:hover {
+.KANKU-preset-btn:hover {
   background: #dbeafe;
   border-color: #93c5fd;
   color: #1d4ed8;
 }
 
-/* ── Progress stepper ────────────────────────────────────────────── */
-.kanakku-stepper {
+/* â”€â”€ Progress stepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-stepper {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
-.kanakku-step-dot {
+.KANKU-step-dot {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -388,43 +388,43 @@
   border-radius: 50%;
   font-size: 0.75rem;
   font-weight: 700;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   flex-shrink: 0;
 }
 
-.kanakku-step-dot.done {
+.KANKU-step-dot.done {
   background: linear-gradient(135deg, #2563eb, #7c3aed);
   color: white;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
-.kanakku-step-dot.active {
+.KANKU-step-dot.active {
   background: white;
   color: #2563eb;
   border: 2px solid #2563eb;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
-.kanakku-step-dot.pending {
+.KANKU-step-dot.pending {
   background: #f3f4f6;
   color: #9ca3af;
   border: 2px solid #e5e7eb;
 }
 
-.kanakku-step-line {
+.KANKU-step-line {
   height: 2px;
   flex: 1;
   border-radius: 1px;
   background: #e5e7eb;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
 }
 
-.kanakku-step-line.done {
+.KANKU-step-line.done {
   background: linear-gradient(90deg, #2563eb, #7c3aed);
 }
 
-/* ── Action bar (submit / cancel) ─────────────────────────────────── */
-.kanakku-action-bar {
+/* â”€â”€ Action bar (submit / cancel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-action-bar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -433,7 +433,7 @@
   margin-top: 1.5rem;
 }
 
-.kanakku-btn-primary {
+.KANKU-btn-primary {
   flex: 1;
   display: flex;
   align-items: center;
@@ -446,30 +446,30 @@
   font-size: 0.9375rem;
   font-weight: 700;
   cursor: pointer;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   border: none;
   letter-spacing: 0.01em;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
-.kanakku-btn-primary:hover:not(:disabled) {
+.KANKU-btn-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #1e40af, #4338ca);
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
   transform: translateY(-1px);
 }
 
-.kanakku-btn-primary:active:not(:disabled) {
+.KANKU-btn-primary:active:not(:disabled) {
   transform: scale(0.99);
 }
 
-.kanakku-btn-primary:disabled {
+.KANKU-btn-primary:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
 }
 
-.kanakku-btn-secondary {
+.KANKU-btn-secondary {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -482,19 +482,19 @@
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.kanakku-btn-secondary:hover {
+.KANKU-btn-secondary:hover {
   background: #f9fafb;
   border-color: #d1d5db;
   color: #374151;
 }
 
-/* ── Info / hint banner ──────────────────────────────────────────── */
-.kanakku-info-banner {
+/* â”€â”€ Info / hint banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-info-banner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -507,20 +507,20 @@
   font-weight: 500;
 }
 
-.kanakku-success-banner {
+.KANKU-success-banner {
   background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
   border-color: #bbf7d0;
   color: #065f46;
 }
 
-.kanakku-warn-banner {
+.KANKU-warn-banner {
   background: linear-gradient(135deg, #fffbeb, #fef9c3);
   border-color: #fde68a;
   color: #92400e;
 }
 
-/* ── Smart suggestion chip ────────────────────────────────────────── */
-.kanakku-suggestion {
+/* â”€â”€ Smart suggestion chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-suggestion {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
@@ -531,7 +531,7 @@
   margin-top: 0.75rem;
 }
 
-.kanakku-suggestion-icon {
+.KANKU-suggestion-icon {
   width: 2rem;
   height: 2rem;
   border-radius: 0.5rem;
@@ -543,39 +543,39 @@
   color: #7c3aed;
 }
 
-.kanakku-suggestion-title {
+.KANKU-suggestion-title {
   font-size: 0.8125rem;
   font-weight: 700;
   color: #4c1d95;
   margin-bottom: 0.125rem;
 }
 
-.kanakku-suggestion-body {
+.KANKU-suggestion-body {
   font-size: 0.75rem;
   color: #6d28d9;
   line-height: 1.5;
 }
 
-/* ── Category pill grid ──────────────────────────────────────────── */
-.kanakku-category-grid {
+/* â”€â”€ Category pill grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.625rem;
 }
 
 @media (min-width: 640px) {
-  .kanakku-category-grid {
+  .KANKU-category-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
 @media (min-width: 1024px) {
-  .kanakku-category-grid {
+  .KANKU-category-grid {
     grid-template-columns: repeat(5, 1fr);
   }
 }
 
-.kanakku-category-pill {
+.KANKU-category-pill {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -585,31 +585,31 @@
   border: 1.5px solid #e5e7eb;
   background: #ffffff;
   cursor: pointer;
-  transition: var(--kanakku-transition);
+  transition: var(--KANKU-transition);
   text-align: center;
 }
 
-.kanakku-category-pill:hover {
+.KANKU-category-pill:hover {
   border-color: #93c5fd;
   background: #f0f9ff;
   transform: translateY(-1px);
 }
 
-.kanakku-category-pill.selected {
+.KANKU-category-pill.selected {
   border-color: #7c3aed;
   background: linear-gradient(135deg, #f5f3ff, #ede9fe);
   color: #6d28d9;
   box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
 }
 
-.kanakku-category-pill-label {
+.KANKU-category-pill-label {
   font-size: 0.6875rem;
   font-weight: 700;
   line-height: 1.2;
 }
 
-/* ── Location / country badge ─────────────────────────────────────── */
-.kanakku-location-badge {
+/* â”€â”€ Location / country badge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-location-badge {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -621,41 +621,41 @@
   color: #374151;
 }
 
-.kanakku-location-badge svg {
+.KANKU-location-badge svg {
   color: #2563eb;
   flex-shrink: 0;
 }
 
-/* ── Loading spinner ─────────────────────────────────────────────── */
-.kanakku-spinner {
+/* â”€â”€ Loading spinner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-spinner {
   width: 1.125rem;
   height: 1.125rem;
   border: 2px solid rgba(255,255,255,0.4);
   border-top-color: white;
   border-radius: 50%;
-  animation: kanakku-spin 0.7s linear infinite;
+  animation: KANKU-spin 0.7s linear infinite;
 }
 
-@keyframes kanakku-spin {
+@keyframes KANKU-spin {
   to { transform: rotate(360deg); }
 }
 
-/* ── Shimmer skeleton ─────────────────────────────────────────────── */
-.kanakku-skeleton {
+/* â”€â”€ Shimmer skeleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.KANKU-skeleton {
   background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
   background-size: 200% 100%;
-  animation: kanakku-shimmer 1.4s ease-in-out infinite;
+  animation: KANKU-shimmer 1.4s ease-in-out infinite;
   border-radius: 0.5rem;
 }
 
-@keyframes kanakku-shimmer {
+@keyframes KANKU-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-/* ── Mobile bottom sticky bar override ──────────────────────────── */
+/* â”€â”€ Mobile bottom sticky bar override â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 1023px) {
-  .kanakku-action-bar {
+  .KANKU-action-bar {
     position: sticky;
     bottom: 0;
     background: rgba(255,255,255,0.96);
@@ -673,7 +673,7 @@
    Applied by page wrappers on quick-entry, goal, investment, transfer,
    friends, advisor, and receipt review surfaces.
 ------------------------------------------------------------------- */
-.kanakku-screen-page {
+.KANKU-screen-page {
   width: 100%;
   min-height: calc(100dvh - var(--header-height) - var(--bottom-reserved-space));
   background: linear-gradient(135deg, #f6fbff 0%, #eef4ff 36%, #f8fbf6 72%, #ffffff 100%) !important;
@@ -681,198 +681,198 @@
 }
 
 @media (min-width: 1024px) {
-  .kanakku-screen-page {
+  .KANKU-screen-page {
     min-height: calc(100dvh - var(--header-height));
   }
 }
 
-.kanakku-screen-page *,
-.kanakku-screen-page *::before,
-.kanakku-screen-page *::after {
+.KANKU-screen-page *,
+.KANKU-screen-page *::before,
+.KANKU-screen-page *::after {
   letter-spacing: 0 !important;
 }
 
-.kanakku-screen-page input,
-.kanakku-screen-page select,
-.kanakku-screen-page textarea {
+.KANKU-screen-page input,
+.KANKU-screen-page select,
+.KANKU-screen-page textarea {
   border-radius: 0.875rem !important;
 }
 
-.kanakku-screen-page input,
-.kanakku-screen-page select {
+.KANKU-screen-page input,
+.KANKU-screen-page select {
   min-height: 2.5rem;
 }
 
-.kanakku-screen-page textarea {
+.KANKU-screen-page textarea {
   min-height: 4.5rem;
 }
 
-.kanakku-screen-page .rounded-\[30px\],
-.kanakku-screen-page .rounded-\[32px\],
-.kanakku-screen-page .rounded-3xl {
+.KANKU-screen-page .rounded-\[30px\],
+.KANKU-screen-page .rounded-\[32px\],
+.KANKU-screen-page .rounded-3xl {
   border-radius: 1.125rem !important;
 }
 
-.kanakku-screen-page .shadow-xl,
-.kanakku-screen-page .shadow-lg,
-.kanakku-screen-page .shadow-glass {
+.KANKU-screen-page .shadow-xl,
+.KANKU-screen-page .shadow-lg,
+.KANKU-screen-page .shadow-glass {
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.07), 0 2px 10px rgba(15, 23, 42, 0.04) !important;
 }
 
-.kanakku-screen-page .bg-white,
-.kanakku-screen-page .bg-white\/80,
-.kanakku-screen-page .bg-white\/90,
-.kanakku-screen-page .bg-white\/95 {
+.KANKU-screen-page .bg-white,
+.KANKU-screen-page .bg-white\/80,
+.KANKU-screen-page .bg-white\/90,
+.KANKU-screen-page .bg-white\/95 {
   background-color: rgba(255, 255, 255, 0.94) !important;
 }
 
 @media (max-width: 1023px) {
-  .kanakku-screen-page {
+  .KANKU-screen-page {
     min-height: calc(100dvh - var(--header-height) - var(--bottom-reserved-space));
   }
 
-  .kanakku-transaction-entry.pb-\[64px\] {
+  .KANKU-transaction-entry.pb-\[64px\] {
     padding-bottom: 0 !important;
   }
 
-  .kanakku-screen-page .overflow-y-auto {
+  .KANKU-screen-page .overflow-y-auto {
     overflow-y: hidden !important;
   }
 
-  .kanakku-screen-page .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  .KANKU-screen-page .space-y-6 > :not([hidden]) ~ :not([hidden]) {
     margin-top: 0.75rem !important;
   }
 
-  .kanakku-screen-page .space-y-5 > :not([hidden]) ~ :not([hidden]),
-  .kanakku-screen-page .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  .KANKU-screen-page .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  .KANKU-screen-page .space-y-4 > :not([hidden]) ~ :not([hidden]) {
     margin-top: 0.625rem !important;
   }
 
-  .kanakku-screen-page .p-8 {
+  .KANKU-screen-page .p-8 {
     padding: 1rem !important;
   }
 
-  .kanakku-screen-page .p-6,
-  .kanakku-screen-page .p-5 {
+  .KANKU-screen-page .p-6,
+  .KANKU-screen-page .p-5 {
     padding: 0.875rem !important;
   }
 
-  .kanakku-screen-page .p-4 {
+  .KANKU-screen-page .p-4 {
     padding: 0.75rem !important;
   }
 
-  .kanakku-screen-page .py-4 {
+  .KANKU-screen-page .py-4 {
     padding-top: 0.75rem !important;
     padding-bottom: 0.75rem !important;
   }
 
-  .kanakku-screen-page .px-4 {
+  .KANKU-screen-page .px-4 {
     padding-left: 0.875rem !important;
     padding-right: 0.875rem !important;
   }
 
-  .kanakku-screen-page .text-5xl {
+  .KANKU-screen-page .text-5xl {
     font-size: 2rem !important;
     line-height: 1.1 !important;
   }
 
-  .kanakku-screen-page .text-4xl {
+  .KANKU-screen-page .text-4xl {
     font-size: 1.75rem !important;
     line-height: 1.1 !important;
   }
 
-  .kanakku-screen-page .text-3xl {
+  .KANKU-screen-page .text-3xl {
     font-size: 1.5rem !important;
     line-height: 1.15 !important;
   }
 
-  .kanakku-screen-page .text-2xl {
+  .KANKU-screen-page .text-2xl {
     font-size: 1.25rem !important;
     line-height: 1.2 !important;
   }
 
-  .kanakku-screen-page .h-14 {
+  .KANKU-screen-page .h-14 {
     height: 2.75rem !important;
   }
 
-  .kanakku-screen-page .h-12 {
+  .KANKU-screen-page .h-12 {
     height: 2.5rem !important;
   }
 
-  .kanakku-screen-page input,
-  .kanakku-screen-page select {
+  .KANKU-screen-page input,
+  .KANKU-screen-page select {
     padding-top: 0.625rem !important;
     padding-bottom: 0.625rem !important;
   }
 }
 
 @media (min-width: 1024px) {
-  .kanakku-screen-page > .w-full,
-  .kanakku-screen-page > div > .w-full {
+  .KANKU-screen-page > .w-full,
+  .KANKU-screen-page > div > .w-full {
     min-height: 0 !important;
   }
 
-  .kanakku-screen-page .overflow-y-auto {
+  .KANKU-screen-page .overflow-y-auto {
     overflow-y: hidden !important;
   }
 
-  .kanakku-screen-page .sticky {
+  .KANKU-screen-page .sticky {
     position: static !important;
   }
 }
 
-.kanakku-transaction-entry main,
-.kanakku-transfer-entry form,
-.kanakku-investment-entry form,
-.kanakku-goal-entry form,
-.kanakku-friends-entry,
-.kanakku-advisor-entry {
+.KANKU-transaction-entry main,
+.KANKU-transfer-entry form,
+.KANKU-investment-entry form,
+.KANKU-goal-entry form,
+.KANKU-friends-entry,
+.KANKU-advisor-entry {
   min-height: 0;
 }
 
-.kanakku-transaction-entry header {
+.KANKU-transaction-entry header {
   height: 3.25rem !important;
 }
 
-.kanakku-transaction-entry main {
+.KANKU-transaction-entry main {
   padding: 0.875rem !important;
   gap: 0.875rem !important;
 }
 
-.kanakku-transaction-entry section,
-.kanakku-transfer-entry form > div,
-.kanakku-investment-entry form,
-.kanakku-goal-entry .rounded-\[32px\],
-.kanakku-friends-entry .border,
-.kanakku-advisor-entry section,
-.kanakku-advisor-entry .rounded-2xl {
+.KANKU-transaction-entry section,
+.KANKU-transfer-entry form > div,
+.KANKU-investment-entry form,
+.KANKU-goal-entry .rounded-\[32px\],
+.KANKU-friends-entry .border,
+.KANKU-advisor-entry section,
+.KANKU-advisor-entry .rounded-2xl {
   border-color: rgba(226, 232, 240, 0.86) !important;
 }
 
-.kanakku-transaction-entry .flex-1.overflow-y-auto,
-.kanakku-transaction-entry .overflow-y-auto.pr-1,
-.kanakku-investment-entry .max-h-52,
-.kanakku-investment-entry .max-h-60 {
+.KANKU-transaction-entry .flex-1.overflow-y-auto,
+.KANKU-transaction-entry .overflow-y-auto.pr-1,
+.KANKU-investment-entry .max-h-52,
+.KANKU-investment-entry .max-h-60 {
   max-height: 11rem !important;
   overflow-y: auto !important;
 }
 
-.kanakku-investment-entry > div,
-.kanakku-goal-entry > div,
-.kanakku-transfer-entry > div,
-.kanakku-friends-entry > div,
-.kanakku-advisor-entry > div {
+.KANKU-investment-entry > div,
+.KANKU-goal-entry > div,
+.KANKU-transfer-entry > div,
+.KANKU-friends-entry > div,
+.KANKU-advisor-entry > div {
   max-height: 100%;
 }
 
-.kanakku-investment-entry .max-w-\[800px\],
-.kanakku-transfer-entry .max-w-\[800px\],
-.kanakku-friends-entry .max-w-\[800px\] {
+.KANKU-investment-entry .max-w-\[800px\],
+.KANKU-transfer-entry .max-w-\[800px\],
+.KANKU-friends-entry .max-w-\[800px\] {
   max-width: 64rem !important;
 }
 
 @media (max-width: 1023px) {
-  .kanakku-investment-entry form > .flex-1 {
+  .KANKU-investment-entry form > .flex-1 {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.625rem !important;
@@ -880,115 +880,115 @@
     overflow: hidden !important;
   }
 
-  .kanakku-investment-entry form > .flex-1 > * {
+  .KANKU-investment-entry form > .flex-1 > * {
     min-width: 0;
   }
 
-  .kanakku-investment-entry form > .flex-1 > :nth-child(1),
-  .kanakku-investment-entry form > .flex-1 > :nth-child(2),
-  .kanakku-investment-entry form > .flex-1 > :nth-child(5) {
+  .KANKU-investment-entry form > .flex-1 > :nth-child(1),
+  .KANKU-investment-entry form > .flex-1 > :nth-child(2),
+  .KANKU-investment-entry form > .flex-1 > :nth-child(5) {
     grid-column: 1 / -1;
   }
 
-  .kanakku-investment-entry textarea {
+  .KANKU-investment-entry textarea {
     min-height: 2.6rem !important;
     height: 2.6rem !important;
   }
 
-  .kanakku-investment-entry .sticky.bottom-0 {
+  .KANKU-investment-entry .sticky.bottom-0 {
     position: static !important;
     padding: 0.75rem !important;
   }
 
-  .kanakku-investment-entry .grid-cols-3 {
+  .KANKU-investment-entry .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 
-.kanakku-goal-entry .max-w-\[700px\] {
+.KANKU-goal-entry .max-w-\[700px\] {
   max-width: 58rem !important;
   margin-left: auto;
   margin-right: auto;
 }
 
-.kanakku-goal-entry .blur-3xl,
-.kanakku-goal-entry .blur-2xl {
+.KANKU-goal-entry .blur-3xl,
+.KANKU-goal-entry .blur-2xl {
   display: none !important;
 }
 
 @media (min-width: 1024px) {
-  .kanakku-goal-entry .rounded-\[32px\] {
+  .KANKU-goal-entry .rounded-\[32px\] {
     display: grid;
     grid-template-columns: minmax(20rem, 0.9fr) minmax(24rem, 1.1fr);
     max-height: calc(100dvh - var(--header-height) - 7rem);
   }
 
-  .kanakku-goal-entry .rounded-\[32px\] > .relative {
+  .KANKU-goal-entry .rounded-\[32px\] > .relative {
     border-radius: 0;
   }
 
-  .kanakku-goal-entry .rounded-\[32px\] > form {
+  .KANKU-goal-entry .rounded-\[32px\] > form {
     padding: 1.25rem !important;
     overflow: hidden;
   }
 
-  .kanakku-goal-entry .grid-cols-4 {
+  .KANKU-goal-entry .grid-cols-4 {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }
 
-.kanakku-advisor-entry {
+.KANKU-advisor-entry {
   padding: 0 !important;
 }
 
-.kanakku-advisor-entry > .bg-white {
+.KANKU-advisor-entry > .bg-white {
   position: static !important;
 }
 
-.kanakku-advisor-entry .max-w-5xl {
+.KANKU-advisor-entry .max-w-5xl {
   max-width: 76rem !important;
 }
 
-.kanakku-advisor-entry .py-16 {
+.KANKU-advisor-entry .py-16 {
   padding-top: 2.5rem !important;
   padding-bottom: 2.5rem !important;
 }
 
 @media (min-width: 1024px) {
-  .kanakku-advisor-entry > .max-w-5xl,
-  .kanakku-advisor-entry > div:last-of-type {
+  .KANKU-advisor-entry > .max-w-5xl,
+  .KANKU-advisor-entry > div:last-of-type {
     max-height: calc(100dvh - var(--header-height) - 4.5rem);
     overflow: hidden;
   }
 
-  .kanakku-advisor-entry .grid.md\:grid-cols-2 {
+  .KANKU-advisor-entry .grid.md\:grid-cols-2 {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   }
 }
 
 /* Receipt review */
-.kanakku-receipt-review {
+.KANKU-receipt-review {
   display: flex;
   flex-direction: column;
   gap: 0.875rem;
   min-height: 0;
 }
 
-.kanakku-receipt-review__top {
+.KANKU-receipt-review__top {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: stretch;
 }
 
-.kanakku-receipt-review__grid {
+.KANKU-receipt-review__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.4fr);
   gap: 0.875rem;
   min-height: 0;
 }
 
-.kanakku-receipt-card {
+.KANKU-receipt-card {
   overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 1rem;
@@ -996,7 +996,7 @@
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
 }
 
-.kanakku-receipt-card__head {
+.KANKU-receipt-card__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1005,98 +1005,99 @@
   padding: 0.75rem 0.875rem;
 }
 
-.kanakku-receipt-card__title {
+.KANKU-receipt-card__title {
   font-size: 0.68rem;
   font-weight: 800;
   color: #64748b;
   text-transform: uppercase;
 }
 
-.kanakku-receipt-fields {
+.KANKU-receipt-fields {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   background: #eef2f7;
 }
 
-.kanakku-receipt-field {
+.KANKU-receipt-field {
   min-width: 0;
   background: #ffffff;
   padding: 0.72rem 0.8rem;
 }
 
-.kanakku-receipt-field--wide {
+.KANKU-receipt-field--wide {
   grid-column: span 2;
 }
 
-.kanakku-receipt-field--full {
+.KANKU-receipt-field--full {
   grid-column: 1 / -1;
 }
 
-.kanakku-receipt-amount {
+.KANKU-receipt-amount {
   grid-column: span 2;
   background: linear-gradient(135deg, #111827 0%, #1d4ed8 52%, #7c3aed 100%);
 }
 
-.kanakku-receipt-amount label,
-.kanakku-receipt-amount span,
-.kanakku-receipt-amount input {
+.KANKU-receipt-amount label,
+.KANKU-receipt-amount span,
+.KANKU-receipt-amount input {
   color: #ffffff !important;
 }
 
-.kanakku-receipt-amount input::placeholder {
+.KANKU-receipt-amount input::placeholder {
   color: rgba(255, 255, 255, 0.48);
 }
 
-.kanakku-receipt-field input,
-.kanakku-receipt-field select {
+.KANKU-receipt-field input,
+.KANKU-receipt-field select {
   min-height: 1.75rem;
 }
 
-.kanakku-receipt-field p {
+.KANKU-receipt-field p {
   margin-top: 0.25rem;
   font-size: 0.68rem;
 }
 
-.kanakku-receipt-side {
+.KANKU-receipt-side {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   min-height: 0;
 }
 
-.kanakku-receipt-side .max-h-44 {
+.KANKU-receipt-side .max-h-44 {
   max-height: 8rem !important;
 }
 
-.kanakku-receipt-actions {
+.KANKU-receipt-actions {
   display: flex;
   gap: 0.625rem;
 }
 
 @media (max-width: 900px) {
-  .kanakku-receipt-review__top,
-  .kanakku-receipt-review__grid {
+  .KANKU-receipt-review__top,
+  .KANKU-receipt-review__grid {
     grid-template-columns: 1fr;
   }
 
-  .kanakku-receipt-fields {
+  .KANKU-receipt-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 520px) {
-  .kanakku-receipt-fields {
+  .KANKU-receipt-fields {
     grid-template-columns: 1fr 1fr;
   }
 
-  .kanakku-receipt-field {
+  .KANKU-receipt-field {
     padding: 0.6rem 0.7rem;
   }
 
-  .kanakku-receipt-amount,
-  .kanakku-receipt-field--wide,
-  .kanakku-receipt-field--full {
+  .KANKU-receipt-amount,
+  .KANKU-receipt-field--wide,
+  .KANKU-receipt-field--full {
     grid-column: 1 / -1;
   }
 }
+

@@ -1,6 +1,6 @@
-# QA & Testing Skill Reference – Kanakku
+﻿# QA & Testing Skill Reference â€“ KANKU
 
-This document provides the standard quality assurance and testing protocols for the Kanakku project.
+This document provides the standard quality assurance and testing protocols for the KANKUproject.
 
 ---
 
@@ -32,7 +32,7 @@ This document provides the standard quality assurance and testing protocols for 
 - [ ] **Airplane Mode**: Add transactions while offline and verify they save to Dexie.
 - [ ] **Reconnection**: Go back online and verify background sync to Supabase.
 - [ ] **Conflict Resolution**: Simulate simultaneous edits on two devices and verify timestamp-based wins.
-- [ ] **Brand Migration**: Verify that local storage keys are correctly migrated from `Kanakku ` to `Kanakku` namespace without data loss.
+- [ ] **Brand Migration**: Verify that local storage keys are correctly migrated from `KANKU` to `KANKU` namespace without data loss.
 
 ### AI Engine Reliability
 - [ ] **Tesseract Fallback**: Disable Gemini API key and verify that the heuristic engine still extracts Merchant/Amount/GST correctly.
@@ -49,3 +49,4 @@ This document provides the standard quality assurance and testing protocols for 
 - **Lighthouse Score**: Aim for 90+ in Accessibility and SEO.
 - **First Contentful Paint**: < 1.2s on mobile.
 - **Bundle Size**: Monitor `dist/` size to keep the main chunk under 500KB.
+

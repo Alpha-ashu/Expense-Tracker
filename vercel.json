@@ -1,6 +1,6 @@
-{
+﻿{
   "version": 2,
-  "name": "kanakku",
+  "name": "KANKU",
   "buildCommand": "npm run project:build",
   "outputDirectory": "dist",
   "functions": {
@@ -57,3 +57,4 @@
     "iad1"
   ]
 }
+

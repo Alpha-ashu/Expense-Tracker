@@ -1,12 +1,12 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   postgres:
     image: postgres:15
-    container_name: kanakku_postgres
+    container_name: KANKU_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: kanakku
+      POSTGRES_DB: KANKU
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
@@ -15,11 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
     networks:
-      - kanakku_network
+      - KANKU_network
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: kanakku_pgadmin
+    container_name: KANKU_pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
@@ -29,12 +29,13 @@ services:
     depends_on:
       - postgres
     networks:
-      - kanakku_network
+      - KANKU_network
 
 volumes:
   postgres_data:
 
 
 networks:
-  kanakku_network:
+  KANKU_network:
     driver: bridge
+

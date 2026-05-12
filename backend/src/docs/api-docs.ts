@@ -26,7 +26,7 @@ type EndpointOverride = Partial<OpenApiOperation> & {
   responseExample?: Record<string, unknown>;
 };
 
-const API_TITLE = 'Kanakku  Backend API';
+const API_TITLE = 'KANKU Backend API';
 const API_VERSION = '1.0.0';
 
 const ROUTE_MOUNTS: RouteMount[] = [
@@ -58,7 +58,7 @@ const ROUTE_MOUNTS: RouteMount[] = [
 const ENDPOINT_OVERRIDES: Record<string, EndpointOverride> = {
   'post /api/v1/auth/register': {
     summary: 'Register a new user',
-    description: 'Creates a Kanakku  account and returns authentication data.',
+    description: 'Creates a KANKU account and returns authentication data.',
     requestExample: {
       name: 'Asha Sharma',
       email: 'asha@example.com',
@@ -416,7 +416,7 @@ export function generateOpenApiDocument(baseUrl?: string) {
     info: {
       title: API_TITLE,
       version: API_VERSION,
-      description: 'Tester-oriented OpenAPI document for Kanakku  backend feature APIs.',
+      description: 'Tester-oriented OpenAPI document for KANKU backend feature APIs.',
     },
     servers: [
       {
@@ -464,7 +464,7 @@ export function generateOpenApiDocument(baseUrl?: string) {
 }
 
 export function generateApiTestingGuide(baseUrl: string) {
-  return `# Kanakku  API Testing Guide
+  return `# KANKU API Testing Guide
 
 Base URL: \`${baseUrl}/api/v1\`
 

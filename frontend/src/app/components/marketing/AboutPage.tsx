@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, Target, Heart, Zap, Globe, Lock } from 'lucide-react';
-import { KanakkuLogo } from '@/app/components/ui/KanakkuLogo';
+import { KANKULogo } from '@/app/components/ui/KANKULogo';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
 
 interface AboutPageProps {
@@ -40,7 +40,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
     ];
 
     const milestones = [
-        { year: "2024", event: "Kanakku was born from a simple idea: make personal finance intuitive." },
+        { year: "2024", event: "KANKUwas born from a simple idea: make personal finance intuitive." },
         { year: "2025", event: "Launched AI-powered insights and investment tracking." },
         { year: "2026", event: "Reached 50,000 active users and added group expense splitting." }
     ];
@@ -79,7 +79,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
                         transition={{ delay: 0.1 }}
                         className="text-lg lg:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto"
                     >
-                        Kanakku started in 2024 with a simple goal: to replace complex spreadsheets and clunky bank apps with a beautiful, AI-powered tool that anyone can use to master their wealth.
+                        KANKUstarted in 2024 with a simple goal: to replace complex spreadsheets and clunky bank apps with a beautiful, AI-powered tool that anyone can use to master their wealth.
                     </motion.p>
                 </div>
             </section>
@@ -136,16 +136,16 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[3rem] p-10 lg:p-20 flex flex-col items-center text-center text-white overflow-hidden relative">
                         <div className="absolute bottom-0 right-0 w-64 h-64 bg-violet-500/20 rounded-full blur-3xl" />
-                        <KanakkuLogo className="w-16 h-16 mb-6 mx-auto" />
+                        <KANKULogo className="w-16 h-16 mb-6 mx-auto" />
                         <h2 className="text-3xl lg:text-5xl font-bold mb-6">Join the Revolution</h2>
                         <p className="text-gray-400 max-w-xl mx-auto mb-10 text-lg">
-                            Start managing your wealth smarter today. Join over 50k users who trust Kanakku for their financial journey.
+                            Start managing your wealth smarter today. Join over 50k users who trust KANKUfor their financial journey.
                         </p>
                         <button
                             onClick={onGetStarted}
                             className="px-8 py-4 rounded-full bg-white text-gray-900 font-bold text-sm lg:text-base hover:bg-gray-100 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-black/20"
                         >
-                            Get Started for Free 
+                            Get Started for Free
                         </button>
                     </div>
                 </div>
@@ -153,9 +153,10 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBack, onGetStarted, onNa
 
             {/* Footer Minimal */}
             <footer className="py-10 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400"> {new Date().getFullYear()} Kanakku. All rights reserved.</p>
+                <p className="text-xs text-gray-400"> {new Date().getFullYear()} KANKU. All rights reserved.</p>
             </footer>
         </div>
     );
 };
+
 

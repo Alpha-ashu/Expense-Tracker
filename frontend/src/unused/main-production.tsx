@@ -37,17 +37,17 @@ function initializeApp(): void {
       </React.StrictMode>
     );
 
-    console.log('Kanakku App initialized successfully in production mode');
+    console.log('KANKUApp initialized successfully in production mode');
   } catch (error) {
     console.error('Failed to initialize app:', error);
-    
+
     // Fallback rendering
     const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
     root.render(
       <div className="p-5 text-center font-sans">
         <h1>Application Error</h1>
         <p>Sorry, the application failed to load. Please refresh the page and try again.</p>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="px-5 py-2.5 bg-blue-600 text-white rounded cursor-pointer border-0"
         >

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LogOut, KeyRound, AlertCircle, ChevronLeft, ShieldCheck, Eye, EyeOff, Lock } from 'lucide-react';
-import { KanakkuLogo } from '@/app/components/ui/KanakkuLogo';
+import { KANKULogo } from '@/app/components/ui/KANKULogo';
 import { clearSecurityData, isPINSet, verifyPIN, storeMasterKey, backupPINKeys, restorePINKeys } from '@/lib/encryption';
 import { isPinMissing, isPinServiceUnavailable, pinService } from '@/services/pinService';
 import { toast } from 'sonner';
@@ -129,7 +129,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
       const t = setTimeout(handleSubmit, 120);
       return () => clearTimeout(t);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
 
   //  Submit logic 
@@ -165,15 +165,15 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               if (result.success) {
                 const backup = backupPINKeys();
                 if (backup.hash && backup.salt) {
-                  pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`).catch(() => {});
+                  pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`).catch(() => { });
                 }
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         }
 
         const key = storeMasterKey(pin);
-        await finalizeAuth(key, 'PIN created! Welcome to Kanakku ');
+        await finalizeAuth(key, 'PIN created! Welcome to KANKU');
 
       } else {
         //  Verify existing PIN (local-first) 
@@ -190,12 +190,12 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
                   if (repair.success) {
                     const backup = backupPINKeys();
                     if (backup.hash && backup.salt) {
-                      pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`).catch(() => {});
+                      pinService.saveKeyBackup(`${backup.hash}|${backup.salt}`).catch(() => { });
                     }
                   }
                 }
               })
-              .catch(() => {});
+              .catch(() => { });
           }
 
           await finalizeAuth(localResult.key, 'Welcome back!');
@@ -246,15 +246,15 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     }
   };
 
-  const handleForgotPin = () => { 
+  const handleForgotPin = () => {
     if (!user?.email) {
       toast.error('Email not found. Cannot reset PIN.');
       return;
     }
-    setResetError(''); 
+    setResetError('');
     setResetOtpSent(false);
     setResetOtp('');
-    setShowResetModal(true); 
+    setShowResetModal(true);
   };
 
   const handleSendOtp = async () => {
@@ -276,22 +276,22 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     setIsResettingPin(true);
     setResetError('');
     try {
-      const { error } = await supabase.auth.verifyOtp({ 
-        email: user!.email, 
-        token: resetOtp, 
-        type: 'email' 
+      const { error } = await supabase.auth.verifyOtp({
+        email: user!.email,
+        token: resetOtp,
+        type: 'email'
       });
       if (error) throw error;
-      
+
       const result = await pinService.resetCurrentUserPin();
-      if (!result.success) { 
-        setResetError(result.message || 'Failed to reset PIN on server'); 
-        return; 
+      if (!result.success) {
+        setResetError(result.message || 'Failed to reset PIN on server');
+        return;
       }
-      
+
       clearSecurityData();
       pinService.clearPinData();
-      
+
       setShowResetModal(false);
       setPin('');
       setFirstPin('');
@@ -314,7 +314,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     ? createStage === 'enter'
       ? 'Choose a 6-digit PIN to secure your account'
       : 'Re-enter the same PIN to confirm'
-    : 'Enter your PIN to access Kanakku';
+    : 'Enter your PIN to access KANKU';
 
   //  Loading skeleton 
   if (isLoading) {
@@ -322,7 +322,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a56f0]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-            <KanakkuLogo className="w-9 h-9" />
+            <KANKULogo className="w-9 h-9" />
           </div>
           <div className="w-7 h-7 border-3 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
@@ -357,7 +357,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           inputMode="numeric"
           autoComplete="current-password"
           value={pin}
-          onChange={() => {}}
+          onChange={() => { }}
           onKeyDown={handleHiddenKeyDown}
           tabIndex={0}
         />
@@ -367,9 +367,9 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         {/* Header */}
         <div className="pt-10 pb-6 flex flex-col items-center px-6">
           <div className="w-16 h-16 rounded-[24px] bg-white flex items-center justify-center mb-5 shadow-sm border border-slate-100">
-            <KanakkuLogo className="w-10 h-10" />
+            <KANKULogo className="w-10 h-10" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Kanakku</h1>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">KANKU</h1>
           <p className="text-sm text-gray-500 font-medium text-center">{currentStepSub}</p>
         </div>
 
@@ -401,19 +401,18 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               const isFilled = i < pin.length;
               const hasError = !!errorMsg && shake;
               const revealed = showReveal && i < pin.length ? pin[i] : undefined;
-              
+
               return (
                 <div
                   key={i}
-                  className={`w-12 h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-bold transition-all ${
-                    hasError
+                  className={`w-12 h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-bold transition-all ${hasError
                       ? 'border-red-400 bg-red-50 text-red-600'
                       : isActive
-                      ? 'border-gray-900 bg-white ring-4 ring-gray-100'
-                      : isFilled
-                      ? 'border-gray-900 bg-gray-900 text-white'
-                      : 'border-gray-200 bg-gray-50 text-transparent'
-                  } ${shake ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
+                        ? 'border-gray-900 bg-white ring-4 ring-gray-100'
+                        : isFilled
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 bg-gray-50 text-transparent'
+                    } ${shake ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
                 >
                   {revealed !== undefined ? revealed : isFilled ? '-' : ''}
                   {isActive && <div className="w-[2px] h-5 bg-gray-900 animate-[blink_1s_infinite]" />}
@@ -443,7 +442,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
 
           {/* Number pad */}
           <div className="grid grid-cols-3 gap-3">
-            {[1,2,3,4,5,6,7,8,9].map(n => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
               <button
                 key={n}
                 type="button"
@@ -595,4 +594,5 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
     </div>
   );
 };
+
 

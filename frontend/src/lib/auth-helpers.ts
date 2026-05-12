@@ -1,4 +1,4 @@
-// Unified Auth Helpers - Centralized authentication operations
+﻿// Unified Auth Helpers - Centralized authentication operations
 import supabase from '@/utils/supabase/client';
 import { handleLogout } from './auth-sync-integration';
 import { db } from './database';
@@ -37,7 +37,7 @@ export async function unifiedSignOut(_navigate?: (path: string) => void): Promis
     restorePINKeys(pinBackup);
 
     // Step 6: Delete local IndexedDB (non-blocking)
-    try { window.indexedDB.deleteDatabase('KanakkuDB'); } catch { }
+    try { window.indexedDB.deleteDatabase('KANKUDB'); } catch { }
 
     console.log(' Unified signout completed successfully');
 
@@ -51,7 +51,7 @@ export async function unifiedSignOut(_navigate?: (path: string) => void): Promis
       localStorage.clear();
       sessionStorage.clear();
       restorePINKeys(pinBackup);
-      window.indexedDB.deleteDatabase('KanakkuDB');
+      window.indexedDB.deleteDatabase('KANKUDB');
     } catch { }
     window.location.replace(window.location.origin + '?logged_out=1');
   }
@@ -77,7 +77,7 @@ export async function legacySignOut(): Promise<void> {
     restorePINKeys(pinBackup);
 
     try {
-      window.indexedDB.deleteDatabase('KanakkuDB');
+      window.indexedDB.deleteDatabase('KANKUDB');
     } catch (err) {
       console.warn('Failed to delete IndexedDB:', err);
     }
@@ -95,3 +95,4 @@ export async function legacySignOut(): Promise<void> {
     window.location.href = window.location.origin;
   }
 }
+

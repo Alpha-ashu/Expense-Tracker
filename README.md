@@ -1,9 +1,9 @@
-# Kanakku: Modern Expense Tracker
+﻿# KANKU: Modern Expense Tracker
 
 > [!IMPORTANT]
-> **AI DEVELOPER NOTICE**: Before making any changes, please read the [KANAKKU_DEVELOPER_CONTEXT.md](./KANAKKU_DEVELOPER_CONTEXT.md) for architecture rules and the design system guide.
+> **AI DEVELOPER NOTICE**: Before making any changes, please read the [KANKU_DEVELOPER_CONTEXT.md](./KANKU_DEVELOPER_CONTEXT.md) for architecture rules and the design system guide.
 
-Kanakku is a full-stack finance app with a React frontend, an Express/Prisma backend, Supabase integration, offline-first local storage, and AI-assisted import and receipt flows.
+KANKUis a full-stack finance app with a React frontend, an Express/Prisma backend, Supabase integration, offline-first local storage, and AI-assisted import and receipt flows.
 
 ## Repo map
 
@@ -61,3 +61,4 @@ npm --prefix backend test
 
 - Client-side env-based role assignment and local PIN authority have been removed; backend profile and PIN services are now authoritative.
 - The repo still contains historical docs and some one-off backend helper files. The README files added in this pass are the current navigation layer.
+

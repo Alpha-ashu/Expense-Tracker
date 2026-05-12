@@ -1,4 +1,4 @@
-import type { RealtimeChannel } from '@supabase/supabase-js';
+﻿import type { RealtimeChannel } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { apiClient } from '@/lib/api';
@@ -51,7 +51,7 @@ interface SyncQueueItem {
 
 const MAX_SYNC_RETRIES = 10;
 
-const SYNC_QUEUE_STORAGE_KEY = 'kanakku_sync_queue_v3';
+const SYNC_QUEUE_STORAGE_KEY = 'KANKU_sync_queue_v3';
 const CORE_SYNC_TABLES: SyncedTableName[] = [
   'accounts',
   'friends',
@@ -2004,7 +2004,7 @@ export function subscribeToUserCloudSync(userId: string) {
     };
   }
 
-  const channel = supabase.channel(`kanakku-user-sync-${userId}`);
+  const channel = supabase.channel(`KANKU-user-sync-${userId}`);
 
   for (const table of subscribableTables) {
     channel.on(
@@ -2097,7 +2097,7 @@ export async function saveTransactionWithBackendSync(transaction: any) {
 
     if (canSyncToBackend) {
       if (transaction.transferToAccountId && !transferTargetAccount?.cloudId) {
-        // Fall through to local save — target account not yet synced
+        // Fall through to local save â€” target account not yet synced
       } else {
         try {
           const response = await apiClient.post('/transactions', {
@@ -2459,3 +2459,4 @@ export async function checkBackendConnectivity(): Promise<boolean> {
     return false;
   }
 }
+

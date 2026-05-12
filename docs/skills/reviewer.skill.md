@@ -1,6 +1,6 @@
-# Reviewer Skill Reference – Kanakku
+﻿# Reviewer Skill Reference â€“ KANKU
 
-This document outlines the standards and checklist for code reviews in the Kanakku project.
+This document outlines the standards and checklist for code reviews in the KANKUproject.
 
 ---
 
@@ -34,5 +34,6 @@ This document outlines the standards and checklist for code reviews in the Kanak
 - [ ] **Circuit Breakers**: Are all outbound AI/API calls wrapped in the `withCircuitBreaker` utility?
 
 ## 6. Documentation
-- [ ] **Context Update**: If a major architectural decision was made, has `KANAKKU_DEVELOPER_CONTEXT.md` been updated?
+- [ ] **Context Update**: If a major architectural decision was made, has `KANKU_DEVELOPER_CONTEXT.md` been updated?
 - [ ] **Comments**: Are complex logic blocks explained with clear, concise comments?
+

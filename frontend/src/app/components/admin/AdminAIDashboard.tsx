@@ -49,7 +49,7 @@ import {
   YAxis,
 } from 'recharts';
 
-//  kanakku AI ADMIN DASHBOARD
+//  KANKUAI ADMIN DASHBOARD
 // Enhanced with new AI learning metrics and insights
 
 //  Types 

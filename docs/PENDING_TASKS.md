@@ -1,4 +1,4 @@
-# Kanakku  – Pending Tasks, Enhancements & Dependencies
+# KANKU – Pending Tasks, Enhancements & Dependencies
 
 > Last updated: 9 May 2026  
 > Use this file as the living backlog. Move items to `DONE` when completed.
@@ -161,11 +161,11 @@
 
 ```powershell
 # Backend
-cd C:\Users\sashra19\Documents\Intellij\Kanakku \backend
+cd C:\Users\sashra19\Documents\Intellij\KANKU\backend
 npm install express-async-errors
 
 # Frontend (from root)
-cd C:\Users\sashra19\Documents\Intellij\Kanakku 
+cd C:\Users\sashra19\Documents\Intellij\KANKU
 npm install @tanstack/react-query
 npm install -D @tanstack/react-query-devtools vite-bundle-visualizer @vitest/coverage-v8
 ```

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Smart Categorization Engine
  * Multi-layer text classification for financial transactions:
  *   Layer 1 - Exact keyword matching (fastest)
@@ -30,7 +30,7 @@ export interface LearnedMapping {
 // Storage keys
 // 
 
-const LEARNED_MAPPINGS_KEY = 'kanakku.smartCategorization.learnedMappings.v1';
+const LEARNED_MAPPINGS_KEY = 'KANKU.smartCategorization.learnedMappings.v1';
 
 // 
 // Keyword Database - extended with Indian context
@@ -601,3 +601,4 @@ export function confidenceLabel(confidence: number): string {
   if (confidence >= 0.45) return 'Low';
   return 'Very Low';
 }
+

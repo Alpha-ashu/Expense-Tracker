@@ -1,6 +1,6 @@
-# Frontend Skill Reference – Kanakku
+﻿# Frontend Skill Reference â€“ KANKU
 
-> Stack: React 18 · TypeScript (strict) · Vite · Capacitor · Dexie · Sonner · Tailwind CSS
+> Stack: React 18 Â· TypeScript (strict) Â· Vite Â· Capacitor Â· Dexie Â· Sonner Â· Tailwind CSS
 
 ---
 
@@ -19,26 +19,26 @@
 - **Single responsibility**: one component = one concern.
 - Prefer composition via `children` / render props over prop drilling.
 - Extract shared UI logic into custom hooks (`useTransactions`, `useGoals`, etc.) living in `frontend/src/hooks/`.
-- Use `React.memo` only when profiling shows it is needed – avoid premature optimisation.
+- Use `React.memo` only when profiling shows it is needed â€“ avoid premature optimisation.
 
 ### State Management
-- **Local state** → `useState` / `useReducer`.
-- **Cross-component state** → Context + `useReducer` (see `AuthContext`, `SettingsContext`).
-- **Server cache** → TanStack Query (`useQuery`, `useMutation`) where pages need live data.
-- **Offline data** → Dexie (see §4 below).
+- **Local state** â†’ `useState` / `useReducer`.
+- **Cross-component state** â†’ Context + `useReducer` (see `AuthContext`, `SettingsContext`).
+- **Server cache** â†’ TanStack Query (`useQuery`, `useMutation`) where pages need live data.
+- **Offline data** â†’ Dexie (see Â§4 below).
 
 ---
 
 ## 2. TypeScript Conventions
 
-- **Strict mode** is enabled in `tsconfig.json` – `noImplicitAny`, `strictNullChecks`, etc.
+- **Strict mode** is enabled in `tsconfig.json` â€“ `noImplicitAny`, `strictNullChecks`, etc.
 - Avoid `any`. Use `unknown` and narrow with type guards.
 - Define explicit interfaces/types for all DTOs. Never rely on raw backend shapes.
 - Use Zod schemas on the frontend to validate API responses before using them.
 - Prefer `interface` for object shapes that can be extended; `type` for unions/aliases.
 
 ```ts
-// ✅ Good
+// âœ… Good
 interface Transaction {
   id: string;
   amount: number;
@@ -46,7 +46,7 @@ interface Transaction {
   date: string;
 }
 
-// ❌ Avoid
+// âŒ Avoid
 const data: any = await api.transactions.getAll();
 ```
 
@@ -58,7 +58,7 @@ const data: any = await api.transactions.getAll();
 - **Standard Root**: All components live under `@/app/components/`.
 - **Absolute Imports**: Always use `@/app/components/{module}/{Component}`. Avoid `../../`.
 - Environment variables must be prefixed `VITE_` to be exposed to the browser.
-- Use `import.meta.env.VITE_API_URL` – never `process.env`.
+- Use `import.meta.env.VITE_API_URL` â€“ never `process.env`.
 - Build output goes to `dist/` which Capacitor syncs to the native project.
 
 ---
@@ -66,10 +66,10 @@ const data: any = await api.transactions.getAll();
 ## 4. Capacitor (Mobile Bridge)
 
 - All Capacitor plugin imports must be guarded with `Capacitor.isNativePlatform()` checks.
-- Use `@capacitor/core` → `Capacitor.getPlatform()` to branch logic between `web`, `android`, `ios`.
+- Use `@capacitor/core` â†’ `Capacitor.getPlatform()` to branch logic between `web`, `android`, `ios`.
 - Filesystem, Camera, and Biometric APIs require permissions declared in `AndroidManifest.xml`.
 - Call `CapacitorApp.addListener('backButton', ...)` to handle Android back button.
-- Never use `window.location.href` for in-app navigation – use React Router's `useNavigate()`.
+- Never use `window.location.href` for in-app navigation â€“ use React Router's `useNavigate()`.
 
 ```ts
 import { Capacitor } from '@capacitor/core';
@@ -90,7 +90,7 @@ if (Capacitor.isNativePlatform()) {
 - Add a `syncStatus: 'pending' | 'synced' | 'error'` field to every table that participates in cloud sync.
 - Add `updatedAt: number` (Unix ms timestamp) for conflict resolution.
 
-### Write Rule – Local First
+### Write Rule â€“ Local First
 ```ts
 // Always write to Dexie first, mark pending, then sync in background
 await db.transactions.put({ ...tx, syncStatus: 'pending', updatedAt: Date.now() });
@@ -109,14 +109,14 @@ syncQueue.enqueue(tx); // background sync
 - **Never** call `toast.error(rawServerMessage)` directly. Use `ErrorHandler.handle(ErrorFactory.fromHTTPStatus(status, friendlyMsg))`.
 - All fetch logic lives in `frontend/src/lib/api.ts` which already wraps errors and maps them to user-friendly messages.
 - Wrap page-level components with `<ErrorBoundary>` to catch render errors gracefully.
-- Log technical details with `console.error('[Context] message:', details)` – never render stack traces to the UI.
+- Log technical details with `console.error('[Context] message:', details)` â€“ never render stack traces to the UI.
 
 ```ts
-// ✅ Correct pattern
+// âœ… Correct pattern
 try {
   await api.transactions.create(data);
 } catch (err) {
-  // api.ts already showed the toast – just log locally
+  // api.ts already showed the toast â€“ just log locally
   console.error('[AddTransaction] Failed to create transaction:', err);
 }
 ```
@@ -127,12 +127,12 @@ try {
 
 - Use design tokens defined in `tailwind.config.ts` (colours, spacing, breakpoints).
 - **Glassmorphism**: Use `bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl`.
-- **Gradients**: Standardize on the Kanakku gradient: `#7B4CFF` to `#4A9EFF`.
+- **Gradients**: Standardize on the KANKUgradient: `#7B4CFF` to `#4A9EFF`.
 - **Typography**: Use **Outfit** or **Inter** as the primary font for a premium fintech feel.
 - **Rounded Corners**: Standardize on `rounded-2xl` for cards and `rounded-3xl` for containers.
 - **Micro-animations**: Use `framer-motion` for all state-driven UI changes.
-- Mobile-first breakpoints: `sm:` → 640px, `md:` → 768px, `lg:` → 1024px.
-- Dark mode is handled via `class` strategy – add `dark` to `<html>` rather than `prefers-color-scheme`.
+- Mobile-first breakpoints: `sm:` â†’ 640px, `md:` â†’ 768px, `lg:` â†’ 1024px.
+- Dark mode is handled via `class` strategy â€“ add `dark` to `<html>` rather than `prefers-color-scheme`.
 - Prefer utility classes over custom CSS.
 
 ---
@@ -150,8 +150,9 @@ try {
 
 - [ ] Route-level code splitting with `React.lazy`.
 - [ ] Image assets compressed and served from `/public` or a CDN.
-- [ ] No synchronous localStorage reads inside render – move to `useEffect`.
+- [ ] No synchronous localStorage reads inside render â€“ move to `useEffect`.
 - [ ] Avoid anonymous functions in JSX props on hot render paths.
 - [ ] Memo-ize expensive derived data with `useMemo`.
 - [ ] Run `vite build --report` to check bundle size before release.
+
 

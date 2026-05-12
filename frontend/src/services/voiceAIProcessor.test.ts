@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./kanakkuIntelligenceEngine', () => ({
-  kanakkuAI: {
+vi.mock('./KANKUIntelligenceEngine', () => ({
+  KANKUAI: {
     extractExpenseData: vi.fn(async () => ({
       amount: undefined,
       category: undefined,
@@ -40,3 +40,4 @@ describe('VoiceAIProcessor', () => {
     await expect(processor.processVoiceInput(audioFile)).rejects.toThrow('Offline audio transcription is not available yet');
   });
 });
+

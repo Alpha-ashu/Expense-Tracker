@@ -1,5 +1,5 @@
-{
-  "name": "kanakku-frontend",
+﻿{
+  "name": "KANKU-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -114,3 +114,4 @@
     "npm": ">=8.0.0"
   }
 }
+

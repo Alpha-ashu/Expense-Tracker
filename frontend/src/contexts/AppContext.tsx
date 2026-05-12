@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
@@ -115,7 +115,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Uses the stored merchant field that was saved alongside the transaction.
   useEffect(() => {
     if (transactions.length === 0) return;
-    const REPAIR_KEY = 'kanakku_description_repair_v2';
+    const REPAIR_KEY = 'KANKU_description_repair_v2';
     if (localStorage.getItem(REPAIR_KEY)) return;
 
     const toRepair = transactions.filter(
@@ -616,3 +616,4 @@ export const useApp = () => {
 };
 
 export const useOptionalApp = () => useContext(AppContext);
+

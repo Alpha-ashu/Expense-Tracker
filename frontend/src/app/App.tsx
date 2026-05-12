@@ -1,4 +1,4 @@
-import React, { useEffect, useState, Suspense, lazy, useRef } from 'react';
+﻿import React, { useEffect, useState, Suspense, lazy, useRef } from 'react';
 import { AppProvider, useOptionalApp } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
@@ -98,7 +98,7 @@ class PageErrorBoundary extends React.Component<
     return { error };
   }
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log full technical details for developers — never show to users
+    // Log full technical details for developers â€” never show to users
     console.error('[PageErrorBoundary] Caught render error:', {
       message: error.message,
       stack: error.stack,
@@ -109,7 +109,7 @@ class PageErrorBoundary extends React.Component<
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
-          <div className="text-4xl">⚠️</div>
+          <div className="text-4xl">âš ï¸</div>
           <h2 className="text-lg font-bold text-gray-900">Something went wrong</h2>
           <p className="text-sm text-gray-500 max-w-sm">
             We hit an unexpected problem loading this page. Please try again.
@@ -136,7 +136,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku...</p>
+          <p className="text-white text-base font-medium">Loading KANKU...</p>
         </div>
       </div>
     );
@@ -336,7 +336,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku...</p>
+          <p className="text-white text-base font-medium">Loading KANKU...</p>
         </div>
       </div>
     );
@@ -505,7 +505,7 @@ const AppContent: React.FC = () => {
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4" />
-          <p className="text-white text-base font-medium">Loading Kanakku...</p>
+          <p className="text-white text-base font-medium">Loading KANKU...</p>
         </div>
       </div>
     );
@@ -666,4 +666,5 @@ const App: React.FC = () => (
 );
 
 export default App;
+
 

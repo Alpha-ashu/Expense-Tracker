@@ -1,4 +1,4 @@
-// GoldEntry interface for gold assets
+﻿// GoldEntry interface for gold assets
 export interface GoldEntry {
   id?: number;
   type: 'gold' | 'jewelry' | 'coin';
@@ -568,7 +568,7 @@ export interface Notification {
 }
 
 // Database Class
-export class KanakkuDB extends Dexie {
+export class KANKUDB extends Dexie {
   accounts!: Table<Account>;
   friends!: Table<Friend>;
   transactions!: Table<Transaction>;
@@ -581,7 +581,7 @@ export class KanakkuDB extends Dexie {
   notifications!: Table<Notification>;
 
   constructor() {
-    super('KanakkuDB');
+    super('KANKUDB');
     this.version(1).stores({
       accounts: '++id, type, isActive',
       transactions: '++id, type, accountId, category, date',
@@ -610,7 +610,7 @@ export class KanakkuDB extends Dexie {
 }
 
 // Add additional tables for production features
-export class ProductionDB extends KanakkuDB {
+export class ProductionDB extends KANKUDB {
     gold!: Table<GoldEntry>;
   logs!: Table<{ id: string; level: string; message: string; timestamp: Date }>;
   errorReports!: Table<{ id: string; report: string; timestamp: Date }>;
@@ -1006,3 +1006,4 @@ export class OfflineSyncDB extends ProductionDB {
 }
 
 export const db = new OfflineSyncDB();
+

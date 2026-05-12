@@ -1,4 +1,4 @@
-import { kanakkuAI } from './kanakkuIntelligenceEngine';
+﻿import { KANKUAI } from './KANKUIntelligenceEngine';
 import { parseMultipleTransactions, parseVoiceExpense } from '@/lib/voiceExpenseParser';
 
 export interface VoiceExpenseResult {
@@ -64,14 +64,14 @@ class VoiceAIProcessor {
 
   private initializeSpeechRecognition(): void {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
+
     if (!SpeechRecognition) {
       console.warn(' Speech Recognition not supported in this browser');
       return;
     }
 
     this.recognition = new SpeechRecognition();
-    
+
     //  Optimized settings for expense recognition
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
@@ -114,7 +114,7 @@ class VoiceAIProcessor {
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
-          
+
           if (result.isFinal) {
             finalTranscript += result[0].transcript + ' ';
             console.log(` Final transcript: ${result[0].transcript}`);
@@ -128,7 +128,7 @@ class VoiceAIProcessor {
         if (finalTranscript.trim().length > 10) {
           const results = await this.parseVoiceExpenses(finalTranscript.trim());
           console.log(' Voice processing results:', results);
-          
+
           // Auto-resolve with first result for instant UX
           if (results.length > 0) {
             resolve(results);
@@ -145,7 +145,7 @@ class VoiceAIProcessor {
       this.recognition.onend = () => {
         console.log(' Speech recognition ended');
         this.isListening = false;
-        
+
         // Process final transcript if available
         if (finalTranscript.trim()) {
           this.parseVoiceExpenses(finalTranscript.trim())
@@ -222,7 +222,7 @@ class VoiceAIProcessor {
         date: this.extractDate(description),
       };
 
-      const aiResult = await kanakkuAI.extractExpenseData(description, 'voice', this.userId);
+      const aiResult = await KANKUAI.extractExpenseData(description, 'voice', this.userId);
       result.category = result.category || aiResult.category;
       result.confidence = Math.max(result.confidence, aiResult.confidence);
 
@@ -241,13 +241,13 @@ class VoiceAIProcessor {
   private splitIntoExpenseChunks(transcript: string): string[] {
     // Split on common separators
     const separators = [' and ', ' also ', ' plus ', ' with ', ' then ', ' next ', ',', ';'];
-    
+
     let chunks = [transcript];
-    
+
     for (const separator of separators) {
       chunks = chunks.flatMap(chunk => chunk.split(separator));
     }
-    
+
     return chunks
       .map(chunk => chunk.trim())
       .filter(chunk => chunk.length > 3);
@@ -255,7 +255,7 @@ class VoiceAIProcessor {
 
   private async parseSingleExpense(chunk: string): Promise<VoiceExpenseResult | null> {
     console.log(` Parsing expense chunk: "${chunk}"`);
-    
+
     const result: VoiceExpenseResult = {
       description: chunk,
       confidence: 0.5,
@@ -263,24 +263,24 @@ class VoiceAIProcessor {
 
     // Extract amount with multiple patterns
     result.amount = this.extractAmount(chunk);
-    
+
     // Extract merchant
     result.merchant = this.extractMerchant(chunk);
-    
+
     // Extract date
     result.date = this.extractDate(chunk);
-    
-    //  Use Kanakku AI for intelligent categorization
-    const aiResult = await kanakkuAI.extractExpenseData(chunk, 'voice', this.userId);
-    
+
+    //  Use KANKUAI for intelligent categorization
+    const aiResult = await KANKUAI.extractExpenseData(chunk, 'voice', this.userId);
+
     result.category = aiResult.category;
     result.confidence = Math.max(result.confidence, aiResult.confidence);
-    
+
     // Override with extracted values if AI didn't find them
     if (!result.amount && aiResult.amount) result.amount = aiResult.amount;
     if (!result.merchant && aiResult.merchant) result.merchant = aiResult.merchant;
     if (!result.date && aiResult.date) result.date = aiResult.date;
-    
+
     // Validate we have at least an amount
     if (!result.amount) {
       console.log(' No amount found in chunk');
@@ -335,7 +335,7 @@ class VoiceAIProcessor {
     ];
 
     const lowerText = text.toLowerCase();
-    
+
     for (const pattern of merchantPatterns) {
       const match = lowerText.match(pattern);
       if (match) {
@@ -375,7 +375,7 @@ class VoiceAIProcessor {
       const match = text.match(pattern);
       if (match) {
         let date: Date;
-        
+
         if (match[0].toLowerCase() === 'today') {
           date = new Date();
         } else if (match[0].toLowerCase() === 'yesterday') {
@@ -405,8 +405,8 @@ class VoiceAIProcessor {
   private wordsToNumber(text: string): number | null {
     const words: Record<string, number> = {
       one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-      eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, 
-      eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, 
+      eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
+      eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
       seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000, lakh: 100000, crore: 10000000
     };
 
@@ -462,14 +462,14 @@ class VoiceAIProcessor {
     feedback: 'positive' | 'negative' = 'positive'
   ): Promise<void> {
     console.log(` Learning from feedback: ${feedback}`);
-    
+
     // Extract merchant from corrected data for learning
     if (correctedExpense.merchant || correctedExpense.description) {
       const merchant = correctedExpense.merchant || correctedExpense.description;
       const category = correctedExpense.category;
-      
+
       if (merchant && category) {
-        await kanakkuAI.learnFromFeedback(
+        await KANKUAI.learnFromFeedback(
           this.userId,
           merchant,
           category,
@@ -488,3 +488,4 @@ export function createVoiceAIProcessor(userId: string): VoiceAIProcessor {
 
 // Export singleton for global use
 export const voiceAI = new VoiceAIProcessor('default-user');
+

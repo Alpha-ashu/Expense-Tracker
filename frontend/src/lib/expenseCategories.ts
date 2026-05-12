@@ -1,4 +1,4 @@
-interface ExpenseSubcategorySeed {
+﻿interface ExpenseSubcategorySeed {
   name: string;
   keywords?: string[];
 }
@@ -36,7 +36,7 @@ export interface ExpenseSubcategorySuggestion {
   isCustom?: boolean;
 }
 
-const CUSTOM_EXPENSE_SUBCATEGORIES_STORAGE_KEY = 'kanakku.customExpenseSubcategories.v1';
+const CUSTOM_EXPENSE_SUBCATEGORIES_STORAGE_KEY = 'KANKU.customExpenseSubcategories.v1';
 
 const normalizeText = (value: string) =>
   value
@@ -934,3 +934,4 @@ export function calculateTax(
     effectiveRate,
   };
 }
+

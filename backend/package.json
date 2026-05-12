@@ -1,7 +1,7 @@
-{
-  "name": "kanakku-backend",
+﻿{
+  "name": "KANKU-backend",
   "version": "1.0.0",
-  "description": "Backend API for Kanakku with TypeScript, Express, Prisma, JWT, Socket.IO",
+  "description": "Backend API for KANKUwith TypeScript, Express, Prisma, JWT, Socket.IO",
   "type": "commonjs",
   "main": "dist/server.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "keywords": [
-    "kanakku",
+    "KANKU",
     "expense-tracker",
     "typescript",
     "express",

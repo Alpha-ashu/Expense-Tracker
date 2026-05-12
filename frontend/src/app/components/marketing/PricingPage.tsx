@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Shield, Zap, Target, Star, Crown } from 'lucide-react';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
@@ -173,9 +173,10 @@ export const PricingPage: React.FC<PricingPageProps> = ({ onBack, onGetStarted, 
 
             {/* Footer Minimal */}
             <footer className="py-10 border-t border-gray-100 text-center">
-                <p className="text-xs text-gray-400"> {new Date().getFullYear()} Kanakku. All rights reserved.</p>
+                <p className="text-xs text-gray-400"> {new Date().getFullYear()} KANKU. All rights reserved.</p>
             </footer>
         </div>
     );
 };
+
 

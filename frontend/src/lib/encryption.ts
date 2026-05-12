@@ -1,8 +1,8 @@
 import CryptoJS from 'crypto-js';
 
 // Encryption key management
-const STORAGE_KEY = 'Kanakku _encrypted_key';
-const SALT_KEY = 'Kanakku _salt';
+const STORAGE_KEY = 'KANKU_encrypted_key';
+const SALT_KEY = 'KANKU_salt';
 
 /**
  * Call this BEFORE localStorage.clear() during signout.

@@ -1,15 +1,15 @@
-@import './fonts.css';
+﻿@import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
 @import './design-system.css';
-@import './kanakku-add-forms.css';
+@import './KANKU-add-forms.css';
 
 
 
 /* Uncomment for debugging mobile issues: */
 /* @import './mobile-test-classes.css'; */
 
-/* ─── Universal horizontal overflow prevention ───────────────────────────── */
+/* â”€â”€â”€ Universal horizontal overflow prevention â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 html, body, #root {
   overflow-x: hidden;
   max-width: 100%;
@@ -336,3 +336,4 @@ html {
 .live-market-flash-track:hover {
   animation-play-state: paused;
 }
+

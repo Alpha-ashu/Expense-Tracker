@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { canInstallPWA, showInstallPrompt, isAppInstalled } from '@/lib/pwa';
@@ -86,7 +86,7 @@ export const PWAInstallPrompt: React.FC = () => {
                     <Smartphone className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">Install Kanakku</h3>
+                    <h3 className="font-bold text-lg">Install KANKU</h3>
                     <p className="text-xs text-blue-100 mt-0.5">Quick access from your home screen</p>
                   </div>
                 </div>
@@ -142,3 +142,4 @@ export const PWAInstallPrompt: React.FC = () => {
     </AnimatePresence>
   );
 };
+

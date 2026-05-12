@@ -130,10 +130,10 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
     setRows((currentRows) => currentRows.map((row) => (
       row.accountResolution === 'fallback'
         ? {
-            ...row,
-            accountId,
-            resolvedAccountName: fallbackAccount?.name ?? row.resolvedAccountName,
-          }
+          ...row,
+          accountId,
+          resolvedAccountName: fallbackAccount?.name ?? row.resolvedAccountName,
+        }
         : row
     )));
   };
@@ -143,10 +143,10 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
       currentRows.map((row) =>
         row.id === rowId
           ? {
-              ...row,
-              category,
-              categoryResolution: 'manual',
-            }
+            ...row,
+            category,
+            categoryResolution: 'manual',
+          }
           : row,
       ),
     );
@@ -483,7 +483,7 @@ export const ImportDataModal: React.FC<ImportDataModalProps> = ({
                     <Database size={18} />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-amber-900">Kanakku backup detected</h4>
+                    <h4 className="font-semibold text-amber-900">KANKUbackup detected</h4>
                     <p className="mt-1 text-sm text-amber-800">
                       Restoring this file will replace your current local data.
                     </p>

@@ -39,7 +39,7 @@ const client = new Client({ connectionString });
 async function main() {
   await client.connect();
 
-  console.log('[ensure-cloud-sync-schema] Applying Kanakku  cloud sync schema...');
+  console.log('[ensure-cloud-sync-schema] Applying KANKU cloud sync schema...');
   await client.query('BEGIN');
 
   try {

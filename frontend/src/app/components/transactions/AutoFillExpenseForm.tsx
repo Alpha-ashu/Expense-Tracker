@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Camera, Mic, Upload, X, Check, AlertCircle, Zap, Brain } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ocrEngine, ExpenseData } from '@/services/tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from '@/services/voiceAIProcessor';
-import { kanakkuAI } from '@/services/kanakkuIntelligenceEngine';
+import { KANKUAI } from '@/services/KANKUIntelligenceEngine';
 
 //  AUTO-FILL EXPENSE FORM LOGIC
 // This component provides instant UX with AI-powered form filling
@@ -52,12 +52,12 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     setExtractedData(null);
 
     try {
-      console.log(' Processing image with Kanakku AI OCR...');
+      console.log(' Processing image with KANKUAI OCR...');
       const startTime = performance.now();
 
-      //  Use Tesseract OCR + Kanakku AI
+      //  Use Tesseract OCR + KANKUAI
       const ocrResult = await ocrEngine.extractExpenseData(imageFile);
-      
+
       const processingTime = performance.now() - startTime;
       console.log(` OCR + AI processing completed in ${processingTime.toFixed(2)}ms`);
 
@@ -76,7 +76,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
 
         console.log(' Auto-filling form with data:', formData);
         onExpenseData(formData);
-        
+
         // Auto-close after successful fill
         setTimeout(() => onClose(), 1000);
       }
@@ -96,11 +96,11 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     setExtractedData(null);
 
     try {
-      console.log(' Starting voice input with Kanakku AI...');
-      
-      //  Use Voice AI + Kanakku Intelligence
+      console.log(' Starting voice input with KANKUAI...');
+
+      //  Use Voice AI + KANKUIntelligence
       const voiceResults = await voiceProcessor.startListening();
-      
+
       if (voiceResults.length > 0) {
         const result = voiceResults[0]; // Use first result
         setExtractedData(result);
@@ -118,7 +118,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
 
           console.log(' Auto-filling form with voice data:', formData);
           onExpenseData(formData);
-          
+
           // Auto-close after successful fill
           setTimeout(() => onClose(), 1000);
         }
@@ -187,7 +187,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     try {
       // Learn from user feedback
       if ('merchant' in extractedData && extractedData.merchant) {
-        await kanakkuAI.learnFromFeedback(
+        await KANKUAI.learnFromFeedback(
           userId,
           extractedData.merchant,
           extractedData.category || 'Others',
@@ -234,7 +234,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Brain className="w-5 h-5" />
-              <h3 className="font-semibold">Kanakku AI</h3>
+              <h3 className="font-semibold">KANKUAI</h3>
             </div>
             <button
               onClick={onClose}
@@ -252,33 +252,30 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
         <div className="flex border-b border-gray-200">
           <button
             onClick={() => setActiveTab('camera')}
-            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-              activeTab === 'camera'
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${activeTab === 'camera'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Camera className="w-4 h-4 inline mr-2" />
             Camera
           </button>
           <button
             onClick={() => setActiveTab('voice')}
-            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-              activeTab === 'voice'
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${activeTab === 'voice'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Mic className="w-4 h-4 inline mr-2" />
             Voice
           </button>
           <button
             onClick={() => setActiveTab('upload')}
-            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-              activeTab === 'upload'
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${activeTab === 'upload'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Upload className="w-4 h-4 inline mr-2" />
             Upload
@@ -297,7 +294,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
             <div className="text-center py-8">
               <div className="inline-flex items-center space-x-3">
                 <Zap className="w-6 h-6 text-blue-600 animate-pulse" />
-                <span className="text-gray-600">Processing with Kanakku AI...</span>
+                <span className="text-gray-600">Processing with KANKUAI...</span>
               </div>
             </div>
           ) : extractedData ? (
@@ -325,14 +322,14 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
                     INR{extractedData.amount?.toLocaleString('en-IN') || 'Not detected'}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Category</span>
                   <span className="font-semibold">
                     {extractedData.category || 'Not detected'}
                   </span>
                 </div>
-                
+
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Description</span>
                   <span className="font-semibold text-right max-w-[200px] truncate">
@@ -341,7 +338,7 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
                       : extractedData.merchant || `${extractedData.rawText?.substring(0, 50) || 'Expense from receipt'}...`}
                   </span>
                 </div>
-                
+
                 {('date' in extractedData && extractedData.date) && (
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm text-gray-600">Date</span>
@@ -444,4 +441,5 @@ export const AutoFillExpenseForm: React.FC<AutoFillExpenseFormProps> = ({
     </div>
   );
 };
+
 

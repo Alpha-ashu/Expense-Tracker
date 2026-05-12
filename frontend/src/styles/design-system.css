@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   /* Spacing Tokens */
   --space-xs: 0.25rem;  /* 4px */
   --space-sm: 0.5rem;   /* 8px */
@@ -32,7 +32,7 @@
   }
 }
 
-/* ─── Global Layout System ────────────────────────────────────────────────── */
+/* â”€â”€â”€ Global Layout System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .layout-container {
   width: 100%;
@@ -72,9 +72,9 @@
   z-index: 10;
 }
 
-/* ─── Standardized Components ────────────────────────────────────────────── */
+/* â”€â”€â”€ Standardized Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-.kanakku-card {
+.KANKU-card {
   background-color: white;
   border-radius: var(--radius-xl);
   padding: var(--space-2xl);
@@ -84,7 +84,7 @@
   flex-direction: column;
 }
 
-.kanakku-btn {
+.KANKU-btn {
   height: var(--h-button);
   padding: 0 var(--space-xl);
   border-radius: var(--radius-md);
@@ -99,28 +99,28 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.kanakku-btn-primary {
+.KANKU-btn-primary {
   background-color: #EF4444; /* Standard Red */
   color: white;
   box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
 }
 
-.kanakku-btn-primary:hover {
+.KANKU-btn-primary:hover {
   background-color: #DC2626;
   transform: translateY(-1px);
 }
 
-.kanakku-btn-secondary {
+.KANKU-btn-secondary {
   background-color: #F8FAFC;
   color: #475569;
   border: 1px solid #E2E8F0;
 }
 
-.kanakku-btn-secondary:hover {
+.KANKU-btn-secondary:hover {
   background-color: #F1F5F9;
 }
 
-.kanakku-input {
+.KANKU-input {
   width: 100%;
   height: var(--h-input);
   background-color: #F8FAFC;
@@ -132,16 +132,16 @@
   transition: all 0.2s ease;
 }
 
-.kanakku-input:focus {
+.KANKU-input:focus {
   outline: none;
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.05);
 }
 
-.kanakku-input::placeholder {
+.KANKU-input::placeholder {
   color: #CBD5E1;
 }
 
-.kanakku-search-bar {
+.KANKU-search-bar {
   background-color: #F8FAFC;
   border: 1px solid #F1F5F9;
   border-radius: var(--radius-md);
@@ -153,16 +153,16 @@
   transition: all 0.2s ease;
 }
 
-.kanakku-search-bar:focus {
+.KANKU-search-bar:focus {
   background-color: white;
   border-color: #E2E8F0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   outline: none;
 }
 
-/* ─── Typography & Alignment Utilities ────────────────────────────────────── */
+/* â”€â”€â”€ Typography & Alignment Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-.kanakku-label {
+.KANKU-label {
   font-size: 0.625rem; /* 10px */
   font-weight: 900;
   color: #94A3B8;
@@ -188,7 +188,7 @@
   justify-content: center;
 }
 
-/* ─── Header Specifics ────────────────────────────────────────────────── */
+/* â”€â”€â”€ Header Specifics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .page-title {
   font-size: 1.5rem;
@@ -238,3 +238,4 @@
 .segment-btn-inactive:hover {
   color: #64748B;
 }
+
