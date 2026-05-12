@@ -64,6 +64,7 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
     - Fixed selection persistence and preview updates in the profile editor.
     - Standardized date formatting to `DD-MMM-YYYY` (e.g., 25-Aug-1996) using a custom Popover/Calendar component.
     - Applied precision rounding (`Math.round`) to all monthly income calculations to resolve floating-point display errors.
+    - **Update Logic Stabilization**: Refactored `avatar-gallery.ts` resolution logic to handle external URLs with query parameters correctly and simplified the `UserProfile` preview logic to use a single-source state (`tempData`), ensuring zero-latency UI updates during selection.
     - **Note**: The User Profile page is now considered "Perfect" and is frozen for future changes.
 
 ### **Last Updated: 2026-05-12 (Morning)**

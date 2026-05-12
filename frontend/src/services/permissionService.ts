@@ -13,7 +13,7 @@ import { TokenManager } from '@/lib/api';
 import supabase from '@/utils/supabase/client';
 
 const API_BASE = getConfiguredApiBase();
-const PROFILE_LOOKUP_TIMEOUT_MS = 5000;
+const PROFILE_LOOKUP_TIMEOUT_MS = 15000;
 
 const normalizeUserRole = (value: unknown): UserRole => {
   if (value === 'admin' || value === 'advisor' || value === 'user') {
