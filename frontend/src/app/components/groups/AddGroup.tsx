@@ -105,7 +105,7 @@ export const AddGroup: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-auto lg:h-screen bg-[#F8FAFC] lg:overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F8FAFC] overflow-hidden">
 
       {/* High Density Header */}
       <header className="px-4 lg:px-6 py-4 bg-white border-b border-slate-100">
@@ -132,12 +132,12 @@ export const AddGroup: React.FC = () => {
       </header>
 
       {/* Main Single-Page Content Area */}
-      <main className="flex-1 p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-5 lg:overflow-hidden lg:overflow-y-auto pb-32 lg:pb-5">
+      <main className="flex-1 p-3 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 overflow-y-auto pb-32 lg:pb-6">
         
         {/* Left Column: context & types (lg:col-7) */}
-        <div className="lg:col-span-7 flex flex-col gap-3 lg:overflow-y-auto">
+        <div className="lg:col-span-7 flex flex-col gap-4">
           
-          <div className="premium-glass-card p-4 space-y-4">
+          <div className="premium-glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
             <div className="space-y-1">
               <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Group / Expense Name</label>
               <div className="relative">
@@ -160,7 +160,7 @@ export const AddGroup: React.FC = () => {
                   value={formData.category}
                   onChange={val => setFormData(prev => ({ ...prev, category: val }))}
                   placeholder="Category"
-                  className="bg-slate-50 border-none rounded-xl h-10 font-bold text-xs"
+                  triggerClassName="bg-slate-50 border-none rounded-xl h-12 font-bold text-xs shadow-none"
                 />
               </div>
               <div className="space-y-1">
@@ -191,7 +191,7 @@ export const AddGroup: React.FC = () => {
             </div>
 
             {/* Participants Section */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
+            <div className="space-y-4 pt-4 border-t border-slate-100">
                <div className="flex items-center justify-between">
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Split with Participants</label>
                   <div className="flex gap-2">
@@ -230,7 +230,7 @@ export const AddGroup: React.FC = () => {
                  </div>
                )}
 
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto no-scrollbar">
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] lg:max-h-[400px] overflow-y-auto no-scrollbar">
                   {/* Fixed "You" Participant */}
                   <div className="flex items-center gap-2 p-2.5 bg-slate-100/50 rounded-xl border border-slate-100">
                     <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center text-[10px] font-black text-white">ME</div>
@@ -263,26 +263,43 @@ export const AddGroup: React.FC = () => {
         </div>
 
         {/* Right Column: Financials (lg:col-5) */}
-        <div className="lg:col-span-5 flex flex-col gap-3 lg:overflow-y-auto">
+        <div className="lg:col-span-5 flex flex-col gap-4">
           
           {/* Total Amount Input Card */}
           <div className="premium-glass-card p-6 bg-white relative overflow-hidden flex flex-col items-center">
              <div className="absolute -top-10 -right-10 w-32 h-32 bg-violet-500/5 blur-[40px] rounded-full" />
              <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-2">Total Group Bill</span>
-             <div className="flex items-center gap-3">
-                <span className="text-3xl font-black text-slate-200 uppercase">{currency}</span>
-                <input 
-                  type="number" 
-                  value={amountStr} 
-                  onChange={e => { setAmountStr(e.target.value); setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) || 0 })); }}
-                  className="bg-transparent text-5xl font-black text-slate-900 outline-none w-[200px] text-center tracking-tighter" 
-                  placeholder="0.00"
-                  autoFocus
-                />
-             </div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                 <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-200 uppercase">{currency}</span>
+                 <input 
+                   type="number" 
+                   value={amountStr} 
+                   onChange={e => { setAmountStr(e.target.value); setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) || 0 })); }}
+                   className="bg-transparent text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 outline-none w-full max-w-[250px] text-center tracking-tighter" 
+                   placeholder="0.00"
+                   autoFocus
+                 />
+              </div>
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                {[100, 500, 1000, 2000].map(amt => (
+                  <button 
+                    key={amt} 
+                    type="button"
+                    onClick={() => { 
+                      const current = parseFloat(amountStr) || 0;
+                      const next = current + amt;
+                      setAmountStr(String(next));
+                      setFormData(prev => ({ ...prev, totalAmount: next }));
+                    }} 
+                    className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-500 hover:bg-slate-900 hover:text-white hover:border-slate-900 hover:shadow-lg hover:shadow-slate-200 transition-all active:scale-95"
+                  >
+                    +{amt}
+                  </button>
+                ))}
+              </div>
           </div>
 
-          <div className="premium-glass-card p-5 space-y-4">
+          <div className="premium-glass-card p-4 sm:p-6 space-y-5">
              <div className="flex items-center justify-between">
                 <div>
                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Split Calculation</p>
@@ -296,20 +313,20 @@ export const AddGroup: React.FC = () => {
              <div className="p-4 bg-slate-900 rounded-2xl text-white relative overflow-hidden">
                 <div className="absolute -top-6 -right-6 w-20 h-20 bg-white/5 blur-[20px] rounded-full" />
                 <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Your Share</p>
-                <div className="flex items-baseline gap-2">
-                   <span className="text-lg font-black text-white/20">{currency}</span>
-                   <span className="text-4xl font-black tracking-tighter">{perPerson.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                   <div className="flex -space-x-2">
-                      <div className="w-5 h-5 rounded-full bg-violet-500 border-2 border-slate-900 flex items-center justify-center text-[6px] font-black">YOU</div>
-                      {validParticipants.slice(0, 3).map((p, i) => (
-                        <div key={i} className="w-5 h-5 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center text-[6px] font-black uppercase">{p[0] || '?'}</div>
-                      ))}
-                      {validParticipants.length > 3 && <div className="w-5 h-5 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[6px] font-black">+{validParticipants.length - 3}</div>}
-                   </div>
-                   <span className="text-[9px] font-black text-white/40 uppercase">Total {validParticipants.length + 1} People</span>
-                </div>
+                 <div className="flex items-baseline gap-2">
+                    <span className="text-sm sm:text-lg font-black text-white/20">{currency}</span>
+                    <span className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter">{perPerson.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                 </div>
+                 <div className="mt-4 flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                       <div className="w-6 h-6 rounded-full bg-violet-500 border-2 border-slate-900 flex items-center justify-center text-[7px] font-black">YOU</div>
+                       {validParticipants.slice(0, 3).map((p, i) => (
+                         <div key={i} className="w-6 h-6 rounded-full bg-slate-700 border-2 border-slate-900 flex items-center justify-center text-[7px] font-black uppercase">{p[0] || '?'}</div>
+                       ))}
+                       {validParticipants.length > 3 && <div className="w-6 h-6 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[7px] font-black">+{validParticipants.length - 3}</div>}
+                    </div>
+                    <span className="text-[10px] font-black text-white/40 uppercase tracking-tight">Total {validParticipants.length + 1} People</span>
+                 </div>
              </div>
           </div>
 
@@ -322,17 +339,17 @@ export const AddGroup: React.FC = () => {
           </div>
 
           {/* Final Summary Card */}
-          <div className="p-4 bg-violet-600 rounded-2xl text-white flex items-center justify-between shadow-xl shadow-violet-100">
+          <div className="p-5 bg-violet-600 rounded-2xl text-white flex items-center justify-between shadow-xl shadow-violet-100 mt-auto">
              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center"><Users size={16} className="text-white" /></div>
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center"><Users size={20} className="text-white" /></div>
                 <div>
-                  <p className="text-[8px] font-black text-white/60 uppercase">Group Summary</p>
-                  <p className="text-[10px] font-black truncate max-w-[120px]">{formData.name || 'New Group bill'}</p>
+                  <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Group Summary</p>
+                  <p className="text-xs font-black truncate max-w-[140px]">{formData.name || 'New Group bill'}</p>
                 </div>
              </div>
              <div className="text-right">
-                <p className="text-[8px] font-black text-white/60 uppercase">Total Bill</p>
-                <p className="text-lg font-black tracking-tighter">{currency} {totalNum.toLocaleString()}</p>
+                <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Total Bill</p>
+                <p className="text-xl sm:text-2xl font-black tracking-tighter">{currency} {totalNum.toLocaleString()}</p>
              </div>
           </div>
         </div>

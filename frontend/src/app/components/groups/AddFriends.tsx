@@ -54,7 +54,7 @@ export const AddFriends: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-auto lg:h-screen bg-[#F8FAFC] lg:overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#F8FAFC] overflow-hidden">
 
       {/* Header */}
       <header className="px-4 lg:px-6 py-4 bg-white border-b border-slate-100">
@@ -80,11 +80,11 @@ export const AddFriends: React.FC = () => {
       </header>
 
       {/* Main Single-Page Content Area */}
-      <main className="flex-1 p-3 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-5 lg:overflow-hidden lg:overflow-y-auto pb-32 lg:pb-5">
+      <main className="flex-1 p-3 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 overflow-y-auto pb-32 lg:pb-6">
         
         {/* Left Column: Form (lg:col-7) */}
-        <div className="lg:col-span-7 flex flex-col gap-3 lg:overflow-y-auto">
-          <div className="premium-glass-card p-4 space-y-4">
+        <div className="lg:col-span-7 flex flex-col gap-4">
+          <div className="premium-glass-card p-4 sm:p-6 space-y-4 sm:space-y-6">
              <div className="space-y-1">
                 <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Friend Name</label>
                 <div className="relative">
@@ -137,7 +137,7 @@ export const AddFriends: React.FC = () => {
         </div>
 
         {/* Right Column: Queue (lg:col-5) */}
-        <div className="lg:col-span-5 flex flex-col gap-3 overflow-hidden">
+        <div className="lg:col-span-5 flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending List ({queue.length})</h3>
              {queue.length > 0 && <button onClick={() => setQueue([])} className="text-[8px] font-black text-rose-500 uppercase tracking-widest hover:underline">Clear All</button>}
@@ -145,7 +145,7 @@ export const AddFriends: React.FC = () => {
 
           <div className="flex-1 lg:overflow-y-auto space-y-2">
              {queue.map((f, i) => (
-               <div key={i} className="premium-glass-card p-3 flex items-center justify-between group animate-in slide-in-from-right-2">
+               <div key={i} className="premium-glass-card p-3 sm:p-4 flex items-center justify-between group animate-in slide-in-from-right-2">
                   <div className="flex items-center gap-3">
                      <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs">{f.name[0].toUpperCase()}</div>
                      <div>

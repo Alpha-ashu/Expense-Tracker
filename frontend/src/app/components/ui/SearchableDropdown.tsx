@@ -25,6 +25,7 @@ interface SearchableDropdownProps {
   id?: string;
   grouped?: boolean;
   renderTrigger?: (selected: DropdownOption | undefined, open: boolean) => React.ReactNode;
+  triggerClassName?: string;
 }
 
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
@@ -41,6 +42,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   id,
   grouped = false,
   renderTrigger,
+  triggerClassName,
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -196,14 +198,15 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           onClick={openDropdown}
           onKeyDown={handleKeyDown}
           className={cn(
-            'w-full flex items-center gap-2 rounded-2xl p-5 bg-white border border-slate-100 text-left transition-all shadow-sm',
+            'w-full flex items-center gap-2 rounded-2xl px-4 py-3 bg-white border border-slate-100 text-left transition-all shadow-sm min-h-[48px]',
             'focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:border-indigo-400',
             open ? 'ring-2 ring-indigo-400/60 border-indigo-400' : error ? 'border-rose-400 bg-rose-50/50' : 'hover:border-slate-300',
             disabled && 'opacity-60 cursor-not-allowed',
+            triggerClassName
           )}
         >
-          {selected?.icon && <span className="shrink-0 text-base">{selected.icon}</span>}
-          <span className={cn('flex-1 text-sm font-medium truncate', selected ? 'text-gray-900' : 'text-gray-400')}>
+          {selected?.icon && <span className="shrink-0 text-base flex items-center justify-center">{selected.icon}</span>}
+          <span className={cn('flex-1 text-sm font-bold truncate', selected ? 'text-gray-900' : 'text-gray-400')}>
             {selected?.label ?? placeholder}
           </span>
           <ChevronDown size={16} className={cn('shrink-0 text-gray-400 transition-transform duration-200', open && 'rotate-180')} />
