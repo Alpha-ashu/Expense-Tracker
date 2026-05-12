@@ -6,11 +6,7 @@
   "functions": {
     "api/*.ts": {
       "maxDuration": 30,
-      "includeFiles": [
-        "backend/dist/**",
-        "backend/prisma/**",
-        "backend/generated/**"
-      ]
+      "includeFiles": "backend/**"
     }
   },
   "routes": [
