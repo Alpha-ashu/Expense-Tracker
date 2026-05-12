@@ -15,6 +15,9 @@ import { calculateAge, getAgeGroup, getAgeGroupLabel } from '@/lib/avatar';
 import { AVATAR_OPTIONS, DEFAULT_AVATAR, resolveAvatarSelection } from '@/lib/avatar-gallery';
 import { api } from '@/lib/api';
 import { shouldSkipOptionalBackendRequests } from '@/lib/apiBase';
+import { format, parseISO } from 'date-fns';
+import { Calendar as CalendarUI } from '@/app/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/ui/popover';
 import { pinService } from '@/services/pinService';
 
 interface ProfileData {
@@ -715,9 +718,6 @@ export const UserProfile: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 text-center max-w-sm">
-                  Choose a ready-made avatar from the gallery. Real photos are disabled for safety.
-                </p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <button
                     onClick={() => {
@@ -798,7 +798,7 @@ export const UserProfile: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
+                <Card className="overflow-hidden relative bg-white border border-gray-200 rounded-2xl p-6 lg:p-8 shadow-sm">
                   {/* Header row */}
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="text-lg font-bold text-gray-900">Basic Information</h3>
@@ -843,7 +843,7 @@ export const UserProfile: React.FC = () => {
                         </span>
                         <span className="text-sm font-semibold text-gray-900">
                           {profileData.dateOfBirth
-                            ? new Date(profileData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                            ? format(parseISO(profileData.dateOfBirth), 'dd-MMM-yyyy')
                             : ''}
                         </span>
                       </div>
@@ -916,15 +916,34 @@ export const UserProfile: React.FC = () => {
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                             <Calendar size={12} className="text-gray-400" /> Date of Birth
                           </label>
-                          <input
-                            type="date"
-                            value={tempData.dateOfBirth}
-                            onChange={(e) => setTempData({ ...tempData, dateOfBirth: e.target.value })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            aria-label="Date of birth"
-                            id="dateOfBirth"
-                            name="dateOfBirth"
-                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-left flex items-center justify-between bg-white"
+                                aria-label="Date of birth"
+                                id="dateOfBirth"
+                              >
+                                <span className={tempData.dateOfBirth ? 'text-gray-900' : 'text-gray-400'}>
+                                  {tempData.dateOfBirth ? format(parseISO(tempData.dateOfBirth), 'dd-MMM-yyyy') : 'Select date'}
+                                </span>
+                                <Calendar size={14} className="text-gray-400" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 bg-white" align="start">
+                              <CalendarUI
+                                mode="single"
+                                selected={tempData.dateOfBirth ? parseISO(tempData.dateOfBirth) : undefined}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    setTempData({ ...tempData, dateOfBirth: format(date, 'yyyy-MM-dd') });
+                                  }
+                                }}
+                                disabled={(date) => date > new Date()}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </div>
 
@@ -980,7 +999,7 @@ export const UserProfile: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
               >
-                <Card className="bg-white border border-gray-200 rounded-2xl p-6 lg:p-8">
+                <Card className="overflow-hidden relative bg-white border border-gray-200 rounded-2xl p-6 lg:p-8 shadow-sm">
                   {/* Header row */}
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">

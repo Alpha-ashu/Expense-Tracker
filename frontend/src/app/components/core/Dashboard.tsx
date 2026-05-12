@@ -269,8 +269,8 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
 
         {/* Header */}
         <div className="px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 lg:pt-8 pb-4 lg:pb-6">
-          <PageHeader 
-            title="Financial Overview" 
+          <PageHeader
+            title="DashBoard"
             subtitle={`Hello! Here's what's happening with your money ${timePeriod === 'all' ? 'overall' : 'this ' + timePeriod.replace('ly', '')}`}
             icon={<Activity size={24} />}
           >
@@ -332,7 +332,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 </div>
               )}
             </div>
-            
+
           </Card>
         </div>
 
@@ -646,18 +646,18 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                   {openInvestments.slice(0, 3).map((inv) => {
                     const metrics = getDashboardInvestmentMetrics(inv);
                     return (
-                    <div key={inv.id} className="flex items-center justify-between py-2.5">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{getInvestmentDisplayName(inv.assetName)}</p>
-                        <p className="text-xs text-gray-400 capitalize">{inv.assetType}  {metrics.assetCurrency}</p>
+                      <div key={inv.id} className="flex items-center justify-between py-2.5">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{getInvestmentDisplayName(inv.assetName)}</p>
+                          <p className="text-xs text-gray-400 capitalize">{inv.assetType}  {metrics.assetCurrency}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-gray-900">{formatCurrency(metrics.currentValue)}</p>
+                          <p className={cn("text-xs font-semibold", metrics.profitLoss >= 0 ? "text-green-600" : "text-red-500")}>
+                            {metrics.profitLoss >= 0 ? '+' : ''}{formatCurrency(metrics.profitLoss)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gray-900">{formatCurrency(metrics.currentValue)}</p>
-                        <p className={cn("text-xs font-semibold", metrics.profitLoss >= 0 ? "text-green-600" : "text-red-500")}>
-                          {metrics.profitLoss >= 0 ? '+' : ''}{formatCurrency(metrics.profitLoss)}
-                        </p>
-                      </div>
-                    </div>
                     );
                   })}
                 </div>

@@ -53,7 +53,20 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 ## 📜 Change Log & Evolution
 
-### **Last Updated: 2026-05-12**
+### **Last Updated: 2026-05-12 (Evening)**
+**Refactor: Sync Stabilization & User Profile Finalization**
+
+1.  **Synchronization Engine Stabilization**:
+    - Standardized `cloudId` (camelCase) indexing across `backend-sync-service.ts`, `sync-service.ts`, and `offline-sync-engine.ts`.
+    - Resolved persistent `SchemaError` by aligning codebase field names with Dexie Version 11 schema.
+2.  **User Profile Finalization**:
+    - Implemented a modernized **Avatar Gallery** with 28 curated high-quality characters (DiceBear).
+    - Fixed selection persistence and preview updates in the profile editor.
+    - Standardized date formatting to `DD-MMM-YYYY` (e.g., 25-Aug-1996) using a custom Popover/Calendar component.
+    - Applied precision rounding (`Math.round`) to all monthly income calculations to resolve floating-point display errors.
+    - **Note**: The User Profile page is now considered "Perfect" and is frozen for future changes.
+
+### **Last Updated: 2026-05-12 (Morning)**
 **Refactor: Account Module Finalization & Design Standardization**
 
 1.  **Account Module Stabilization**:
@@ -108,4 +121,4 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 2. **Standard Headers**: Use `PageHeader` from UI for consistency across modules.
 3. **Local-First**: Always ensure data is saved to `localStorage` or `Dexie` before syncing to the cloud.
 4. **Theme Check**: If a component looks like "Standard Tailwind/Bootstrap," it is wrong. Apply glassmorphism and the primary gradient.
-5. **Frozen Pages**: The **Account Page** and **Add Account** sub-page are finalized. **DO NOT** modify their layout, logic, or features unless the user specifically requests changes to them.
+5. **Frozen Pages**: The **Account Page**, **Add Account** sub-page, and **User Profile** page are finalized. **DO NOT** modify their layout, logic, or features unless the user specifically requests changes to them.

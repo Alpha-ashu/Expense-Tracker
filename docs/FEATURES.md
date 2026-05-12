@@ -14,7 +14,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 ## 📋 Feature Modules
 
 ### 1. Dashboard (Home)
-**Purpose**: Centralized financial overview
+**Purpose**: Centralized DashBoard
 
 **Features**:
 - Total balance across all accounts (real-time)
