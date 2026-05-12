@@ -50,7 +50,8 @@
     "SUPABASE_URL": "https://mmwrckfqeqjfqciymemh.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq",
     "VITE_SUPABASE_URL": "https://mmwrckfqeqjfqciymemh.supabase.co",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq"
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq",
+    "DATABASE_URL": "postgresql://postgres:Alpha_Ashu%401@db.mmwrckfqeqjfqciymemh.supabase.co:5432/postgres"
   },
   "regions": [
     "iad1"
