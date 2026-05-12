@@ -1,12 +1,16 @@
-﻿{
+{
   "version": 2,
-  "name": "KANKU",
+  "name": "kanku",
   "buildCommand": "npm run project:build",
   "outputDirectory": "dist",
   "functions": {
     "api/*.ts": {
       "maxDuration": 30,
-      "includeFiles": "backend/{dist,prisma,generated}/**"
+      "includeFiles": [
+        "backend/dist/**",
+        "backend/prisma/**",
+        "backend/generated/**"
+      ]
     }
   },
   "routes": [
@@ -26,33 +30,25 @@
     },
     {
       "src": "/api/v1/stocks$",
-      "dest": "api/stocks.ts"
+      "dest": "/api/stocks.ts"
     },
     {
       "src": "/api/v1/stocks/(.*)",
-      "dest": "api/stocks.ts?endpoint=$1"
+      "dest": "/api/stocks.ts?endpoint=$1"
     },
     {
       "src": "/api/(.*)",
-      "dest": "api/index.ts"
+      "dest": "/api/index.ts"
     },
     {
       "src": "/health",
-      "dest": "api/health.ts"
+      "dest": "/api/health.ts"
     },
     {
       "src": "/(.*)",
       "dest": "/index.html"
     }
   ],
-  "env": {
-    "NODE_VERSION": "18.x",
-    "SUPABASE_URL": "https://mmwrckfqeqjfqciymemh.supabase.co",
-    "SUPABASE_ANON_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq",
-    "VITE_SUPABASE_URL": "https://mmwrckfqeqjfqciymemh.supabase.co",
-    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq",
-    "DATABASE_URL": "postgresql://postgres.mmwrckfqeqjfqciymemh:Alpha_Ashu%401@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres?pgbouncer=true"
-  },
   "regions": [
     "iad1"
   ]
