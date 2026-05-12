@@ -16,16 +16,16 @@ const titleize = (value: string) => value.charAt(0).toUpperCase() + value.slice(
 // Exactly 28 high-quality, new character avatars using diverse DiceBear styles
 const CURATED_AVATARS: AvatarOption[] = [
   // 1-10: Avataaars (Diverse Human Styles)
-  { id: 'new-1', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Xavier&top=shortHair&accessories=eyepatch', gender: 'male', style: 'casual', skinTone: 'tan', label: 'Xavier' },
-  { id: 'new-2', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Seraphina&top=longHair&clothing=blazer', gender: 'female', style: 'professional', skinTone: 'light', label: 'Seraphina' },
-  { id: 'new-3', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kael&top=frizzle&clothing=graphicShirt', gender: 'male', style: 'sport', skinTone: 'brown', label: 'Kael' },
-  { id: 'new-4', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Imani&top=curly&clothing=overall', gender: 'female', style: 'casual', skinTone: 'dark', label: 'Imani' },
-  { id: 'new-5', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Soren&top=caesar&clothing=hoodie', gender: 'male', style: 'sport', skinTone: 'light', label: 'Soren' },
-  { id: 'new-6', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lyra&top=bob&accessories=round', gender: 'female', style: 'casual', skinTone: 'tan', label: 'Lyra' },
-  { id: 'new-7', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Atticus&top=shaggy&clothing=crew', gender: 'male', style: 'professional', skinTone: 'brown', label: 'Atticus' },
-  { id: 'new-8', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Freya&top=bun&clothing=v-neck', gender: 'female', style: 'sport', skinTone: 'light', label: 'Freya' },
-  { id: 'new-9', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zion&top=dreads&clothing=shirt', gender: 'male', style: 'casual', skinTone: 'dark', label: 'Zion' },
-  { id: 'new-10', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amara&top=turban&clothing=overall', gender: 'female', style: 'professional', skinTone: 'brown', label: 'Amara' },
+  { id: 'new-1', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Xavier', gender: 'male', style: 'casual', skinTone: 'tan', label: 'Xavier' },
+  { id: 'new-2', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Seraphina', gender: 'female', style: 'professional', skinTone: 'light', label: 'Seraphina' },
+  { id: 'new-3', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kael', gender: 'male', style: 'sport', skinTone: 'brown', label: 'Kael' },
+  { id: 'new-4', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Imani', gender: 'female', style: 'casual', skinTone: 'dark', label: 'Imani' },
+  { id: 'new-5', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Soren', gender: 'male', style: 'sport', skinTone: 'light', label: 'Soren' },
+  { id: 'new-6', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lyra', gender: 'female', style: 'casual', skinTone: 'tan', label: 'Lyra' },
+  { id: 'new-7', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Atticus', gender: 'male', style: 'professional', skinTone: 'brown', label: 'Atticus' },
+  { id: 'new-8', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Freya', gender: 'female', style: 'sport', skinTone: 'light', label: 'Freya' },
+  { id: 'new-9', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zion', gender: 'male', style: 'casual', skinTone: 'dark', label: 'Zion' },
+  { id: 'new-10', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amara', gender: 'female', style: 'professional', skinTone: 'brown', label: 'Amara' },
 
   // 11-16: Micah (Modern Minimalist)
   { id: 'new-11', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Atlas', gender: 'male', style: 'casual', skinTone: 'tan', label: 'Atlas' },
