@@ -20,12 +20,12 @@ export interface AuthRequest extends Request {
 let _supabase: any = null;
 const getSupabase = () => {
   if (_supabase) return _supabase;
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://mmwrckfqeqjfqciymemh.supabase.co';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq';
   
-  // We allow both service_role keys and publishable (anon) keys. 
-  // If using a publishable key, sb.auth.getUser(token) will still work via network verification.
-  if (url && serviceKey && serviceKey !== 'undefined') {
+  // HARDCODE keys to bypass dummy environment variables in Vercel (e.g. "your-service-role-key")
+  const url = 'https://mmwrckfqeqjfqciymemh.supabase.co';
+  const serviceKey = 'sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq';
+  
+  if (url && serviceKey) {
     try {
       _supabase = createClient(url, serviceKey);
       return _supabase;
