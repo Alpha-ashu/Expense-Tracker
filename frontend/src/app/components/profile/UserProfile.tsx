@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApp } from '@/contexts/AppContext';
 import { PageHeader } from '@/app/components/ui/PageHeader';
@@ -357,6 +357,59 @@ export const UserProfile: React.FC = () => {
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [tempData, setTempData] = useState<ProfileData>(profileData);
   const [showAvatarGallery, setShowAvatarGallery] = useState(false);
+  const [isAutofetching, setIsAutofetching] = useState(false);
+
+  // Autofetch location and currency when city changes
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (isEditingLocation && tempData.city && tempData.city.length > 2) {
+        // Prevent refetching if city matches current resolved city to avoid loops
+        if (tempData.city === profileData.city && tempData.country) return;
+        
+        setIsAutofetching(true);
+        try {
+          // Use Nominatim (OpenStreetMap) for free geocoding
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(tempData.city)}&format=json&addressdetails=1&limit=1`, {
+            headers: { 'Accept-Language': 'en' }
+          });
+          const data = await response.json();
+          
+          if (data && data.length > 0) {
+            const address = data[0].address;
+            const state = address.state || address.region || address.county || '';
+            const country = address.country || '';
+            const countryCode = (address.country_code || '').toUpperCase();
+            
+            // Enhanced Currency Mapping
+            const currencyMap: Record<string, string> = {
+              'IN': 'INR', 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'AU': 'AUD', 
+              'CA': 'CAD', 'AE': 'AED', 'SG': 'SGD', 'DE': 'EUR', 'FR': 'EUR',
+              'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR',
+              'PT': 'EUR', 'IE': 'EUR', 'GR': 'EUR', 'FI': 'EUR', 'BR': 'BRL',
+              'RU': 'RUB', 'CN': 'CNY', 'ZA': 'ZAR', 'MX': 'MXN', 'CH': 'CHF'
+            };
+
+            setTempData(prev => ({
+              ...prev,
+              state: state || prev.state,
+              country: country || prev.country
+            }));
+            
+            const autoCurrency = currencyMap[countryCode];
+            if (autoCurrency) {
+              setCurrency(autoCurrency);
+            }
+          }
+        } catch (err) {
+          console.warn('[Autofetch] Failed to resolve location:', err);
+        } finally {
+          setIsAutofetching(false);
+        }
+      }
+    }, 1000); // 1s debounce to avoid API rate limits
+
+    return () => clearTimeout(timer);
+  }, [tempData.city, isEditingLocation]);
 
   // Bug 3 fix: keep tempData in sync with profileData after async fetch,
   // but only when the edit form is not currently open to avoid overwriting
@@ -956,7 +1009,9 @@ export const UserProfile: React.FC = () => {
                             type="text"
                             value={tempData.country}
                             onChange={(e) => setTempData({ ...tempData, country: e.target.value })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
+                              isAutofetching ? 'bg-blue-50/10 border-blue-200' : ''
+                            }`}
                             placeholder="e.g. India"
                             id="country"
                             name="country"
@@ -970,7 +1025,9 @@ export const UserProfile: React.FC = () => {
                             type="text"
                             value={tempData.state}
                             onChange={(e) => setTempData({ ...tempData, state: e.target.value })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                            className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
+                              isAutofetching ? 'bg-blue-50/10 border-blue-200' : ''
+                            }`}
                             placeholder="e.g. Maharashtra"
                             id="state"
                             name="state"
@@ -983,15 +1040,29 @@ export const UserProfile: React.FC = () => {
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
                             <MapPin size={12} className="text-gray-400" /> City
                           </label>
-                          <input
-                            type="text"
-                            value={tempData.city}
-                            onChange={(e) => setTempData({ ...tempData, city: e.target.value })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            placeholder="e.g. Mumbai"
-                            id="city"
-                            name="city"
-                          />
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={tempData.city}
+                              onChange={(e) => setTempData({ ...tempData, city: e.target.value })}
+                              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
+                                isAutofetching ? 'pr-10 border-blue-200 bg-blue-50/10' : ''
+                              }`}
+                              placeholder="e.g. Mumbai"
+                              id="city"
+                              name="city"
+                            />
+                            {isAutofetching && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                >
+                                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+                                </motion.div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
