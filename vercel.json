@@ -46,7 +46,11 @@
     }
   ],
   "env": {
-    "NODE_VERSION": "18.x"
+    "NODE_VERSION": "18.x",
+    "SUPABASE_URL": "https://mmwrckfqeqjfqciymemh.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq",
+    "VITE_SUPABASE_URL": "https://mmwrckfqeqjfqciymemh.supabase.co",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq"
   },
   "regions": [
     "iad1"
