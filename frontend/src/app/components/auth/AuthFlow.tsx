@@ -21,13 +21,13 @@ const internalLog = {
   warn: (context: string, err?: unknown) => {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
-      console.warn(`[Finora/${context}]`, err instanceof Error ? err.message : err);
+      console.warn(`[Kanakku /${context}]`, err instanceof Error ? err.message : err);
     }
   },
   error: (context: string, err?: unknown) => {
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
-      console.error(`[Finora/${context}]`, err instanceof Error ? err.message : err);
+      console.error(`[Kanakku /${context}]`, err instanceof Error ? err.message : err);
     }
   },
 };
@@ -80,7 +80,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
   const [salaryAccount, setSalaryAccount] = useState<SalaryAccount | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showGuestCaution, setShowGuestCaution] = useState(false);
-  
+
   // Check if user is already partially through the flow
   useEffect(() => {
     const checkFlowState = async () => {
@@ -152,7 +152,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       // We let PINAuth component handle it directly on the main app screen.
       localStorage.removeItem('auth_flow_step');
       localStorage.removeItem('pending_auth_email');
-      
+
       // Mark onboarding completed for existing users so they bypass NewUserOnboarding
       if (data.user) {
         // If they had an account, assume they onboarded in the past
@@ -397,7 +397,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
       localStorage.removeItem('auth_flow_step');
       localStorage.removeItem('pending_auth_email');
 
-      toast.success('Setup complete! Welcome to Finora!');
+      toast.success('Setup complete! Welcome to Kanakku !');
 
       // Dispatch global event for other modules
       window.dispatchEvent(new CustomEvent('PROFILE_SETUP_COMPLETED', {
@@ -491,7 +491,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
               </div>
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-              Finora
+              Kanakku
             </h1>
             <p className="text-base sm:text-lg text-gray-500 font-medium max-w-[280px] sm:max-w-md mx-auto leading-relaxed">
               Experience the future of personal finance. Track, grow, and master your wealth seamlessly.
@@ -555,7 +555,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 onClick={onBack}
                 className="w-full mt-2 text-sm font-semibold text-gray-500 hover:text-gray-700 transition-colors py-2"
               >
-                 Back to Landing Page
+                Back to Landing Page
               </button>
             )}
           </div>
@@ -564,7 +564,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
         {/* Guest Mode Caution Modal */}
         {showGuestCaution && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl"
@@ -574,10 +574,10 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Continue as Guest?</h3>
               <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                Guest mode stores all your financial data <strong>locally on this device only</strong>. 
+                Guest mode stores all your financial data <strong>locally on this device only</strong>.
               </p>
               <div className="bg-red-50 text-red-700 text-xs p-3 rounded-xl mb-6 font-medium border border-red-100">
-                 If you forget your PIN, there is no way to recover it. You will have to reset the app and <strong>all your data will be permanently lost</strong>. Sign in to safely backup your data.
+                If you forget your PIN, there is no way to recover it. You will have to reset the app and <strong>all your data will be permanently lost</strong>. Sign in to safely backup your data.
               </div>
 
               <div className="flex gap-3">
@@ -919,7 +919,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ onBack, initialStep, onNavig
                 <span className="group-hover:-translate-x-0.5 transition-transform"></span> Back
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
-              <p className="text-gray-500 mt-1 text-sm">Join Finora to start mastering your wealth.</p>
+              <p className="text-gray-500 mt-1 text-sm">Join Kanakku  to start mastering your wealth.</p>
             </div>
             <div className="p-6 sm:p-8 pt-6">
               <SignUpForm

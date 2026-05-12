@@ -32,7 +32,7 @@ This document provides the standard quality assurance and testing protocols for 
 - [ ] **Airplane Mode**: Add transactions while offline and verify they save to Dexie.
 - [ ] **Reconnection**: Go back online and verify background sync to Supabase.
 - [ ] **Conflict Resolution**: Simulate simultaneous edits on two devices and verify timestamp-based wins.
-- [ ] **Brand Migration**: Verify that local storage keys are correctly migrated from `Finora` to `Kanakku` namespace without data loss.
+- [ ] **Brand Migration**: Verify that local storage keys are correctly migrated from `Kanakku ` to `Kanakku` namespace without data loss.
 
 ### AI Engine Reliability
 - [ ] **Tesseract Fallback**: Disable Gemini API key and verify that the heuristic engine still extracts Merchant/Amount/GST correctly.

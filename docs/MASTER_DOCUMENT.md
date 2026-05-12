@@ -983,7 +983,7 @@ USING (auth.uid()::text = (storage.foldername(name))[1])
 
 ```env
 # API Configuration
-VITE_API_URL=https://api.finora.app
+VITE_API_URL=https://api.Kanakku .app
 VITE_API_PROXY_TARGET=http://localhost:3000
 
 # Supabase Configuration
@@ -1042,7 +1042,7 @@ PIN_EXPIRY_DAYS=90
 ```bash
 # 1. Clone & install
 git clone <repo>
-cd Finora
+cd Kanakku 
 npm install
 
 # 2. Setup environment
@@ -1144,7 +1144,7 @@ npm run dev
 ## 12. File Structure
 
 ```
-Finora/
+Kanakku /
 ├── frontend/                    # React web application
 │   ├── src/
 │   │   ├── app/                # Main application code
@@ -1220,7 +1220,7 @@ Finora/
 
 ## 13. Contact & Support
 
-- **Project**: Finora Personal Finance
+- **Project**: Kanakku  Personal Finance
 - **Repository**: Private
 - **Deployment**: Vercel + Supabase
 - **Support**: Via in-app chat (Advisor system)

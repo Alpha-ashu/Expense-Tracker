@@ -52,7 +52,7 @@ class PinService {
 
   private async ensureLocalUser(request: CreatePinRequest): Promise<void> {
     const normalizedRole = this.normalizeRole(request.role);
-    const resolvedEmail = request.email?.trim() || `user-${request.userId.slice(0, 8)}@placeholder.finora.app`;
+    const resolvedEmail = request.email?.trim() || `user-${request.userId.slice(0, 8)}@placeholder.Kanakku .app`;
     const fallbackNameFromEmail = resolvedEmail.split('@')[0]?.replace(/[._-]+/g, ' ').trim() || 'User';
     const resolvedName = request.name?.trim() || fallbackNameFromEmail || 'User';
 
@@ -212,7 +212,7 @@ class PinService {
 
         return {
           success: false,
-          message: shouldLock 
+          message: shouldLock
             ? `PIN incorrect. Account locked for ${this.LOCKOUT_DURATION_HOURS} hours.`
             : 'PIN incorrect',
           attemptsRemaining: Math.max(0, this.MAX_FAILED_ATTEMPTS - updatedFailedAttempts),

@@ -1,6 +1,6 @@
 # Bug Fix Verification Checklist
 
-## Project: Finora Finance Management Platform
+## Project: Kanakku  Finance Management Platform
 ## Date: April 17, 2026
 
 ---

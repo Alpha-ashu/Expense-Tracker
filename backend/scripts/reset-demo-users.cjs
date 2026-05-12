@@ -8,14 +8,14 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const prisma = new PrismaClient();
 
-const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD || 'Finora@123';
+const DEMO_PASSWORD = process.env.DEMO_USER_PASSWORD || 'Kanakku @123';
 const DEMO_PIN = process.env.DEMO_USER_PIN || '123456';
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
 const DEMO_USERS = [
   {
-    email: 'superadmin@finora.com',
+    email: 'superadmin@Kanakku .com',
     role: 'admin',
     name: 'Super Admin',
     profile: {
@@ -51,7 +51,7 @@ const DEMO_USERS = [
     },
   },
   {
-    email: 'user@finora.com',
+    email: 'user@Kanakku .com',
     role: 'user',
     name: 'Demo User',
     profile: {
@@ -87,7 +87,7 @@ const DEMO_USERS = [
     },
   },
   {
-    email: 'advisore@finora.com',
+    email: 'advisore@Kanakku .com',
     role: 'advisor',
     name: 'Demo Advisor',
     profile: {
@@ -126,11 +126,11 @@ const DEMO_USERS = [
 
 const supabase = (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY)
   ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
   : null;
 
 const toDate = (value) => new Date(value);

@@ -25,4 +25,4 @@ function findDuplicateExports(dir) {
     }
 }
 
-findDuplicateExports('k:/Project/Finora/frontend/src/app/components');
+findDuplicateExports('k:/Project/Kanakku /frontend/src/app/components');

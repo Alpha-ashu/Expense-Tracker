@@ -1,4 +1,4 @@
-# Finora – Pending Tasks, Enhancements & Dependencies
+# Kanakku  – Pending Tasks, Enhancements & Dependencies
 
 > Last updated: 9 May 2026  
 > Use this file as the living backlog. Move items to `DONE` when completed.
@@ -161,11 +161,11 @@
 
 ```powershell
 # Backend
-cd C:\Users\sashra19\Documents\Intellij\Finora\backend
+cd C:\Users\sashra19\Documents\Intellij\Kanakku \backend
 npm install express-async-errors
 
 # Frontend (from root)
-cd C:\Users\sashra19\Documents\Intellij\Finora
+cd C:\Users\sashra19\Documents\Intellij\Kanakku 
 npm install @tanstack/react-query
 npm install -D @tanstack/react-query-devtools vite-bundle-visualizer @vitest/coverage-v8
 ```

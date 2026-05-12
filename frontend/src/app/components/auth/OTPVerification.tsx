@@ -128,7 +128,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
       localStorage.setItem('email_verified', 'true');
       localStorage.setItem('user_status', 'verified');
       setVerified(true);
-      toast.success('Email verified successfully! Welcome to Finora 🎉');
+      toast.success('Email verified successfully! Welcome to Kanakku  🎉');
 
       // Short delay to show success state before navigating
       setTimeout(() => onVerified(), 800);
@@ -227,7 +227,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({
             <p className="text-sm font-semibold text-blue-600 mt-1">{email}</p>
             {mandatory && (
               <p className="text-xs text-amber-600 mt-2 bg-amber-50 rounded-lg px-3 py-1 inline-block">
-                 Email verification is required to continue
+                Email verification is required to continue
               </p>
             )}
           </div>

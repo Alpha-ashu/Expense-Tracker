@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "expense-tracker",
+  "name": "kanakku",
   "buildCommand": "npm run project:build",
   "outputDirectory": "dist",
   "functions": {

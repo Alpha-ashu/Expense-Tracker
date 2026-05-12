@@ -1,6 +1,6 @@
 # 🔍 Bug Fix Documentation Index
 
-## Finora Finance Management Platform
+## Kanakku  Finance Management Platform
 **Completion Date**: April 17, 2026  
 **Status**: ✅ ALL BUGS FIXED AND DOCUMENTED
 

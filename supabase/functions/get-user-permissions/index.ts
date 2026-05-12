@@ -10,9 +10,9 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
+    return new Response(null, {
       status: 200,
-      headers: corsHeaders 
+      headers: corsHeaders
     });
   }
 
@@ -27,7 +27,7 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    
+
     // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -49,12 +49,12 @@ serve(async (req) => {
 
     // Define admin emails (can be moved to database later)
     const ADMIN_EMAILS = [
-      'superadmin@finora.com'
+      'superadmin@Kanakku .com'
     ];
 
     // Define advisor emails (can be moved to database later)
     const ADVISOR_EMAILS = [
-      'advisore@finora.com'
+      'advisore@Kanakku .com'
     ];
 
     // Determine user role
@@ -163,16 +163,16 @@ serve(async (req) => {
     // Handle specific permission requests from admin
     if (requestBody.checkPermission) {
       const { feature, targetRole } = requestBody.checkPermission;
-      
+
       // Check if target role has access to feature
-      const targetPermissions = targetRole === 'admin' ? 
-        ROLE_PERMISSIONS.admin : 
-        targetRole === 'advisor' ? 
-        ROLE_PERMISSIONS.advisor : 
-        ROLE_PERMISSIONS.user;
+      const targetPermissions = targetRole === 'admin' ?
+        ROLE_PERMISSIONS.admin :
+        targetRole === 'advisor' ?
+          ROLE_PERMISSIONS.advisor :
+          ROLE_PERMISSIONS.user;
 
       const hasAccess = targetPermissions.features.includes(feature);
-      
+
       return new Response(
         JSON.stringify({
           hasAccess,
@@ -187,9 +187,9 @@ serve(async (req) => {
     // Handle feature control updates from admin
     if (requestBody.updatePermissions) {
       const { role: targetRole, features: newFeatures } = requestBody.updatePermissions;
-      
+
       console.log('🔧 Admin updating permissions for role:', targetRole, newFeatures);
-      
+
       // In a real implementation, this would update a database
       // For now, just return success response
       return new Response(
@@ -214,7 +214,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(userPermissions),
-      { 
+      {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
@@ -225,13 +225,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Permission check error:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Internal server error',
-        message: error.message 
+        message: error.message
       }),
-      { 
-        status: 500, 
-        headers: corsHeaders 
+      {
+        status: 500,
+        headers: corsHeaders
       }
     );
   }

@@ -7,7 +7,7 @@ import { setupGlobalErrorHandlers } from '@/lib/errorHandling';
 import { runGlobalMigration } from '@/lib/migration';
 import '@/styles/index.css';
 
-// Perform global brand migration (Finora -> Kanakku) before anything else
+// Perform global brand migration (Kanakku  -> Kanakku) before anything else
 runGlobalMigration();
 
 // Capture uncaught errors and unhandled rejections from app startup

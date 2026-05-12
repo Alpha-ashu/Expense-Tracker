@@ -2,16 +2,16 @@
 export const ENVIRONMENT_CONFIG = {
   // Environment type
   NODE_ENV: process.env.NODE_ENV || 'production',
-  
+
   // API configuration
-  API_BASE_URL: process.env.VITE_API_BASE_URL || 'https://api.finora.app',
+  API_BASE_URL: process.env.VITE_API_BASE_URL || 'https://api.Kanakku .app',
   API_TIMEOUT: 30000, // 30 seconds
-  
+
   // Database configuration
   DB_NAME: 'KanakkuDB',
   DB_VERSION: 3,
   DB_ENCRYPTION_ENABLED: true,
-  
+
   // Feature flags
   FEATURES: {
     VOICE_INPUT: process.env.VITE_FEATURE_VOICE_INPUT === 'true',
@@ -20,30 +20,30 @@ export const ENVIRONMENT_CONFIG = {
     ADVANCED_REPORTS: process.env.VITE_FEATURE_ADVANCED_REPORTS === 'true',
     INVESTMENT_TRACKING: process.env.VITE_FEATURE_INVESTMENT_TRACKING === 'true'
   },
-  
+
   // Analytics and monitoring
   ANALYTICS_ENABLED: process.env.VITE_ANALYTICS_ENABLED === 'true',
   ERROR_REPORTING_ENABLED: process.env.VITE_ERROR_REPORTING_ENABLED === 'true',
-  
+
   // Security settings
   SESSION_TIMEOUT: 30 * 60 * 1000, // 30 minutes
   MAX_LOGIN_ATTEMPTS: 5,
   LOCKOUT_DURATION: 15 * 60 * 1000, // 15 minutes
-  
+
   // Performance settings
   CACHE_TTL: 5 * 60 * 1000, // 5 minutes
   BATCH_SIZE: 100,
   VIRTUALIZATION_THRESHOLD: 50,
-  
+
   // PWA settings
   PWA_UPDATE_CHECK_INTERVAL: 60000, // 1 minute
   PWA_INSTALL_PROMPT_DELAY: 5000, // 5 seconds
   PWA_OFFLINE_RETRY_ATTEMPTS: 3,
-  
+
   // Mobile app settings
   MOBILE_APP_STORE_URL: {
-    ios: process.env.VITE_IOS_APP_STORE_URL || 'https://apps.apple.com/app/finora',
-    android: process.env.VITE_ANDROID_APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.finora'
+    ios: process.env.VITE_IOS_APP_STORE_URL || 'https://apps.apple.com/app/Kanakku ',
+    android: process.env.VITE_ANDROID_APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.Kanakku '
   }
 };
 
@@ -75,7 +75,7 @@ export class EnvironmentDetector {
 
   static isPWA(): boolean {
     return window.matchMedia('(display-mode: standalone)').matches ||
-           (window.navigator as any).standalone === true;
+      (window.navigator as any).standalone === true;
   }
 
   static getConnectionType(): string {
@@ -108,7 +108,7 @@ export function validateEnvironmentConfig(): void {
   ];
 
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-  
+
   if (missingVars.length > 0 && EnvironmentDetector.isProduction()) {
     console.warn('Missing required environment variables:', missingVars);
   }
@@ -231,7 +231,7 @@ export class EnvironmentHealth {
 
   static async reportHealth(): Promise<void> {
     const health = await this.checkHealth();
-    
+
     if (health.status === 'error') {
       EnvironmentLogger.error('Environment health check failed', health);
     } else if (health.status === 'warning') {

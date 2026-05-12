@@ -8,7 +8,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public final class SmsDetectionStore {
-    private static final String PREFS_NAME = "finora_sms_detection";
+    private static final String PREFS_NAME = "Kanakku _sms_detection";
     private static final String ENABLED_KEY = "enabled";
     private static final String PENDING_TRANSACTIONS_KEY = "pending_transactions";
 

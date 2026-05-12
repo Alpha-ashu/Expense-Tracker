@@ -26,7 +26,7 @@ const client = new Client({ connectionString });
 
 async function main() {
   await client.connect();
-  console.log('[ensure-db-integrity] Applying Finora DB integrity schema...');
+  console.log('[ensure-db-integrity] Applying Kanakku  DB integrity schema...');
   await client.query('BEGIN');
 
   try {

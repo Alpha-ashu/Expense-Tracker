@@ -61,11 +61,11 @@ const DEFAULT_CATEGORY = {
 };
 
 const accountTypeMeta: Record<string, { icon: React.FC<{ size?: number; className?: string }>; shell: string }> = {
-  bank:    { icon: CreditCard,  shell: 'bg-blue-50 text-blue-600' },
-  cash:    { icon: Banknote,    shell: 'bg-emerald-50 text-emerald-600' },
-  wallet:  { icon: Wallet,      shell: 'bg-violet-50 text-violet-600' },
-  upi:     { icon: Smartphone,  shell: 'bg-orange-50 text-orange-600' },
-  credit:  { icon: CreditCard,  shell: 'bg-rose-50 text-rose-600' },
+  bank: { icon: CreditCard, shell: 'bg-blue-50 text-blue-600' },
+  cash: { icon: Banknote, shell: 'bg-emerald-50 text-emerald-600' },
+  wallet: { icon: Wallet, shell: 'bg-violet-50 text-violet-600' },
+  upi: { icon: Smartphone, shell: 'bg-orange-50 text-orange-600' },
+  credit: { icon: CreditCard, shell: 'bg-rose-50 text-rose-600' },
 };
 
 const formatAccountBalance = (v: number) =>
@@ -284,7 +284,7 @@ export function AddTransaction() {
               confidence: result.confidence,
             });
           }
-        }).catch(() => {});
+        }).catch(() => { });
     }, 400);
     return () => window.clearTimeout(timer);
   }, [smartCategoryInput]);
@@ -306,7 +306,7 @@ export function AddTransaction() {
     if (!selectedAccount) { toast.error('Please select an account'); return; }
     if (!formData.amount || formData.amount <= 0) { toast.error('Enter a valid amount'); return; }
     const transactionDate = parseDateInputValue(formData.date) || new Date();
-    
+
     setIsSubmitting(true);
     try {
       const now = new Date();
@@ -314,7 +314,7 @@ export function AddTransaction() {
 
       if (formData.type === 'transfer') {
         const fromAccount = await db.accounts.get(formData.accountId);
-        const toAccount   = await db.accounts.get(formData.toAccountId);
+        const toAccount = await db.accounts.get(formData.toAccountId);
         if (!fromAccount || !toAccount) { toast.error('Accounts not found'); return; }
         if (fromAccount.id === toAccount.id) { toast.error('Same account transfer'); return; }
         if (fromAccount.balance < formData.amount) { toast.error('Insufficient balance'); return; }
@@ -372,7 +372,7 @@ export function AddTransaction() {
 
         const newBalance = formData.type === 'expense' ? selectedAccount.balance - formData.amount : selectedAccount.balance + formData.amount;
         await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
-        
+
         toast.success(`${formData.type === 'expense' ? (expenseMode === 'individual' ? 'Expense' : expenseMode.charAt(0).toUpperCase() + expenseMode.slice(1)) : 'Income'} of ${currency} ${formData.amount.toFixed(2)} recorded`);
       }
 
@@ -439,7 +439,7 @@ export function AddTransaction() {
   };
 
   const DesktopUI = () => (
-    <div className="hidden lg:flex finora-screen-page finora-transaction-entry flex-col h-screen bg-[#F8FAFC] overflow-hidden">
+    <div className="hidden lg:flex Kanakku -screen-page Kanakku -transaction-entry flex-col h-screen bg-[#F8FAFC] overflow-hidden">
       <header className="h-14 border-b bg-white flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={() => setCurrentPage(returnPage)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-500 md:hidden">
@@ -462,7 +462,7 @@ export function AddTransaction() {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={() => setShowScanner(true)}
             className="flex items-center gap-2 px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-all"
           >
@@ -482,7 +482,7 @@ export function AddTransaction() {
             <div className="flex justify-between items-start mb-1">
               <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Transaction Amount</p>
               <div className="flex gap-2">
-                 <button className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Attach Document"><AlignLeft size={14} /></button>
+                <button className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" title="Attach Document"><AlignLeft size={14} /></button>
               </div>
             </div>
             <div className="flex items-baseline gap-2">
@@ -564,17 +564,17 @@ export function AddTransaction() {
                       <div className="flex flex-wrap gap-2">
                         {groupParticipants.map((p, idx) => (
                           <div key={p.id} className="bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-2 border border-indigo-100">
-                             <input 
-                               type="text" 
-                               value={p.name} 
-                               onChange={(e) => {
-                                 const val = e.target.value;
-                                 setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
-                               }}
-                               className="bg-transparent border-none text-[11px] font-bold text-indigo-700 w-24 focus:ring-0 p-0"
-                               placeholder={`Member ${idx + 1}`}
-                             />
-                             <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-indigo-400 hover:text-indigo-600"><Trash2 size={12} /></button>
+                            <input
+                              type="text"
+                              value={p.name}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
+                              }}
+                              className="bg-transparent border-none text-[11px] font-bold text-indigo-700 w-24 focus:ring-0 p-0"
+                              placeholder={`Member ${idx + 1}`}
+                            />
+                            <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-indigo-400 hover:text-indigo-600"><Trash2 size={12} /></button>
                           </div>
                         ))}
                       </div>
@@ -626,9 +626,9 @@ export function AddTransaction() {
                     <div>
                       <label className="block text-slate-500 text-[11px] font-bold mb-1.5">GST Details (India)</label>
                       <div className="grid grid-cols-3 gap-2">
-                         <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="CGST" />
-                         <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="SGST" />
-                         <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="IGST" />
+                        <input type="number" step="0.01" value={formData.taxDetails.cgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, cgst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="CGST" />
+                        <input type="number" step="0.01" value={formData.taxDetails.sgst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, sgst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="SGST" />
+                        <input type="number" step="0.01" value={formData.taxDetails.igst || ''} onChange={(e) => setFormData(prev => ({ ...prev, taxDetails: { ...prev.taxDetails, igst: parseFloat(e.target.value) || 0 } }))} className="bg-slate-50 rounded-lg px-2 py-1 text-[10px] font-bold border-none" placeholder="IGST" />
                       </div>
                     </div>
                   </div>
@@ -669,7 +669,7 @@ export function AddTransaction() {
   );
 
   const MobileUI = () => (
-    <div className="flex lg:hidden finora-screen-page finora-transaction-entry flex-col h-[100dvh] bg-white overflow-hidden relative pb-[64px]">
+    <div className="flex lg:hidden Kanakku -screen-page Kanakku -transaction-entry flex-col h-[100dvh] bg-white overflow-hidden relative pb-[64px]">
       <div className={cn("p-4 pt-6 rounded-b-2xl shadow-lg relative overflow-hidden shrink-0 text-white", accent.amountCard)}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -677,8 +677,8 @@ export function AddTransaction() {
             <button onClick={() => setShowScanner(true)} className="p-1.5 bg-white/10 rounded-lg"><Camera size={16} /></button>
             <button className="p-1.5 bg-white/10 rounded-lg"><AlignLeft size={16} /></button>
           </div>
-          <button 
-            onClick={handleSubmit} 
+          <button
+            onClick={handleSubmit}
             disabled={isSubmitting || !formData.amount}
             className="bg-white text-slate-900 px-5 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 shadow-xl transition-all active:scale-95"
           >
@@ -735,27 +735,27 @@ export function AddTransaction() {
                   <input type="text" value={groupName} onChange={(e) => setGroupName(e.target.value)} className="w-full bg-indigo-50/50 border-indigo-100 rounded-xl px-4 py-3 text-sm text-slate-900 font-bold" placeholder="Trip to Goa, Dinner..." />
                 </div>
                 <div>
-                   <div className="flex items-center justify-between mb-1 px-1">
-                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Participants</p>
-                     <button onClick={() => setGroupParticipants(prev => [...prev, createEmptyParticipant()])} className="text-[10px] font-bold text-indigo-600 flex items-center gap-1"><Plus size={10} /> Add</button>
-                   </div>
-                   <div className="flex flex-wrap gap-1.5">
-                     {groupParticipants.map((p, idx) => (
-                       <div key={p.id} className="bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-indigo-100">
-                         <input 
-                           type="text" 
-                           value={p.name} 
-                           onChange={(e) => {
-                             const val = e.target.value;
-                             setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
-                           }}
-                           className="bg-transparent border-none text-[10px] font-bold text-indigo-700 w-20 focus:ring-0 p-0"
-                           placeholder="Name"
-                         />
-                         <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-indigo-400"><Trash2 size={10} /></button>
-                       </div>
-                     ))}
-                   </div>
+                  <div className="flex items-center justify-between mb-1 px-1">
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Participants</p>
+                    <button onClick={() => setGroupParticipants(prev => [...prev, createEmptyParticipant()])} className="text-[10px] font-bold text-indigo-600 flex items-center gap-1"><Plus size={10} /> Add</button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {groupParticipants.map((p, idx) => (
+                      <div key={p.id} className="bg-indigo-50 px-2 py-1 rounded-lg flex items-center gap-1.5 border border-indigo-100">
+                        <input
+                          type="text"
+                          value={p.name}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGroupParticipants(prev => prev.map(item => item.id === p.id ? { ...item, name: val } : item));
+                          }}
+                          className="bg-transparent border-none text-[10px] font-bold text-indigo-700 w-20 focus:ring-0 p-0"
+                          placeholder="Name"
+                        />
+                        <button onClick={() => setGroupParticipants(prev => prev.filter(item => item.id !== p.id))} className="text-indigo-400"><Trash2 size={10} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -784,13 +784,13 @@ export function AddTransaction() {
             )}
 
             {formData.type === 'transfer' ? (
-               <div>
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">To Account</p>
-                 <select value={formData.toAccountId} onChange={(e) => setFormData(prev => ({ ...prev, toAccountId: parseInt(e.target.value) }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold">
-                   <option value="0">Select Destination...</option>
-                   {accounts.filter(a => a.id !== formData.accountId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                 </select>
-               </div>
+              <div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">To Account</p>
+                <select value={formData.toAccountId} onChange={(e) => setFormData(prev => ({ ...prev, toAccountId: parseInt(e.target.value) }))} className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm text-slate-900 font-bold">
+                  <option value="0">Select Destination...</option>
+                  {accounts.filter(a => a.id !== formData.accountId).map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
             ) : (
               <div className="space-y-3">
                 {/* Quick Category Chips ÔÇö Mobile */}
@@ -834,12 +834,12 @@ export function AddTransaction() {
             <div>
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">{formData.type === 'transfer' ? 'From' : ''} Account</p>
               <select value={formData.accountId} onChange={(e) => setFormData(prev => ({ ...prev, accountId: parseInt(e.target.value) }))} className="w-full h-[44px] bg-slate-50 rounded-xl px-4 font-bold text-xs">
-                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
             <div>
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">Date</p>
-              <input type="date" value={formData.date} onChange={(e) => setFormData(prev => ({...prev, date: e.target.value}))} className="w-full h-[44px] bg-slate-50 rounded-xl px-4 font-bold text-[10px]" />
+              <input type="date" value={formData.date} onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))} className="w-full h-[44px] bg-slate-50 rounded-xl px-4 font-bold text-[10px]" />
             </div>
           </div>
         </div>

@@ -9,8 +9,8 @@
 
 //  Constants 
 export const GUEST_USER_ID = '__kanakku_guest__';
-const LEGACY_GUEST_USER_ID = '__finora_guest__';
-const GUEST_MODE_KEY    = 'kanakku_guest_mode';
+const LEGACY_GUEST_USER_ID = '__Kanakku _guest__';
+const GUEST_MODE_KEY = 'kanakku_guest_mode';
 const GUEST_CREATED_KEY = 'kanakku_guest_created_at';
 
 //  State helpers 

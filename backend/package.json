@@ -1,7 +1,7 @@
 {
   "name": "kanakku-backend",
   "version": "1.0.0",
-  "description": "Backend API for Expense Tracker with TypeScript, Express, Prisma, JWT, Socket.IO",
+  "description": "Backend API for Kanakku with TypeScript, Express, Prisma, JWT, Socket.IO",
   "type": "commonjs",
   "main": "dist/server.js",
   "scripts": {
@@ -23,6 +23,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "keywords": [
+    "kanakku",
     "expense-tracker",
     "typescript",
     "express",

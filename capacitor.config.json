@@ -1,6 +1,6 @@
 {
-  "appId": "com.financelife.app",
-  "appName": "FinanceLife",
+  "appId": "com.kanakku.app",
+  "appName": "Kanakku",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
@@ -40,7 +40,7 @@
     "backgroundColor": "#ffffff"
   },
   "ios": {
-    "scheme": "FinanceLife",
+    "scheme": "Kanakku",
     "contentInset": "automatic",
     "allowsLinkPreview": false,
     "backgroundColor": "#ffffff",

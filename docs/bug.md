@@ -1,4 +1,4 @@
-# Finora — Deep App Analysis & Full Audit Report
+# Kanakku  — Deep App Analysis & Full Audit Report
 > Reviewed against: `security.skill.md` · `frontend.skill.md` · `backend.skill.md` · `database.skill.md`
 > Analysis Date: May 11, 2026
 
@@ -266,7 +266,7 @@ Security-sensitive records isolated to the auth schema.
 |---|---|---|
 | 🔴 P0 | Frontend | Fix `PageHeaderCard is not defined` crash in `Transactions.tsx` |
 | 🔴 P0 | Database | Migrate all `Float` monetary fields to `Decimal(12, 2)` |
-| 🟠 P1 | Frontend | Rebrand all "Loading Kanakku..." strings to "Finora" |
+| 🟠 P1 | Frontend | Rebrand all "Loading Kanakku..." strings to "Kanakku " |
 | 🟠 P1 | Backend | Fix silent `success: true` on profile update failure |
 | 🟠 P1 | Backend | Replace `console.error` in `pin.service.ts` with Winston `logger.error` |
 | 🟡 P2 | Frontend | Fix hardcoded `en-IN`/`INR` locale — use `currency` from AppContext |

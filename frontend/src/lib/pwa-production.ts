@@ -9,20 +9,20 @@ declare global {
 function registerSW(config: any) {
   // In production, this would be provided by Vite PWA plugin
   console.log('Service worker registration config:', config);
-  return () => {}; // Mock update function
+  return () => { }; // Mock update function
 }
 
 // PWA configuration for production
 export const PWA_CONFIG = {
   // Update strategy
   UPDATE_STRATEGY: 'auto', // 'auto' | 'prompt' | 'none'
-  
+
   // Installation prompt
   INSTALL_PROMPT_DELAY: 5000, // 5 seconds
-  
+
   // Update checking
   UPDATE_CHECK_INTERVAL: 60000, // 1 minute
-  
+
   // Offline handling
   OFFLINE_RETRY_ATTEMPTS: 3,
   OFFLINE_RETRY_DELAY: 2000
@@ -150,7 +150,7 @@ export class PWAInstallManager {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       this.deferredPrompt = e;
-      
+
       // Show custom install button or prompt
       this.showInstallPrompt();
     });
@@ -168,7 +168,7 @@ export class PWAInstallManager {
     prompt.className = 'pwa-install-prompt';
     prompt.innerHTML = `
       <div class="pwa-install-content">
-        <span>Install Finora App</span>
+        <span>Install Kanakku  App</span>
         <div class="pwa-install-actions">
           <button class="pwa-install-btn" onclick="window.__pwaInstallManager.install()">Install</button>
           <button class="pwa-install-btn pwa-install-dismiss">Not Now</button>
@@ -249,7 +249,7 @@ export class PWAInstallManager {
 
     // Wait for the user to respond to the prompt
     const { outcome } = await promptEvent.userChoice;
-    
+
     if (outcome === 'accepted') {
       console.log('User accepted the install prompt');
     } else {
@@ -355,7 +355,7 @@ export class PWAOptimizer {
     if (window.matchMedia('(max-width: 768px)').matches) {
       // Reduce animations on mobile
       document.body.classList.add('mobile-optimized');
-      
+
       // Optimize touch interactions
       document.body.style.touchAction = 'manipulation';
     }

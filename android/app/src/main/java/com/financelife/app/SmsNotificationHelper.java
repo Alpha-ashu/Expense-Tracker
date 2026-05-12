@@ -18,7 +18,7 @@ import org.json.JSONObject;
 import java.util.Locale;
 
 public final class SmsNotificationHelper {
-    private static final String CHANNEL_ID = "finora_sms_detection";
+    private static final String CHANNEL_ID = "Kanakku _sms_detection";
     private static final String CHANNEL_NAME = "SMS Transaction Detection";
 
     private SmsNotificationHelper() {}
@@ -54,8 +54,8 @@ public final class SmsNotificationHelper {
             ? "received"
             : "spent";
         String body = merchant.isEmpty()
-            ? amountLabel + " " + action + ". Review and add it to Finora."
-            : amountLabel + " " + action + " at " + merchant + ". Review and add it to Finora.";
+            ? amountLabel + " " + action + ". Review and add it to Kanakku ."
+            : amountLabel + " " + action + " at " + merchant + ". Review and add it to Kanakku .";
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)

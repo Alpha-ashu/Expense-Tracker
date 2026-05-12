@@ -29,7 +29,7 @@ Kanakku follows a **feature-modular structure** within the frontend to ensure sc
 
 ## 🎨 Design System & Theme
 
-Finora uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to these standards:
+Kanakku  uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to these standards:
 
 ### **Color Palette**
 - **Primary Gradient**: `#7B4CFF` (Purple) to `#4A9EFF` (Blue).

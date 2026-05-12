@@ -98,10 +98,10 @@ CREATE POLICY "user_isolation" ON transactions
 
 ```env
 # Direct connection (migrations, prisma studio)
-DATABASE_URL="postgresql://user:pass@host:5432/finora"
+DATABASE_URL="postgresql://user:pass@host:5432/Kanakku "
 
 # Pooled connection (app runtime via PgBouncer / Supabase pooler)
-DATABASE_URL_POOLED="postgresql://user:pass@pooler.supabase.com:6543/finora?pgbouncer=true"
+DATABASE_URL_POOLED="postgresql://user:pass@pooler.supabase.com:6543/Kanakku ?pgbouncer=true"
 ```
 
 - Use pooled URL in the Express app (`datasource db { url = env("DATABASE_URL") }`).
