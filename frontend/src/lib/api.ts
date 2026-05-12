@@ -278,8 +278,13 @@ class HTTPClient {
             // Handle 401 Unauthorized
             if (response.status === 401) {
               TokenManager.clearTokens();
-              const hasSupabaseSession = await hasActiveSupabaseSession();
-              if (!hasSupabaseSession && window.location.pathname !== '/login') {
+              try {
+                // Force sign out to clear stale local storage sessions
+                await supabase.auth.signOut();
+              } catch (e) {
+                // Ignore sign out errors
+              }
+              if (window.location.pathname !== '/login') {
                 window.location.href = '/login';
               }
             }
