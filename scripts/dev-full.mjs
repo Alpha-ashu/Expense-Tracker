@@ -268,20 +268,32 @@ const ensureDatabaseReady = async () => {
     return;
   }
 
-  await runCommand('npx', ['prisma@6.19.2', 'db', 'push', '--skip-generate'], {
-    cwd: backendDir,
-    label: 'prisma db push',
-  });
+  try {
+    console.log('[dev-full] Synchronizing database schema...');
+    // Add a short timeout to prevent hanging the whole dev stack
+    const dbPushPromise = runCommand('npx', ['prisma@6.19.2', 'db', 'push', '--skip-generate'], {
+      cwd: backendDir,
+      label: 'prisma db push',
+    });
+    
+    await Promise.race([
+      dbPushPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Database sync timed out')), 15000))
+    ]);
 
-  await runCommand('node', ['scripts/ensure-cloud-sync-schema.cjs'], {
-    cwd: backendDir,
-    label: 'ensure cloud sync schema',
-  });
+    await runCommand('node', ['scripts/ensure-cloud-sync-schema.cjs'], {
+      cwd: backendDir,
+      label: 'ensure cloud sync schema',
+    });
 
-  await runCommand('node', ['scripts/ensure-db-integrity.cjs'], {
-    cwd: backendDir,
-    label: 'ensure db integrity',
-  });
+    await runCommand('node', ['scripts/ensure-db-integrity.cjs'], {
+      cwd: backendDir,
+      label: 'ensure db integrity',
+    });
+  } catch (error) {
+    console.warn(`[dev-full] Database synchronization skipped or failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn('[dev-full] Proceeding to start servers anyway...');
+  }
 };
 
 const startLongRunningProcess = (command, args, cwd, envOverrides = {}) =>

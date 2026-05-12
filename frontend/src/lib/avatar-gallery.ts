@@ -11,16 +11,48 @@ export type AvatarOption = {
   label: string;
 };
 
-const avatarModules = import.meta.glob('../assets/avatars/*.png', {
-  eager: true,
-  import: 'default',
-}) as Record<string, string>;
-
-const AVATAR_FILES = Object.entries(avatarModules)
-  .map(([path, url]) => ({ path, url }))
-  .sort((a, b) => a.path.localeCompare(b.path));
-
 const titleize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
+// Exactly 28 high-quality, new character avatars using diverse DiceBear styles
+const CURATED_AVATARS: AvatarOption[] = [
+  // 1-10: Avataaars (Diverse Human Styles)
+  { id: 'new-1', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Xavier&top=shortHair&accessories=eyepatch', gender: 'male', style: 'casual', skinTone: 'tan', label: 'Xavier' },
+  { id: 'new-2', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Seraphina&top=longHair&clothing=blazer', gender: 'female', style: 'professional', skinTone: 'light', label: 'Seraphina' },
+  { id: 'new-3', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kael&top=frizzle&clothing=graphicShirt', gender: 'male', style: 'sport', skinTone: 'brown', label: 'Kael' },
+  { id: 'new-4', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Imani&top=curly&clothing=overall', gender: 'female', style: 'casual', skinTone: 'dark', label: 'Imani' },
+  { id: 'new-5', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Soren&top=caesar&clothing=hoodie', gender: 'male', style: 'sport', skinTone: 'light', label: 'Soren' },
+  { id: 'new-6', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lyra&top=bob&accessories=round', gender: 'female', style: 'casual', skinTone: 'tan', label: 'Lyra' },
+  { id: 'new-7', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Atticus&top=shaggy&clothing=crew', gender: 'male', style: 'professional', skinTone: 'brown', label: 'Atticus' },
+  { id: 'new-8', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Freya&top=bun&clothing=v-neck', gender: 'female', style: 'sport', skinTone: 'light', label: 'Freya' },
+  { id: 'new-9', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Zion&top=dreads&clothing=shirt', gender: 'male', style: 'casual', skinTone: 'dark', label: 'Zion' },
+  { id: 'new-10', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amara&top=turban&clothing=overall', gender: 'female', style: 'professional', skinTone: 'brown', label: 'Amara' },
+
+  // 11-16: Micah (Modern Minimalist)
+  { id: 'new-11', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Atlas', gender: 'male', style: 'casual', skinTone: 'tan', label: 'Atlas' },
+  { id: 'new-12', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Nova', gender: 'female', style: 'sport', skinTone: 'light', label: 'Nova' },
+  { id: 'new-13', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Orion', gender: 'male', style: 'professional', skinTone: 'brown', label: 'Orion' },
+  { id: 'new-14', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Veda', gender: 'female', style: 'casual', skinTone: 'dark', label: 'Veda' },
+  { id: 'new-15', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Cyrus', gender: 'male', style: 'sport', skinTone: 'light', label: 'Cyrus' },
+  { id: 'new-16', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Elara', gender: 'female', style: 'professional', skinTone: 'tan', label: 'Elara' },
+
+  // 17-20: Lorelei (Hand-drawn Artistic)
+  { id: 'new-17', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Indigo', gender: 'neutral', style: 'casual', skinTone: 'tan', label: 'Indigo' },
+  { id: 'new-18', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Sage', gender: 'female', style: 'sport', skinTone: 'light', label: 'Sage' },
+  { id: 'new-19', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=River', gender: 'male', style: 'professional', skinTone: 'brown', label: 'River' },
+  { id: 'new-20', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Willow', gender: 'female', style: 'casual', skinTone: 'dark', label: 'Willow' },
+
+  // 21-24: Big Smile (Friendly Faces)
+  { id: 'new-21', url: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Bowie', gender: 'male', style: 'casual', skinTone: 'tan', label: 'Bowie' },
+  { id: 'new-22', url: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Cleo', gender: 'female', style: 'sport', skinTone: 'light', label: 'Cleo' },
+  { id: 'new-23', url: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Dante', gender: 'male', style: 'professional', skinTone: 'brown', label: 'Dante' },
+  { id: 'new-24', url: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Ember', gender: 'female', style: 'casual', skinTone: 'dark', label: 'Ember' },
+
+  // 25-28: Bottts (Fun Tech Avatars)
+  { id: 'new-25', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Z-44', gender: 'neutral', style: 'casual', skinTone: 'tan', label: 'Z-44' },
+  { id: 'new-26', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=R-90', gender: 'neutral', style: 'sport', skinTone: 'tan', label: 'R-90' },
+  { id: 'new-27', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=T-10', gender: 'neutral', style: 'professional', skinTone: 'tan', label: 'T-10' },
+  { id: 'new-28', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=M-22', gender: 'neutral', style: 'casual', skinTone: 'tan', label: 'M-22' },
+];
 
 const decodeName = (value: string) => {
   try {
@@ -36,33 +68,14 @@ const getFilename = (value: string) => {
   return decodeName(parts[parts.length - 1] || '');
 };
 
-const toLabel = (file: string) => {
-  const base = getFilename(file).replace(/\.[^.]+$/, '');
-  const cleaned = base.replace(/\(|\)/g, '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned ? titleize(cleaned) : 'Avatar';
+const buildOptions = (): AvatarOption[] => {
+  // We are now only using the high-quality curated set to avoid problematic local assets
+  return [...CURATED_AVATARS];
 };
-
-const toId = (file: string, index: number) => {
-  const base = getFilename(file).replace(/\.[^.]+$/, '');
-  const cleaned = base.replace(/\(|\)/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase();
-  return cleaned ? cleaned : `avatar-${index + 1}`;
-};
-
-const toUrl = (url: string) => url;
-
-const buildOptions = (): AvatarOption[] =>
-  AVATAR_FILES.map((file, index): AvatarOption => ({
-    id: toId(file.path, index),
-    url: toUrl(file.url),
-    gender: 'neutral',
-    style: 'casual',
-    skinTone: 'tan',
-    label: toLabel(file.path),
-  }));
 
 const FALLBACK_AVATAR: AvatarOption = {
   id: 'avatar-default',
-  url: '',
+  url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
   gender: 'neutral',
   style: 'casual',
   skinTone: 'tan',
@@ -70,6 +83,7 @@ const FALLBACK_AVATAR: AvatarOption = {
 };
 
 export const AVATAR_OPTIONS: AvatarOption[] = buildOptions();
+
 if (AVATAR_OPTIONS.length === 0) {
   AVATAR_OPTIONS.push(FALLBACK_AVATAR);
 }

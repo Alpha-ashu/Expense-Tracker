@@ -180,7 +180,7 @@ export const UserProfile: React.FC = () => {
     if (v === 'female') return 'Female';
     if (v === 'non-binary') return 'Non-binary';
     if (v === 'prefer-not-to-say') return 'Prefer not to say';
-    return 'EUR"';
+    return 'Not specified';
   };
 
   /** Human-readable label for a canonical jobType value */
@@ -202,7 +202,7 @@ export const UserProfile: React.FC = () => {
       return;
     }
 
-    // "EUR"EUR SOURCE 0: Supabase auth user_metadata (set during signUp) "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
+    // SOURCE 0: Supabase auth user_metadata (set during signUp)
     // When users sign up, first_name/last_name are stored in user_metadata.
     // This is the most reliable name source even before a profiles row exists.
     const meta = user.user_metadata || {};
@@ -221,7 +221,7 @@ export const UserProfile: React.FC = () => {
       }));
     }
 
-    // "EUR"EUR SOURCE 1: localStorage (written by NewUserOnboarding on completion) "EUR"EUR"EUR
+    // SOURCE 1: localStorage (written by NewUserOnboarding on completion)
     const localProfile = localStorage.getItem('user_profile');
     if (localProfile) {
       try {
@@ -253,11 +253,11 @@ export const UserProfile: React.FC = () => {
           avatarId: resolveAvatar(p.profilePhoto || prev.profilePhoto, p.avatarId || prev.avatarId).id,
         }));
       } catch {
-        // Corrupt localStorage EUR" fall through to Supabase
+        // Corrupt localStorage, fall through to Supabase
       }
     }
 
-    // "EUR"EUR SOURCE 2: Backend API (authoritative, cloud-synced) "EUR"EUR
+    // SOURCE 2: Backend API (authoritative, cloud-synced)
     try {
       let finalData: any = null;
       if (!shouldSkipOptionalBackendRequests()) {
@@ -358,58 +358,59 @@ export const UserProfile: React.FC = () => {
   const [tempData, setTempData] = useState<ProfileData>(profileData);
   const [showAvatarGallery, setShowAvatarGallery] = useState(false);
   const [isAutofetching, setIsAutofetching] = useState(false);
+  const [citySuggestions, setCitySuggestions] = useState<any[]>([]);
+  const [isSearchingCity, setIsSearchingCity] = useState(false);
 
-  // Autofetch location and currency when city changes
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      if (isEditingLocation && tempData.city && tempData.city.length > 2) {
-        // Prevent refetching if city matches current resolved city to avoid loops
-        if (tempData.city === profileData.city && tempData.country) return;
-        
-        setIsAutofetching(true);
-        try {
-          // Use Nominatim (OpenStreetMap) for free geocoding
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(tempData.city)}&format=json&addressdetails=1&limit=1`, {
-            headers: { 'Accept-Language': 'en' }
-          });
-          const data = await response.json();
-          
-          if (data && data.length > 0) {
-            const address = data[0].address;
-            const state = address.state || address.region || address.county || '';
-            const country = address.country || '';
-            const countryCode = (address.country_code || '').toUpperCase();
-            
-            // Enhanced Currency Mapping
-            const currencyMap: Record<string, string> = {
-              'IN': 'INR', 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'AU': 'AUD', 
-              'CA': 'CAD', 'AE': 'AED', 'SG': 'SGD', 'DE': 'EUR', 'FR': 'EUR',
-              'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR',
-              'PT': 'EUR', 'IE': 'EUR', 'GR': 'EUR', 'FI': 'EUR', 'BR': 'BRL',
-              'RU': 'RUB', 'CN': 'CNY', 'ZA': 'ZAR', 'MX': 'MXN', 'CH': 'CHF'
-            };
+  const handleCitySearch = async (query: string) => {
+    setTempData(prev => ({ ...prev, city: query }));
+    if (query.length < 3) {
+      setCitySuggestions([]);
+      return;
+    }
 
-            setTempData(prev => ({
-              ...prev,
-              state: state || prev.state,
-              country: country || prev.country
-            }));
-            
-            const autoCurrency = currencyMap[countryCode];
-            if (autoCurrency) {
-              setCurrency(autoCurrency);
-            }
-          }
-        } catch (err) {
-          console.warn('[Autofetch] Failed to resolve location:', err);
-        } finally {
-          setIsAutofetching(false);
-        }
-      }
-    }, 1000); // 1s debounce to avoid API rate limits
+    setIsSearchingCity(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`, {
+        headers: { 'Accept-Language': 'en' }
+      });
+      const data = await response.json();
+      setCitySuggestions(data);
+    } catch (err) {
+      console.warn('[CitySearch] Failed:', err);
+    } finally {
+      setIsSearchingCity(false);
+    }
+  };
 
-    return () => clearTimeout(timer);
-  }, [tempData.city, isEditingLocation]);
+  const handleSelectCity = (suggestion: any) => {
+    const addr = suggestion.address;
+    const city = addr.city || addr.town || addr.village || addr.suburb || tempData.city;
+    const state = addr.state || addr.region || addr.county || '';
+    const country = addr.country || '';
+    const countryCode = (addr.country_code || '').toUpperCase();
+
+    setTempData(prev => ({
+      ...prev,
+      city,
+      state,
+      country
+    }));
+    setCitySuggestions([]);
+
+    // Currency Mapping
+    const currencyMap: Record<string, string> = {
+      'IN': 'INR', 'US': 'USD', 'GB': 'GBP', 'JP': 'JPY', 'AU': 'AUD', 
+      'CA': 'CAD', 'AE': 'AED', 'SG': 'SGD', 'DE': 'EUR', 'FR': 'EUR',
+      'IT': 'EUR', 'ES': 'EUR', 'NL': 'EUR', 'BE': 'EUR', 'AT': 'EUR',
+      'PT': 'EUR', 'IE': 'EUR', 'GR': 'EUR', 'FI': 'EUR', 'BR': 'BRL',
+      'RU': 'RUB', 'CN': 'CNY', 'ZA': 'ZAR', 'MX': 'MXN', 'CH': 'CHF'
+    };
+    
+    if (currencyMap[countryCode]) {
+      setCurrency(currencyMap[countryCode]);
+    }
+  };
+
 
   // Bug 3 fix: keep tempData in sync with profileData after async fetch,
   // but only when the edit form is not currently open to avoid overwriting
@@ -437,8 +438,8 @@ export const UserProfile: React.FC = () => {
   const ageGroupLabel = getAgeGroupLabel(ageGroup);
   const ageSource = isEditingBasic ? tempData.dateOfBirth : profileData.dateOfBirth;
   const activeAvatar = resolveAvatarSelection({
-    avatarId: (isEditingBasic ? tempData.avatarId : profileData.avatarId) || null,
-    avatarUrl: (isEditingBasic ? tempData.profilePhoto : profileData.profilePhoto) || null,
+    avatarId: (isEditingBasic || showAvatarGallery ? tempData.avatarId : profileData.avatarId) || null,
+    avatarUrl: (isEditingBasic || showAvatarGallery ? tempData.profilePhoto : profileData.profilePhoto) || null,
   });
 
   const handleSaveProfile = async () => {
@@ -524,7 +525,7 @@ export const UserProfile: React.FC = () => {
     }
   };
 
-  // "EUR"EUR Change PIN "EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR"EUR
+  // Change PIN
   const [pinChangeStep, setPinChangeStep] = useState<'idle' | 'set-new-pin'>('idle');
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -576,7 +577,7 @@ export const UserProfile: React.FC = () => {
     setConfirmNewPin('');
   };
 
-  // Email & mobile change (kept simple for now EUR" uses verification state)
+  // Email & mobile change (kept simple for now, uses verification state)
   const handleChangeEmail = () => {
     if (!verification.newValue) { toast.error('Please enter new email'); return; }
     setVerification({ ...verification, type: 'email-change', step: 'otp-sent' });
@@ -651,7 +652,7 @@ export const UserProfile: React.FC = () => {
             {/* LEFT COLUMN */}
             <div className="space-y-4">
 
-              {/* "EUR"EUR New User Prompt "EUR"EUR Only shown when profile is incomplete */}
+              {/* New User Prompt - Only shown when profile is incomplete */}
               {!profileData.firstName && !isLoading && (
                 <motion.div
                   initial={{ opacity: 0, y: -12 }}
@@ -660,15 +661,12 @@ export const UserProfile: React.FC = () => {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-lg">' Welcome! Complete your profile</p>
+                      <p className="font-bold text-lg">Welcome! Complete your profile</p>
                       <p className="text-sm text-blue-100 mt-1">
                         Fill in your details so we can personalise your experience.
                       </p>
                       <ul className="mt-3 space-y-1 text-sm text-blue-100">
-                        {!profileData.firstName && <li>EUR First &amp; Last Name</li>}
-                        {!profileData.mobile && <li>EUR Mobile Number</li>}
-                        {!profileData.dateOfBirth && <li>EUR Date of Birth</li>}
-                        {!profileData.jobType && <li>EUR Job Type &amp; Monthly Income</li>}
+                        {!profileData.jobType && <li>Job Type &amp; Monthly Income</li>}
                       </ul>
                     </div>
                     <button
@@ -692,11 +690,17 @@ export const UserProfile: React.FC = () => {
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                   className="relative"
                 >
-                  <img
-                    src={activeAvatar.url}
-                    alt="Avatar"
-                    className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover shadow-lg"
-                  />
+                  <div className="relative group">
+                    <img
+                      src={activeAvatar.url}
+                      alt="Avatar"
+                      className="w-32 h-32 rounded-full border-4 border-blue-500 object-cover shadow-xl bg-gray-50"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback';
+                      }}
+                    />
+                    <div className="absolute inset-0 rounded-full bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  </div>
                 </motion.div>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                   <p className="text-gray-900 font-semibold text-lg">
@@ -735,31 +739,56 @@ export const UserProfile: React.FC = () => {
                   )}
                 </div>
                 {showAvatarGallery && (
-                  <div className="mt-4 w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-4">
-                    <div className="grid grid-cols-5 gap-2">
-                      {AVATAR_OPTIONS.map((avatar) => (
-                        <button
-                          key={avatar.id}
-                          type="button"
-                          onClick={() => setTempData((prev) => ({
-                            ...prev,
-                            profilePhoto: avatar.url,
-                            avatarId: avatar.id,
-                          }))}
-                          className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${activeAvatar.id === avatar.id
-                            ? 'border-blue-500 ring-2 ring-blue-200'
-                            : 'border-transparent hover:border-gray-300'
-                            }`}
-                          aria-label={`Select avatar ${avatar.label}`}
-                          title={avatar.label}
-                        >
-                          <img src={avatar.url} alt={avatar.label} className="h-full w-full object-cover" />
-                        </button>
-                      ))}
+                  <div className="mt-4 w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-sm font-bold text-gray-700 uppercase tracking-wider">Choose your style</p>
+                      <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold">
+                        {AVATAR_OPTIONS.length} OPTIONS
+                      </span>
                     </div>
-                    <p className="mt-3 text-xs text-gray-500 text-center">
-                      Pick a style that fits your vibe. You can update it anytime.
-                    </p>
+                    
+                    <div className="max-h-[320px] overflow-y-auto pr-2 overflow-x-hidden custom-scrollbar">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-y-6 gap-x-4 justify-items-center py-2">
+                        {AVATAR_OPTIONS.map((avatar) => (
+                          <button
+                            key={avatar.id}
+                            type="button"
+                            onClick={() => setTempData((prev) => ({
+                              ...prev,
+                              profilePhoto: avatar.url,
+                              avatarId: avatar.id,
+                            }))}
+                            className={`h-14 w-14 rounded-full overflow-hidden border-2 transition-all relative group flex-shrink-0 ${activeAvatar.id === avatar.id
+                              ? 'border-blue-500 ring-4 ring-blue-100 scale-110 z-10'
+                              : 'border-gray-100 hover:border-blue-300 hover:scale-105'
+                              }`}
+                            aria-label={`Select avatar ${avatar.label}`}
+                            title={avatar.label}
+                          >
+                            <img 
+                              src={avatar.url} 
+                              alt={avatar.label} 
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatar.id}`;
+                              }}
+                            />
+                            {activeAvatar.id === avatar.id && (
+                              <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
+                                <Check size={16} className="text-blue-600" />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                      <p className="text-[11px] text-gray-500 font-medium">
+                        Scroll to see more characters
+                      </p>
+                    </div>
                   </div>
                 )}
               </motion.div>
@@ -794,13 +823,13 @@ export const UserProfile: React.FC = () => {
                         <span className="text-sm text-gray-500 flex items-center gap-2">
                           <User size={14} className="text-gray-400" /> First Name
                         </span>
-                        <span className="text-sm font-semibold text-gray-900">{profileData.firstName || 'EUR"'}</span>
+                        <span className="text-sm font-semibold text-gray-900">{profileData.firstName || ''}</span>
                       </div>
                       <div className="flex items-center justify-between py-3.5">
                         <span className="text-sm text-gray-500 flex items-center gap-2">
                           <User size={14} className="text-gray-400" /> Last Name
                         </span>
-                        <span className="text-sm font-semibold text-gray-900">{profileData.lastName || 'EUR"'}</span>
+                        <span className="text-sm font-semibold text-gray-900">{profileData.lastName || ''}</span>
                       </div>
                       <div className="flex items-center justify-between py-3.5">
                         <span className="text-sm text-gray-500 flex items-center gap-2">
@@ -815,7 +844,7 @@ export const UserProfile: React.FC = () => {
                         <span className="text-sm font-semibold text-gray-900">
                           {profileData.dateOfBirth
                             ? new Date(profileData.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                            : 'EUR"'}
+                            : ''}
                         </span>
                       </div>
                       <div className="flex items-center justify-between py-3.5">
@@ -828,11 +857,11 @@ export const UserProfile: React.FC = () => {
                         <span className="text-sm text-gray-500 flex items-center gap-2">
                           <span className="text-gray-400 font-bold text-sm w-3.5 inline-flex justify-center"></span> Monthly Income
                         </span>
-                        <span className="text-sm font-semibold text-gray-900"> {(profileData.monthlyIncome || 0).toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-gray-900"> {Math.round(profileData.monthlyIncome || 0).toLocaleString()}</span>
                       </div>
                     </div>
                   ) : (
-                    /* Edit mode EUR" form with two-column grid for related fields */
+                    /* Edit mode: form with two-column grid for related fields */
                     <div className="space-y-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
                         <div>
@@ -945,7 +974,7 @@ export const UserProfile: React.FC = () => {
                 </Card>
               </motion.div>
 
-              {/* "EUR"EUR Location & Currency Card "EUR"EUR */}
+              {/* Location & Currency Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -977,19 +1006,19 @@ export const UserProfile: React.FC = () => {
                         <span className="text-sm text-gray-500 flex items-center gap-2">
                           <MapPin size={14} className="text-gray-400" /> Country
                         </span>
-                        <span className="text-sm font-semibold text-gray-900">{profileData.country || 'EUR"'}</span>
+                        <span className="text-sm font-semibold text-gray-900">{profileData.country || ''}</span>
                       </div>
                       <div className="flex items-center justify-between py-3.5">
                         <span className="text-sm text-gray-500 flex items-center gap-2">
                           <MapPin size={14} className="text-gray-400" /> State / Province
                         </span>
-                        <span className="text-sm font-semibold text-gray-900">{profileData.state || 'EUR"'}</span>
+                        <span className="text-sm font-semibold text-gray-900">{profileData.state || ''}</span>
                       </div>
                       <div className="flex items-center justify-between py-3.5">
                         <span className="text-sm text-gray-500 flex items-center gap-2">
                           <MapPin size={14} className="text-gray-400" /> City
                         </span>
-                        <span className="text-sm font-semibold text-gray-900">{profileData.city || 'EUR"'}</span>
+                        <span className="text-sm font-semibold text-gray-900">{profileData.city || ''}</span>
                       </div>
                       <div className="flex items-center justify-between py-3.5">
                         <span className="text-sm text-gray-500 flex items-center gap-2">
@@ -999,60 +1028,29 @@ export const UserProfile: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+                    <div className="space-y-6">
+                      {/* Unified Location Search */}
+                      <div className="space-y-4">
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
-                            <MapPin size={12} className="text-gray-400" /> Country
-                          </label>
-                          <input
-                            type="text"
-                            value={tempData.country}
-                            onChange={(e) => setTempData({ ...tempData, country: e.target.value })}
-                            className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
-                              isAutofetching ? 'bg-blue-50/10 border-blue-200' : ''
-                            }`}
-                            placeholder="e.g. India"
-                            id="country"
-                            name="country"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
-                            <MapPin size={12} className="text-gray-400" /> State / Province
-                          </label>
-                          <input
-                            type="text"
-                            value={tempData.state}
-                            onChange={(e) => setTempData({ ...tempData, state: e.target.value })}
-                            className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
-                              isAutofetching ? 'bg-blue-50/10 border-blue-200' : ''
-                            }`}
-                            placeholder="e.g. Maharashtra"
-                            id="state"
-                            name="state"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
-                            <MapPin size={12} className="text-gray-400" /> City
+                            <MapPin size={12} className="text-gray-400" /> Search City
                           </label>
                           <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                              <MapPin size={16} />
+                            </div>
                             <input
                               type="text"
                               value={tempData.city}
-                              onChange={(e) => setTempData({ ...tempData, city: e.target.value })}
-                              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
-                                isAutofetching ? 'pr-10 border-blue-200 bg-blue-50/10' : ''
+                              onChange={(e) => handleCitySearch(e.target.value)}
+                              className={`w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all ${
+                                isSearchingCity ? 'border-blue-200 bg-blue-50/10' : ''
                               }`}
-                              placeholder="e.g. Mumbai"
-                              id="city"
-                              name="city"
+                              placeholder="Type city name (e.g. Chennai)"
+                              id="city-search"
+                              autoComplete="off"
                             />
-                            {isAutofetching && (
+                            {isSearchingCity && (
                               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                 <motion.div
                                   animate={{ rotate: 360 }}
@@ -1062,39 +1060,75 @@ export const UserProfile: React.FC = () => {
                                 </motion.div>
                               </div>
                             )}
+
+                            {/* Suggestions Dropdown */}
+                            {citySuggestions.length > 0 && (
+                              <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                {citySuggestions.map((suggestion, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => handleSelectCity(suggestion)}
+                                    className="w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors border-b border-gray-50 last:border-0 flex flex-col"
+                                  >
+                                    <span className="text-sm font-semibold text-gray-900">
+                                      {suggestion.address.city || suggestion.address.town || suggestion.address.village || suggestion.display_name.split(',')[0]}
+                                    </span>
+                                    <span className="text-xs text-gray-500 truncate">
+                                      {suggestion.display_name}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
-                            <DollarSign size={12} className="text-gray-400" /> Currency
-                          </label>
-                          <select
-                            value={currency}
-                            onChange={(e) => setCurrency(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            aria-label="Select currency"
-                            id="currency"
-                            name="currency"
-                          >
-                            <option value="USD">USD EUR" US Dollar</option>
-                            <option value="EUR">EUR EUR" Euro</option>
-                            <option value="GBP">GBP EUR" British Pound</option>
-                            <option value="INR">INR EUR" Indian Rupee</option>
-                            <option value="JPY">JPY EUR" Japanese Yen</option>
-                            <option value="AUD">AUD EUR" Australian Dollar</option>
-                            <option value="CAD">CAD EUR" Canadian Dollar</option>
-                            <option value="CHF">CHF EUR" Swiss Franc</option>
-                            <option value="CNY">CNY EUR" Chinese Yuan</option>
-                            <option value="SGD">SGD EUR" Singapore Dollar</option>
-                          </select>
-                        </div>
+
+                        {/* Resolved Location Details */}
+                        {(tempData.city || tempData.state || tempData.country) && (
+                          <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2 animate-in zoom-in-95 duration-200">
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Detected Location</p>
+                            <div className="flex items-start gap-2">
+                              <MapPin size={14} className="text-blue-500 mt-0.5" />
+                              <p className="text-sm text-gray-900 font-medium leading-relaxed">
+                                {[tempData.city, tempData.state, tempData.country].filter(Boolean).join(', ')}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Currency Section */}
+                      <div className="pt-4 border-t border-gray-100">
+                        <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                          <DollarSign size={12} className="text-gray-400" /> Currency Settings
+                        </label>
+                        <select
+                          value={currency}
+                          onChange={(e) => setCurrency(e.target.value)}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                          id="currency-select"
+                        >
+                          <option value="USD">USD - US Dollar</option>
+                          <option value="EUR">EUR - Euro</option>
+                          <option value="GBP">GBP - British Pound</option>
+                          <option value="INR">INR - Indian Rupee</option>
+                          <option value="JPY">JPY - Japanese Yen</option>
+                          <option value="AUD">AUD - Australian Dollar</option>
+                          <option value="CAD">CAD - Canadian Dollar</option>
+                          <option value="CHF">CHF - Swiss Franc</option>
+                          <option value="CNY">CNY - Chinese Yuan</option>
+                          <option value="SGD">SGD - Singapore Dollar</option>
+                        </select>
+                        <p className="mt-2 text-[10px] text-gray-400 italic">
+                          Currency updates automatically based on selected city, but can be overridden manually.
+                        </p>
                       </div>
 
                       <button
                         onClick={handleSaveProfile}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition-colors"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-[0.98]"
                       >
-                        Save Changes
+                        Save Location & Currency
                       </button>
                     </div>
                   )}
@@ -1191,7 +1225,7 @@ export const UserProfile: React.FC = () => {
                           <>
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                               <p className="text-sm text-blue-800">
-                                " OTP sent to your registered mobile number
+                                OTP sent to your registered mobile number
                               </p>
                             </div>
                             <input
@@ -1303,7 +1337,7 @@ export const UserProfile: React.FC = () => {
                           <>
                             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                               <p className="text-sm text-green-800">
-                                " OTP sent to your registered email
+                                OTP sent to your registered email
                               </p>
                             </div>
                             <input

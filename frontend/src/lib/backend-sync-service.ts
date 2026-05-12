@@ -173,13 +173,13 @@ class BackendSyncService {
 
     for (const record of records) {
       try {
-        const existingRecord = await dexieTable.where('cloud_id').equals(record.id).first();
+        const existingRecord = await dexieTable.where('cloudId').equals(record.id).first();
         
         if (!existingRecord) {
           // New record - add to local DB
           await dexieTable.add({
             ...this.mapBackendToLocal(record),
-            cloud_id: record.id,
+            cloudId: record.id,
             synced: true,
             updatedAt: new Date(),
           });
@@ -210,7 +210,7 @@ class BackendSyncService {
       updatedAt: record.updated_at ? new Date(record.updated_at) : new Date(),
       // Remove backend-specific fields
       id: undefined, // Remove backend ID
-      cloud_id: record.id, // Store as cloud_id
+      cloudId: record.id, // Store as cloudId
       user_id: undefined, // Remove user_id from local
     };
   }

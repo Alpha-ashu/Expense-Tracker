@@ -286,7 +286,7 @@ class SyncService {
     const dexieTable = tableMap[table];
     if (!dexieTable) return null;
 
-    return dexieTable.where('cloud_id').equals(id).first();
+    return dexieTable.where('cloudId').equals(id).first();
   }
 
   // Insert record to local DB
@@ -304,7 +304,7 @@ class SyncService {
 
     const localRecord = {
       ...this.mapCloudToLocal(table, record),
-      cloud_id: record.id,
+      cloudId: record.id,
       synced: true,
     };
 
