@@ -366,8 +366,8 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
       <div className="w-[440px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col">
         {/* Header */}
         <div className="pt-10 pb-6 flex flex-col items-center px-6">
-          <div className="w-16 h-16 rounded-[20px] bg-gray-900 flex items-center justify-center mb-5 shadow-sm">
-            <Lock className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 rounded-[24px] bg-white flex items-center justify-center mb-5 shadow-sm border border-slate-100">
+            <KanakkuLogo className="w-10 h-10" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">Kanakku</h1>
           <p className="text-sm text-gray-500 font-medium text-center">{currentStepSub}</p>
