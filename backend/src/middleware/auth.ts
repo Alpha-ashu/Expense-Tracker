@@ -20,8 +20,8 @@ export interface AuthRequest extends Request {
 let _supabase: any = null;
 const getSupabase = () => {
   if (_supabase) return _supabase;
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://mmwrckfqeqjfqciymemh.supabase.co';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_QA4aNzLgHR9xanXUJaPpew_XGRicYBq';
   
   // We allow both service_role keys and publishable (anon) keys. 
   // If using a publishable key, sb.auth.getUser(token) will still work via network verification.
