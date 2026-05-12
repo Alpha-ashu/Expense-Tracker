@@ -7,7 +7,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "auth"]
+  schemas  = ["public"]
 }
 
 model Account {
@@ -588,7 +588,7 @@ model OtpCode {
 
   @@index([userId])
   @@index([expiresAt])
-  @@schema("auth")
+  @@schema("public")
 }
 
 model AiScan {
