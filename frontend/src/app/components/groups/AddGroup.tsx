@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import '@/styles/premium-transactions.css';
+import { db } from '@/lib/database';
 
 // --- Constants ---
 const GROUP_CATEGORIES = [
@@ -60,6 +61,16 @@ export const AddGroup: React.FC = () => {
     setFormData(prev => ({ ...prev, participants: next }));
   };
 
+  // Save a name as a Friend in the DB if not already there (temp record)
+  const saveNewFriend = async (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const existing = friends.find(f => f.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) return;
+    await db.friends.add({ name: trimmed, createdAt: new Date(), updatedAt: new Date(), syncStatus: 'pending' });
+    refreshData();
+  };
+
   const addFriend = (name: string) => {
     if (formData.participants.some((p) => p.toLowerCase() === name.toLowerCase())) { 
       toast.error(`${name} already added`); 
@@ -76,6 +87,30 @@ export const AddGroup: React.FC = () => {
     setShowFriendPicker(false);
   };
 
+  // New person: add inline by name and immediately save to friends DB
+  const [newPersonInput, setNewPersonInput] = useState('');
+  const [showNewPersonInput, setShowNewPersonInput] = useState(false);
+
+  const confirmNewPerson = async () => {
+    const name = newPersonInput.trim();
+    if (!name) return;
+    if (formData.participants.some(p => p.toLowerCase() === name.toLowerCase())) {
+      toast.error(`${name} already added`);
+      return;
+    }
+    await saveNewFriend(name);
+    const emptyIdx = formData.participants.findIndex(p => !p.trim());
+    if (emptyIdx !== -1) {
+      const next = [...formData.participants];
+      next[emptyIdx] = name;
+      setFormData(prev => ({ ...prev, participants: next }));
+    } else {
+      setFormData(prev => ({ ...prev, participants: [...prev.participants, name] }));
+    }
+    setNewPersonInput('');
+    setShowNewPersonInput(false);
+  };
+
   const handleSubmit = async () => {
     if (!formData.name.trim()) { toast.error('Group name is required'); return; }
     if (validParticipants.length < 1) { toast.error('Add at least one participant'); return; }
@@ -83,6 +118,9 @@ export const AddGroup: React.FC = () => {
     
     setIsSubmitting(true);
     try {
+      // Auto-save all new participant names as Friends in the DB
+      await Promise.all(validParticipants.map(name => saveNewFriend(name)));
+
       await backendService.createGroup({
         id: Date.now().toString(), 
         name: formData.name, 
@@ -94,7 +132,7 @@ export const AddGroup: React.FC = () => {
         category: formData.category, 
         date: new Date(formData.date),
       });
-      toast.success('Group expense created!');
+      toast.success('Group expense created! Participants saved to contacts.');
       refreshData();
       setCurrentPage('groups');
     } catch (error) {
@@ -153,8 +191,8 @@ export const AddGroup: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Category</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</label>
                 <SearchableDropdown
                   options={groupCategoryOptions}
                   value={formData.category}
@@ -163,15 +201,24 @@ export const AddGroup: React.FC = () => {
                   triggerClassName="bg-slate-50 border-none rounded-xl h-12 font-bold text-xs shadow-none"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Date</label>
-                <div className="relative">
-                  <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</label>
+                <div className="relative group">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-violet-500 transition-colors z-10" size={14} />
+                  <div className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-9 pr-3 font-bold text-xs text-slate-900 group-hover:bg-slate-100/50 group-hover:border-slate-200 transition-all flex items-center min-h-[40px]">
+                    {(() => {
+                      if (!formData.date) return 'Select Date';
+                      const date = new Date(formData.date);
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                      return `${day}-${months[date.getMonth()]}-${date.getFullYear()}`;
+                    })()}
+                  </div>
                   <input 
                     type="date" 
                     value={formData.date} 
                     onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} 
-                    className="w-full bg-slate-50 border-none rounded-xl py-2.5 pl-9 pr-3 font-bold text-xs" 
+                    className="absolute inset-0 opacity-0 cursor-pointer z-20" 
                   />
                 </div>
               </div>
@@ -193,40 +240,76 @@ export const AddGroup: React.FC = () => {
             {/* Participants Section */}
             <div className="space-y-4 pt-4 border-t border-slate-100">
                <div className="flex items-center justify-between">
-                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Split with Participants</label>
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                    Split with Participants ({validParticipants.length + 1})
+                  </label>
                   <div className="flex gap-2">
                     {friends && friends.length > 0 && (
                       <button 
                         type="button" 
-                        onClick={() => setShowFriendPicker(!showFriendPicker)}
-                        className="text-[8px] font-black uppercase text-violet-600 bg-violet-50 px-2 py-1 rounded-lg flex items-center gap-1"
+                        onClick={() => { setShowFriendPicker(!showFriendPicker); setShowNewPersonInput(false); }}
+                        className="text-[8px] font-black uppercase text-violet-600 bg-violet-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
                       >
-                        <UserPlus size={10} /> Friends List
+                        <Users size={10} /> Friends
                       </button>
                     )}
                     <button 
                       type="button" 
-                      onClick={addParticipant}
-                      className="text-[8px] font-black uppercase text-slate-500 bg-slate-100 px-2 py-1 rounded-lg flex items-center gap-1"
+                      onClick={() => { setShowNewPersonInput(!showNewPersonInput); setShowFriendPicker(false); }}
+                      className="text-[8px] font-black uppercase text-indigo-600 bg-indigo-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1"
                     >
-                      <Plus size={10} /> Add Raw
+                      <UserPlus size={10} /> New Person
                     </button>
                   </div>
                </div>
 
+               {/* Friends quick-pick panel */}
                {showFriendPicker && friends.length > 0 && (
-                 <div className="p-3 bg-violet-50/50 rounded-xl border border-violet-100 animate-in slide-in-from-top-2">
+                 <div className="p-3 bg-violet-50/60 rounded-xl border border-violet-100 animate-in slide-in-from-top-2">
+                   <p className="text-[8px] font-black text-violet-400 uppercase tracking-widest mb-2">Tap to add</p>
                    <div className="flex flex-wrap gap-2">
-                     {friends.map(f => (
-                       <button 
-                         key={f.id} 
-                         onClick={() => addFriend(f.name)}
-                         className="px-2.5 py-1.5 bg-white border border-violet-100 rounded-lg text-[9px] font-bold text-violet-700 hover:bg-violet-600 hover:text-white transition-all shadow-sm"
-                       >
-                         {f.name}
-                       </button>
-                     ))}
+                     {friends.map(f => {
+                       const already = formData.participants.some(p => p.toLowerCase() === f.name.toLowerCase());
+                       return (
+                         <button 
+                           key={f.id}
+                           type="button"
+                           onClick={() => !already && addFriend(f.name)}
+                           disabled={already}
+                           className={cn(
+                             "px-2.5 py-1.5 rounded-lg text-[9px] font-bold transition-all",
+                             already
+                               ? "bg-slate-100 text-slate-300 cursor-not-allowed line-through"
+                               : "bg-white border border-violet-100 text-violet-700 hover:bg-violet-600 hover:text-white shadow-sm"
+                           )}
+                         >
+                           {f.name}
+                         </button>
+                       );
+                     })}
                    </div>
+                 </div>
+               )}
+
+               {/* Inline new person input */}
+               {showNewPersonInput && (
+                 <div className="flex items-center gap-2 p-2.5 bg-indigo-50/60 rounded-xl border border-indigo-100 animate-in slide-in-from-top-2">
+                   <UserPlus size={14} className="text-indigo-400 shrink-0" />
+                   <input
+                     type="text"
+                     value={newPersonInput}
+                     onChange={e => setNewPersonInput(e.target.value)}
+                     onKeyDown={e => e.key === 'Enter' && confirmNewPerson()}
+                     className="flex-1 bg-transparent border-none p-0 text-xs font-bold text-slate-900 focus:ring-0 placeholder:text-slate-300"
+                     placeholder="Type name & press Enter"
+                     autoFocus
+                   />
+                   <button type="button" onClick={confirmNewPerson} className="p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all">
+                     <Check size={12} strokeWidth={3} />
+                   </button>
+                   <button type="button" onClick={() => { setShowNewPersonInput(false); setNewPersonInput(''); }} className="p-1.5 text-slate-400 hover:text-slate-600 transition-all">
+                     <X size={12} strokeWidth={3} />
+                   </button>
                  </div>
                )}
 
@@ -242,17 +325,18 @@ export const AddGroup: React.FC = () => {
 
                   {formData.participants.map((p, i) => (
                     <div key={i} className="flex items-center gap-2 p-2 bg-white border border-slate-100 rounded-xl group">
-                       <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase">
-                          {p ? p.charAt(0) : i + 1}
+                       <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-black text-indigo-500 uppercase">
+                          {p ? p.charAt(0) : <Plus size={12} />}
                        </div>
                        <input 
                          type="text" 
                          value={p} 
-                         onChange={e => updateParticipant(i, e.target.value)} 
+                         onChange={e => updateParticipant(i, e.target.value)}
+                         onBlur={e => saveNewFriend(e.target.value)}
                          className="flex-1 bg-transparent border-none p-0 text-[11px] font-bold text-slate-900 focus:ring-0" 
                          placeholder={`Person ${i + 1}`} 
                        />
-                       <button onClick={() => removeParticipant(i)} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
+                       <button type="button" onClick={() => removeParticipant(i)} className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all">
                           <Trash2 size={14} />
                        </button>
                     </div>
@@ -266,37 +350,60 @@ export const AddGroup: React.FC = () => {
         <div className="lg:col-span-5 flex flex-col gap-4">
           
           {/* Total Amount Input Card */}
-          <div className="premium-glass-card p-6 bg-white relative overflow-hidden flex flex-col items-center">
-             <div className="absolute -top-10 -right-10 w-32 h-32 bg-violet-500/5 blur-[40px] rounded-full" />
-             <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-2">Total Group Bill</span>
-              <div className="flex items-center gap-2 sm:gap-3">
-                 <span className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-200 uppercase">{currency}</span>
-                 <input 
-                   type="number" 
-                   value={amountStr} 
-                   onChange={e => { setAmountStr(e.target.value); setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) || 0 })); }}
-                   className="bg-transparent text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 outline-none w-full max-w-[250px] text-center tracking-tighter" 
-                   placeholder="0.00"
-                   autoFocus
-                 />
-              </div>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {[100, 500, 1000, 2000].map(amt => (
+          <div className="premium-glass-card p-8 bg-white relative overflow-hidden flex flex-col items-center">
+             <div className="absolute -top-24 -left-24 w-64 h-64 bg-violet-500/5 blur-[80px] rounded-full animate-pulse pointer-events-none z-0" />
+             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-500/5 blur-[80px] rounded-full animate-pulse pointer-events-none z-0" style={{ animationDelay: '1s' }} />
+             
+             <div className="relative z-10 flex flex-col items-center w-full">
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Total Group Bill</span>
+             
+             <div className="flex items-center justify-center w-full my-4">
+                {/* Left Side: Currency */}
+                <div className="w-20 sm:w-28 flex justify-end pr-2 sm:pr-4">
+                  <span className="text-2xl sm:text-4xl font-black text-slate-200 select-none tracking-tighter">{currency}</span>
+                </div>
+                
+                {/* Center: Input */}
+                <input 
+                  type="number" 
+                  value={amountStr} 
+                  onChange={e => { setAmountStr(e.target.value); setFormData(prev => ({ ...prev, totalAmount: parseFloat(e.target.value) || 0 })); }}
+                  className="bg-transparent text-5xl sm:text-6xl font-black text-slate-900 outline-none w-[160px] sm:w-[220px] text-center tracking-tighter placeholder:text-slate-100 p-0 m-0" 
+                  placeholder="0"
+                  autoFocus
+                />
+                
+                {/* Right Side: Clear Button */}
+                <div className="w-20 sm:w-28 flex justify-start pl-2 sm:pl-4">
+                  {amountStr && (
+                    <button 
+                      onClick={() => { setAmountStr(''); setFormData(prev => ({ ...prev, totalAmount: 0 })); }} 
+                      className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all animate-in fade-in zoom-in-50"
+                    >
+                      <X size={28} strokeWidth={3} />
+                    </button>
+                  )}
+                </div>
+             </div>
+
+             <div className="flex flex-wrap justify-center gap-3 mt-8 max-w-sm">
+                {[100, 500, 1000, 2000, 5000].map(amt => (
                   <button 
                     key={amt} 
                     type="button"
                     onClick={() => { 
-                      const current = parseFloat(amountStr) || 0;
+                      const current = Number(formData.totalAmount) || 0;
                       const next = current + amt;
                       setAmountStr(String(next));
                       setFormData(prev => ({ ...prev, totalAmount: next }));
                     }} 
-                    className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-500 hover:bg-slate-900 hover:text-white hover:border-slate-900 hover:shadow-lg hover:shadow-slate-200 transition-all active:scale-95"
+                    className="px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-black text-slate-500 hover:bg-slate-900 hover:text-white hover:border-slate-900 hover:shadow-2xl hover:shadow-slate-200 transition-all active:scale-90 select-none"
                   >
-                    +{amt}
+                    +{currency}{amt}
                   </button>
                 ))}
               </div>
+             </div>
           </div>
 
           <div className="premium-glass-card p-4 sm:p-6 space-y-5">
