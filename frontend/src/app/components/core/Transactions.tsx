@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db, type DocumentRecord } from '@/lib/database';
-import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet, Receipt, Layers, Eye, X } from 'lucide-react';
+import { Plus, TrendingUp, TrendingDown, Search, Camera, Edit2, Trash2, ArrowUpRight, ArrowDownLeft, Repeat2, Wallet, Receipt, Layers, Eye, X, ChevronRight, FileText, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/shared/DeleteConfirmModal';
 import { ReceiptScanner } from '@/app/components/transactions/ReceiptScanner';
@@ -72,6 +72,7 @@ export const Transactions: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(200);
   const [previewDocument, setPreviewDocument] = useState<DocumentRecord | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [selectedTransaction, setSelectedTransaction] = useState<(typeof transactions)[number] | null>(null);
   const documentService = useMemo(() => new DocumentManagementService(), []);
 
   const deferredSearch = useDeferredValue(searchQuery);
@@ -426,17 +427,19 @@ export const Transactions: React.FC = () => {
         </div>
       </div>
 
-      {/* Transaction List */}
+      {/* ── Transaction List ─────────────────────────────────────────── */}
       <Card variant="glass" className="overflow-hidden !p-0 min-h-[400px]">
-        <div className="overflow-x-auto">
+
+        {/* ── DESKTOP TABLE (lg+): all 4 columns ── */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50/50 border-b border-gray-100">
               <tr>
-                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
-                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
-                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Account</th>
-                <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
-                <th className="w-16 sm:w-20"></th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Details</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Account</th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                <th className="w-24 px-4 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -447,86 +450,65 @@ export const Transactions: React.FC = () => {
                   : transaction.type;
                 const attachedDocumentId = getDocumentIdFromTransaction(transaction);
                 const attachedTaxAmount = parseMetadataNumber(transaction.importMetadata?.['Tax Amount']);
-
                 const animationProps = shouldAnimateRows ? {
-                  initial: { opacity: 0, y: 10 },
-                  animate: { opacity: 1, y: 0 },
+                  initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 },
                   transition: { delay: Math.min(i, 12) * 0.02 },
                 } : undefined;
-
                 return (
-                  <RowComponent
-                    key={transaction.id}
-                    {...(animationProps ?? {})}
-                    className="group hover:bg-gray-50/80 transition-colors"
-                  >
+                  <RowComponent key={transaction.id} {...(animationProps ?? {})} className="group hover:bg-gray-50/80 transition-colors">
+                    {/* Details */}
                     <td className="px-6 py-4 pl-8">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm border border-white/50 bg-white/40">
-                          {getCategoryCartoonIcon(transaction.category || 'Miscellaneous', 24)}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm border border-white/50 bg-white/40 shrink-0">
+                          {getCategoryCartoonIcon(transaction.category || 'Miscellaneous', 22)}
                         </div>
-                        <div>
-                          <p className="font-bold text-gray-900 text-sm">
-                            {transaction.description || transaction.category}
-                          </p>
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 text-sm truncate max-w-[200px]">{transaction.description || transaction.category}</p>
                           <p className="text-xs text-gray-400 font-medium">{formatLocalDate(transaction.date, 'en-US')}</p>
-                          {(attachedDocumentId || attachedTaxAmount > 0) && (
-                            <p className="text-[11px] text-gray-500 font-medium mt-1">
-                              {attachedTaxAmount > 0 ? `Tax ${formatCurrency(attachedTaxAmount)}` : 'Bill attached'}
-                              {attachedDocumentId && attachedTaxAmount > 0 ? ' - ' : ''}
-                              {attachedDocumentId ? 'Bill attached' : ''}
-                            </p>
+                          {attachedDocumentId && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-orange-500 mt-0.5">
+                              <Paperclip size={9} /> Bill attached
+                            </span>
                           )}
                         </div>
                       </div>
                     </td>
+                    {/* Category */}
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
                         {transaction.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-500">
-                      {account?.name}
-                    </td>
-                    <td className="px-6 py-4 text-right pr-8">
-                      <span className={cn(
-                        "font-bold text-sm",
-                        displayType === 'income' ? "text-emerald-600" : "text-gray-900"
-                      )}>
+                    {/* Account */}
+                    <td className="px-6 py-4 text-sm font-medium text-gray-500">{account?.name}</td>
+                    {/* Amount */}
+                    <td className="px-6 py-4 text-right">
+                      <span className={cn('font-bold text-sm', displayType === 'income' ? 'text-emerald-600' : 'text-gray-900')}>
                         {displayType === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Actions — always visible Eye when bill attached, edit/delete on hover */}
+                    <td className="px-4 py-4 text-right">
+                      <div className="flex justify-end items-center gap-1">
                         {attachedDocumentId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-orange-600"
+                          <Button variant="ghost" size="icon"
+                            className="h-8 w-8 text-orange-400 hover:text-orange-600 hover:bg-orange-50"
                             onClick={() => handlePreviewBill(transaction)}
+                            title="View bill"
                           >
-                            <Eye size={14} />
+                            <Eye size={15} />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-400 hover:text-blue-600"
-                          onClick={() => {
-                            localStorage.setItem('editTransactionId', transaction.id?.toString() || '');
-                            setCurrentPage('add-transaction');
-                          }}
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-gray-400 hover:text-red-600"
-                          onClick={() => handleDeleteTransaction(transaction.id!, transaction.description)}
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600"
+                            onClick={() => { localStorage.setItem('editTransactionId', transaction.id?.toString() || ''); setCurrentPage('add-transaction'); }}>
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-500"
+                            onClick={() => handleDeleteTransaction(transaction.id!, transaction.description)}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </div>
                     </td>
                   </RowComponent>
@@ -535,6 +517,46 @@ export const Transactions: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {/* ── MOBILE LIST (< lg): Details + Amount only, tap to open detail sheet ── */}
+        <div className="lg:hidden divide-y divide-gray-50">
+          {visibleTransactions.map((transaction, i) => {
+            const account = accountById.get(transaction.accountId);
+            const displayType = transaction.type === 'transfer'
+              ? (transaction.subcategory === 'Transfer In' ? 'income' : 'expense')
+              : transaction.type;
+            const attachedDocumentId = getDocumentIdFromTransaction(transaction);
+            return (
+              <button
+                key={transaction.id}
+                onClick={() => setSelectedTransaction(transaction)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50/80 active:bg-gray-100 transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm border border-white/50 bg-white/40 shrink-0">
+                  {getCategoryCartoonIcon(transaction.category || 'Miscellaneous', 22)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 text-sm truncate">{transaction.description || transaction.category}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-gray-400 font-medium">{formatLocalDate(transaction.date, 'en-US')}</p>
+                    {attachedDocumentId && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-orange-400">
+                        <Paperclip size={9} /> Bill
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={cn('font-bold text-sm', displayType === 'income' ? 'text-emerald-600' : 'text-gray-900')}>
+                    {displayType === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  </span>
+                  <ChevronRight size={14} className="text-gray-300" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         {filteredTransactions.length === 0 && (
           <div className="py-20 flex flex-col items-center text-center">
             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
@@ -546,16 +568,118 @@ export const Transactions: React.FC = () => {
         )}
         {hasMoreTransactions && (
           <div className="flex items-center justify-center py-4">
-            <Button
-              variant="secondary"
-              onClick={() => setVisibleCount((count) => count + 200)}
-              className="text-xs sm:text-sm h-9 px-4"
-            >
-              Load more transactions
+            <Button variant="secondary" onClick={() => setVisibleCount((c) => c + 200)} className="text-xs h-9 px-4">
+              Load more
             </Button>
           </div>
         )}
       </Card>
+
+      {/* ── MOBILE TRANSACTION DETAIL SHEET ── */}
+      {selectedTransaction && (() => {
+        const tx = selectedTransaction;
+        const account = accountById.get(tx.accountId);
+        const displayType = tx.type === 'transfer' ? (tx.subcategory === 'Transfer In' ? 'income' : 'expense') : tx.type;
+        const attachedDocumentId = getDocumentIdFromTransaction(tx);
+        const attachedTaxAmount = parseMetadataNumber(tx.importMetadata?.['Tax Amount']);
+        return (
+          <div className="fixed inset-0 z-[61] lg:hidden flex flex-col justify-end">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTransaction(null)} />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+              className="relative bg-white rounded-t-[32px] overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
+            >
+              {/* Sheet handle */}
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
+              </div>
+
+              {/* Sheet header */}
+              <div className="flex items-start justify-between gap-3 px-6 pt-4 pb-4 border-b border-gray-100 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-gray-50 border border-gray-100">
+                    {getCategoryCartoonIcon(tx.category || 'Miscellaneous', 26)}
+                  </div>
+                  <div>
+                    <p className="font-black text-gray-900 text-base leading-tight">{tx.description || tx.category}</p>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">{formatLocalDate(tx.date, 'en-US')}</p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedTransaction(null)} className="p-2 rounded-xl hover:bg-gray-100 transition-colors text-gray-400">
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Sheet body */}
+              <div className="overflow-y-auto flex-1">
+                {/* Amount hero */}
+                <div className="px-6 py-5 flex items-center justify-between bg-gray-50/60">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Amount</p>
+                    <p className={cn('text-3xl font-black tracking-tight mt-0.5', displayType === 'income' ? 'text-emerald-600' : 'text-gray-900')}>
+                      {displayType === 'income' ? '+' : '-'}{formatCurrency(tx.amount)}
+                    </p>
+                  </div>
+                  <span className={cn(
+                    'px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wide',
+                    displayType === 'income' ? 'bg-emerald-100 text-emerald-700' :
+                    tx.type === 'transfer' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'
+                  )}>
+                    {displayType === 'income' ? '↓ Income' : tx.type === 'transfer' ? '⇄ Transfer' : '↑ Expense'}
+                  </span>
+                </div>
+
+                {/* Detail rows */}
+                <div className="px-6 py-4 space-y-3">
+                  {[
+                    { label: 'Category', value: tx.category },
+                    { label: 'Account', value: account?.name || '—' },
+                    { label: 'Date', value: formatLocalDate(tx.date, 'en-US') },
+                    ...(attachedTaxAmount > 0 ? [{ label: 'Tax Amount', value: formatCurrency(attachedTaxAmount) }] : []),
+                    ...(tx.notes ? [{ label: 'Notes', value: tx.notes }] : []),
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                      <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{label}</span>
+                      <span className="text-sm font-bold text-gray-800 text-right max-w-[60%] truncate">{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* View Bill button — always visible when bill attached */}
+                {attachedDocumentId && (
+                  <div className="px-6 pb-2">
+                    <button
+                      onClick={() => { handlePreviewBill(tx); setSelectedTransaction(null); }}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-50 border border-orange-100 text-orange-600 font-black text-sm hover:bg-orange-100 active:scale-[0.98] transition-all"
+                    >
+                      <Eye size={16} /> View Attached Bill
+                    </button>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="px-6 pb-8 pt-3 grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => { localStorage.setItem('editTransactionId', tx.id?.toString() || ''); setCurrentPage('add-transaction'); setSelectedTransaction(null); }}
+                    className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 font-black text-sm hover:bg-blue-100 active:scale-[0.98] transition-all"
+                  >
+                    <Edit2 size={15} /> Edit
+                  </button>
+                  <button
+                    onClick={() => { handleDeleteTransaction(tx.id!, tx.description); setSelectedTransaction(null); }}
+                    className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 font-black text-sm hover:bg-rose-100 active:scale-[0.98] transition-all"
+                  >
+                    <Trash2 size={15} /> Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        );
+      })()}
 
       {/* Transaction Type Modal */}
       {showTransactionTypeModal && (
