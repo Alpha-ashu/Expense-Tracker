@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '@/contexts/AppContext';
@@ -13,8 +12,9 @@ import {
   CreditCard, Banknote, Smartphone,
   Zap, ChevronDown, Search, Check, Users, UserPlus, Mail, Phone, Trash2,
   Plus, Loader2, ArrowRightLeft, Menu, ArrowDown, Info, HelpCircle, Settings, ArrowLeft,
-  ArrowUp, User, X
+  ArrowUp, User, X, ScanLine, Paperclip
 } from 'lucide-react';
+
 import { toast } from 'sonner';
 import {
   EXPENSE_CATEGORIES,
@@ -176,7 +176,9 @@ export function AddTransaction() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'scan' | 'attachment' | null>(null);
   const [scanDocumentId, setScanDocumentId] = useState<number | null>(null);
+  const [attachmentDocumentId, setAttachmentDocumentId] = useState<number | null>(null);
   const [amountStr, setAmountStr] = useState('');
   const [expenseMode, setExpenseMode] = useState<ExpenseMode>('individual');
   const [loanType, setLoanType] = useState<LoanType>('borrowed');
@@ -321,8 +323,11 @@ export function AddTransaction() {
         await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
       }
 
-      if (result?.id && scanDocumentId) {
-        await new DocumentManagementService().linkTransaction(scanDocumentId, result.id);
+      if (result?.id) {
+        const linkedDocId = scanDocumentId ?? attachmentDocumentId;
+        if (linkedDocId) {
+          await new DocumentManagementService().linkTransaction(linkedDocId, result.id);
+        }
       }
 
       toast.success('Transaction saved');
@@ -375,10 +380,7 @@ export function AddTransaction() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setShowScanner(true)} className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all">
-              <Camera size={20} />
-            </button>
-            <button 
+            <button
               onClick={handleSubmit}
               disabled={isSubmitting || !formData.amount}
               className="bg-slate-900 text-white px-5 sm:px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-200 hover:bg-slate-800 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50"
@@ -824,6 +826,77 @@ export function AddTransaction() {
                />
             </div>
           </div>
+            {/* Receipt Section */}
+            <div className="premium-glass-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receipt</label>
+                {(scanDocumentId || attachmentDocumentId) && (
+                  <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-wide">
+                    <Check size={10} strokeWidth={3} /> Attached
+                  </span>
+                )}
+              </div>
+
+              {/* No receipt attached yet */}
+              {!scanDocumentId && !attachmentDocumentId && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setScannerMode('scan'); setShowScanner(true); }}
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.97] transition-all shadow-lg shadow-slate-200"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                      <ScanLine size={18} />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-black uppercase tracking-wide leading-none">Scan Receipt</p>
+                      <p className="text-[9px] font-semibold text-white/40 mt-0.5 leading-none">OCR auto-fill</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setScannerMode('attachment'); setShowScanner(true); }}
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 text-slate-900 hover:bg-slate-100 active:scale-[0.97] transition-all border border-slate-100"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-slate-200 flex items-center justify-center">
+                      <Paperclip size={18} className="text-slate-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-black uppercase tracking-wide leading-none">Add Attachment</p>
+                      <p className="text-[9px] font-semibold text-slate-400 mt-0.5 leading-none">No OCR</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* Receipt attached — show summary + remove option */}
+              {(scanDocumentId || attachmentDocumentId) && (
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                  {scanDocumentId ? (
+                    <ScanLine size={16} className="text-emerald-600 shrink-0" />
+                  ) : (
+                    <Paperclip size={16} className="text-emerald-600 shrink-0" />
+                  )}
+                  <div className="flex-1">
+                    <p className="text-[10px] font-black text-emerald-700 uppercase">
+                      {scanDocumentId ? 'Scanned Receipt' : 'Attachment'}
+                    </p>
+                    <p className="text-[9px] font-semibold text-emerald-500">
+                      {scanDocumentId ? 'Data was auto-extracted by OCR' : 'Saved as proof — no OCR'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setScanDocumentId(null); setAttachmentDocumentId(null); }}
+                    className="p-1.5 text-emerald-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                    title="Remove attachment"
+                  >
+                    <X size={13} strokeWidth={3} />
+                  </button>
+                </div>
+              )}
+            </div>
 
 
         </div>
@@ -831,10 +904,20 @@ export function AddTransaction() {
 
       {/* Floating Scanner Overlay */}
       {showScanner && (
-        <ReceiptScanner 
+        <ReceiptScanner
           isOpen={showScanner}
-          onClose={() => setShowScanner(false)} 
-          onApplyScan={handleScanApply} 
+          onClose={() => { setShowScanner(false); setScannerMode(null); }}
+          onApplyScan={(scan) => {
+            handleScanApply(scan);
+            setShowScanner(false);
+            setScannerMode(null);
+          }}
+          onAttachmentSaved={(docId) => {
+            setAttachmentDocumentId(docId);
+            setShowScanner(false);
+            setScannerMode(null);
+          }}
+          initialMode={scannerMode}
         />
       )}
     </div>

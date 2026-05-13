@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Upload,
   Camera,
@@ -12,7 +12,9 @@ import {
   Receipt,
   Layers,
   Sparkles,
+  Paperclip,
 } from 'lucide-react';
+
 import { parseDateInputValue, toLocalDateKey } from '@/lib/dateUtils';
 import { normalizeCategorySelection, getSubcategoriesForCategory } from '@/lib/expenseCategories';
 import { type Account } from '@/lib/database';
@@ -25,8 +27,94 @@ export type ScanFieldUpdater = <K extends keyof ReceiptScanResult>(
 ) => void;
 
 // 
-// FILE SELECTION VIEW
+// MODE SELECTION VIEW  (Scan Receipt vs Add Attachment)
 // 
+
+export const ModeSelectionView: React.FC<{
+  onSelectMode: (mode: 'scan' | 'attachment') => void;
+}> = ({ onSelectMode }) => (
+  <div className="space-y-4 pt-2">
+    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Choose an action</p>
+    <div className="grid grid-cols-1 gap-3">
+      <button
+        onClick={() => onSelectMode('scan')}
+        className="flex items-center gap-4 p-5 rounded-[24px] bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.98] transition-all shadow-xl shadow-slate-200"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
+          <ScanLine size={22} />
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-black uppercase tracking-wide">Scan Receipt</p>
+          <p className="text-[11px] font-semibold text-white/50 mt-0.5">AI reads &amp; auto-fills expense details</p>
+        </div>
+      </button>
+
+      <button
+        onClick={() => onSelectMode('attachment')}
+        className="flex items-center gap-4 p-5 rounded-[24px] bg-slate-50 text-slate-900 hover:bg-slate-100 active:scale-[0.98] transition-all border border-slate-100"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-slate-200 flex items-center justify-center shrink-0">
+          <Paperclip size={22} className="text-slate-600" />
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-black uppercase tracking-wide">Add Attachment</p>
+          <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Save file as proof — no OCR processing</p>
+        </div>
+      </button>
+    </div>
+  </div>
+);
+
+// 
+// SOURCE PICKER VIEW  (Camera vs Gallery — used by both modes)
+// 
+
+export const SourcePickerView: React.FC<{
+  mode: 'scan' | 'attachment';
+  onCameraClick: () => void;
+  onUploadClick: () => void;
+  onBack: () => void;
+}> = ({ mode, onCameraClick, onUploadClick, onBack }) => (
+  <div className="space-y-4 pt-2">
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onBack}
+        className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-700 transition-colors"
+      >
+        ← Back
+      </button>
+      <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">/</span>
+      <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
+        {mode === 'scan' ? 'Scan Receipt' : 'Add Attachment'}
+      </span>
+    </div>
+
+    {mode === 'attachment' && (
+      <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-100">
+        <Paperclip size={14} className="text-amber-500 shrink-0" />
+        <p className="text-[11px] font-bold text-amber-700">File will be saved as-is. No OCR or data extraction.</p>
+      </div>
+    )}
+
+    <div className="grid grid-cols-2 gap-4">
+      <SelectionCard
+        onClick={onCameraClick}
+        icon={<Camera size={24} />}
+        label="Camera"
+        sublabel="Take Photo"
+        className="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200"
+      />
+      <SelectionCard
+        onClick={onUploadClick}
+        icon={<Upload size={24} />}
+        label="Gallery"
+        sublabel="Files / Library"
+        className="bg-slate-50 text-slate-900 hover:bg-slate-100"
+      />
+    </div>
+  </div>
+);
+
 
 export const FileSelectionView: React.FC<{
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;

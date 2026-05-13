@@ -84,8 +84,11 @@ export interface ReceiptScannerProps {
   onClose: () => void;
   onTransactionCreated?: (transactionId: number) => void;
   onApplyScan?: (scan: ReceiptScanPayload) => void;
+  onAttachmentSaved?: (documentId: number) => void;
   expenseMode?: 'individual' | 'group';
   initialAccountId?: number | null;
+  /** Force the scanner into a specific mode immediately */
+  initialMode?: 'scan' | 'attachment' | null;
 }
 
 export interface OCRProgress {
