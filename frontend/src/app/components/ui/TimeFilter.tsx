@@ -52,16 +52,20 @@ export const filterByTimePeriod = <T extends { date: Date | string }>(
   period: TimeFilterPeriod,
   referenceDate: Date = new Date()
 ): T[] => {
-  const now = toLocalDate(referenceDate) ?? new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
+  const refKey = toLocalDateKey(referenceDate);
+  if (!refKey) return items;
+
+  const now = toLocalDate(referenceDate)!;
 
   return items.filter((item) => {
-    const itemDate = toLocalDate(item.date);
-    if (!itemDate) return false;
+    const itemKey = toLocalDateKey(item.date);
+    if (!itemKey) return false;
 
     switch (period) {
       case 'daily':
-        return toLocalDateKey(itemDate) === toLocalDateKey(now);
+        return itemKey === refKey;
       case 'weekly': {
+        const itemDate = toLocalDate(item.date)!;
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
@@ -69,13 +73,17 @@ export const filterByTimePeriod = <T extends { date: Date | string }>(
         endOfWeek.setDate(startOfWeek.getDate() + 7);
         return itemDate >= startOfWeek && itemDate < endOfWeek;
       }
-      case 'monthly':
+      case 'monthly': {
+        const itemDate = toLocalDate(item.date)!;
         return (
-        itemDate.getMonth() === now.getMonth() &&
-        itemDate.getFullYear() === now.getFullYear()
+          itemDate.getMonth() === now.getMonth() &&
+          itemDate.getFullYear() === now.getFullYear()
         );
-      case 'yearly':
+      }
+      case 'yearly': {
+        const itemDate = toLocalDate(item.date)!;
         return itemDate.getFullYear() === now.getFullYear();
+      }
       default:
         return true;
     }

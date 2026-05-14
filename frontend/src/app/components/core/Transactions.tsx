@@ -74,6 +74,7 @@ export const Transactions: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<(typeof transactions)[number] | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [hasSyncedInitialDate, setHasSyncedInitialDate] = useState(false);
   const documentService = useMemo(() => new DocumentManagementService(), []);
 
   const deferredSearch = useDeferredValue(searchQuery);
@@ -87,6 +88,13 @@ export const Transactions: React.FC = () => {
       return txDate > latest ? txDate : latest;
     }, new Date(transactions[0].date));
   }, [transactions]);
+
+  useEffect(() => {
+    if (!hasSyncedInitialDate && transactions.length > 0) {
+      setSelectedDate(filterReferenceDate);
+      setHasSyncedInitialDate(true);
+    }
+  }, [filterReferenceDate, hasSyncedInitialDate, transactions.length]);
 
   const timeFilteredTransactions = useMemo(
     () => filterByTimePeriod(transactions, timePeriod, selectedDate),
@@ -193,32 +201,32 @@ export const Transactions: React.FC = () => {
 
   const dateRange = useMemo(() => {
     const dates = [];
-    const today = new Date();
+    const baseDate = filterReferenceDate;
     
     if (timePeriod === 'daily' || timePeriod === 'weekly') {
       // 30 days range
       for (let i = -15; i <= 15; i++) {
-        const d = new Date(today);
-        d.setDate(today.getDate() + i);
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + i);
         dates.push(d);
       }
     } else if (timePeriod === 'monthly') {
       // 12 months range
       for (let i = -6; i <= 6; i++) {
-        const d = new Date(today);
-        d.setMonth(today.getMonth() + i);
+        const d = new Date(baseDate);
+        d.setMonth(baseDate.getMonth() + i);
         dates.push(d);
       }
     } else if (timePeriod === 'yearly') {
       // 5 years range
       for (let i = -2; i <= 2; i++) {
-        const d = new Date(today);
-        d.setFullYear(today.getFullYear() + i);
+        const d = new Date(baseDate);
+        d.setFullYear(baseDate.getFullYear() + i);
         dates.push(d);
       }
     }
     return dates;
-  }, [timePeriod]);
+  }, [timePeriod, filterReferenceDate]);
 
   const visibleTransactions = useMemo(
     () => filteredTransactions.slice(0, visibleCount),
@@ -328,7 +336,6 @@ export const Transactions: React.FC = () => {
 
       {/* Scrollable Date Selector */}
       <div className="bg-white/95 backdrop-blur-2xl rounded-[18px] sm:rounded-[32px] p-1.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.03)] border border-white/40 overflow-hidden relative group">
-        <div className="absolute top-0 left-0 w-0.5 h-full bg-gradient-to-b from-pink-500 to-rose-500 rounded-full opacity-30" />
         
         <div ref={scrollRef} className="flex overflow-x-auto gap-1 sm:gap-4 scrollbar-hide snap-x px-1 py-0.5 items-center">
           {dateRange.length === 0 && (
@@ -359,6 +366,7 @@ export const Transactions: React.FC = () => {
             return (
               <button
                 key={idx}
+                data-selected={isSelected}
                 onClick={() => setSelectedDate(date)}
                 className={cn(
                   'flex flex-col items-center justify-center min-w-[42px] sm:min-w-[70px] h-[56px] sm:h-[90px] rounded-[14px] sm:rounded-3xl transition-all duration-500 snap-center relative shrink-0',
