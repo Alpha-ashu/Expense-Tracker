@@ -103,6 +103,12 @@ export interface Loan {
   contactEmail?: string;
   contactPhone?: string;
   accountId?: number;
+  bankName?: string;
+  tenureMonths?: number;
+  downPayment?: number;
+  receivedAccountId?: number;
+  emiDeductionAccountId?: number;
+  loanCategory?: string;
   notes?: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -118,6 +124,7 @@ export interface LoanPayment {
   accountId: number;
   date: Date;
   notes?: string;
+  documentId?: number;
 }
 
 export interface Goal {

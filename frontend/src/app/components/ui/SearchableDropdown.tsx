@@ -26,6 +26,7 @@ interface SearchableDropdownProps {
   grouped?: boolean;
   renderTrigger?: (selected: DropdownOption | undefined, open: boolean) => React.ReactNode;
   triggerClassName?: string;
+  allowCustom?: boolean;
 }
 
 export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
@@ -43,6 +44,7 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   grouped = false,
   renderTrigger,
   triggerClassName,
+  allowCustom = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -250,7 +252,22 @@ export const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
           </div>
 
           <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: '256px' }} role="listbox">
-            {flatFiltered.length === 0 ? (
+            {allowCustom && query.trim() && !flatFiltered.some(o => o.label.toLowerCase() === query.toLowerCase()) && (
+              <button
+                type="button"
+                onClick={() => selectOption({ value: query, label: query })}
+                className="w-full flex items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-indigo-50 border-b border-gray-50"
+              >
+                <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Plus size={14} strokeWidth={3} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-indigo-600 truncate">Add "{query}"</p>
+                  <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">New Entry</p>
+                </div>
+              </button>
+            )}
+            {flatFiltered.length === 0 && !allowCustom ? (
               <div className="py-8 text-center text-sm text-gray-400">
                 <Search size={20} className="mx-auto mb-2 opacity-40" />
                 No results for "{query}"

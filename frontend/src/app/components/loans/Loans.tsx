@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { db } from '@/lib/database';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, DollarSign, TrendingUp, AlertCircle, Edit2, Trash2, Home, Users } from 'lucide-react';
+import { Plus, DollarSign, TrendingUp, AlertCircle, Edit2, Trash2, Home, Users, ScanLine, Paperclip, ChevronDown, ExternalLink, FileText, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteConfirmModal } from '@/app/components/shared/DeleteConfirmModal';
 import { Card } from '@/app/components/ui/card';
@@ -10,6 +10,7 @@ import { Button } from '@/app/components/ui/button';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/app/components/ui/PageHeader';
+import { ReceiptScanner } from '@/app/components/transactions/ReceiptScanner';
 
 const isOpenLoan = (loan: { status?: string; outstandingBalance: number }) =>
   loan.outstandingBalance > 0 && loan.status !== 'completed';
@@ -38,6 +39,37 @@ export const Loans: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [loanToDelete, setLoanToDelete] = useState<{ id: number; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showBillListForLoan, setShowBillListForLoan] = useState<number | null>(null);
+
+  const handleViewBill = async (loanId: number) => {
+    const paymentsWithBills = loanPayments.filter(p => p.loanId === loanId && p.documentId);
+    if (paymentsWithBills.length === 0) {
+      toast.error('No bills found for this loan');
+      return;
+    }
+    
+    if (paymentsWithBills.length === 1) {
+      const doc = await db.documents.get(paymentsWithBills[0].documentId!);
+      if (doc?.fileData) {
+        const url = URL.createObjectURL(doc.fileData);
+        window.open(url, '_blank');
+      } else {
+        toast.error('Bill file not found');
+      }
+    } else {
+      setShowBillListForLoan(loanId);
+    }
+  };
+
+  const openBill = async (docId: number) => {
+    const doc = await db.documents.get(docId);
+    if (doc?.fileData) {
+      const url = URL.createObjectURL(doc.fileData);
+      window.open(url, '_blank');
+    } else {
+      toast.error('Bill file not found');
+    }
+  };
 
   const loanStats = useMemo(() => {
     const borrowed = loans.filter(l => l.type === 'borrowed' && isOpenLoan(l));
@@ -169,13 +201,15 @@ export const Loans: React.FC = () => {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden">
+          <Card variant="glass" className="p-4 sm:p-6 relative overflow-hidden group border-none bg-white shadow-xl shadow-slate-200/50">
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all duration-500" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-rose-500/5 rounded-full blur-xl" />
             <div className="relative z-10">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-sm">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-2xl flex items-center justify-center mb-2 sm:mb-4 shadow-lg shadow-red-200">
                 <Home className="text-white sm:w-5 sm:h-5" size={18} />
               </div>
-              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Total Borrowed</p>
-              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+              <p className="text-slate-400 font-black mb-1 text-[10px] uppercase tracking-[0.2em]">Total Borrowed</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
                 {formatCurrency(loanStats.totalBorrowed)}
               </h3>
             </div>
@@ -183,13 +217,15 @@ export const Loans: React.FC = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <Card variant="glass" className="p-6 relative overflow-hidden">
+          <Card variant="glass" className="p-6 relative overflow-hidden group border-none bg-white shadow-xl shadow-slate-200/50">
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-green-500/5 rounded-full blur-xl" />
             <div className="relative z-10">
-              <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+              <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
                 <Users className="text-white" size={20} />
               </div>
-              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Total Lent</p>
-              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+              <p className="text-slate-400 font-black mb-1 text-[10px] uppercase tracking-[0.2em]">Total Lent</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
                 {formatCurrency(loanStats.totalLent)}
               </h3>
             </div>
@@ -197,13 +233,15 @@ export const Loans: React.FC = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card variant="glass" className="p-6 relative overflow-hidden">
+          <Card variant="glass" className="p-6 relative overflow-hidden group border-none bg-white shadow-xl shadow-slate-200/50">
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-slate-500/10 rounded-full blur-2xl group-hover:bg-slate-500/20 transition-all duration-500" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-slate-500/5 rounded-full blur-xl" />
             <div className="relative z-10">
-              <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-4 shadow-sm">
+              <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-slate-200">
                 <TrendingUp className="text-white" size={20} />
               </div>
-              <p className="text-gray-500 font-medium mb-1 text-sm uppercase tracking-wide">Monthly EMI</p>
-              <h3 className="text-2xl font-display font-bold text-gray-900 tracking-tight">
+              <p className="text-slate-400 font-black mb-1 text-[10px] uppercase tracking-[0.2em]">Monthly EMI</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter">
                 {formatCurrency(loanStats.totalEMI)}
               </h3>
             </div>
@@ -211,17 +249,18 @@ export const Loans: React.FC = () => {
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <Card variant="mesh-red" className="p-6 relative overflow-hidden">
+          <Card variant="mesh-red" className="p-6 relative overflow-hidden group border-none shadow-xl shadow-red-200/40">
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-white/5 rounded-full blur-xl" />
             <div className="relative z-10">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-white/10">
                 <AlertCircle className="text-white" size={20} />
               </div>
-              <p className="text-white/80 font-medium mb-1 text-sm uppercase tracking-wide">Overdue</p>
-              <h3 className="text-3xl font-display font-bold text-white tracking-tight">
+              <p className="text-white/80 font-black mb-1 text-[10px] uppercase tracking-[0.2em]">Overdue</p>
+              <h3 className="text-3xl font-black text-white tracking-tighter">
                 {loanStats.overdueCount}
               </h3>
             </div>
-            <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
           </Card>
         </motion.div>
       </div>
@@ -391,12 +430,24 @@ export const Loans: React.FC = () => {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => setShowPaymentModal(loan.id!)}
-                          className="w-full px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-900 transition-all text-xs font-bold shadow-sm active:scale-95"
-                        >
-                          Make Payment
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setShowPaymentModal(loan.id!)}
+                            className="flex-1 px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-900 transition-all text-xs font-black uppercase tracking-widest shadow-sm active:scale-95"
+                          >
+                            Make Payment
+                          </button>
+                          {loanPayments.some(p => p.loanId === loan.id && p.documentId) && (
+                            <button
+                              onClick={() => handleViewBill(loan.id!)}
+                              className="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all text-xs font-black uppercase tracking-widest shadow-sm flex items-center gap-2"
+                              title="View Bills"
+                            >
+                              <FileText size={14} />
+                              View Bill
+                            </button>
+                          )}
+                        </div>
                       </>
                     )}
                     </motion.div>
@@ -410,6 +461,92 @@ export const Loans: React.FC = () => {
           </motion.div>
         ))}
       </div>
+      {/* Completed History Section */}
+      {loans.some(l => !isOpenLoan(l)) && (
+        <div className="space-y-6 pt-10 border-t border-gray-100">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Completed History</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {['borrowed', 'lent', 'emi'].map((type) => {
+              const completedLoans = loans.filter(l => l.type === type && !isOpenLoan(l));
+              if (completedLoans.length === 0) return null;
+              return (
+                <div key={type} className="space-y-4">
+                  <div className="flex items-center gap-2 px-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">{type === 'emi' ? 'EMI' : type}</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {completedLoans.map(loan => (
+                      <div key={loan.id} className="bg-white/50 border border-gray-100 rounded-xl p-4 shadow-sm grayscale hover:grayscale-0 transition-all">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-display font-bold text-gray-500 text-sm line-through decoration-gray-300">{loan.name}</h4>
+                            <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase rounded-lg">Settled</span>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteLoan(loan.id!, loan.name)}
+                            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-300 hover:text-red-600"
+                            title="Delete record"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between mt-auto">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase">Paid: {formatCurrency(loan.principalAmount)}</p>
+                          {loanPayments.some(p => p.loanId === loan.id && p.documentId) && (
+                            <button
+                              onClick={() => handleViewBill(loan.id!)}
+                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-all text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm"
+                            >
+                              <FileText size={12} />
+                              View Bill
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {showBillListForLoan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Payment Bills</h3>
+                <button onClick={() => setShowBillListForLoan(null)} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              </div>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {loanPayments
+                  .filter(p => p.loanId === showBillListForLoan && p.documentId)
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => openBill(p.documentId!)}
+                      className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all border border-transparent hover:border-gray-200 group text-left"
+                    >
+                      <div>
+                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-tight">
+                          {new Date(p.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </p>
+                        <p className="text-[9px] font-bold text-gray-400 uppercase">{formatCurrency(p.amount)}</p>
+                      </div>
+                      <ExternalLink size={14} className="text-gray-300 group-hover:text-indigo-600 transition-colors" />
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showPaymentModal && (
         <PaymentModal
@@ -445,6 +582,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
   const [amount, setAmount] = useState(0);
   const [accountId, setAccountId] = useState(accounts[0]?.id || 0);
   const [notes, setNotes] = useState('');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'scan' | 'attachment' | null>(null);
+  const [documentId, setDocumentId] = useState<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -458,6 +598,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
       accountId,
       date: new Date(),
       notes,
+      documentId: documentId || undefined
     });
 
     const newOutstanding = Math.max(0, loan.outstandingBalance - amount);
@@ -481,65 +622,129 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ loanId, accounts, onClose }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-md">
-        <h3 className="text-xl font-bold mb-4">Make Payment</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="loan-payment-amount" className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-            <input
-              id="loan-payment-amount"
-              type="number"
-              step="0.01"
-              value={amount || ''}
-              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="p-6">
+          <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
+            <DollarSign className="text-indigo-600" size={24} />
+            Make Payment
+          </h3>
+          
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="loan-payment-amount" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Amount</label>
+              <div className="relative">
+                <input
+                  id="loan-payment-amount"
+                  type="number"
+                  step="0.01"
+                  value={amount || ''}
+                  onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all font-bold text-gray-900"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
 
-          <div>
-            <label htmlFor="loan-payment-account" className="block text-sm font-medium text-gray-700 mb-1">Pay From</label>
-            <select
-              id="loan-payment-account"
-              value={accountId}
-              onChange={(e) => setAccountId(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {accounts.map(acc => (
-                <option key={acc.id} value={acc.id}>{acc.name}</option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <label htmlFor="loan-payment-account" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Pay From</label>
+              <select
+                id="loan-payment-account"
+                value={accountId}
+                onChange={(e) => setAccountId(parseInt(e.target.value))}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all font-bold text-gray-900 text-sm"
+              >
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label htmlFor="loan-payment-notes" className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
-            <textarea
-              id="loan-payment-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
-            />
-          </div>
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Receipt / Bill</label>
+              {documentId ? (
+                <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+                  <div className="flex items-center gap-2 text-emerald-700">
+                    <Check size={16} strokeWidth={3} />
+                    <span className="text-xs font-bold">Bill Attached</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setDocumentId(null)}
+                    className="p-1 text-emerald-400 hover:text-rose-500 transition-colors"
+                  >
+                    <X size={14} strokeWidth={3} />
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setScannerMode('scan'); setShowScanner(true); }}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-all group"
+                  >
+                    <ScanLine size={18} className="text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    <span className="text-[10px] font-black uppercase text-gray-500">Scan Bill</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setScannerMode('attachment'); setShowScanner(true); }}
+                    className="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-all group"
+                  >
+                    <Paperclip size={18} className="text-gray-400 group-hover:text-indigo-600 transition-colors" />
+                    <span className="text-[10px] font-black uppercase text-gray-500">Attach File</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Record Payment
-            </button>
-          </div>
-        </form>
+            <div>
+              <label htmlFor="loan-payment-notes" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Notes (Optional)</label>
+              <textarea
+                id="loan-payment-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all font-bold text-gray-900 text-sm min-h-[80px]"
+                placeholder="Added payment details..."
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+              >
+                Record Payment
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      {showScanner && (
+        <ReceiptScanner
+          isOpen={showScanner}
+          onClose={() => { setShowScanner(false); setScannerMode(null); }}
+          onApplyScan={(scan) => {
+            if (scan.amount) setAmount(scan.amount);
+            if (scan.scanDocumentId) setDocumentId(scan.scanDocumentId);
+            setShowScanner(false);
+          }}
+          onAttachmentSaved={(docId) => {
+            setDocumentId(docId);
+            setShowScanner(false);
+          }}
+          initialMode={scannerMode || undefined}
+        />
+      )}
     </div>
   );
 };
