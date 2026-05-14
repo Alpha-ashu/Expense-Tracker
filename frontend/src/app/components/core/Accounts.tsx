@@ -1433,10 +1433,10 @@ export const Accounts: React.FC = () => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             onClick={(event) => event.stopPropagation()}
-            className="bg-white rounded-[28px] p-6 w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto shadow-2xl border border-white/20"
+            className="bg-white/95 backdrop-blur-2xl rounded-[32px] p-6 sm:p-8 w-full max-w-md shadow-2xl border border-white/50 max-h-[calc(100vh-2rem)] overflow-y-auto"
           >
-            <h3 className="text-xl font-display font-bold mb-1">New Transaction</h3>
-            <p className="text-gray-500 text-sm mb-6">What kind of transaction is this?</p>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-1">New Transaction</h3>
+            <p className="text-slate-500 font-medium mb-8">What kind of transaction is this?</p>
 
             <div className="space-y-3">
               {[
@@ -1463,12 +1463,12 @@ export const Accounts: React.FC = () => {
                     opt.color
                   )}
                 >
-                  <div className="w-11 h-11 bg-white/60 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                  <div className="w-12 h-12 bg-white/80 rounded-xl flex items-center justify-center shadow-sm shrink-0">
                     <opt.icon size={22} />
                   </div>
                   <div className="text-left">
-                    <p className="font-bold">{opt.label}</p>
-                    <p className="text-sm opacity-75 font-medium">{opt.desc}</p>
+                    <p className="font-bold text-lg leading-tight">{opt.label}</p>
+                    <p className="text-sm opacity-80 font-medium leading-tight">{opt.desc}</p>
                   </div>
                 </button>
               ))}
@@ -1476,7 +1476,7 @@ export const Accounts: React.FC = () => {
 
             <Button
               variant="ghost"
-              className="w-full mt-5 rounded-xl hover:bg-gray-100 text-gray-500"
+              className="w-full mt-6 rounded-xl hover:bg-slate-100 text-slate-500 font-bold"
               onClick={() => setShowTransactionTypeModal(false)}
             >
               Cancel

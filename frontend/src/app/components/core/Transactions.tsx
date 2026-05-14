@@ -73,6 +73,7 @@ export const Transactions: React.FC = () => {
   const [previewDocument, setPreviewDocument] = useState<DocumentRecord | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<(typeof transactions)[number] | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const documentService = useMemo(() => new DocumentManagementService(), []);
 
   const deferredSearch = useDeferredValue(searchQuery);
@@ -88,8 +89,8 @@ export const Transactions: React.FC = () => {
   }, [transactions]);
 
   const timeFilteredTransactions = useMemo(
-    () => filterByTimePeriod(transactions, timePeriod, filterReferenceDate),
-    [transactions, timePeriod, filterReferenceDate]
+    () => filterByTimePeriod(transactions, timePeriod, selectedDate),
+    [transactions, timePeriod, selectedDate]
   );
 
   const filteredTransactions = useMemo(() => {
@@ -178,6 +179,46 @@ export const Transactions: React.FC = () => {
       }
     };
   }, [previewUrl]);
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const activeElement = scrollRef.current.querySelector('[data-selected="true"]');
+      if (activeElement) {
+        activeElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [selectedDate, timePeriod]);
+
+  const dateRange = useMemo(() => {
+    const dates = [];
+    const today = new Date();
+    
+    if (timePeriod === 'daily' || timePeriod === 'weekly') {
+      // 30 days range
+      for (let i = -15; i <= 15; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+        dates.push(d);
+      }
+    } else if (timePeriod === 'monthly') {
+      // 12 months range
+      for (let i = -6; i <= 6; i++) {
+        const d = new Date(today);
+        d.setMonth(today.getMonth() + i);
+        dates.push(d);
+      }
+    } else if (timePeriod === 'yearly') {
+      // 5 years range
+      for (let i = -2; i <= 2; i++) {
+        const d = new Date(today);
+        d.setFullYear(today.getFullYear() + i);
+        dates.push(d);
+      }
+    }
+    return dates;
+  }, [timePeriod]);
 
   const visibleTransactions = useMemo(
     () => filteredTransactions.slice(0, visibleCount),
@@ -286,9 +327,75 @@ export const Transactions: React.FC = () => {
       </div>
 
       {/* Time Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <TimeFilter value={timePeriod} onChange={setTimePeriod} />
-        <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <TimeFilter value={timePeriod} onChange={setTimePeriod} />
+          <p className="text-sm text-gray-500 font-medium">{getPeriodLabel(timePeriod)}</p>
+        </div>
+
+        {/* Scrollable Selector */}
+        <div className="bg-slate-900/90 backdrop-blur-xl rounded-[28px] p-5 shadow-2xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+          <div ref={scrollRef} className="flex overflow-x-auto gap-1 sm:gap-2 scrollbar-hide snap-x px-1">
+            {dateRange.map((date, idx) => {
+              let isSelected = false;
+              let label = '';
+              let subLabel = '';
+              let isWeekend = false;
+
+              if (timePeriod === 'daily' || timePeriod === 'weekly') {
+                isSelected = toLocalDateKey(date) === toLocalDateKey(selectedDate);
+                const dayNameRaw = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+                subLabel = dayNameRaw === 'WED' ? 'WEN' : dayNameRaw;
+                label = date.getDate().toString();
+                isWeekend = date.getDay() === 0 || date.getDay() === 6;
+              } else if (timePeriod === 'monthly') {
+                isSelected = date.getMonth() === selectedDate.getMonth() && date.getFullYear() === selectedDate.getFullYear();
+                label = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+                subLabel = date.getFullYear().toString();
+              } else if (timePeriod === 'yearly') {
+                isSelected = date.getFullYear() === selectedDate.getFullYear();
+                label = date.getFullYear().toString();
+                subLabel = 'YEAR';
+              }
+
+              return (
+                <button
+                  key={idx}
+                  data-selected={isSelected}
+                  onClick={() => setSelectedDate(date)}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 min-w-[72px] sm:min-w-[84px] py-4 rounded-2xl transition-all duration-300 snap-center relative group",
+                    isSelected ? "bg-white/10 scale-105" : "hover:bg-white/5"
+                  )}
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="activeDateGlow"
+                      className="absolute inset-0 bg-white/5 rounded-2xl z-0"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <span className={cn(
+                    "text-[9px] font-black tracking-[0.15em] relative z-10 transition-colors",
+                    isWeekend ? "text-rose-500" : "text-slate-400",
+                    isSelected && !isWeekend && "text-slate-200"
+                  )}>
+                    {subLabel}
+                  </span>
+                  <span className={cn(
+                    "text-xl sm:text-2xl font-bold tracking-tighter relative z-10 transition-all",
+                    isSelected ? "text-white scale-110" : "text-slate-300"
+                  )}>
+                    {label}
+                  </span>
+                  {isSelected && (
+                    <div className="absolute -bottom-1 w-1 h-1 bg-rose-500 rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Stats Board */}
@@ -683,14 +790,14 @@ export const Transactions: React.FC = () => {
 
       {/* Transaction Type Modal */}
       {showTransactionTypeModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-transparent backdrop-blur-3xl rounded-[32px] p-8 w-full max-w-md shadow-2xl border border-white/20"
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="bg-white/95 backdrop-blur-2xl rounded-[32px] p-6 sm:p-8 w-full max-w-md shadow-2xl border border-white/50"
           >
-            <h3 className="text-2xl font-display font-bold mb-2">New Transaction</h3>
-            <p className="text-gray-500 mb-8">What kind of transaction is this?</p>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-1">New Transaction</h3>
+            <p className="text-slate-500 font-medium mb-8">What kind of transaction is this?</p>
 
             <div className="space-y-3">
               {[
@@ -711,16 +818,16 @@ export const Transactions: React.FC = () => {
                     }
                   }}
                   className={cn(
-                    "w-full p-4 flex items-center gap-4 rounded-2xl transition-all border border-transparent hover:scale-[1.02]",
+                    "w-full p-4 flex items-center gap-4 rounded-2xl transition-all border border-transparent hover:scale-[1.02] active:scale-[0.98]",
                     opt.color
                   )}
                 >
-                  <div className="w-12 h-12 bg-white/60 rounded-xl flex items-center justify-center shadow-sm">
-                    <opt.icon size={24} />
+                  <div className="w-12 h-12 bg-white/80 rounded-xl flex items-center justify-center shadow-sm shrink-0">
+                    <opt.icon size={22} />
                   </div>
                   <div className="text-left">
-                    <p className="font-bold text-lg">{opt.label}</p>
-                    <p className="text-sm opacity-80 font-medium">{opt.desc}</p>
+                    <p className="font-bold text-lg leading-tight">{opt.label}</p>
+                    <p className="text-sm opacity-80 font-medium leading-tight">{opt.desc}</p>
                   </div>
                 </button>
               ))}
@@ -728,7 +835,7 @@ export const Transactions: React.FC = () => {
 
             <Button
               variant="ghost"
-              className="w-full mt-6 rounded-xl hover:bg-gray-100"
+              className="w-full mt-6 rounded-xl hover:bg-slate-100 text-slate-500 font-bold"
               onClick={() => setShowTransactionTypeModal(false)}
             >
               Cancel
