@@ -589,7 +589,7 @@ class StatementImportService {
     const SKIP_RE = /^\s*(?:statement|opening\s+balance|closing\s+balance|page\s+\d+|date\s+particulars|sl\.?\s*no|transaction\s+date|value\s+date|narration|description|debit|credit|balance|dr\s*cr|type|chq|ref|sr\s*no|account|branch|ifsc|period|from\s+date|to\s+date|\*+|-{3,}|={3,})/i;
 
     // A line starting a block must begin with a date token
-    const DATE_START_RE = /^(\d{1,2}[\/-\.](\d{1,2}|[a-zA-Z]{3,9})[\/-\.]\d{2,4})(?:\s|$)/;
+        const DATE_START_RE = /^(\d{1,2}[/.-](\d{1,2}|[a-zA-Z]{3,9})[/.-]\d{2,4})(?:\s|$)/;
 
     // Ending line has two trailing decimal amounts (debit/credit + balance)
     const TRAILING_PAIR_RE = /[\d,]+\.\d{2}\s+[\d,]+\.\d{2}\s*$/;
