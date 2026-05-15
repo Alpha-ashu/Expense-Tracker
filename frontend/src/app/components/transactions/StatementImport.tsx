@@ -32,6 +32,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
   const [file, setFile] = useState<File | null>(null);
   const [importState, setImportState] = useState<'idle' | 'uploading' | 'processing' | 'preview' | 'importing' | 'success' | 'error'>('idle');
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string>('');
   const [selectedTransactions, setSelectedTransactions] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,7 +82,6 @@ export const StatementImport: React.FC<StatementImportProps> = ({
       setImportResult(result);
       
       if (result.success && result.transactions.length > 0) {
-        // Skip duplicates by default, but allow users to re-select them.
         setSelectedTransactions(new Set(
           result.transactions
             .map((transaction, index) => transaction.isDuplicate ? null : index)
@@ -90,13 +90,25 @@ export const StatementImport: React.FC<StatementImportProps> = ({
         setImportState('preview');
         toast.success(`Found ${result.transactions.length} transactions in statement`);
       } else {
+        const hint = result.errors.length > 0
+          ? result.errors[0]
+          : 'No transactions were detected. The PDF may use a format not yet supported. Try exporting as CSV from your bank portal.';
+        setErrorDetail(hint);
         setImportState('error');
-        toast.error('No transactions found in the statement');
       }
 
-    } catch (error) {
+    } catch (error: any) {
       setImportState('error');
-      toast.error('Failed to process statement. Please try again.');
+      const msg = error?.message || '';
+      if (/ocr|image|scan/i.test(msg)) {
+        setErrorDetail('OCR failed: the PDF appears to be a scanned image. Try a text-based PDF export from your bank\'s net banking portal.');
+      } else if (/password|encrypt/i.test(msg)) {
+        setErrorDetail('This PDF is password-protected. Please remove the password before uploading.');
+      } else if (/corrupt|invalid/i.test(msg)) {
+        setErrorDetail('The file appears to be corrupted or in an unsupported format. Please re-export the statement from your bank.');
+      } else {
+        setErrorDetail(msg || 'Failed to read the file. Please check the format and try again.');
+      }
       console.error('Import error:', error);
     }
   };
@@ -496,15 +508,19 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                 <XCircle size={32} className="text-red-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Import Failed</h3>
-              <p className="text-gray-500 mb-6">
-                There was an error processing your statement. Please check the file format and try again.
-              </p>
-              <Button
-                onClick={() => setImportState('idle')}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Try Again
-              </Button>
+              {errorDetail ? (
+                <div className="mx-auto max-w-sm bg-red-50 border border-red-200 rounded-xl p-4 mb-6 text-left">
+                  <p className="text-sm text-red-700 font-medium">What went wrong:</p>
+                  <p className="text-sm text-red-600 mt-1">{errorDetail}</p>
+                </div>
+              ) : (
+                <p className="text-gray-500 mb-6">There was an error processing your statement. Please check the file format and try again.</p>
+              )}
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => { setImportState('idle'); setErrorDetail(''); }} className="bg-blue-600 text-white hover:bg-blue-700">
+                  Try Again
+                </Button>
+              </div>
             </div>
           )}
         </div>

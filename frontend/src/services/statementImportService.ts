@@ -582,63 +582,113 @@ class StatementImportService {
   }
 
   private async extractTransactionsFromText(text: string, userId: string) {
-    const lines = text
-      .split(/\r?\n/)
-      .map((line) => line.replace(/\s+/g, ' ').trim())
-      .filter(Boolean);
-
+    const lines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
     const transactions: ParsedTransaction[] = [];
 
+    // Skip header/footer lines
+    const SKIP_RE = /^\s*(?:statement|opening\s+balance|closing\s+balance|page\s+\d+|date\s+particulars|sl\.?\s*no|transaction\s+date|value\s+date|narration|description|debit|credit|balance|dr\s*cr|type|chq|ref|sr\s*no|account|branch|ifsc|period|from\s+date|to\s+date|\*+|-{3,}|={3,})/i;
+
+    // A line starting a block must begin with a date token
+    const DATE_START_RE = /^(\d{1,2}[\/-\.](\d{1,2}|[a-zA-Z]{3,9})[\/-\.]\d{2,4})(?:\s|$)/;
+
+    // Ending line has two trailing decimal amounts (debit/credit + balance)
+    const TRAILING_PAIR_RE = /[\d,]+\.\d{2}\s+[\d,]+\.\d{2}\s*$/;
+
+    // --- PHASE 1: group raw lines into per-transaction blocks ---
+    const blocks: Array<{ dateStr: string; lines: string[] }> = [];
+    let cur: { dateStr: string; lines: string[] } | null = null;
+
     for (const line of lines) {
-      if (/statement|opening balance|closing balance|page\s+\d+/i.test(line)) continue;
+      if (SKIP_RE.test(line)) continue;
 
-      const dateMatch = line.match(/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})/i);
-      if (!dateMatch) continue;
+      const dm = line.match(DATE_START_RE);
+      if (dm) {
+        if (cur) blocks.push(cur);
+        cur = { dateStr: dm[1], lines: [line] };
+      } else if (cur) {
+        cur.lines.push(line);
+        if (TRAILING_PAIR_RE.test(line)) {
+          blocks.push(cur);
+          cur = null;
+        }
+      }
+    }
+    if (cur) blocks.push(cur);
 
-      const date = parseDate(dateMatch[1]);
+    // --- PHASE 2: parse each block ---
+    for (const block of blocks) {
+      const date = parseDate(block.dateStr);
       if (!date) continue;
 
-      const rawDescription = line.replace(dateMatch[1], '').trim();
-      const amounts = rawDescription.match(/(?:rs\.?|INR|\$|EUR|GBP)?\s*[\d,]+(?:\.\d{1,2})?/gi) || [];
-      if (amounts.length === 0) continue;
+      const fullText = block.lines.join(' ');
 
-      const numericAmounts = amounts
-        .map((item) => parseAmount(item))
-        .filter((item): item is number => item != null && Number.isFinite(item))
-        .map((item) => Math.abs(item));
+      const amtMatches = fullText.match(/[\d,]+\.\d{2}/g) || [];
+      const nums = amtMatches
+        .map(v => parseAmount(v))
+        .filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
 
-      if (numericAmounts.length === 0) continue;
+      if (nums.length === 0) continue;
 
-      const transactionAmount = numericAmounts[0];
-      const isIncome = /\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcr\b/i.test(line);
-      const isTransfer = /\btransfer\b/i.test(line);
-      const cleanedDescription = cleanDescription(rawDescription.replace(/(?:rs\.?|INR|\$|EUR|GBP)?\s*[\d,]+(?:\.\d{1,2})?/gi, ' ').trim());
-      const merchantName = pickMerchantName(cleanedDescription);
-      const categoryPrediction = await documentIntelligenceService.predictCategory({
+      let txnAmt: number;
+      let balance: number | undefined;
+      if (nums.length >= 2) {
+        balance = nums[nums.length - 1];
+        txnAmt = nums[nums.length - 2];
+      } else {
+        txnAmt = nums[0];
+      }
+      if (!txnAmt || txnAmt <= 0) continue;
+
+      // Build description: strip date + all amounts
+      const rawDesc = fullText
+        .replace(block.dateStr, '')
+        .replace(/[\d,]+\.\d{2}/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // Detect CR/DR
+      const isCredit = /\bUPI\/CR\b|\bCR\b|\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcredited\b/i.test(fullText);
+      const isTransfer = !isCredit && /\btransfer\b|\bneft\b|\brtgs\b|\bimps\b/i.test(fullText);
+      const txnType: 'income' | 'expense' | 'transfer' = isTransfer ? 'transfer' : isCredit ? 'income' : 'expense';
+
+      // Extract UPI reference number & merchant
+      const upiRef = fullText.match(/UPI\/(DR|CR)\/(\d+)\//i);
+      const reference = upiRef?.[2];
+      const merchantMatch = fullText.match(/UPI\/(DR|CR)\/\d+\/([^/]+)\//i);
+      let merchantName: string | undefined = merchantMatch
+        ? merchantMatch[2].replace(/[_-]/g, ' ').trim()
+        : pickMerchantName(rawDesc);
+
+      const cleanedDesc = reference
+        ? cleanDescription(rawDesc) + ' (Ref: ' + reference + ')'
+        : cleanDescription(rawDesc);
+
+      const cat = await documentIntelligenceService.predictCategory({
         merchantName,
-        text: cleanedDescription,
-        amount: transactionAmount,
+        text: cleanedDesc,
+        amount: txnAmt,
         userId,
       });
 
       transactions.push({
         transaction_date: date,
-        raw_description: rawDescription,
-        cleaned_description: cleanedDescription,
-        amount: transactionAmount,
-        transaction_type: isTransfer ? 'transfer' : (isIncome ? 'income' : 'expense'),
-        payment_channel: extractPaymentChannel(rawDescription),
+        raw_description: fullText.slice(0, 300),
+        cleaned_description: cleanedDesc,
+        amount: txnAmt,
+        transaction_type: txnType,
+        balance_after_transaction: balance,
+        payment_channel: extractPaymentChannel(fullText),
         merchant_name: merchantName,
-        category: categoryPrediction.category,
-        currency: documentIntelligenceService.detectCurrency(line),
-        confidenceScore: categoryPrediction.confidence,
+        category: cat.category,
+        currency: documentIntelligenceService.detectCurrency(fullText),
+        confidenceScore: cat.confidence,
       });
     }
 
     return transactions;
   }
 
-  private async annotateTransactions(transactions: ParsedTransaction[], options: StatementImportOptions) {
+    private async annotateTransactions(transactions: ParsedTransaction[], options: StatementImportOptions) {
     const existingTransactions = await db.transactions.where('accountId').equals(options.accountId).toArray();
     const existingKeys = new Set(existingTransactions.map((transaction) => this.generateExistingDuplicateKey(options.accountId, transaction)));
 
