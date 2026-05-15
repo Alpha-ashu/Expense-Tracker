@@ -16,7 +16,7 @@ const accountTypes = [
   { id: 'bank', label: 'Bank', icon: Landmark },
   { id: 'card', label: 'Credit Card', icon: CreditCard },
   { id: 'cash', label: 'Cash', icon: Banknote },
-  { id: 'wallet', label: 'Wallet', icon: Smartphone },
+  { id: 'wallet', label: 'Wallet', icon: Wallet },
 ];
 
 const CARD_NETWORKS = [
@@ -48,7 +48,7 @@ const WalletLogo: React.FC<{ wallet: string }> = ({ wallet }) => {
     case 'airtel money':
       return <div className="text-red-600 font-black text-[9px]">airtel <span className="font-light">money</span></div>;
     default:
-      return <Smartphone size={16} className="text-slate-400" />;
+      return <Wallet size={16} className="text-slate-400" />;
   }
 };
 
@@ -140,7 +140,7 @@ export const AddAccount: React.FC = () => {
       value: w.name,
       label: w.name,
       description: w.type,
-      icon: <Smartphone size={14} className="text-indigo-500" />
+      icon: <Wallet size={14} className="text-indigo-500" />
     }));
     return [...base, { value: 'Others', label: 'Others', description: 'Manually specify provider', icon: <Globe2 size={14} className="text-slate-400" /> }];
   }, []);
@@ -154,6 +154,9 @@ export const AddAccount: React.FC = () => {
       await saveAccountWithBackendSync({
         name: resolvedName,
         type: formData.type,
+        subType: formData.subType,
+        colorId: selectedColor.id,
+        customColor: selectedColor.id === 'custom' ? selectedColor.color : undefined,
         provider: provider || null,
         country: userCountry === 'Default' ? null : userCountry,
         balance: parseFloat(formData.balance) || 0,

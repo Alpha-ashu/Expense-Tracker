@@ -1,4 +1,4 @@
-﻿import type { RealtimeChannel } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import supabase from '@/utils/supabase/client';
 import { db } from '@/lib/database';
 import { apiClient } from '@/lib/api';
@@ -89,7 +89,7 @@ const updatedAtSupport = new Map<SyncedTableName, boolean>();
 const unsupportedRemoteColumns = new Map<SyncedTableName, Set<string>>();
 
 const OPTIONAL_REMOTE_COLUMNS: Partial<Record<SyncedTableName, string[]>> = {
-  accounts: ['provider', 'country'],
+  accounts: ['provider', 'country', 'sub_type', 'color_id', 'custom_color'],
   transactions: ['expense_mode', 'group_expense_id', 'group_name', 'split_type', 'import_source', 'import_metadata', 'original_category', 'imported_at'],
 };
 
@@ -536,6 +536,9 @@ async function mapLocalRecordToRemote(table: SyncedTableName, record: any, userI
         type: record.type,
         provider: record.provider ?? null,
         country: record.country ?? null,
+        sub_type: record.subType ?? null,
+        color_id: record.colorId ?? null,
+        custom_color: record.customColor ?? null,
         // Balance is computed server-side - do NOT send client balance
         currency: record.currency || 'INR',
         is_active: record.isActive ?? true,
@@ -2367,6 +2370,9 @@ export async function updateAccountWithBackendSync(accountId: number, updates: a
           country: updates.country,
           balance: updates.balance,
           currency: updates.currency,
+          sub_type: updates.subType,
+          color_id: updates.colorId,
+          custom_color: updates.customColor,
         }, {
           showErrorToast: false,
         });
@@ -2377,6 +2383,9 @@ export async function updateAccountWithBackendSync(accountId: number, updates: a
           cloudId: remote?.id ?? existing.cloudId,
           balance: Number(remote?.balance ?? updates.balance ?? existing.balance),
           isActive: remote?.isActive ?? updates.isActive ?? existing.isActive,
+          subType: remote?.sub_type ?? updates.subType ?? existing.subType,
+          colorId: remote?.color_id ?? updates.colorId ?? existing.colorId,
+          customColor: remote?.custom_color ?? updates.customColor ?? existing.customColor,
           updatedAt: toDate(remote?.updatedAt) ?? new Date(),
           deletedAt: toDate(remote?.deletedAt) ?? existing.deletedAt,
         };

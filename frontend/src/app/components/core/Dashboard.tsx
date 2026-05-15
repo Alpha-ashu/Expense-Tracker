@@ -24,10 +24,95 @@ import {
   isClosedInvestment,
 } from '@/lib/investmentUtils';
 import { AIInsightsCard } from '@/app/components/shared/AIInsightsCard';
+import { getBankCardLogo } from './Accounts';
 
 interface DashboardProps {
   setCurrentPage?: (page: string) => void;
 }
+
+const CardNetworkLogo: React.FC<{ network: string }> = ({ network }) => {
+  const normalized = network.toLowerCase();
+  if (normalized === 'visa') {
+    return (
+      <svg viewBox="0 0 48 48" className="h-6 w-auto fill-white opacity-80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M31.17 31.85h4.15l2.59-15.7H33.76l-2.59 15.7zm11.75-15.35c-1.07-.46-2.74-.95-4.81-.95-5.32 0-9.06 2.83-9.09 6.89-.03 2.99 2.68 4.65 4.73 5.65 2.1 1.03 2.81 1.68 2.8 2.6-.02 1.4-1.68 2.04-3.23 2.04-2.15 0-3.31-.33-5.07-1.11l-.7-.34-.75 4.63c1.25.58 3.56 1.08 5.95 1.1 5.66 0 9.33-2.8 9.38-7.14.03-2.38-1.42-4.19-4.54-5.69-1.89-.95-3.05-1.58-3.05-2.55.01-.86.96-1.74 3.03-1.74 1.72-.03 2.97.37 3.93.79l.47.22.88-5.4zm-19.46 0-3.9 10.68-.47-2.36c-.82-2.77-3.37-5.77-6.22-7.27l4.03 14.65h4.43l6.59-15.7h-4.46zm-17.38 0L1.7 31.85h4.41l6.6-15.7h-6.63z" />
+      </svg>
+    );
+  }
+  if (normalized === 'mastercard') {
+    return (
+      <div className="flex -space-x-2 opacity-80">
+        <div className="w-5 h-5 rounded-full bg-[#EB001B]" />
+        <div className="w-5 h-5 rounded-full bg-[#F79E1B]/80" />
+      </div>
+    );
+  }
+  if (normalized === 'rupay') {
+    return (
+      <div className="flex flex-col items-end opacity-80 leading-none">
+        <span className="text-[10px] font-black italic tracking-tighter text-white">RuPay</span>
+        <div className="h-[2px] w-8 bg-gradient-to-r from-orange-400 via-white to-green-500 rounded-full mt-0.5" />
+      </div>
+    );
+  }
+  if (normalized === 'paytm') {
+    return (
+      <div className="flex flex-col items-end opacity-80 leading-none">
+        <span className="text-[11px] font-black tracking-tight text-white flex items-center">
+          Pay<span className="text-sky-300">tm</span>
+        </span>
+      </div>
+    );
+  }
+  if (normalized === 'gpay' || normalized === 'googlepay') {
+    return (
+      <div className="flex items-center gap-0.5 opacity-80 scale-75 origin-right">
+        <div className="w-2 h-2 rounded-full bg-red-500" />
+        <div className="w-2 h-2 rounded-full bg-yellow-500" />
+        <div className="w-2 h-2 rounded-full bg-green-500" />
+        <div className="w-2 h-2 rounded-full bg-blue-500" />
+      </div>
+    );
+  }
+  return null;
+};
+
+const getCardStyle = (account: any) => {
+  const CARD_COLORS = [
+    { id: 'midnight', bg: 'bg-[#0F172A]', glow: 'bg-indigo-500/10', color: '#0F172A' },
+    { id: 'emerald', bg: 'bg-[#064E3B]', glow: 'bg-emerald-500/10', color: '#064E3B' },
+    { id: 'rose', bg: 'bg-[#4C0519]', glow: 'bg-rose-500/10', color: '#4C0519' },
+    { id: 'amber', bg: 'bg-[#451A03]', glow: 'bg-amber-500/10', color: '#451A03' },
+    { id: 'violet', bg: 'bg-[#2E1065]', glow: 'bg-violet-500/10', color: '#2E1065' },
+    { id: 'blue', bg: 'bg-[#1E3A8A]', glow: 'bg-blue-500/10', color: '#1E3A8A' },
+  ];
+
+  const colorId = account.colorId || 'midnight';
+  const matched = CARD_COLORS.find(c => c.id === colorId);
+
+  if (colorId === 'custom' && account.customColor) {
+    return {
+      background: account.customColor,
+      glow: 'bg-white/5'
+    };
+  }
+
+  if (matched) {
+    return {
+      bgClass: matched.bg,
+      glow: matched.glow
+    };
+  }
+
+  // Fallback gradients based on account type if no custom color
+  switch(account.type) {
+    case 'bank': return { bgClass: 'bg-gradient-to-br from-blue-600 to-indigo-700', glow: 'bg-blue-500/10' };
+    case 'card': return { bgClass: 'bg-gradient-to-br from-purple-600 to-violet-800', glow: 'bg-purple-500/10' };
+    case 'wallet': return { bgClass: 'bg-gradient-to-br from-emerald-500 to-teal-700', glow: 'bg-emerald-500/10' };
+    case 'cash': return { bgClass: 'bg-gradient-to-br from-orange-500 to-amber-700', glow: 'bg-orange-500/10' };
+    default: return { bgClass: 'bg-gradient-to-br from-slate-600 to-slate-800', glow: 'bg-slate-500/10' };
+  }
+};
 
 export function Dashboard({ setCurrentPage }: DashboardProps) {
   const { accounts, transactions, goals, loans, investments, groupExpenses, currency } = useApp();
@@ -238,9 +323,9 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
 
   const tabs = [
     { id: 'all', label: 'All Assets', icon: TrendingUp },
-    { id: 'bank', label: 'Banks', icon: Wallet },
+    { id: 'bank', label: 'Banks', icon: Landmark },
     { id: 'card', label: 'Cards', icon: CreditCard },
-    { id: 'wallet', label: 'Digital', icon: Smartphone },
+    { id: 'wallet', label: 'Digital', icon: Wallet },
     { id: 'cash', label: 'Cash', icon: Banknote },
   ];
 
@@ -337,32 +422,70 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
         </div>
 
         {/* Asset Type Tabs */}
-        <div className="flex items-center justify-center gap-3 overflow-x-auto scrollbar-hide pb-4 px-4 sm:px-6 lg:px-8 xl:px-12 mb-4 lg:mb-6">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={cn(
-                  'relative flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 font-medium whitespace-nowrap text-xs sm:text-sm lg:text-base',
-                  isActive ? 'text-white shadow-lg shadow-pink-200' : 'bg-transparent text-gray-500 hover:bg-transparent'
-                )}
-              >
-                {isActive && (
-                  <motion.div layoutId="activeTabPill"
-                    className="absolute inset-0 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full z-0"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-1 sm:gap-2">
-                  <Icon size={14} className="sm:w-4 sm:h-4 lg:w-[18px] lg:h-[18px]" />
-                  <span className="inline">{tab.label}</span>
-                </span>
-              </button>
-            );
-          })}
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mb-6">
+          <div className="flex w-full bg-gray-100/80 backdrop-blur-md p-1.5 rounded-2xl border border-white/40 shadow-sm">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              
+              // Smart label logic for responsive design
+              const getLabel = (label: string) => {
+                if (label === 'All Assets') return isActive ? 'All Assets' : 'All';
+                return label;
+              };
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={cn(
+                    'relative flex-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-1 py-2 sm:py-2.5 rounded-xl transition-all duration-300 font-bold',
+                    isActive 
+                      ? 'text-white shadow-md' 
+                      : 'bg-transparent text-slate-500 hover:text-slate-700'
+                  )}
+                >
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeTabPill"
+                      className="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl z-0"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <Icon 
+                      size={14} 
+                      className={cn(
+                        "transition-all duration-300",
+                        isActive ? "text-white scale-110" : "text-slate-400"
+                      )} 
+                    />
+                    <AnimatePresence mode="wait">
+                      {isActive && (
+                        <motion.span
+                          initial={{ width: 0, opacity: 0 }}
+                          animate={{ width: 'auto', opacity: 1 }}
+                          exit={{ width: 0, opacity: 0 }}
+                          className="overflow-hidden whitespace-nowrap"
+                        >
+                          <span className="text-[10px] sm:text-xs font-bold ml-1">
+                            {tab.label}
+                          </span>
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                    
+                    {/* Keep labels visible on desktop even if not active for better UX */}
+                    {!isActive && (
+                      <span className="hidden sm:inline text-xs text-slate-500 ml-1">
+                        {tab.label}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* "EUR"EUR 2. Accounts "EUR"EUR */}
@@ -374,22 +497,69 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
                 className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth touch-scroll"
               >
                 {filteredAccounts.map((account) => (
-                  <Card key={account.id} className="p-4 w-[260px] xs:w-[280px] sm:w-[320px] shrink-0 snap-center hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentPage?.('accounts')}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center",
-                        account.type === 'bank' ? "bg-blue-100 text-blue-600" :
-                          account.type === 'card' ? "bg-purple-100 text-purple-600" :
-                            account.type === 'wallet' ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-600"
-                      )}>
-                        {account.type === 'bank' && <Wallet size={20} />}
-                        {account.type === 'card' && <CreditCard size={20} />}
-                        {account.type === 'wallet' && <Smartphone size={20} />}
-                        {account.type === 'cash' && <Banknote size={20} />}
+                  <Card key={account.id} 
+                    className={cn(
+                      "p-5 w-[260px] xs:w-[280px] sm:w-[320px] shrink-0 snap-center hover:shadow-xl transition-all cursor-pointer relative overflow-hidden group border-none",
+                      getCardStyle(account).bgClass
+                    )} 
+                    style={getCardStyle(account).background ? { backgroundColor: getCardStyle(account).background } : {}}
+                    onClick={() => setCurrentPage?.('accounts')}
+                  >
+                    {/* Glass Glow effect */}
+                    <div className={cn("absolute -top-16 -right-16 w-32 h-32 rounded-full blur-3xl opacity-20", getCardStyle(account).glow)} />
+                    <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg">
+                            {account.type === 'bank' && <Landmark size={20} />}
+                            {account.type === 'card' && <CreditCard size={20} />}
+                            {account.type === 'wallet' && <Wallet size={20} />}
+                            {account.type === 'cash' && <Banknote size={20} />}
+                          </div>
+                          <div className="drop-shadow-md rounded-lg overflow-hidden">
+                            {getBankCardLogo(account.name, true, 'sm')}
+                          </div>
+                        </div>
+                        {account.subType && (
+                          <div className="scale-90 opacity-90">
+                            <CardNetworkLogo network={account.subType} />
+                          </div>
+                        )}
+                        {!account.isActive && (
+                          <span className="text-[10px] font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">
+                            INACTIVE
+                          </span>
+                        )}
                       </div>
-                      {!account.isActive && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Inactive</span>}
+                      
+                      <div className="space-y-1">
+                        <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight truncate">
+                          {account.name}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-white/70">
+                            {formatCurrency(account.balance)}
+                          </p>
+                          <span className="w-1 h-1 rounded-full bg-white/20" />
+                          <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                            {account.type}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex items-center justify-between">
+                        <div className="flex -space-x-1">
+                          {[1, 2, 3].map(i => (
+                            <div key={i} className="w-1 h-4 bg-white/10 rounded-full" />
+                          ))}
+                        </div>
+                        <div className="text-[10px] font-medium text-white/40 tracking-wider uppercase">
+                          {account.currency}
+                        </div>
+                      </div>
                     </div>
-                    <h4 className="font-medium text-gray-900 truncate mb-1 text-sm">{account.name}</h4>
-                    <p className="text-xl font-bold text-gray-900">{formatCurrency(account.balance)}</p>
                   </Card>
                 ))}
               </motion.div>

@@ -281,10 +281,59 @@ export const Transactions: React.FC = () => {
     if (!transactionToDelete) return;
     setIsDeleting(true);
     try {
+      // 1. Fetch transaction details to revert account balance
+      const tx = await db.transactions.get(transactionToDelete.id);
+      if (tx) {
+        const now = new Date();
+        const account = await db.accounts.get(tx.accountId);
+
+        if (account) {
+          if (tx.type === 'transfer') {
+            // Revert source account (add back the amount)
+            await db.accounts.update(tx.accountId, {
+              balance: account.balance + tx.amount,
+              updatedAt: now
+            });
+
+            // Revert target account if it was a self-transfer or withdrawal
+            if (tx.transferToAccountId) {
+              const targetAcc = await db.accounts.get(tx.transferToAccountId);
+              if (targetAcc) {
+                await db.accounts.update(tx.transferToAccountId, {
+                  balance: targetAcc.balance - tx.amount,
+                  updatedAt: now
+                });
+              }
+            }
+          } else {
+            // Revert Expense/Income/Loan
+            let adjustment = tx.type === 'income' ? -tx.amount : tx.amount;
+            
+            // Special case: Borrowed loans were inflows (added to balance), so subtract to revert
+            if (tx.expenseMode === 'loan' && tx.loanType === 'borrowed') {
+              adjustment = -tx.amount;
+            }
+            
+            await db.accounts.update(tx.accountId, {
+              balance: account.balance + adjustment,
+              updatedAt: now
+            });
+          }
+        }
+
+        // 2. Clean up linked group expenses if any
+        if (tx.groupExpenseId) {
+          await db.groupExpenses.delete(tx.groupExpenseId);
+        }
+      }
+
+      // 3. Delete the transaction
       await db.transactions.delete(transactionToDelete.id);
-      toast.success('Transaction deleted successfully');
+      
+      toast.success('Transaction deleted and balance reverted');
       setDeleteModalOpen(false);
       setTransactionToDelete(null);
+      refreshData();
     } catch (error) {
       console.error('Error deleting transaction:', error);
       toast.error('Failed to delete transaction');
@@ -335,11 +384,11 @@ export const Transactions: React.FC = () => {
       </div>
 
       {/* Scrollable Date Selector */}
-      <div className="bg-white/95 backdrop-blur-2xl rounded-[18px] sm:rounded-[32px] p-1.5 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.03)] border border-white/40 overflow-hidden relative group">
+      <div className="bg-white/95 backdrop-blur-2xl rounded-[16px] sm:rounded-[32px] p-1 sm:p-5 shadow-[0_8px_25px_rgba(0,0,0,0.02)] border border-white/40 overflow-hidden relative group">
         
-        <div ref={scrollRef} className="flex overflow-x-auto gap-1 sm:gap-4 scrollbar-hide snap-x px-1 py-0.5 items-center">
+        <div ref={scrollRef} className="flex overflow-x-auto gap-1 sm:gap-4 scrollbar-hide snap-x px-0.5 py-0.5 items-center">
           {dateRange.length === 0 && (
-            <p className="text-slate-400 text-center py-4 font-black uppercase tracking-widest text-[6px] sm:text-[10px] w-full">Loading...</p>
+            <p className="text-slate-400 text-center py-4 font-black uppercase tracking-widest text-[5px] sm:text-[10px] w-full">Loading...</p>
           )}
           {dateRange.map((date, idx) => {
             let isSelected = false;
@@ -369,23 +418,23 @@ export const Transactions: React.FC = () => {
                 data-selected={isSelected}
                 onClick={() => setSelectedDate(date)}
                 className={cn(
-                  'flex flex-col items-center justify-center min-w-[42px] sm:min-w-[70px] h-[56px] sm:h-[90px] rounded-[14px] sm:rounded-3xl transition-all duration-500 snap-center relative shrink-0',
+                  'flex flex-col items-center justify-center min-w-[38px] sm:min-w-[70px] h-[50px] sm:h-[90px] rounded-[12px] sm:rounded-3xl transition-all duration-500 snap-center relative shrink-0',
                   isSelected
                     ? 'bg-slate-900 text-white shadow-md scale-105 z-10'
                     : 'bg-slate-50/50 hover:bg-slate-100 text-slate-400 hover:text-slate-600'
                 )}
               >
                 <span className={cn(
-                  'text-[6.5px] sm:text-[10px] font-black tracking-widest mb-0.5 sm:mb-1',
+                  'text-[6px] sm:text-[10px] font-black tracking-widest mb-0.5 sm:mb-1',
                   isSelected ? 'text-pink-400' : isWeekend ? 'text-rose-500' : 'text-slate-400'
                 )}>
                   {subLabel}
                 </span>
-                <span className="text-sm sm:text-xl font-black tracking-tighter">
+                <span className="text-xs sm:text-xl font-black tracking-tighter">
                   {label}
                 </span>
                 {isSelected && (
-                  <div className="absolute -bottom-0.5 sm:-bottom-1 w-1 sm:w-1.5 h-1 sm:h-1.5 bg-pink-500 rounded-full shadow-[0_0_8px_rgba(236,72,153,0.8)]" />
+                  <div className="absolute -bottom-0.5 sm:-bottom-1 w-0.5 sm:w-1.5 h-0.5 sm:h-1.5 bg-pink-500 rounded-full" />
                 )}
               </button>
             );
@@ -517,19 +566,26 @@ export const Transactions: React.FC = () => {
             className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2 sm:py-3 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 text-xs sm:text-sm"
           />
         </div>
-        <div className="flex bg-gray-100/50 p-1 rounded-xl">
+        <div className="flex bg-gray-100/80 backdrop-blur-md p-1.5 rounded-2xl border border-white/40 shadow-sm w-full">
           {(['all', 'income', 'expense'] as const).map((type) => (
             <button
               key={type}
               onClick={() => setFilterType(type)}
               className={cn(
-                "px-3 sm:px-6 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all capitalize",
+                "relative flex-1 flex items-center justify-center py-2 sm:py-2.5 rounded-xl transition-all duration-300 font-bold capitalize text-[10px] sm:text-xs",
                 filterType === type
-                  ? "bg-transparent text-black shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "text-white shadow-md"
+                  : "text-slate-500 hover:text-slate-700"
               )}
             >
-              {type}
+              {filterType === type && (
+                <motion.div 
+                  layoutId="activeFilterPill"
+                  className="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl z-0"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10">{type}</span>
             </button>
           ))}
         </div>

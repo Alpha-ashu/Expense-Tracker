@@ -25,6 +25,9 @@ export interface Account {
   cloudId?: string;          // Supabase UUID
   name: string;
   type: 'bank' | 'card' | 'cash' | 'wallet';
+  subType?: string;          // e.g. 'visa', 'paytm', 'savings'
+  colorId?: string;          // e.g. 'midnight', 'custom'
+  customColor?: string;       // hex/hsl
   balance: number;
   currency: string;
   isActive: boolean;

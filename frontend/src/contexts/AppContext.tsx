@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db, Account, Transaction, Loan, Goal, Investment, GroupExpense, Friend } from '@/lib/database';
@@ -6,7 +6,7 @@ import { isBoilerplateDescription } from '@/services/smartExpenseImportService';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
 import { type SyncStats, useSyncStats, offlineSyncEngine } from '@/lib/offline-sync-engine';
-import { saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
+import { queueRecordUpsertSync, saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { backendSyncService } from '@/lib/backend-sync-service';
 import {
   mergeStoredUserSettings,
@@ -328,7 +328,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
     try {
-      await saveTransactionWithBackendSync(transaction);
+      const account = await db.accounts.get(Number(transaction.accountId));
+      if (!account) {
+        throw new Error('Account not found');
+      }
+
+      let nextBalance = account.balance;
+      if (transaction.type === 'income') {
+        nextBalance += transaction.amount;
+      } else if (transaction.type === 'expense') {
+        nextBalance -= transaction.amount;
+      } else if (transaction.type === 'transfer') {
+        nextBalance -= transaction.amount;
+        // If it's a transfer, we also need to update the destination account
+        if (transaction.transferToAccountId) {
+          const destAccount = await db.accounts.get(Number(transaction.transferToAccountId));
+          if (destAccount) {
+            await db.accounts.update(destAccount.id!, {
+              balance: destAccount.balance + transaction.amount,
+              updatedAt: new Date()
+            });
+            queueRecordUpsertSync('accounts', destAccount.id!);
+          }
+        }
+      }
+
+      const { saveTransactionAndUpdateAccountWithBackendSync } = await import('@/lib/auth-sync-integration');
+      await saveTransactionAndUpdateAccountWithBackendSync(
+        transaction,
+        account.id!,
+        nextBalance
+      );
     } catch (error) {
       console.error('Failed to add transaction:', error);
       throw error;
