@@ -585,79 +585,93 @@ class StatementImportService {
     const lines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
     const transactions: ParsedTransaction[] = [];
 
-    // Skip header/footer lines
-    const SKIP_RE = /^\s*(?:statement|opening\s+balance|closing\s+balance|page\s+\d+|date\s+particulars|sl\.?\s*no|transaction\s+date|value\s+date|narration|description|debit|credit|balance|dr\s*cr|type|chq|ref|sr\s*no|account|branch|ifsc|period|from\s+date|to\s+date|\*+|-{3,}|={3,})/i;
+    // Pure header/footer lines to skip
+    const SKIP_RE = /^\s*(?:statement for|opening balance|closing balance|page\s*\d+|date\s+particulars|sl\.?\s*no|deposits\s+withdrawals|deposits|withdrawals|narration|\*{3,}|-{5,}|={5,})/i;
 
-    // A line starting a block must begin with a date token
-        const DATE_START_RE = /^(\d{1,2}[/.-](\d{1,2}|[a-zA-Z]{3,9})[/.-]\d{2,4})(?:\s|$)/;
-
-    // Ending line has two trailing decimal amounts (debit/credit + balance)
+    // A line ENDS a transaction block when it has two trailing decimals (amount + balance)
+    // e.g. "35.00 4.54" or "2,000.00 2,005.54"
     const TRAILING_PAIR_RE = /[\d,]+\.\d{2}\s+[\d,]+\.\d{2}\s*$/;
 
-    // --- PHASE 1: group raw lines into per-transaction blocks ---
-    const blocks: Array<{ dateStr: string; lines: string[] }> = [];
-    let cur: { dateStr: string; lines: string[] } | null = null;
+    // Transaction date — prefer dash-separated (Canara Bank uses DD-MM-YYYY with dashes)
+    // This avoids matching UPI-embedded dates like "04/05/2026" inside the path
+    const TXN_DATE_RE = /\b(\d{2}-(?:\d{2}|[A-Za-z]{3,9})-\d{4})\b/;
+
+    // Chq / Ref lines belong to the previous transaction
+    const CHQ_RE = /^(?:chq|ref)\s*:\s*\d+/i;
+
+    // --- PHASE 1: accumulate lines into blocks, closed by trailing pair ---
+    const blocks: string[][] = [];
+    let acc: string[] = [];
 
     for (const line of lines) {
       if (SKIP_RE.test(line)) continue;
 
-      const dm = line.match(DATE_START_RE);
-      if (dm) {
-        if (cur) blocks.push(cur);
-        cur = { dateStr: dm[1], lines: [line] };
-      } else if (cur) {
-        cur.lines.push(line);
-        if (TRAILING_PAIR_RE.test(line)) {
-          blocks.push(cur);
-          cur = null;
-        }
+      if (CHQ_RE.test(line)) {
+        // Append cheque ref to the last closed block (for reference extraction)
+        if (blocks.length > 0) blocks[blocks.length - 1].push(line);
+        continue;
+      }
+
+      acc.push(line);
+
+      if (TRAILING_PAIR_RE.test(line)) {
+        blocks.push([...acc]);
+        acc = [];
       }
     }
-    if (cur) blocks.push(cur);
+    // Flush any unclosed tail (e.g. last page with no trailing balance)
+    if (acc.length > 0) blocks.push(acc);
 
     // --- PHASE 2: parse each block ---
     for (const block of blocks) {
-      const date = parseDate(block.dateStr);
+      const fullText = block.join(' ');
+
+      // Find transaction date anywhere in the block
+      const dateMatch = fullText.match(TXN_DATE_RE);
+      if (!dateMatch) continue;
+      const date = parseDate(dateMatch[1]);
       if (!date) continue;
 
-      const fullText = block.lines.join(' ');
-
+      // Collect all decimal amounts from the block
       const amtMatches = fullText.match(/[\d,]+\.\d{2}/g) || [];
       const nums = amtMatches
         .map(v => parseAmount(v))
         .filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
-
       if (nums.length === 0) continue;
 
+      // Last = balance, second-last = debit/credit amount
       let txnAmt: number;
       let balance: number | undefined;
       if (nums.length >= 2) {
         balance = nums[nums.length - 1];
-        txnAmt = nums[nums.length - 2];
+        txnAmt  = nums[nums.length - 2];
       } else {
         txnAmt = nums[0];
       }
       if (!txnAmt || txnAmt <= 0) continue;
 
-      // Build description: strip date + all amounts
+      // Build description — strip date, amounts, Chq lines
       const rawDesc = fullText
-        .replace(block.dateStr, '')
+        .replace(dateMatch[0], '')
         .replace(/[\d,]+\.\d{2}/g, ' ')
+        .replace(/\bChq\s*:\s*\S+/gi, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Detect CR/DR
-      const isCredit = /\bUPI\/CR\b|\bCR\b|\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcredited\b/i.test(fullText);
+      // CR / DR detection
+      const isCredit   = /\bUPI\/CR\b|\bCR\b|\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcredited\b/i.test(fullText);
       const isTransfer = !isCredit && /\btransfer\b|\bneft\b|\brtgs\b|\bimps\b/i.test(fullText);
       const txnType: 'income' | 'expense' | 'transfer' = isTransfer ? 'transfer' : isCredit ? 'income' : 'expense';
 
-      // Extract UPI reference number & merchant
-      const upiRef = fullText.match(/UPI\/(DR|CR)\/(\d+)\//i);
-      const reference = upiRef?.[2];
-      const merchantMatch = fullText.match(/UPI\/(DR|CR)\/\d+\/([^/]+)\//i);
-      let merchantName: string | undefined = merchantMatch
-        ? merchantMatch[2].replace(/[_-]/g, ' ').trim()
+      // Extract merchant from UPI path segment: UPI/DR/<ref>/<MERCHANT>/...
+      const merchantMatch = fullText.match(/UPI\/(?:DR|CR)\/\d+\/([^/]+)\//i);
+      const merchantName: string | undefined = merchantMatch
+        ? merchantMatch[1].replace(/[_-]/g, ' ').trim()
         : pickMerchantName(rawDesc);
+
+      // UPI reference number
+      const upiRef    = fullText.match(/UPI\/(?:DR|CR)\/(\d+)\//i);
+      const reference = upiRef?.[1];
 
       const cleanedDesc = reference
         ? cleanDescription(rawDesc) + ' (Ref: ' + reference + ')'
