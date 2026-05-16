@@ -239,22 +239,43 @@ export const EditAccount: React.FC<{ accountId?: number }> = ({ accountId: propA
               </div>
             </div>
 
-            {/* Balance Input */}
-            <div className="space-y-3">
-              <label className="block text-sm font-bold text-slate-900 ml-1">
-                Current Balance
-              </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900 font-bold text-sm">
-                  {currency}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Opening Balance Input */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-slate-900 ml-1">
+                  Opening Balance
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900 font-bold text-sm">
+                    {currency}
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={account.openingBalance || ''}
+                    onChange={(e) => setAccount({ ...account, openingBalance: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold text-slate-900"
+                  />
                 </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={account.balance || ''}
-                  onChange={(e) => setAccount({ ...account, balance: parseFloat(e.target.value) || 0 })}
-                  className="w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold text-slate-900"
-                />
+              </div>
+
+              {/* Current Balance Input */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-slate-900 ml-1">
+                  Current Balance
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900 font-bold text-sm">
+                    {currency}
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={account.balance || ''}
+                    onChange={(e) => setAccount({ ...account, balance: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 focus:border-slate-900 transition-all font-bold text-slate-900"
+                  />
+                </div>
               </div>
             </div>
 

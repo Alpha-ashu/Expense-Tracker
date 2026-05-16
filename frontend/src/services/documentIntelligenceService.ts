@@ -249,12 +249,12 @@ function detectCurrency(text: string, defaultCurrency: string = 'INR') {
   if (t.includes('gbp') || t.includes('GBP')) return 'GBP';
   if (t.includes('aed')) return 'AED';
   
-  // OCR often hallucinates  interchangeably with INR, or Y for INR.
+  // OCR often hallucinates ¥ interchangeably with INR, or Y for INR.
   // ONLY use JPY if it explicitly says "JPY". 
   if (t.includes('jpy')) return 'JPY';
   
-  // If the OCR hallucinates "" but it's an Indian receipt (has gst/fssai), ignore .
-  if (t.includes('')) {
+  // If the OCR hallucinates "¥" but it's an Indian receipt (has gst/fssai), ignore ¥.
+  if (t.includes('¥')) {
     if (t.match(/gst|fssai|tin|india|delhi|mumbai|bengaluru|bangalore/i)) {
       return 'INR';
     }

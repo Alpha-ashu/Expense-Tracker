@@ -159,6 +159,7 @@ export const AddAccount: React.FC = () => {
         customColor: selectedColor.id === 'custom' ? selectedColor.color : undefined,
         provider: provider || null,
         country: userCountry === 'Default' ? null : userCountry,
+        openingBalance: parseFloat(formData.balance) || 0,
         balance: parseFloat(formData.balance) || 0,
         currency,
         isActive: true,

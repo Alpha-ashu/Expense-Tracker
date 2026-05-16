@@ -139,7 +139,11 @@ export const Accounts: React.FC = () => {
     name: string;
     type: string;
     balance: number;
+    openingBalance?: number;
     isActive: boolean;
+    subType?: string;
+    colorId?: string;
+    customColor?: string;
   } | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -164,6 +168,7 @@ export const Accounts: React.FC = () => {
       name: account.name,
       type: account.type,
       balance: account.balance,
+      openingBalance: account.openingBalance,
       isActive: account.isActive ?? true,
       subType: account.subType,
       colorId: account.colorId,
@@ -180,6 +185,7 @@ export const Accounts: React.FC = () => {
         name: editingAccount.name,
         type: editingAccount.type as any,
         balance: editingAccount.balance,
+        openingBalance: editingAccount.openingBalance,
         isActive: editingAccount.isActive,
         subType: editingAccount.subType,
         colorId: editingAccount.colorId,
@@ -1142,17 +1148,32 @@ export const Accounts: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Balance */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">Current Balance ({currency})</label>
-                  <input
-                    type="number"
-                    value={editingAccount.balance}
-                    onChange={(e) => setEditingAccount(prev => prev ? { ...prev, balance: parseFloat(e.target.value) || 0 } : null)}
-                    className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none text-sm font-bold text-slate-900 transition-all"
-                    placeholder="0.00"
-                    step="0.01"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Opening Balance */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">Opening Balance ({currency})</label>
+                    <input
+                      type="number"
+                      value={editingAccount.openingBalance || ''}
+                      onChange={(e) => setEditingAccount(prev => prev ? { ...prev, openingBalance: parseFloat(e.target.value) || 0 } : null)}
+                      className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none text-sm font-bold text-slate-900 transition-all"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+
+                  {/* Balance */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">Current Balance ({currency})</label>
+                    <input
+                      type="number"
+                      value={editingAccount.balance}
+                      onChange={(e) => setEditingAccount(prev => prev ? { ...prev, balance: parseFloat(e.target.value) || 0 } : null)}
+                      className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:border-slate-900 focus:ring-4 focus:ring-slate-900/5 outline-none text-sm font-bold text-slate-900 transition-all"
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
                 </div>
 
                 {/* Active toggle */}

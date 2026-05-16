@@ -7,9 +7,11 @@ import { db, type Transaction } from '@/lib/database';
 import { documentIntelligenceService } from './documentIntelligenceService';
 import { createWorker } from 'tesseract.js';
 // @ts-ignore
-import * as pdfjsLib from 'pdfjs-dist/build/pdf';
+import * as pdfjsLib from 'pdfjs-dist/build/pdf.mjs';
+// @ts-ignore
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 export interface ParsedTransaction {
   transaction_date: Date;
@@ -406,6 +408,93 @@ class StatementImportService {
     };
   }
 
+  private async extractTransactionsFromSpreadsheet(file: File, userId: string, errors: string[]) {
+    const text = await file.text();
+    const rawText = text.replace(/\u0000/g, ' ');
+
+    if (/^\s*PK/.test(rawText)) {
+      errors.push('Binary Excel files cannot be parsed safely in the current browser build. Export the statement as CSV and upload that file.');
+      return { rawText: '', transactions: [] };
+    }
+
+    if (/<(?:table|worksheet|Workbook|Row|Cell)/i.test(rawText)) {
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(rawText, 'text/xml');
+      const rows = Array.from(xml.querySelectorAll('Row, tr')).map((row) =>
+        Array.from(row.querySelectorAll('Cell, Data, td, th')).map((cell) => (cell.textContent || '').trim()),
+      );
+
+      return {
+        rawText,
+        transactions: await this.extractTransactionsFromRows(rows, userId),
+      };
+    }
+
+    if (looksLikeTableRows(createDelimitedRows(rawText, guessDelimiter(rawText)))) {
+      return {
+        rawText,
+        transactions: await this.extractTransactionsFromDelimitedText(rawText, userId),
+      };
+    }
+
+    errors.push('Spreadsheet format was detected but no transaction rows could be extracted.');
+    return { rawText: '', transactions: [] };
+  }
+
+  private async extractTransactionsFromDelimitedText(text: string, userId: string) {
+    const rows = createDelimitedRows(text, guessDelimiter(text));
+    return this.extractTransactionsFromRows(rows, userId);
+  }
+
+  private async extractTransactionsFromRows(rows: string[][], userId: string) {
+    if (!looksLikeTableRows(rows)) return [];
+
+    const headerRow = rows[0];
+    const columns = detectColumns(headerRow);
+    const transactions: ParsedTransaction[] = [];
+
+    for (const row of rows.slice(1)) {
+      const date = parseDate(row[columns.date ?? -1]);
+      const description = (row[columns.description ?? -1] || '').trim();
+      if (!date || !description) continue;
+
+      const debit = parseAmount(row[columns.debit ?? -1]);
+      const credit = parseAmount(row[columns.credit ?? -1]);
+      const fallbackAmount = parseAmount(row[columns.amount ?? -1]);
+      const balance = parseAmount(row[columns.balance ?? -1]) ?? undefined;
+      const amount = credit ?? debit ?? fallbackAmount;
+      if (amount == null || !Number.isFinite(amount)) continue;
+
+      const transactionType = credit != null && Math.abs(credit) > 0
+        ? 'income'
+        : (normalizeText(description).includes('transfer') ? 'transfer' : 'expense');
+
+      const merchantName = pickMerchantName(description);
+      const categoryPrediction = await documentIntelligenceService.predictCategory({
+        merchantName,
+        text: description,
+        amount: Math.abs(amount),
+        userId,
+      });
+
+      transactions.push({
+        transaction_date: date,
+        raw_description: description,
+        cleaned_description: cleanDescription(description),
+        amount: Math.abs(amount),
+        transaction_type: transactionType,
+        balance_after_transaction: balance,
+        payment_channel: extractPaymentChannel(description),
+        merchant_name: merchantName,
+        category: categoryPrediction.category,
+        confidenceScore: categoryPrediction.confidence,
+        currency: row[columns.currency ?? -1] || undefined,
+      });
+    }
+
+    return transactions;
+  }
+
   private async extractPdfText(file: File) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableFontFace: true }).promise;
@@ -494,199 +583,143 @@ class StatementImportService {
     return pageTexts.join('\n');
   }
 
-  private async extractTransactionsFromSpreadsheet(file: File, userId: string, errors: string[]) {
-    const text = await file.text();
-    const rawText = text.replace(/\u0000/g, ' ');
-
-    if (/^\s*PK/.test(rawText)) {
-      errors.push('Binary Excel files cannot be parsed safely in the current browser build. Export the statement as CSV and upload that file.');
-      return { rawText: '', transactions: [] };
-    }
-
-    if (/<(?:table|worksheet|Workbook|Row|Cell)/i.test(rawText)) {
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(rawText, 'text/xml');
-      const rows = Array.from(xml.querySelectorAll('Row, tr')).map((row) =>
-        Array.from(row.querySelectorAll('Cell, Data, td, th')).map((cell) => (cell.textContent || '').trim()),
-      );
-
-      return {
-        rawText,
-        transactions: await this.extractTransactionsFromRows(rows, userId),
-      };
-    }
-
-    if (looksLikeTableRows(createDelimitedRows(rawText, guessDelimiter(rawText)))) {
-      return {
-        rawText,
-        transactions: await this.extractTransactionsFromDelimitedText(rawText, userId),
-      };
-    }
-
-    errors.push('Spreadsheet format was detected but no transaction rows could be extracted.');
-    return { rawText: '', transactions: [] };
-  }
-
-  private async extractTransactionsFromDelimitedText(text: string, userId: string) {
-    const rows = createDelimitedRows(text, guessDelimiter(text));
-    return this.extractTransactionsFromRows(rows, userId);
-  }
-
-  private async extractTransactionsFromRows(rows: string[][], userId: string) {
-    if (!looksLikeTableRows(rows)) return [];
-
-    const headerRow = rows[0];
-    const columns = detectColumns(headerRow);
-    const transactions: ParsedTransaction[] = [];
-
-    for (const row of rows.slice(1)) {
-      const date = parseDate(row[columns.date ?? -1]);
-      const description = (row[columns.description ?? -1] || '').trim();
-      if (!date || !description) continue;
-
-      const debit = parseAmount(row[columns.debit ?? -1]);
-      const credit = parseAmount(row[columns.credit ?? -1]);
-      const fallbackAmount = parseAmount(row[columns.amount ?? -1]);
-      const balance = parseAmount(row[columns.balance ?? -1]) ?? undefined;
-      const amount = credit ?? debit ?? fallbackAmount;
-      if (amount == null || !Number.isFinite(amount)) continue;
-
-      const transactionType = credit != null && Math.abs(credit) > 0
-        ? 'income'
-        : (normalizeText(description).includes('transfer') ? 'transfer' : 'expense');
-
-      const merchantName = pickMerchantName(description);
-      const categoryPrediction = await documentIntelligenceService.predictCategory({
-        merchantName,
-        text: description,
-        amount: Math.abs(amount),
-        userId,
-      });
-
-      transactions.push({
-        transaction_date: date,
-        raw_description: description,
-        cleaned_description: cleanDescription(description),
-        amount: Math.abs(amount),
-        transaction_type: transactionType,
-        balance_after_transaction: balance,
-        payment_channel: extractPaymentChannel(description),
-        merchant_name: merchantName,
-        category: categoryPrediction.category,
-        confidenceScore: categoryPrediction.confidence,
-        currency: row[columns.currency ?? -1] || undefined,
-      });
-    }
-
-    return transactions;
-  }
 
   private async extractTransactionsFromText(text: string, userId: string) {
-    const lines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim());
+
+    // ── STEP 1: Find the table header row ─────────────────────────────────────
+    // Matches: "Date Particulars Deposits Withdrawals Balance"
+    //          "Date Transaction Details Debits Credits Balance"
+    //          "Date Narration Debit Credit Balance" etc.
+    const HEADER_RE = /\b(?:date\b.{0,60}\b(?:particulars|description|transaction\s*details?|narration|details)\b|\b(?:particulars|description|transaction\s*details?|narration)\b.{0,60}\bdate\b)/i;
+
+    let headerIdx = -1;
+    for (let i = 0; i < rawLines.length; i++) {
+      if (HEADER_RE.test(rawLines[i])) {
+        headerIdx = i; // keep scanning — use the LAST header on page 1 if repeated
+        // only break at the first one so we don't skip all of page 2
+        break;
+      }
+    }
+
+    // Fall back to all lines if no header detected (OCR output, etc.)
+    const lines = (headerIdx >= 0 ? rawLines.slice(headerIdx + 1) : rawLines)
+      .map(l => l.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    // Lines to skip (headers, page markers, running totals)
+    const SKIP_RE = /^\s*(?:date\b|opening balance|closing balance|page\s*\d+|account activity|account statement|total\b|subtotal\b|\*{3,}|-{5,}|={5,})/i;
+
     const transactions: ParsedTransaction[] = [];
 
-    // Pure header/footer lines to skip
-    const SKIP_RE = /^\s*(?:statement for|opening balance|closing balance|page\s*\d+|date\s+particulars|sl\.?\s*no|deposits\s+withdrawals|deposits|withdrawals|narration|\*{3,}|-{5,}|={5,})/i;
+    // STEP 3: Detect layout — "date-first" (Indian Bank, HDFC, SBI, Axis, ICICI)
+    // vs "description-first" (Canara ePassbook: description lines come before the date+amount line).
+    const DATE_START_RE = /^(\d{1,2}[\s\/\-\.](?:\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)[\s\/\-\.]\d{2,4})\s/i;
+    const DATE_INLINE_RE = /\b\d{2}-\d{2}-\d{4}\b/;
+    let isDateFirst = false;
+    for (const line of lines.slice(0, 15)) {
+      if (SKIP_RE.test(line)) continue;
+      if (DATE_START_RE.test(line)) { isDateFirst = true; break; }
+      if (DATE_INLINE_RE.test(line)) { isDateFirst = false; break; }
+    }
 
-    // A line ENDS a transaction block when it has two trailing decimals (amount + balance)
-    // e.g. "35.00 4.54" or "2,000.00 2,005.54"
-    const TRAILING_PAIR_RE = /[\d,]+\.\d{2}\s+[\d,]+\.\d{2}\s*$/;
-
-    // Transaction date — prefer dash-separated (Canara Bank uses DD-MM-YYYY with dashes)
-    // This avoids matching UPI-embedded dates like "04/05/2026" inside the path
-    const TXN_DATE_RE = /\b(\d{2}-(?:\d{2}|[A-Za-z]{3,9})-\d{4})\b/;
-
-    // Chq / Ref lines belong to the previous transaction
-    const CHQ_RE = /^(?:chq|ref)\s*:\s*\d+/i;
-
-    // --- PHASE 1: accumulate lines into blocks, closed by trailing pair ---
+    // STEP 4: Group lines into per-transaction blocks.
     const blocks: string[][] = [];
     let acc: string[] = [];
 
-    for (const line of lines) {
-      if (SKIP_RE.test(line)) continue;
-
-      if (CHQ_RE.test(line)) {
-        // Append cheque ref to the last closed block (for reference extraction)
-        if (blocks.length > 0) blocks[blocks.length - 1].push(line);
-        continue;
+    if (isDateFirst) {
+      for (const line of lines) {
+        if (SKIP_RE.test(line)) continue;
+        if (DATE_START_RE.test(line) && acc.length > 0) { blocks.push([...acc]); acc = []; }
+        acc.push(line);
       }
-
-      acc.push(line);
-
-      if (TRAILING_PAIR_RE.test(line)) {
-        blocks.push([...acc]);
-        acc = [];
+    } else {
+      const TRAILING_AMT_RE = /[\d,]+\.\d{2}(?:\s+[\d,]+\.\d{2})?\s*$/;
+      const NEW_TXN_RE = /^(?:UPI\/|NEFT|RTGS|IMPS|POS\/|CASH|ATM|ACH\/|INB\/|BIL\/|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})/i;
+      let hasAmt = false;
+      for (const line of lines) {
+        if (SKIP_RE.test(line)) continue;
+        if (hasAmt && NEW_TXN_RE.test(line)) { blocks.push([...acc]); acc = []; hasAmt = false; }
+        acc.push(line);
+        if (TRAILING_AMT_RE.test(line)) hasAmt = true;
       }
     }
-    // Flush any unclosed tail (e.g. last page with no trailing balance)
     if (acc.length > 0) blocks.push(acc);
 
-    // --- PHASE 2: parse each block ---
+    // STEP 5: Parse each block into a transaction.
+    const ANY_DATE_RE = /\b(\d{1,2}[\s\/\-\.](?:\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)[\s\/\-\.]\d{2,4})\b/i;
+
     for (const block of blocks) {
       const fullText = block.join(' ');
 
-      // Find transaction date anywhere in the block
-      const dateMatch = fullText.match(TXN_DATE_RE);
+      const dateMatch = fullText.match(ANY_DATE_RE);
       if (!dateMatch) continue;
       const date = parseDate(dateMatch[1]);
-      if (!date) continue;
+      if (!date || isNaN(date.getTime())) continue;
 
-      // Collect all decimal amounts from the block
-      const amtMatches = fullText.match(/[\d,]+\.\d{2}/g) || [];
-      const nums = amtMatches
-        .map(v => parseAmount(v))
-        .filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
-      if (nums.length === 0) continue;
+      // Collect amounts (strip INR prefix)
+      const allNums = [...fullText.matchAll(/(?:INR\s*)?(\d[\d,]*\.\d{2})/g)]
+        .map(m => parseAmount(m[1]))
+        .filter((v): v is number => v != null && Number.isFinite(v) && v >= 0);
+      if (allNums.length === 0) continue;
 
-      // Last = balance, second-last = debit/credit amount
-      let txnAmt: number;
-      let balance: number | undefined;
-      if (nums.length >= 2) {
-        balance = nums[nums.length - 1];
-        txnAmt  = nums[nums.length - 2];
-      } else {
-        txnAmt = nums[0];
-      }
+      const balance = allNums.length > 1 ? allNums[1] : undefined;
+      const txnAmt  = allNums[0];
       if (!txnAmt || txnAmt <= 0) continue;
 
-      // Build description — strip date, amounts, Chq lines
-      const rawDesc = fullText
+      const isUpiCr   = /\bUPI\/CR\b/i.test(fullText);
+      const isUpiDr   = /\bUPI\/DR\b/i.test(fullText);
+      const hasDebitDash = /(?:INR\s*)?[\d,]+\.\d{2}\s+-\s+(?:INR\s*)?[\d,]+\.\d{2}/i.test(fullText);
+      const hasCreditDash = /-\s*(?:INR\s*)?[\d,]+\.\d{2}\s+(?:INR\s*)?[\d,]+\.\d{2}/i.test(fullText);
+      const hasCrKw   = /\b(transfer from|salary|refund|reversal|cashback|credited|received|deposit|credit interest)\b/i.test(fullText);
+      const hasTrKw   = /\b(neft|rtgs|imps|transfer)\b/i.test(fullText);
+      
+      let txnType: 'income' | 'expense' | 'transfer';
+      if (isUpiCr || hasCreditDash || (!isUpiDr && !hasDebitDash && hasCrKw)) {
+        txnType = 'income';
+      } else if (isUpiDr || hasDebitDash) {
+        txnType = 'expense';
+      } else {
+        txnType = hasTrKw ? 'transfer' : 'expense';
+      }
+
+      // Clean description
+      const cleanedRaw = fullText
         .replace(dateMatch[0], '')
-        .replace(/[\d,]+\.\d{2}/g, ' ')
-        .replace(/\bChq\s*:\s*\S+/gi, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
+        .replace(/(?:INR\s*)?[\d,]+\.\d{2}/g, '')
+        .replace(/\bINR\b/gi, '')
+        .replace(/\b[0-9a-f]{10,}\b/gi, '')
+        .replace(/\bBRANCH\s*:\s*[\w\s]+/gi, '')
+        .replace(/\bChq\s*:\s*\d+/gi, '')
+        .replace(/\b\d{2}:\d{2}:\d{2}\b/g, '')
+        .replace(/\bpage\s*\d+\b/gi, '')
+        .replace(/\s{2,}/g, ' ').trim();
 
-      // CR / DR detection
-      const isCredit   = /\bUPI\/CR\b|\bCR\b|\bcredit\b|\bsalary\b|\brefund\b|\bdeposit\b|\bcredited\b/i.test(fullText);
-      const isTransfer = !isCredit && /\btransfer\b|\bneft\b|\brtgs\b|\bimps\b/i.test(fullText);
-      const txnType: 'income' | 'expense' | 'transfer' = isTransfer ? 'transfer' : isCredit ? 'income' : 'expense';
+      // Merchant extraction
+      let merchantName: string | undefined;
+      const upiM = fullText.match(/UPI\/(?:DR|CR)\/\d+\/([^\/\s][^\/]{1,40}?)\//i);
+      if (upiM) {
+        merchantName = upiM[1].replace(/[_\-]/g, ' ').trim();
+      } else {
+        const ifscM = fullText.match(/[A-Z]{4}\d[A-Z0-9]{6}\/([A-Z][^\/\d][^\/]{2,30}?)\//i);
+        merchantName = ifscM
+          ? ifscM[1].replace(/XXXXX\w*/g, '').replace(/[_\-]/g, ' ').trim()
+          : pickMerchantName(cleanedRaw);
+      }
+      if (merchantName) {
+        merchantName = merchantName.replace(/\s+/g, ' ').replace(/[^a-z0-9\s&'.,\-]/gi, '').trim();
+        if (merchantName.length < 2) merchantName = undefined;
+      }
 
-      // Extract merchant from UPI path segment: UPI/DR/<ref>/<MERCHANT>/...
-      const merchantMatch = fullText.match(/UPI\/(?:DR|CR)\/\d+\/([^/]+)\//i);
-      const merchantName: string | undefined = merchantMatch
-        ? merchantMatch[1].replace(/[_-]/g, ' ').trim()
-        : pickMerchantName(rawDesc);
+      const upiRef = fullText.match(/UPI\/(?:DR|CR)\/(\d{10,})\//i) ?? fullText.match(/\/UPI\/(\d{10,})\//i);
+      const ref = upiRef?.[1];
+      const cleanedDesc = cleanDescription(cleanedRaw) + (ref ? ` (Ref: ${ref})` : '');
 
-      // UPI reference number
-      const upiRef    = fullText.match(/UPI\/(?:DR|CR)\/(\d+)\//i);
-      const reference = upiRef?.[1];
-
-      const cleanedDesc = reference
-        ? cleanDescription(rawDesc) + ' (Ref: ' + reference + ')'
-        : cleanDescription(rawDesc);
-
-      const cat = await documentIntelligenceService.predictCategory({
-        merchantName,
-        text: cleanedDesc,
-        amount: txnAmt,
-        userId,
-      });
+      const cat = await documentIntelligenceService.predictCategory({ merchantName, text: cleanedDesc, amount: txnAmt, userId });
 
       transactions.push({
         transaction_date: date,
-        raw_description: fullText.slice(0, 300),
+        raw_description: fullText.slice(0, 400),
         cleaned_description: cleanedDesc,
         amount: txnAmt,
         transaction_type: txnType,
@@ -694,7 +727,7 @@ class StatementImportService {
         payment_channel: extractPaymentChannel(fullText),
         merchant_name: merchantName,
         category: cat.category,
-        currency: documentIntelligenceService.detectCurrency(fullText),
+        currency: documentIntelligenceService.detectCurrency(fullText) ?? 'INR',
         confidenceScore: cat.confidence,
       });
     }

@@ -28,6 +28,7 @@ export interface Account {
   subType?: string;          // e.g. 'visa', 'paytm', 'savings'
   colorId?: string;          // e.g. 'midnight', 'custom'
   customColor?: string;       // hex/hsl
+  openingBalance?: number;
   balance: number;
   currency: string;
   isActive: boolean;
