@@ -332,6 +332,27 @@ class BackendService {
       }
     );
   }
+  
+  // Generic HTTP Methods
+  async get<T = any>(url: string, config?: any): Promise<T> {
+    const response = await this.api.get<T>(url, config);
+    return response.data;
+  }
+
+  async post<T = any>(url: string, data?: any, config?: any): Promise<T> {
+    const response = await this.api.post<T>(url, data, config);
+    return response.data;
+  }
+
+  async put<T = any>(url: string, data?: any, config?: any): Promise<T> {
+    const response = await this.api.put<T>(url, data, config);
+    return response.data;
+  }
+
+  async delete<T = any>(url: string, config?: any): Promise<T> {
+    const response = await this.api.delete<T>(url, config);
+    return response.data;
+  }
 
   // Auth Methods
   setToken(token: string) {

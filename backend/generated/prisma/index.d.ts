@@ -1,4 +1,4 @@
-﻿
+
 /**
  * Client
 **/
@@ -180,7 +180,7 @@ export type user_features = $Result.DefaultSelection<Prisma.$user_featuresPayloa
 export type profiles = $Result.DefaultSelection<Prisma.$profilesPayload>
 
 /**
- * ##  Prisma Client 
+ * ##  Prisma Client ʲˢ
  *
  * Type-safe database client for TypeScript & Node.js
  * @example
@@ -201,7 +201,7 @@ export class PrismaClient<
   [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['other'] }
 
     /**
-   * ##  Prisma Client 
+   * ##  Prisma Client ʲˢ
    *
    * Type-safe database client for TypeScript & Node.js
    * @example
@@ -4354,7 +4354,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Accounts from the position of the cursor.
+     * Take `±n` Accounts from the position of the cursor.
      */
     take?: number
     /**
@@ -5093,7 +5093,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Accounts from the position of the cursor.
+     * Take `±n` Accounts from the position of the cursor.
      */
     take?: number
     /**
@@ -5145,7 +5145,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Accounts from the position of the cursor.
+     * Take `±n` Accounts from the position of the cursor.
      */
     take?: number
     /**
@@ -5197,7 +5197,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Accounts from the position of the cursor.
+     * Take `±n` Accounts from the position of the cursor.
      */
     take?: number
     /**
@@ -5613,7 +5613,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorAvailabilities from the position of the cursor.
+     * Take `±n` AdvisorAvailabilities from the position of the cursor.
      */
     take?: number
     /**
@@ -6296,7 +6296,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorAvailabilities from the position of the cursor.
+     * Take `±n` AdvisorAvailabilities from the position of the cursor.
      */
     take?: number
     /**
@@ -6348,7 +6348,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorAvailabilities from the position of the cursor.
+     * Take `±n` AdvisorAvailabilities from the position of the cursor.
      */
     take?: number
     /**
@@ -6400,7 +6400,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorAvailabilities from the position of the cursor.
+     * Take `±n` AdvisorAvailabilities from the position of the cursor.
      */
     take?: number
     /**
@@ -6774,7 +6774,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorSessions from the position of the cursor.
+     * Take `±n` AdvisorSessions from the position of the cursor.
      */
     take?: number
     /**
@@ -7518,7 +7518,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorSessions from the position of the cursor.
+     * Take `±n` AdvisorSessions from the position of the cursor.
      */
     take?: number
     /**
@@ -7570,7 +7570,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorSessions from the position of the cursor.
+     * Take `±n` AdvisorSessions from the position of the cursor.
      */
     take?: number
     /**
@@ -7622,7 +7622,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AdvisorSessions from the position of the cursor.
+     * Take `±n` AdvisorSessions from the position of the cursor.
      */
     take?: number
     /**
@@ -8043,7 +8043,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` BookingRequests from the position of the cursor.
+     * Take `±n` BookingRequests from the position of the cursor.
      */
     take?: number
     /**
@@ -8773,7 +8773,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` BookingRequests from the position of the cursor.
+     * Take `±n` BookingRequests from the position of the cursor.
      */
     take?: number
     /**
@@ -8825,7 +8825,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` BookingRequests from the position of the cursor.
+     * Take `±n` BookingRequests from the position of the cursor.
      */
     take?: number
     /**
@@ -8877,7 +8877,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` BookingRequests from the position of the cursor.
+     * Take `±n` BookingRequests from the position of the cursor.
      */
     take?: number
     /**
@@ -9234,7 +9234,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Categories from the position of the cursor.
+     * Take `±n` Categories from the position of the cursor.
      */
     take?: number
     /**
@@ -9915,7 +9915,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Categories from the position of the cursor.
+     * Take `±n` Categories from the position of the cursor.
      */
     take?: number
     /**
@@ -9967,7 +9967,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Categories from the position of the cursor.
+     * Take `±n` Categories from the position of the cursor.
      */
     take?: number
     /**
@@ -10019,7 +10019,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Categories from the position of the cursor.
+     * Take `±n` Categories from the position of the cursor.
      */
     take?: number
     /**
@@ -10327,7 +10327,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ChatMessages from the position of the cursor.
+     * Take `±n` ChatMessages from the position of the cursor.
      */
     take?: number
     /**
@@ -10981,7 +10981,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ChatMessages from the position of the cursor.
+     * Take `±n` ChatMessages from the position of the cursor.
      */
     take?: number
     /**
@@ -11033,7 +11033,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ChatMessages from the position of the cursor.
+     * Take `±n` ChatMessages from the position of the cursor.
      */
     take?: number
     /**
@@ -11085,7 +11085,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ChatMessages from the position of the cursor.
+     * Take `±n` ChatMessages from the position of the cursor.
      */
     take?: number
     /**
@@ -11435,7 +11435,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Devices from the position of the cursor.
+     * Take `±n` Devices from the position of the cursor.
      */
     take?: number
     /**
@@ -12130,7 +12130,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Devices from the position of the cursor.
+     * Take `±n` Devices from the position of the cursor.
      */
     take?: number
     /**
@@ -12182,7 +12182,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Devices from the position of the cursor.
+     * Take `±n` Devices from the position of the cursor.
      */
     take?: number
     /**
@@ -12234,7 +12234,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Devices from the position of the cursor.
+     * Take `±n` Devices from the position of the cursor.
      */
     take?: number
     /**
@@ -12608,7 +12608,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ExpenseBills from the position of the cursor.
+     * Take `±n` ExpenseBills from the position of the cursor.
      */
     take?: number
     /**
@@ -13326,7 +13326,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ExpenseBills from the position of the cursor.
+     * Take `±n` ExpenseBills from the position of the cursor.
      */
     take?: number
     /**
@@ -13378,7 +13378,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ExpenseBills from the position of the cursor.
+     * Take `±n` ExpenseBills from the position of the cursor.
      */
     take?: number
     /**
@@ -13430,7 +13430,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ExpenseBills from the position of the cursor.
+     * Take `±n` ExpenseBills from the position of the cursor.
      */
     take?: number
     /**
@@ -13780,7 +13780,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Friends from the position of the cursor.
+     * Take `±n` Friends from the position of the cursor.
      */
     take?: number
     /**
@@ -14475,7 +14475,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Friends from the position of the cursor.
+     * Take `±n` Friends from the position of the cursor.
      */
     take?: number
     /**
@@ -14527,7 +14527,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Friends from the position of the cursor.
+     * Take `±n` Friends from the position of the cursor.
      */
     take?: number
     /**
@@ -14579,7 +14579,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Friends from the position of the cursor.
+     * Take `±n` Friends from the position of the cursor.
      */
     take?: number
     /**
@@ -14963,7 +14963,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Goals from the position of the cursor.
+     * Take `±n` Goals from the position of the cursor.
      */
     take?: number
     /**
@@ -15694,7 +15694,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Goals from the position of the cursor.
+     * Take `±n` Goals from the position of the cursor.
      */
     take?: number
     /**
@@ -15746,7 +15746,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Goals from the position of the cursor.
+     * Take `±n` Goals from the position of the cursor.
      */
     take?: number
     /**
@@ -15798,7 +15798,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Goals from the position of the cursor.
+     * Take `±n` Goals from the position of the cursor.
      */
     take?: number
     /**
@@ -16184,7 +16184,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GoalContributions from the position of the cursor.
+     * Take `±n` GoalContributions from the position of the cursor.
      */
     take?: number
     /**
@@ -16904,7 +16904,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GoalContributions from the position of the cursor.
+     * Take `±n` GoalContributions from the position of the cursor.
      */
     take?: number
     /**
@@ -16956,7 +16956,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GoalContributions from the position of the cursor.
+     * Take `±n` GoalContributions from the position of the cursor.
      */
     take?: number
     /**
@@ -17008,7 +17008,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GoalContributions from the position of the cursor.
+     * Take `±n` GoalContributions from the position of the cursor.
      */
     take?: number
     /**
@@ -17422,7 +17422,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ImportLogs from the position of the cursor.
+     * Take `±n` ImportLogs from the position of the cursor.
      */
     take?: number
     /**
@@ -18168,7 +18168,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ImportLogs from the position of the cursor.
+     * Take `±n` ImportLogs from the position of the cursor.
      */
     take?: number
     /**
@@ -18220,7 +18220,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ImportLogs from the position of the cursor.
+     * Take `±n` ImportLogs from the position of the cursor.
      */
     take?: number
     /**
@@ -18272,7 +18272,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ImportLogs from the position of the cursor.
+     * Take `±n` ImportLogs from the position of the cursor.
      */
     take?: number
     /**
@@ -18678,7 +18678,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Investments from the position of the cursor.
+     * Take `±n` Investments from the position of the cursor.
      */
     take?: number
     /**
@@ -19410,7 +19410,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Investments from the position of the cursor.
+     * Take `±n` Investments from the position of the cursor.
      */
     take?: number
     /**
@@ -19462,7 +19462,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Investments from the position of the cursor.
+     * Take `±n` Investments from the position of the cursor.
      */
     take?: number
     /**
@@ -19514,7 +19514,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Investments from the position of the cursor.
+     * Take `±n` Investments from the position of the cursor.
      */
     take?: number
     /**
@@ -19924,7 +19924,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Loans from the position of the cursor.
+     * Take `±n` Loans from the position of the cursor.
      */
     take?: number
     /**
@@ -20676,7 +20676,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Loans from the position of the cursor.
+     * Take `±n` Loans from the position of the cursor.
      */
     take?: number
     /**
@@ -20728,7 +20728,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Loans from the position of the cursor.
+     * Take `±n` Loans from the position of the cursor.
      */
     take?: number
     /**
@@ -20780,7 +20780,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Loans from the position of the cursor.
+     * Take `±n` Loans from the position of the cursor.
      */
     take?: number
     /**
@@ -21148,7 +21148,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` LoanPayments from the position of the cursor.
+     * Take `±n` LoanPayments from the position of the cursor.
      */
     take?: number
     /**
@@ -21831,7 +21831,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` LoanPayments from the position of the cursor.
+     * Take `±n` LoanPayments from the position of the cursor.
      */
     take?: number
     /**
@@ -21883,7 +21883,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` LoanPayments from the position of the cursor.
+     * Take `±n` LoanPayments from the position of the cursor.
      */
     take?: number
     /**
@@ -21935,7 +21935,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` LoanPayments from the position of the cursor.
+     * Take `±n` LoanPayments from the position of the cursor.
      */
     take?: number
     /**
@@ -22279,7 +22279,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Notifications from the position of the cursor.
+     * Take `±n` Notifications from the position of the cursor.
      */
     take?: number
     /**
@@ -22967,7 +22967,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Notifications from the position of the cursor.
+     * Take `±n` Notifications from the position of the cursor.
      */
     take?: number
     /**
@@ -23019,7 +23019,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Notifications from the position of the cursor.
+     * Take `±n` Notifications from the position of the cursor.
      */
     take?: number
     /**
@@ -23071,7 +23071,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Notifications from the position of the cursor.
+     * Take `±n` Notifications from the position of the cursor.
      */
     take?: number
     /**
@@ -23439,7 +23439,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Payments from the position of the cursor.
+     * Take `±n` Payments from the position of the cursor.
      */
     take?: number
     /**
@@ -24166,7 +24166,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Payments from the position of the cursor.
+     * Take `±n` Payments from the position of the cursor.
      */
     take?: number
     /**
@@ -24218,7 +24218,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Payments from the position of the cursor.
+     * Take `±n` Payments from the position of the cursor.
      */
     take?: number
     /**
@@ -24270,7 +24270,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Payments from the position of the cursor.
+     * Take `±n` Payments from the position of the cursor.
      */
     take?: number
     /**
@@ -24578,7 +24578,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` RefreshTokens from the position of the cursor.
+     * Take `±n` RefreshTokens from the position of the cursor.
      */
     take?: number
     /**
@@ -25224,7 +25224,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` RefreshTokens from the position of the cursor.
+     * Take `±n` RefreshTokens from the position of the cursor.
      */
     take?: number
     /**
@@ -25276,7 +25276,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` RefreshTokens from the position of the cursor.
+     * Take `±n` RefreshTokens from the position of the cursor.
      */
     take?: number
     /**
@@ -25328,7 +25328,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` RefreshTokens from the position of the cursor.
+     * Take `±n` RefreshTokens from the position of the cursor.
      */
     take?: number
     /**
@@ -25696,7 +25696,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` SyncQueues from the position of the cursor.
+     * Take `±n` SyncQueues from the position of the cursor.
      */
     take?: number
     /**
@@ -26380,7 +26380,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` SyncQueues from the position of the cursor.
+     * Take `±n` SyncQueues from the position of the cursor.
      */
     take?: number
     /**
@@ -26428,7 +26428,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` SyncQueues from the position of the cursor.
+     * Take `±n` SyncQueues from the position of the cursor.
      */
     take?: number
     /**
@@ -26476,7 +26476,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` SyncQueues from the position of the cursor.
+     * Take `±n` SyncQueues from the position of the cursor.
      */
     take?: number
     /**
@@ -26762,7 +26762,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Todos from the position of the cursor.
+     * Take `±n` Todos from the position of the cursor.
      */
     take?: number
     /**
@@ -27415,7 +27415,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Todos from the position of the cursor.
+     * Take `±n` Todos from the position of the cursor.
      */
     take?: number
     /**
@@ -27467,7 +27467,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Todos from the position of the cursor.
+     * Take `±n` Todos from the position of the cursor.
      */
     take?: number
     /**
@@ -27519,7 +27519,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Todos from the position of the cursor.
+     * Take `±n` Todos from the position of the cursor.
      */
     take?: number
     /**
@@ -27999,7 +27999,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Transactions from the position of the cursor.
+     * Take `±n` Transactions from the position of the cursor.
      */
     take?: number
     /**
@@ -28852,7 +28852,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Transactions from the position of the cursor.
+     * Take `±n` Transactions from the position of the cursor.
      */
     take?: number
     /**
@@ -28904,7 +28904,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Transactions from the position of the cursor.
+     * Take `±n` Transactions from the position of the cursor.
      */
     take?: number
     /**
@@ -28956,7 +28956,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Transactions from the position of the cursor.
+     * Take `±n` Transactions from the position of the cursor.
      */
     take?: number
     /**
@@ -29397,7 +29397,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Users from the position of the cursor.
+     * Take `±n` Users from the position of the cursor.
      */
     take?: number
     /**
@@ -30271,7 +30271,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Users from the position of the cursor.
+     * Take `±n` Users from the position of the cursor.
      */
     take?: number
     /**
@@ -30323,7 +30323,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Users from the position of the cursor.
+     * Take `±n` Users from the position of the cursor.
      */
     take?: number
     /**
@@ -30375,7 +30375,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` Users from the position of the cursor.
+     * Take `±n` Users from the position of the cursor.
      */
     take?: number
     /**
@@ -31361,7 +31361,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserPins from the position of the cursor.
+     * Take `±n` UserPins from the position of the cursor.
      */
     take?: number
     /**
@@ -32058,7 +32058,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserPins from the position of the cursor.
+     * Take `±n` UserPins from the position of the cursor.
      */
     take?: number
     /**
@@ -32110,7 +32110,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserPins from the position of the cursor.
+     * Take `±n` UserPins from the position of the cursor.
      */
     take?: number
     /**
@@ -32162,7 +32162,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserPins from the position of the cursor.
+     * Take `±n` UserPins from the position of the cursor.
      */
     take?: number
     /**
@@ -32494,7 +32494,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserSettings from the position of the cursor.
+     * Take `±n` UserSettings from the position of the cursor.
      */
     take?: number
     /**
@@ -33168,7 +33168,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserSettings from the position of the cursor.
+     * Take `±n` UserSettings from the position of the cursor.
      */
     take?: number
     /**
@@ -33220,7 +33220,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserSettings from the position of the cursor.
+     * Take `±n` UserSettings from the position of the cursor.
      */
     take?: number
     /**
@@ -33272,7 +33272,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` UserSettings from the position of the cursor.
+     * Take `±n` UserSettings from the position of the cursor.
      */
     take?: number
     /**
@@ -33610,7 +33610,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` OtpCodes from the position of the cursor.
+     * Take `±n` OtpCodes from the position of the cursor.
      */
     take?: number
     /**
@@ -34286,7 +34286,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` OtpCodes from the position of the cursor.
+     * Take `±n` OtpCodes from the position of the cursor.
      */
     take?: number
     /**
@@ -34338,7 +34338,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` OtpCodes from the position of the cursor.
+     * Take `±n` OtpCodes from the position of the cursor.
      */
     take?: number
     /**
@@ -34390,7 +34390,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` OtpCodes from the position of the cursor.
+     * Take `±n` OtpCodes from the position of the cursor.
      */
     take?: number
     /**
@@ -34756,7 +34756,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AiScans from the position of the cursor.
+     * Take `±n` AiScans from the position of the cursor.
      */
     take?: number
     /**
@@ -35460,7 +35460,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AiScans from the position of the cursor.
+     * Take `±n` AiScans from the position of the cursor.
      */
     take?: number
     /**
@@ -35512,7 +35512,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AiScans from the position of the cursor.
+     * Take `±n` AiScans from the position of the cursor.
      */
     take?: number
     /**
@@ -35564,7 +35564,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` AiScans from the position of the cursor.
+     * Take `±n` AiScans from the position of the cursor.
      */
     take?: number
     /**
@@ -35868,7 +35868,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_events from the position of the cursor.
+     * Take `±n` ai_events from the position of the cursor.
      */
     take?: number
     /**
@@ -36487,7 +36487,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_events from the position of the cursor.
+     * Take `±n` ai_events from the position of the cursor.
      */
     take?: number
     /**
@@ -36535,7 +36535,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_events from the position of the cursor.
+     * Take `±n` ai_events from the position of the cursor.
      */
     take?: number
     /**
@@ -36583,7 +36583,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_events from the position of the cursor.
+     * Take `±n` ai_events from the position of the cursor.
      */
     take?: number
     /**
@@ -36883,7 +36883,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_insights from the position of the cursor.
+     * Take `±n` ai_insights from the position of the cursor.
      */
     take?: number
     /**
@@ -37525,7 +37525,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_insights from the position of the cursor.
+     * Take `±n` ai_insights from the position of the cursor.
      */
     take?: number
     /**
@@ -37573,7 +37573,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_insights from the position of the cursor.
+     * Take `±n` ai_insights from the position of the cursor.
      */
     take?: number
     /**
@@ -37621,7 +37621,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_insights from the position of the cursor.
+     * Take `±n` ai_insights from the position of the cursor.
      */
     take?: number
     /**
@@ -37931,7 +37931,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_model_runs from the position of the cursor.
+     * Take `±n` ai_model_runs from the position of the cursor.
      */
     take?: number
     /**
@@ -38580,7 +38580,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_model_runs from the position of the cursor.
+     * Take `±n` ai_model_runs from the position of the cursor.
      */
     take?: number
     /**
@@ -38628,7 +38628,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_model_runs from the position of the cursor.
+     * Take `±n` ai_model_runs from the position of the cursor.
      */
     take?: number
     /**
@@ -38676,7 +38676,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` ai_model_runs from the position of the cursor.
+     * Take `±n` ai_model_runs from the position of the cursor.
      */
     take?: number
     /**
@@ -39086,7 +39086,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenses from the position of the cursor.
+     * Take `±n` GroupExpenses from the position of the cursor.
      */
     take?: number
     /**
@@ -39892,7 +39892,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenses from the position of the cursor.
+     * Take `±n` GroupExpenses from the position of the cursor.
      */
     take?: number
     /**
@@ -39944,7 +39944,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenses from the position of the cursor.
+     * Take `±n` GroupExpenses from the position of the cursor.
      */
     take?: number
     /**
@@ -39996,7 +39996,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenses from the position of the cursor.
+     * Take `±n` GroupExpenses from the position of the cursor.
      */
     take?: number
     /**
@@ -40431,7 +40431,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenseMembers from the position of the cursor.
+     * Take `±n` GroupExpenseMembers from the position of the cursor.
      */
     take?: number
     /**
@@ -41142,7 +41142,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenseMembers from the position of the cursor.
+     * Take `±n` GroupExpenseMembers from the position of the cursor.
      */
     take?: number
     /**
@@ -41194,7 +41194,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenseMembers from the position of the cursor.
+     * Take `±n` GroupExpenseMembers from the position of the cursor.
      */
     take?: number
     /**
@@ -41246,7 +41246,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` GroupExpenseMembers from the position of the cursor.
+     * Take `±n` GroupExpenseMembers from the position of the cursor.
      */
     take?: number
     /**
@@ -41604,7 +41604,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` user_features from the position of the cursor.
+     * Take `±n` user_features from the position of the cursor.
      */
     take?: number
     /**
@@ -42267,7 +42267,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` user_features from the position of the cursor.
+     * Take `±n` user_features from the position of the cursor.
      */
     take?: number
     /**
@@ -42315,7 +42315,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` user_features from the position of the cursor.
+     * Take `±n` user_features from the position of the cursor.
      */
     take?: number
     /**
@@ -42363,7 +42363,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` user_features from the position of the cursor.
+     * Take `±n` user_features from the position of the cursor.
      */
     take?: number
     /**
@@ -42745,7 +42745,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` profiles from the position of the cursor.
+     * Take `±n` profiles from the position of the cursor.
      */
     take?: number
     /**
@@ -43478,7 +43478,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` profiles from the position of the cursor.
+     * Take `±n` profiles from the position of the cursor.
      */
     take?: number
     /**
@@ -43526,7 +43526,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` profiles from the position of the cursor.
+     * Take `±n` profiles from the position of the cursor.
      */
     take?: number
     /**
@@ -43574,7 +43574,7 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `n` profiles from the position of the cursor.
+     * Take `±n` profiles from the position of the cursor.
      */
     take?: number
     /**
