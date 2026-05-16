@@ -29,55 +29,11 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/app/components/ui/PageHeader";
 import { StatementImport } from "@/app/components/transactions/StatementImport";
 import { formatLocalDate } from "@/lib/dateUtils";
+import { CardNetworkLogo, getBankCardLogo } from "@/app/components/ui/AccountLogos";
 
 type AssetType = "all" | "bank" | "card" | "wallet" | "cash";
 
-const CardNetworkLogo: React.FC<{ network: string }> = ({ network }) => {
-  const normalized = network.toLowerCase();
-  if (normalized === 'visa') {
-    return (
-      <svg viewBox="0 0 48 48" className="h-6 w-auto fill-white opacity-80" xmlns="http://www.w3.org/2000/svg">
-        <path d="M31.17 31.85h4.15l2.59-15.7H33.76l-2.59 15.7zm11.75-15.35c-1.07-.46-2.74-.95-4.81-.95-5.32 0-9.06 2.83-9.09 6.89-.03 2.99 2.68 4.65 4.73 5.65 2.1 1.03 2.81 1.68 2.8 2.6-.02 1.4-1.68 2.04-3.23 2.04-2.15 0-3.31-.33-5.07-1.11l-.7-.34-.75 4.63c1.25.58 3.56 1.08 5.95 1.1 5.66 0 9.33-2.8 9.38-7.14.03-2.38-1.42-4.19-4.54-5.69-1.89-.95-3.05-1.58-3.05-2.55.01-.86.96-1.74 3.03-1.74 1.72-.03 2.97.37 3.93.79l.47.22.88-5.4zm-19.46 0-3.9 10.68-.47-2.36c-.82-2.77-3.37-5.77-6.22-7.27l4.03 14.65h4.43l6.59-15.7h-4.46zm-17.38 0L1.7 31.85h4.41l6.6-15.7h-6.63z" />
-      </svg>
-    );
-  }
-  if (normalized === 'mastercard') {
-    return (
-      <div className="flex -space-x-2 opacity-80">
-        <div className="w-5 h-5 rounded-full bg-[#EB001B]" />
-        <div className="w-5 h-5 rounded-full bg-[#F79E1B]/80" />
-      </div>
-    );
-  }
-  if (normalized === 'rupay') {
-    return (
-      <div className="flex flex-col items-end opacity-80 leading-none">
-        <span className="text-[10px] font-black italic tracking-tighter text-white">RuPay</span>
-        <div className="h-[2px] w-8 bg-gradient-to-r from-orange-400 via-white to-green-500 rounded-full mt-0.5" />
-      </div>
-    );
-  }
-  if (normalized === 'paytm') {
-    return (
-      <div className="flex flex-col items-end opacity-80 leading-none">
-        <span className="text-[11px] font-black tracking-tight text-white flex items-center">
-          Pay<span className="text-sky-300">tm</span>
-        </span>
-      </div>
-    );
-  }
-  if (normalized === 'gpay' || normalized === 'googlepay') {
-    return (
-      <div className="flex items-center gap-0.5 opacity-80 scale-75 origin-right">
-        <div className="w-2 h-2 rounded-full bg-red-500" />
-        <div className="w-2 h-2 rounded-full bg-yellow-500" />
-        <div className="w-2 h-2 rounded-full bg-green-500" />
-        <div className="w-2 h-2 rounded-full bg-blue-500" />
-      </div>
-    );
-  }
-  return null;
-};
+
 
 const getCardStyle = (account: any) => {
   const CARD_COLORS = [
@@ -516,12 +472,12 @@ export const Accounts: React.FC = () => {
                     )}
                   >
                     <Card
-                      variant="flat"
+                      variant={isActive ? "flat" : "default"}
                       className={cn(
-                        "w-full h-[200px] sm:h-[215px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[24px] cursor-pointer outline-none focus:ring-0",
+                        "w-full h-[200px] sm:h-[215px] relative overflow-hidden shrink-0 transition-all duration-300 rounded-[30px] cursor-pointer outline-none focus:ring-0",
                         isActive
                           ? "border-0 shadow-[0_20px_50px_rgba(91,33,182,0.4)]"
-                          : "bg-white border border-gray-200 shadow-[0_4px_20px_rgba(0,0,0,0.07)]",
+                          : "shadow-[0_8px_32px_0_rgba(31,38,135,0.07)]",
                         !account.isActive && "opacity-60 grayscale",
                       )}
                       onClick={() => handleCardClick(account.id!)}
@@ -626,16 +582,18 @@ export const Accounts: React.FC = () => {
                               className="inline-flex items-center justify-center font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none font-display tracking-tight focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl shadow-lg bg-black text-white hover:bg-gray-900 text-xs h-8 px-3">
                               <Plus size={11} className="mr-0.5" />Add
                             </Button>
-                            <Button size="sm"
-                              onClick={(e) => { e.stopPropagation(); setStatementImportOpen({ accountId: account.id!, accountName: account.name, accountType: account.type }); }}
-                              className={cn(
-                                "h-7 px-2.5 rounded-full text-[10px] font-semibold",
-                                isActive
-                                  ? "bg-white/20 hover:bg-white/30 text-white border border-white/20"
-                                  : "bg-blue-600 text-white hover:bg-blue-700"
-                              )}>
-                              <Upload size={11} className="mr-0.5" />Import
-                            </Button>
+                            {(account.type === 'bank' || account.type === 'card') && (
+                              <Button size="sm"
+                                onClick={(e) => { e.stopPropagation(); setStatementImportOpen({ accountId: account.id!, accountName: account.name, accountType: account.type }); }}
+                                className={cn(
+                                  "h-7 px-2.5 rounded-full text-[10px] font-semibold",
+                                  isActive
+                                    ? "bg-white/20 hover:bg-white/30 text-white border border-white/20"
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                                )}>
+                                <Upload size={11} className="mr-0.5" />Import
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -836,16 +794,18 @@ export const Accounts: React.FC = () => {
                                     className="inline-flex items-center justify-center font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none font-display tracking-tight focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-xl shadow-lg bg-black text-white hover:bg-gray-900 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4">
                                     <Plus size={13} className="mr-1" />Add
                                   </Button>
-                                  <Button size="sm"
-                                    onClick={(e) => { e.stopPropagation(); setStatementImportOpen({ accountId: account.id!, accountName: account.name, accountType: account.type }); }}
-                                    className={cn(
-                                      "h-8 px-4 rounded-full text-xs font-semibold",
-                                      isActive
-                                        ? "bg-white/20 hover:bg-white/30 text-white border border-white/20"
-                                        : "bg-blue-600 text-white hover:bg-blue-700"
-                                    )}>
-                                    <Upload size={13} className="mr-1" />Import
-                                  </Button>
+                                  {(account.type === 'bank' || account.type === 'card') && (
+                                    <Button size="sm"
+                                      onClick={(e) => { e.stopPropagation(); setStatementImportOpen({ accountId: account.id!, accountName: account.name, accountType: account.type }); }}
+                                      className={cn(
+                                        "h-7 px-2.5 rounded-full text-[10px] font-semibold",
+                                        isActive
+                                          ? "bg-white/20 hover:bg-white/30 text-white border border-white/20"
+                                          : "bg-blue-600 text-white hover:bg-blue-700"
+                                      )}>
+                                      <Upload size={11} className="mr-0.5" />Import
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1309,364 +1269,4 @@ export const Accounts: React.FC = () => {
 
 
 
-
-  // Smart bank/card brand logo renderer based on account name
-  export const getBankCardLogo = (name: string, isActive: boolean, size: 'sm' | 'md' = 'md') => {
-    const n = name.toLowerCase();
-    const w = size === 'sm' ? 52 : 64;
-    const h = size === 'sm' ? 32 : 40;
-    const textSm = size === 'sm' ? '9' : '11';
-    const textMd = size === 'sm' ? '11' : '14';
-    const textLg = size === 'sm' ? '13' : '16';
-
-    // "EUR"EUR Indian Banks "EUR"EUR
-    if (n.includes('sbi') || n.includes('state bank')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex flex-col items-center justify-center rounded-lg overflow-hidden bg-[#22408C]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#22408C" />
-            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">SBI</text>
-            <text x="30" y="28" textAnchor="middle" fill="#a0b4e0" fontSize={textSm} fontFamily="Arial">State Bank</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('hdfc')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#004C8F]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#004C8F" />
-            <text x="30" y="14" textAnchor="middle" fill="#00AEEF" fontWeight="800" fontSize={textLg} fontFamily="Arial">HDFC</text>
-            <text x="30" y="27" textAnchor="middle" fill="#80c6f7" fontSize={textSm} fontFamily="Arial">BANK</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('icici')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#B02A2A]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#B02A2A" />
-            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textMd} fontFamily="Arial">ICICI</text>
-            <text x="30" y="27" textAnchor="middle" fill="#f0a0a0" fontSize={textSm} fontFamily="Arial">BANK</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('axis')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#97144D]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#97144D" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">AXIS</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('kotak')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#ED1C24]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#ED1C24" />
-            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">KOTAK</text>
-            <text x="30" y="27" textAnchor="middle" fill="#ffa0a4" fontSize={textSm} fontFamily="Arial">MAHINDRA</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('pnb') || n.includes('punjab national')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003366]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#003366" />
-            <text x="30" y="22" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textLg} fontFamily="Arial">PNB</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('bob') || n.includes('bank of baroda')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#E87722]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#E87722" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">BOB</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('canara')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#034694]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#034694" />
-            <text x="30" y="22" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">CANARA</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('union bank')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#003087" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">UNION</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('idbi')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#3D9A42]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#3D9A42" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">IDBI</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('yes bank')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#00539B]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#00539B" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">YES</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('indusind')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#7B2D8B]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#7B2D8B" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">IndusInd</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('idfc')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#009FE3]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#009FE3" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">IDFC</text>
-          </svg>
-        </div>
-      );
-    }
-
-    // "EUR"EUR International Banks "EUR"EUR
-    if (n.includes('chase') || n.includes('jpmorgan')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#117ACA]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#117ACA" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">Chase</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('bank of america') || n.includes('bofa')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#E31937]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#E31937" />
-            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Bank of</text>
-            <text x="30" y="27" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">America</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('citi') || n.includes('citibank')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003B8E]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#003B8E" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">Citi</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('wells fargo')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#CC0000]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#CC0000" />
-            <text x="30" y="15" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Wells</text>
-            <text x="30" y="27" textAnchor="middle" fill="#FFD700" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Fargo</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('hsbc')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#DB0011]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#DB0011" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">HSBC</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('barclays')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#00AEEF]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#00AEEF" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Barclays</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('standard chartered') || n.includes('stanchart')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#0A7F4F]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#0A7F4F" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Stan Chart</text>
-          </svg>
-        </div>
-      );
-    }
-
-    // "EUR"EUR Card Networks "EUR"EUR
-    if (n.includes('visa')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#1A1F71]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#1A1F71" />
-            <text x="30" y="24" textAnchor="middle" fill="#fff" fontWeight="800" fontSize={size === 'sm' ? '18' : '22'} fontFamily="Arial" fontStyle="italic">VISA</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('mastercard') || n.includes('master card')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#252525]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#252525" />
-            <circle cx="22" cy="18" r="11" fill="#EB001B" />
-            <circle cx="38" cy="18" r="11" fill="#F79E1B" />
-            <ellipse cx="30" cy="18" rx="5" ry="11" fill="#FF5F00" />
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('amex') || n.includes('american express')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#007BC1]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#007BC1" />
-            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">AMERICAN</text>
-            <text x="30" y="27" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">EXPRESS</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('rupay')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-r from-orange-600 to-green-600")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="transparent" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textLg} fontFamily="Arial">RuPay</text>
-          </svg>
-        </div>
-      );
-    }
-
-    // "EUR"EUR Digital Wallets "EUR"EUR
-    if (n.includes('phonepe') || n.includes('phone pe')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#5F259F]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#5F259F" />
-            <text x="30" y="15" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Phone</text>
-            <text x="30" y="28" textAnchor="middle" fill="#CBB5F7" fontWeight="bold" fontSize={textSm} fontFamily="Arial">Pe</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('gpay') || n.includes('google pay')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-white border border-gray-200")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#fff" />
-            <text x="7" y="24" fill="#4285F4" fontWeight="bold" fontSize={textLg} fontFamily="Arial">G</text>
-            <text x="20" y="24" fill="#34A853" fontWeight="bold" fontSize={textLg} fontFamily="Arial">P</text>
-            <text x="32" y="24" fill="#FBBC04" fontWeight="bold" fontSize={textLg} fontFamily="Arial">a</text>
-            <text x="43" y="24" fill="#EA4335" fontWeight="bold" fontSize={textLg} fontFamily="Arial">y</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('paytm')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#00BAF2]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#00BAF2" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textMd} fontFamily="Arial">Paytm</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('paypal')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#003087]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#003087" />
-            <text x="30" y="22" textAnchor="middle" fill="#009CDE" fontWeight="bold" fontSize={textMd} fontFamily="Arial">PayPal</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('amazon pay')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#232F3E]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#232F3E" />
-            <text x="30" y="15" textAnchor="middle" fill="#FF9900" fontWeight="bold" fontSize={textSm} fontFamily="Arial">amazon</text>
-            <text x="30" y="28" textAnchor="middle" fill="#fff" fontSize={textSm} fontFamily="Arial">pay</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('mobikwik')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-[#E8203A]")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="#E8203A" />
-            <text x="30" y="22" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">MobiKwik</text>
-          </svg>
-        </div>
-      );
-    }
-    if (n.includes('cash') || n.includes('petty cash')) {
-      return (
-        <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', "flex items-center justify-center rounded-lg overflow-hidden bg-gradient-to-br from-emerald-500 to-green-700")}>
-          <svg viewBox="0 0 60 36" width={w} height={h}>
-            <rect width="60" height="36" fill="transparent" />
-            <text x="30" y="15" textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={textSm} fontFamily="Arial">'</text>
-            <text x="30" y="28" textAnchor="middle" fill="#fff" fontWeight="bold" fontSize={textSm} fontFamily="Arial">CASH</text>
-          </svg>
-        </div>
-      );
-    }
-
-    // "EUR"EUR Fallback: beautiful initials logo "EUR"EUR
-    const initials = name.trim().split(/\s+/).map((w: string) => w[0]?.toUpperCase() ?? '').slice(0, 2).join('');
-    const fallbackThemes = [
-      { bgClass: 'bg-[#1e3a5f]', textClass: 'text-[#4a9ede]' },
-      { bgClass: 'bg-[#3d1f5c]', textClass: 'text-[#a855f7]' },
-      { bgClass: 'bg-[#1f4d2f]', textClass: 'text-[#4ade80]' },
-      { bgClass: 'bg-[#5c1f1f]', textClass: 'text-[#f87171]' },
-      { bgClass: 'bg-[#1f3d5c]', textClass: 'text-[#38bdf8]' },
-      { bgClass: 'bg-[#5c4a1f]', textClass: 'text-[#fbbf24]' },
-    ];
-    const colorIdx = name.charCodeAt(0) % fallbackThemes.length;
-    const theme = fallbackThemes[colorIdx];
-    return (
-      <div className={cn(size === 'sm' ? 'w-[52px] h-8' : 'w-16 h-10', 'flex items-center justify-center rounded-lg', theme.bgClass)}>
-        <span className={cn(theme.textClass, size === 'sm' ? 'text-[15px]' : 'text-[18px]', 'font-extrabold font-sans tracking-[0.06em]')}>{initials}</span>
-      </div>
-    );
-  };
+

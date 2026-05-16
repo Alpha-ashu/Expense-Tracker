@@ -6,7 +6,7 @@ import { isBoilerplateDescription } from '@/services/smartExpenseImportService';
 import { useAuth } from '@/contexts/AuthContext';
 import { getVisibleFeaturesForRole, mergeVisibleFeatures, normalizeFeatures, FeatureVisibility } from '@/lib/featureFlags';
 import { type SyncStats, useSyncStats, offlineSyncEngine } from '@/lib/offline-sync-engine';
-import { queueRecordUpsertSync, saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
+import { deduplicateLocalData, queueRecordUpsertSync, saveAccountWithBackendSync, saveTransactionWithBackendSync, syncUserDataFromCloud, updateAccountWithBackendSync } from '@/lib/auth-sync-integration';
 import { backendSyncService } from '@/lib/backend-sync-service';
 import {
   mergeStoredUserSettings,
@@ -307,6 +307,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     if (user?.id && dataReady) {
       applyStoredPreferences();
+      // Run deduplication pass to clean up any existing sync artifacts
+      void deduplicateLocalData();
     }
   }, [applyStoredPreferences, dataReady, user?.id]);
 

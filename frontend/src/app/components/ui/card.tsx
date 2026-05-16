@@ -10,8 +10,8 @@ interface CardProps extends HTMLMotionProps<"div"> {
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', noPadding = false, children, ...props }, ref) => {
     const variants = {
-      default: 'bg-transparent border-none',
-      glass: 'bg-transparent backdrop-blur-xl border border-white/40',
+      default: 'bg-white/70 backdrop-blur-md border border-white/40 shadow-sm',
+      glass: 'bg-white/40 backdrop-blur-xl border border-white/20 shadow-xl shadow-black/5',
       'mesh-pink': 'bg-mesh-pink text-white shadow-colored-pink border-none',
       'mesh-green': 'bg-mesh-green text-white shadow-colored-green border-none',
       'mesh-purple': 'bg-mesh-purple text-white shadow-colored-purple border-none',

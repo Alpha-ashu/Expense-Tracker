@@ -1239,6 +1239,9 @@ async function syncUserDataFromBackend(
   requestedTables: SyncedTableName[] = CORE_SYNC_TABLES,
 ) {
   initializeBackendSync();
+  
+  // Clean up any local duplicates before merging backend data
+  await deduplicateLocalData();
 
   const targetTables = requestedTables.length > 0 ? requestedTables : CORE_SYNC_TABLES;
   const expandedTables = expandTablesForSync(targetTables);

@@ -31,7 +31,12 @@ const KEYWORD_CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = 
   { category: 'Income', keywords: ['salary', 'refund', 'dividend', 'interest', 'bonus'] },
 ];
 
-const KNOWN_BANK_NAMES = ['ICICI Bank', 'HDFC Bank', 'Chase Bank', 'HSBC', 'Axis Bank', 'SBI'];
+const KNOWN_BANK_NAMES = [
+  'HDFC Bank', 'ICICI Bank', 'SBI', 'State Bank of India', 'Axis Bank', 'Canara Bank',
+  'Kotak Mahindra Bank', 'Bank of Baroda', 'Punjab National Bank', 'Indian Bank',
+  'Yes Bank', 'IDFC FIRST Bank', 'Union Bank of India', 'IndusInd Bank',
+  'RBL Bank', 'Federal Bank', 'South Indian Bank', 'UCO Bank', 'Indian Overseas Bank'
+];
 
 const normalizeText = (value: string) =>
   value
@@ -265,8 +270,42 @@ function detectCurrency(text: string, defaultCurrency: string = 'INR') {
 }
 
 function detectBankName(text: string) {
-  const normalizedText = normalizeText(text);
+  // Focus on the first few pages/lines for bank names
+  const headerSection = text.slice(0, 3000);
+  const normalizedText = normalizeText(headerSection);
   return KNOWN_BANK_NAMES.find((bankName) => normalizedText.includes(normalizeText(bankName)));
+}
+
+function detectAccountNumber(text: string) {
+  // Look for patterns like Account No: 123456789
+  const headerSection = text.slice(0, 5000);
+  const patterns = [
+    /\bAccount\s*(?:No|Number|A\/c)[:\s-]*(\d{9,20})\b/i,
+    /\bA\/c\s*No[:\s-]*(\d{9,20})\b/i,
+    /\bCustomer\s*ID[:\s-]*(\d{5,15})\b/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = headerSection.match(pattern);
+    if (match) return match[1];
+  }
+  return undefined;
+}
+
+function detectOpeningBalance(text: string) {
+  const patterns = [
+    /(?:Opening Balance|Balance b\/f|Brought Forward)[^\d]*([\d,]+\.\d{2})/i,
+    /(?:Previous Balance)[^\d]*([\d,]+\.\d{2})/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const cleaned = match[1].replace(/,/g, '');
+      return parseFloat(cleaned);
+    }
+  }
+  return undefined;
 }
 
 export const documentIntelligenceService = {
@@ -274,6 +313,8 @@ export const documentIntelligenceService = {
   toTitleCase,
   detectCurrency,
   detectBankName,
+  detectAccountNumber,
+  detectOpeningBalance,
   inferCategoryFromKeywords,
   predictCategory,
   upsertMerchantProfile,

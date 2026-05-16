@@ -45,9 +45,11 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
   - Bill/Attachment: Orange-400 / Orange-500
 
 ### **UI Tokens**
-- **Corners**: `rounded-2xl` (16px) or `rounded-3xl` (24px) for cards and modals.
-- **Shadows**: Subtle `shadow-[0_8px_30px_rgb(0,0,0,0.04)]` or glass-borders.
-- **Typography**: Modern Sans-Serif (Inter/Outfit). High contrast for titles, muted for metadata.
+- **Corners**: `rounded-[30px]` for cards, `rounded-2xl` (16px) for inner elements.
+- **Glassmorphism (Standard)**: `bg-white/80` or `bg-white/70` with `backdrop-blur-xl` and `border-white/20`.
+- **Logos & Branding**: Centralized bank/card logo rendering in `src/app/components/ui/AccountLogos.tsx`. This avoids Vite Fast Refresh conflicts by keeping page components as single-export modules.
+- **Shadows**: Premium `shadow-xl shadow-black/5` or `shadow-floating`.
+- **Typography**: Modern Sans-Serif (Inter/Outfit). High contrast (font-black) for titles, muted for metadata.
 
 ### **Stacking Context (Z-Index)**
 - **Backdrops**: `z-[60]`
@@ -60,6 +62,26 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 ---
 
 ## 📜 Change Log & Evolution
+
+---
+
+### **2026-05-16 — Account Import Stability & UI Overhaul**
+
+1. **Deduplication Engine Integration**:
+   - Integrated `deduplicateLocalData()` into the `syncUserDataFromBackend` cycle and the primary `AppContext` mount effect.
+   - This prevents duplicate accounts and transactions from appearing during cloud-to-local merges, specifically matching by name, type, and currency.
+2. **Modularized Branding System**:
+   - Decoupled 400+ lines of SVG-heavy logo rendering logic into a dedicated utility: `src/app/components/ui/AccountLogos.tsx`.
+   - This resolved persistent Vite Fast Refresh errors (`Duplicate declaration` and `export incompatible`) across core page modules.
+3. **Glassmorphic Card Standard (V2)**:
+   - Upgraded the `Card` component's `default` and `glass` variants to use a more aggressive `backdrop-blur-xl` and `bg-white/80` aesthetic.
+   - Standardized card corners to `rounded-[30px]` for a softer, more premium look.
+4. **Statement Import Modal Redesign**:
+   - Overhauled the `StatementImport.tsx` UI with a high-fidelity glassmorphic multi-step flow.
+   - Added robust error boundaries and defensive date-parsing logic to prevent app crashes during PDF ingestion.
+5. **Account Action Consistency**:
+   - Restricted the "Import" button visibility to only `bank` and `card` account types, removing it from `cash` and `digital` accounts where statement importing is not applicable.
+   - Standardized the placement of account management actions across `Accounts.tsx` and `Dashboard.tsx`.
 
 ---
 

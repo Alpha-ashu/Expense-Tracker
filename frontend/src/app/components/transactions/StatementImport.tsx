@@ -68,6 +68,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
     if (!file || !user) return;
 
     setImportState('uploading');
+    setErrorDetail('');
     
     try {
       const options: StatementImportOptions = {
@@ -79,6 +80,8 @@ export const StatementImport: React.FC<StatementImportProps> = ({
       setImportState('processing');
       const result = await statementImportService.parseStatement(file, options);
       
+      if (!result) throw new Error('No response from import service');
+      
       setImportResult(result);
       
       if (result.success && result.transactions.length > 0) {
@@ -88,28 +91,20 @@ export const StatementImport: React.FC<StatementImportProps> = ({
             .filter((value): value is number => value != null),
         ));
         setImportState('preview');
-        toast.success(`Found ${result.transactions.length} transactions in statement`);
+        toast.success(`Found ${result.transactions.length} transactions`);
       } else {
-        const hint = result.errors.length > 0
+        const hint = result.errors && result.errors.length > 0
           ? result.errors[0]
-          : 'No transactions were detected. The PDF may use a format not yet supported. Try exporting as CSV from your bank portal.';
+          : 'No transactions were detected. Try a different format.';
         setErrorDetail(hint);
         setImportState('error');
       }
 
     } catch (error: any) {
+      console.error('Statement parsing crash prevented:', error);
       setImportState('error');
-      const msg = error?.message || '';
-      if (/ocr|image|scan/i.test(msg)) {
-        setErrorDetail('OCR failed: the PDF appears to be a scanned image. Try a text-based PDF export from your bank\'s net banking portal.');
-      } else if (/password|encrypt/i.test(msg)) {
-        setErrorDetail('This PDF is password-protected. Please remove the password before uploading.');
-      } else if (/corrupt|invalid/i.test(msg)) {
-        setErrorDetail('The file appears to be corrupted or in an unsupported format. Please re-export the statement from your bank.');
-      } else {
-        setErrorDetail(msg || 'Failed to read the file. Please check the format and try again.');
-      }
-      console.error('Import error:', error);
+      const msg = error?.message || 'Unknown error';
+      setErrorDetail(msg.includes('worker') ? 'Service worker failed to initialize. Please refresh.' : msg);
     }
   };
 
@@ -234,252 +229,303 @@ export const StatementImport: React.FC<StatementImportProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+      onClick={(e) => e.target === e.currentTarget && onCancel?.()}
+    >
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white/95 backdrop-blur-2xl border border-white/20 rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] w-[95%] max-w-lg max-h-[85vh] overflow-hidden flex flex-col relative z-[101] pointer-events-auto"
       >
+        {/* Hidden file input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          accept=".pdf,.csv,.xls,.xlsx"
+          className="hidden"
+        />
+
+        {/* Decorative background glow */}
+        <div className="absolute top-0 left-1/4 w-1/2 h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent blur-md opacity-50" />
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Import Statement</h2>
-            <p className="text-sm text-gray-500 mt-1">Account: {accountName}</p>
+            <h2 className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">
+              Import Statement
+            </h2>
+            <div className="flex items-center gap-2 mt-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <p className="text-sm font-medium text-gray-500">Account: <span className="text-gray-900">{accountName}</span></p>
+            </div>
           </div>
           <button
-            onClick={onCancel}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            onClick={(e) => { e.stopPropagation(); onCancel?.(); }}
+            className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-all duration-200 group active:scale-95 touch-manipulation"
             aria-label="Cancel statement import"
           >
-            <XCircle size={20} className="text-gray-500" />
+            <XCircle size={22} className="text-gray-400 group-hover:text-gray-600 group-hover:rotate-90 transition-all" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {importState === 'idle' && (
-            <div className="text-center py-12">
-              <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                {getFileIcon()}
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {file ? file.name : 'Select Statement File'}
-              </h3>
-              <p className="text-gray-500 mb-6">
-                Supported formats: PDF, CSV, Excel (Max 10MB)
-              </p>
-              
-              <div className="flex gap-3 justify-center">
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="rounded-full bg-black text-white hover:bg-gray-900"
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <AnimatePresence mode="wait">
+            {importState === 'idle' && (
+              <motion.div 
+                key="idle"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="p-6 md:p-8"
+              >
+                <div 
+                  className={`relative group border-2 border-dashed rounded-3xl transition-all duration-300 p-8 md:p-10 text-center ${
+                    file ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200 hover:border-blue-400 hover:bg-gray-50'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-blue-500', 'bg-blue-50/50'); }}
+                  onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50/50'); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const droppedFile = e.dataTransfer.files[0];
+                    if (droppedFile) {
+                      const event = { target: { files: [droppedFile] } } as any;
+                      handleFileSelect(event);
+                    }
+                  }}
                 >
-                  <Upload size={16} className="mr-2" />
-                  {file ? 'Change File' : 'Select File'}
-                </Button>
-                
-                {file && (
-                  <Button
-                    onClick={handleUpload}
-                    className="rounded-full bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    <Eye size={16} className="mr-2" />
-                    Preview Transactions
-                  </Button>
-                )}
-              </div>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.csv,.xlsx,.xls"
-                onChange={handleFileSelect}
-                className="hidden"
-                aria-label="Upload statement file"
-              />
-            </div>
-          )}
-
-          {(importState === 'uploading' || importState === 'processing') && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                {importState === 'uploading' ? 'Uploading Statement...' : 'Processing Transactions...'}
-              </h3>
-              <p className="text-gray-500">
-                {importState === 'uploading' 
-                  ? 'Please wait while we upload your file' 
-                  : 'Analyzing and extracting transactions from your statement'
-                }
-              </p>
-            </div>
-          )}
-
-          {importState === 'preview' && importResult && (
-            <div className="space-y-6">
-              {/* Summary */}
-              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">Import Summary</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Total Transactions</p>
-                      <p className="text-xl font-bold text-gray-900">{importResult.summary.count}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Total Amount</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {formatCurrency(importResult.summary.total)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Duplicates</p>
-                      <p className="text-xl font-bold text-amber-600">{importResult.summary.duplicates}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Credits</p>
-                      <p className="text-xl font-bold text-green-600">
-                        +{formatCurrency(importResult.summary.credits)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Debits</p>
-                      <p className="text-xl font-bold text-red-600">
-                        -{formatCurrency(importResult.summary.debits)}
-                      </p>
-                    </div>
+                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-transform duration-500 group-hover:scale-110 ${
+                    file ? 'bg-blue-600 text-white shadow-xl shadow-blue-200' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {getFileIcon()}
                   </div>
                   
-                  {importResult.errors.length > 0 && (
-                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle size={16} className="text-yellow-600" />
-                        <span className="text-sm font-medium text-yellow-800">
-                          {importResult.errors.length} warnings during processing
-                        </span>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">
+                    {file ? file.name : 'Select Statement File'}
+                  </h3>
+                  <p className="text-gray-500 mb-8 max-w-sm mx-auto leading-relaxed">
+                    Drop your bank statement here or click to browse. We support PDF, CSV, and Excel exports.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-2xl px-8 h-12 bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 hover:shadow-md transition-all font-semibold"
+                    >
+                      <Upload size={18} className="mr-2" />
+                      {file ? 'Change File' : 'Browse Files'}
+                    </Button>
+                    
+                    {file && (
+                      <Button
+                        onClick={handleUpload}
+                        className="rounded-2xl px-8 h-12 bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all font-semibold animate-in fade-in zoom-in duration-300"
+                      >
+                        <Eye size={18} className="mr-2" />
+                        Analyze Statement
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="mt-8 pt-8 border-t border-gray-100/50 flex justify-center gap-8 opacity-60">
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-400">
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      PDF SUPPORTED
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-400">
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      CSV & EXCEL
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-400">
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                      ENCRYPTED (NO PASS)
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {(importState === 'uploading' || importState === 'processing') && (
+              <motion.div 
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center py-24"
+              >
+                <div className="relative w-24 h-24 mx-auto mb-8">
+                  <div className="absolute inset-0 border-4 border-blue-100 rounded-full" />
+                  <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <FileText size={32} className="text-blue-600 animate-pulse" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3 tracking-tight">
+                  {importState === 'uploading' ? 'Securely Uploading...' : 'Extracting Data...'}
+                </h3>
+                <p className="text-gray-500 max-w-xs mx-auto">
+                  Our intelligence engine is identifying transactions and categories from your document.
+                </p>
+              </motion.div>
+            )}
+
+          {importState === 'preview' && importResult && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-5 space-y-5"
+            >
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+                {[
+                  { label: 'Total Volume', value: formatCurrency(importResult.summary.total), icon: <FileText size={18} />, color: 'bg-blue-50 text-blue-600' },
+                  { label: 'Total Credits', value: `+${formatCurrency(importResult.summary.credits)}`, icon: <CheckCircle size={18} />, color: 'bg-green-50 text-green-600' },
+                  { label: 'Total Debits', value: `-${formatCurrency(importResult.summary.debits)}`, icon: <XCircle size={18} />, color: 'bg-red-50 text-red-600' },
+                  { label: 'Duplicates', value: importResult.summary.duplicates, icon: <AlertCircle size={18} />, color: 'bg-amber-50 text-amber-600' },
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white border border-gray-100 rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className={`p-1.5 rounded-lg ${stat.color}`}>
+                        {React.cloneElement(stat.icon as React.ReactElement, { size: 14 })}
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight truncate">{stat.label}</span>
+                    </div>
+                    <p className="text-sm font-black text-gray-900 tracking-tighter truncate">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Warnings/Metadata */}
+              <div className="flex flex-col gap-3">
+                {importResult.errors.length > 0 && (
+                  <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-2xl flex items-center gap-3">
+                    <AlertCircle size={18} className="text-amber-500" />
+                    <span className="text-sm font-medium text-amber-800">
+                      {importResult.errors.length} parsing warnings. Review the list below carefully.
+                    </span>
+                  </div>
+                )}
+
+                {importResult.summary.duplicates > 0 && (
+                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle size={18} className="text-indigo-500 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-indigo-900">Duplicates Filtered</p>
+                        <p className="text-xs text-indigo-700 mt-0.5">
+                          {importResult.summary.duplicates} items already exist and are unselected by default.
+                        </p>
                       </div>
                     </div>
-                  )}
-
-                  {(importResult.statementAccountName || importResult.suggestedAccountName) && (
-                    <div className="mt-3 p-3 bg-white/80 border border-blue-200 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900">
-                        Statement source: {importResult.statementAccountName || 'Detected from document text'}
-                      </p>
-                      {importResult.suggestedAccountName && importResult.suggestedAccountName !== accountName && (
-                        <p className="text-xs text-blue-700 mt-1">
-                          Possible account mismatch: the uploaded statement looks like {importResult.suggestedAccountName}, but you are importing into {accountName}.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </Card>
-
-              {/* Transaction Selection */}
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Select Transactions to Import</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleAllTransactions}
-                >
-                  {selectedTransactions.size === importResult.transactions.length 
-                    ? 'Deselect All' 
-                    : 'Select All'
-                  }
-                </Button>
+                  </div>
+                )}
               </div>
 
               {/* Transaction List */}
-              <Card className="max-h-80 overflow-y-auto">
-                <div className="divide-y">
-                  {importResult.transactions.map((transaction, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                        selectedTransactions.has(index) ? 'bg-blue-50' : ''
-                      } ${
-                        transaction.isDuplicate ? 'border-l-4 border-amber-400 bg-amber-50/70' : ''
-                      }`}
-                      onClick={() => toggleTransactionSelection(index)}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2">
+                  <h3 className="text-lg font-bold text-gray-900 tracking-tight">Review Transactions</h3>
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    <span className="text-[10px] font-bold text-blue-600/60 bg-blue-50 px-2 py-1 rounded-lg uppercase">
+                      {selectedTransactions.size} SELECTED
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleAllTransactions}
+                      className="h-8 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50 px-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedTransactions.has(index)}
-                          onChange={() => toggleTransactionSelection(index)}
-                          aria-label={`Select transaction ${index + 1}`}
-                          title={`Select transaction ${index + 1}`}
-                          className="rounded border-gray-300"
-                        />
+                      {selectedTransactions.size === importResult.transactions.length ? 'DESELECT ALL' : 'SELECT ALL'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50/50 rounded-3xl border border-gray-100 overflow-hidden">
+                  <div className="max-h-[250px] overflow-y-auto custom-scrollbar divide-y divide-gray-100">
+                    {importResult.transactions.map((transaction, index) => (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.01 }}
+                        className={`group p-4 flex items-center gap-4 transition-all duration-200 cursor-pointer ${
+                          selectedTransactions.has(index) ? 'bg-white' : 'opacity-60'
+                        }`}
+                        onClick={() => toggleTransactionSelection(index)}
+                      >
+                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                          selectedTransactions.has(index) 
+                            ? 'bg-blue-600 border-blue-600 text-white' 
+                            : 'border-gray-200 bg-white group-hover:border-blue-400'
+                        }`}>
+                          {selectedTransactions.has(index) && <CheckCircle size={14} strokeWidth={3} />}
+                        </div>
                         
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
-                          <div>
-                            <p className="font-medium text-gray-900">
-                              {formatDate(transaction.transaction_date)}
+                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 overflow-hidden">
+                          <div className="flex md:flex-col items-baseline md:items-start gap-1 min-w-[70px]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase">
+                              {formatDate(transaction.transaction_date).split(' ')[1]} {formatDate(transaction.transaction_date).split(' ')[0]}
                             </p>
-                            <p className="text-gray-500">
-                            {transaction.payment_channel}
-                          </p>
-                          {transaction.isDuplicate && (
-                            <p className="text-xs text-amber-700 mt-1 font-medium">
-                              {transaction.duplicateReason || 'Possible duplicate'}
+                            <p className="text-[10px] font-bold text-gray-300">
+                              {formatDate(transaction.transaction_date).split(' ')[2]}
                             </p>
-                          )}
-                        </div>
-                          
-                          <div className="md:col-span-2">
-                            <p className="font-medium text-gray-900">
-                            {transaction.cleaned_description}
-                          </p>
-                          {transaction.merchant_name && (
-                            <p className="text-xs text-gray-500">
-                              Merchant: {transaction.merchant_name}
+                          </div>
+ 
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate pr-2">
+                              {transaction.cleaned_description}
                             </p>
-                          )}
-                        </div>
-                          
-                          <div className="text-right">
-                            <p className={`font-bold ${getTransactionTypeColor(transaction.transaction_type)}`}>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-bold rounded uppercase">
+                                {transaction.payment_channel}
+                              </span>
+                              {transaction.isDuplicate && (
+                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-600 text-[9px] font-bold rounded uppercase">
+                                  DUP
+                                </span>
+                              )}
+                              <span className="text-[9px] font-bold text-gray-300 uppercase truncate">
+                                {transaction.category || 'MISC'}
+                              </span>
+                            </div>
+                          </div>
+ 
+                          <div className="text-right whitespace-nowrap">
+                            <p className={`text-sm font-black tracking-tight ${getTransactionTypeColor(transaction.transaction_type)}`}>
                               {transaction.transaction_type === 'income' ? '+' : '-'}
                               {formatCurrency(transaction.amount)}
                             </p>
-                            {transaction.category && (
-                              <span className="inline-block mt-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                                {transaction.category}
-                              </span>
-                            )}
-                            {transaction.currency && (
-                              <p className="text-[11px] text-gray-500 mt-1">{transaction.currency}</p>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-              </Card>
+              </div>
 
-              {/* Import Actions */}
-              <div className="flex gap-3 justify-end">
+              {/* Actions */}
+              <div className="flex gap-4 pt-4">
                 <Button
                   variant="outline"
                   onClick={onCancel}
+                  className="flex-1 h-12 md:h-14 rounded-xl md:rounded-2xl border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-all"
                 >
-                  Cancel
+                  Discard
                 </Button>
                 <Button
                   onClick={handleImport}
                   disabled={selectedTransactions.size === 0}
-                  className="bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                  className="flex-[2] h-12 md:h-14 rounded-xl md:rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 hover:shadow-blue-300 disabled:opacity-30 disabled:shadow-none transition-all flex items-center justify-center gap-2 md:gap-3 text-sm md:text-base"
                 >
-                  <Download size={16} className="mr-2" />
-                  Import {selectedTransactions.size} Transaction{selectedTransactions.size !== 1 ? 's' : ''}
+                  <Download size={20} />
+                  Complete Import ({selectedTransactions.size})
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {importState === 'importing' && (
@@ -523,6 +569,7 @@ export const StatementImport: React.FC<StatementImportProps> = ({
               </div>
             </div>
           )}
+          </AnimatePresence>
         </div>
       </motion.div>
     </div>

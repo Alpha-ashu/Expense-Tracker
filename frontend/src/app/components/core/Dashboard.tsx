@@ -24,58 +24,13 @@ import {
   isClosedInvestment,
 } from '@/lib/investmentUtils';
 import { AIInsightsCard } from '@/app/components/shared/AIInsightsCard';
-import { getBankCardLogo } from './Accounts';
+import { CardNetworkLogo, getBankCardLogo } from '@/app/components/ui/AccountLogos';
 
 interface DashboardProps {
   setCurrentPage?: (page: string) => void;
 }
 
-const CardNetworkLogo: React.FC<{ network: string }> = ({ network }) => {
-  const normalized = network.toLowerCase();
-  if (normalized === 'visa') {
-    return (
-      <svg viewBox="0 0 48 48" className="h-6 w-auto fill-white opacity-80" xmlns="http://www.w3.org/2000/svg">
-        <path d="M31.17 31.85h4.15l2.59-15.7H33.76l-2.59 15.7zm11.75-15.35c-1.07-.46-2.74-.95-4.81-.95-5.32 0-9.06 2.83-9.09 6.89-.03 2.99 2.68 4.65 4.73 5.65 2.1 1.03 2.81 1.68 2.8 2.6-.02 1.4-1.68 2.04-3.23 2.04-2.15 0-3.31-.33-5.07-1.11l-.7-.34-.75 4.63c1.25.58 3.56 1.08 5.95 1.1 5.66 0 9.33-2.8 9.38-7.14.03-2.38-1.42-4.19-4.54-5.69-1.89-.95-3.05-1.58-3.05-2.55.01-.86.96-1.74 3.03-1.74 1.72-.03 2.97.37 3.93.79l.47.22.88-5.4zm-19.46 0-3.9 10.68-.47-2.36c-.82-2.77-3.37-5.77-6.22-7.27l4.03 14.65h4.43l6.59-15.7h-4.46zm-17.38 0L1.7 31.85h4.41l6.6-15.7h-6.63z" />
-      </svg>
-    );
-  }
-  if (normalized === 'mastercard') {
-    return (
-      <div className="flex -space-x-2 opacity-80">
-        <div className="w-5 h-5 rounded-full bg-[#EB001B]" />
-        <div className="w-5 h-5 rounded-full bg-[#F79E1B]/80" />
-      </div>
-    );
-  }
-  if (normalized === 'rupay') {
-    return (
-      <div className="flex flex-col items-end opacity-80 leading-none">
-        <span className="text-[10px] font-black italic tracking-tighter text-white">RuPay</span>
-        <div className="h-[2px] w-8 bg-gradient-to-r from-orange-400 via-white to-green-500 rounded-full mt-0.5" />
-      </div>
-    );
-  }
-  if (normalized === 'paytm') {
-    return (
-      <div className="flex flex-col items-end opacity-80 leading-none">
-        <span className="text-[11px] font-black tracking-tight text-white flex items-center">
-          Pay<span className="text-sky-300">tm</span>
-        </span>
-      </div>
-    );
-  }
-  if (normalized === 'gpay' || normalized === 'googlepay') {
-    return (
-      <div className="flex items-center gap-0.5 opacity-80 scale-75 origin-right">
-        <div className="w-2 h-2 rounded-full bg-red-500" />
-        <div className="w-2 h-2 rounded-full bg-yellow-500" />
-        <div className="w-2 h-2 rounded-full bg-green-500" />
-        <div className="w-2 h-2 rounded-full bg-blue-500" />
-      </div>
-    );
-  }
-  return null;
-};
+
 
 const getCardStyle = (account: any) => {
   const CARD_COLORS = [
@@ -575,7 +530,7 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Recent Transactions" onViewAll={() => setCurrentPage?.('transactions')} />
           {recentTransactions.length > 0 ? (
-            <Card className="divide-y divide-gray-100">
+            <Card variant="glass" className="divide-y divide-white/10 no-padding overflow-hidden border-white/20">
               {recentTransactions.map((transaction) => (
                 <div key={transaction.id} className="p-4 flex items-center justify-between hover:bg-transparent transition-colors cursor-pointer" onClick={() => setCurrentPage?.('transactions')}>
                   <div className="flex items-center gap-3">
@@ -712,10 +667,10 @@ export function Dashboard({ setCurrentPage }: DashboardProps) {
           )}
         </motion.div>
 
-        {/* 6. Group Expenses / Borrow / Lend */}
+        {/* 6. Borrow, Lend & Groups */}
         <motion.div {...fadeUp} className="px-4 sm:px-6 lg:px-8 xl:px-12 mb-6 lg:mb-8">
           <SectionHeader title="Borrow, Lend & Groups" onViewAll={() => setCurrentPage?.('groups')} />
-          <Card className="cursor-pointer hover:shadow-md transition-all" onClick={() => setCurrentPage?.('groups')}>
+          <Card variant="glass" className="cursor-pointer hover:shadow-xl transition-all border-white/20" onClick={() => setCurrentPage?.('groups')}>
             {(groupStats.borrowed > 0 || groupStats.lent > 0 || groupStats.pendingSettlements > 0 || groupStats.activeGroups > 0) ? (
               <div className="p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

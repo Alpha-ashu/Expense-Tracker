@@ -215,13 +215,13 @@ function detectColumns(headerRow: string[]): TransactionColumns {
   headerRow.forEach((header, index) => {
     const normalized = normalizeHeader(header);
 
-    if (!columns.date && ['date', 'transactiondate', 'valuedate', 'posteddate'].includes(normalized)) columns.date = index;
-    if (!columns.description && ['description', 'narration', 'details', 'particulars', 'merchant', 'remarks'].includes(normalized)) columns.description = index;
-    if (!columns.debit && ['debit', 'withdrawal', 'withdrawals', 'spent'].includes(normalized)) columns.debit = index;
-    if (!columns.credit && ['credit', 'deposit', 'received', 'income'].includes(normalized)) columns.credit = index;
-    if (!columns.amount && ['amount', 'transactionamount', 'value', 'total'].includes(normalized)) columns.amount = index;
-    if (!columns.balance && ['balance', 'closingbalance', 'runningbalance'].includes(normalized)) columns.balance = index;
-    if (!columns.currency && ['currency', 'currencycode'].includes(normalized)) columns.currency = index;
+    if (!columns.date && (normalized.includes('date') || normalized.includes('time'))) columns.date = index;
+    if (!columns.description && (normalized.includes('description') || normalized.includes('narration') || normalized.includes('particulars') || normalized.includes('details') || normalized.includes('merchant') || normalized.includes('remark'))) columns.description = index;
+    if (!columns.debit && (normalized.includes('debit') || normalized.includes('withdrawal') || normalized.includes('out') || normalized.includes('spent') || normalized.includes('payment'))) columns.debit = index;
+    if (!columns.credit && (normalized.includes('credit') || normalized.includes('deposit') || normalized.includes('in') || normalized.includes('received') || normalized.includes('income'))) columns.credit = index;
+    if (!columns.amount && (normalized.includes('amount') || normalized.includes('value') || normalized.includes('total') || normalized.includes('price'))) columns.amount = index;
+    if (!columns.balance && (normalized.includes('balance') || normalized.includes('closing') || normalized.includes('running'))) columns.balance = index;
+    if (!columns.currency && (normalized.includes('currency') || normalized.includes('ccy'))) columns.currency = index;
   });
 
   return columns;
@@ -284,22 +284,30 @@ class StatementImportService {
       } else if (file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv')) {
         rawText = await file.text();
         transactions = await this.extractTransactionsFromDelimitedText(rawText, options.userId);
+      } else if (file.type === 'application/json' || file.name.toLowerCase().endsWith('.json')) {
+        rawText = await file.text();
+        transactions = await this.extractTransactionsFromJson(rawText, options.userId, errors);
       } else {
         const spreadsheet = await this.extractTransactionsFromSpreadsheet(file, options.userId, errors);
         rawText = spreadsheet.rawText;
         transactions = spreadsheet.transactions;
       }
 
-      const statementAccountName = documentIntelligenceService.detectBankName(rawText);
-      const suggestedAccount = await this.findSuggestedAccount(statementAccountName);
+      const statementBankName = documentIntelligenceService.detectBankName(rawText);
+      const statementAccountNumber = documentIntelligenceService.detectAccountNumber(rawText);
+      const openingBalance = documentIntelligenceService.detectOpeningBalance(rawText);
+      
+      const suggestedAccount = await this.findSuggestedAccount(statementBankName, statementAccountNumber);
       const annotatedTransactions = await this.annotateTransactions(transactions, options);
       const summary = this.generateSummary(annotatedTransactions);
 
       await documentIntelligenceService.updateDocumentRecord(documentId, {
         processingStatus: 'preview',
-        sourceAccountName: statementAccountName,
+        sourceAccountName: statementBankName,
         metadata: {
-          detectedBank: statementAccountName || '',
+          detectedBank: statementBankName || '',
+          accountNumber: statementAccountNumber || '',
+          openingBalance: openingBalance?.toString() || '',
           transactionCount: String(annotatedTransactions.length),
         },
       });
@@ -309,7 +317,7 @@ class StatementImportService {
         transactions: annotatedTransactions,
         errors,
         summary,
-        statementAccountName,
+        statementAccountName: statementBankName,
         suggestedAccountId: suggestedAccount?.id,
         suggestedAccountName: suggestedAccount?.name,
         documentId,
@@ -465,9 +473,18 @@ class StatementImportService {
       const amount = credit ?? debit ?? fallbackAmount;
       if (amount == null || !Number.isFinite(amount)) continue;
 
-      const transactionType = credit != null && Math.abs(credit) > 0
-        ? 'income'
-        : (normalizeText(description).includes('transfer') ? 'transfer' : 'expense');
+      let transactionType: 'income' | 'expense' | 'transfer' = 'expense';
+      if (credit != null && Math.abs(credit) > 0 && (debit == null || Math.abs(debit) === 0)) {
+        transactionType = 'income';
+      } else if (debit != null && Math.abs(debit) > 0) {
+        transactionType = 'expense';
+      } else if (amount != null) {
+        // If only one amount column, try to infer from sign or description
+        if (amount > 0) transactionType = 'income';
+        else if (amount < 0) transactionType = 'expense';
+        else if (normalizeText(description).includes('transfer')) transactionType = 'transfer';
+        else if (normalizeText(description).includes('salary') || normalizeText(description).includes('refund')) transactionType = 'income';
+      }
 
       const merchantName = pickMerchantName(description);
       const categoryPrediction = await documentIntelligenceService.predictCategory({
@@ -493,6 +510,55 @@ class StatementImportService {
     }
 
     return transactions;
+  }
+
+  private async extractTransactionsFromJson(text: string, userId: string, errors: string[]) {
+    try {
+      const data = JSON.parse(text);
+      const list = Array.isArray(data) ? data : (data.transactions || data.data || []);
+      
+      if (!Array.isArray(list) || list.length === 0) {
+        errors.push('JSON format detected but no transaction array found. Expected top-level array or "transactions" key.');
+        return [];
+      }
+
+      const transactions: ParsedTransaction[] = [];
+      for (const item of list) {
+        const date = parseDate(item.date || item.transaction_date || item.time);
+        const description = String(item.description || item.narration || item.details || item.particulars || '');
+        const amount = parseAmount(item.amount || item.value || item.total);
+        
+        if (!date || !amount) continue;
+
+        const type = (item.type || item.transaction_type || (amount > 0 ? 'income' : 'expense')).toLowerCase();
+        const merchantName = item.merchant || item.merchant_name || pickMerchantName(description);
+        
+        const cat = await documentIntelligenceService.predictCategory({
+          merchantName,
+          text: description,
+          amount: Math.abs(amount),
+          userId,
+        });
+
+        transactions.push({
+          transaction_date: date,
+          raw_description: description,
+          cleaned_description: cleanDescription(description),
+          amount: Math.abs(amount),
+          transaction_type: type.includes('inc') || type.includes('cr') ? 'income' : (type.includes('tr') ? 'transfer' : 'expense'),
+          balance_after_transaction: parseAmount(item.balance) ?? undefined,
+          payment_channel: item.payment_channel || extractPaymentChannel(description),
+          merchant_name: merchantName,
+          category: cat.category,
+          confidenceScore: cat.confidence,
+          currency: item.currency || item.ccy || 'INR',
+        });
+      }
+      return transactions;
+    } catch (e) {
+      errors.push(`Failed to parse JSON: ${e instanceof Error ? e.message : 'Invalid format'}`);
+      return [];
+    }
   }
 
   private async extractPdfText(file: File) {
@@ -583,39 +649,30 @@ class StatementImportService {
     return pageTexts.join('\n');
   }
 
-
   private async extractTransactionsFromText(text: string, userId: string) {
     const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim());
 
     // ── STEP 1: Find the table header row ─────────────────────────────────────
-    // Matches: "Date Particulars Deposits Withdrawals Balance"
-    //          "Date Transaction Details Debits Credits Balance"
-    //          "Date Narration Debit Credit Balance" etc.
     const HEADER_RE = /\b(?:date\b.{0,60}\b(?:particulars|description|transaction\s*details?|narration|details)\b|\b(?:particulars|description|transaction\s*details?|narration)\b.{0,60}\bdate\b)/i;
 
     let headerIdx = -1;
     for (let i = 0; i < rawLines.length; i++) {
       if (HEADER_RE.test(rawLines[i])) {
-        headerIdx = i; // keep scanning — use the LAST header on page 1 if repeated
-        // only break at the first one so we don't skip all of page 2
+        headerIdx = i;
         break;
       }
     }
 
-    // Fall back to all lines if no header detected (OCR output, etc.)
     const lines = (headerIdx >= 0 ? rawLines.slice(headerIdx + 1) : rawLines)
       .map(l => l.replace(/\s+/g, ' ').trim())
       .filter(Boolean);
 
-    // Lines to skip (headers, page markers, running totals)
     const SKIP_RE = /^\s*(?:date\b|opening balance|closing balance|page\s*\d+|account activity|account statement|total\b|subtotal\b|\*{3,}|-{5,}|={5,})/i;
 
     const transactions: ParsedTransaction[] = [];
 
-    // STEP 3: Detect layout — "date-first" (Indian Bank, HDFC, SBI, Axis, ICICI)
-    // vs "description-first" (Canara ePassbook: description lines come before the date+amount line).
-    const DATE_START_RE = /^(\d{1,2}[\s\/\-\.](?:\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)[\s\/\-\.]\d{2,4})\s/i;
-    const DATE_INLINE_RE = /\b\d{2}-\d{2}-\d{4}\b/;
+    const DATE_START_RE = /^(\d{1,2}[\s\/\-\.](?:\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)[\s\/\-\.]\d{2,4})(?=\D|$)/i;
+    const DATE_INLINE_RE = /(?:^|[^\d])\d{2}-\d{2}-\d{4}(?=\D|$)/;
     let isDateFirst = false;
     for (const line of lines.slice(0, 15)) {
       if (SKIP_RE.test(line)) continue;
@@ -623,7 +680,6 @@ class StatementImportService {
       if (DATE_INLINE_RE.test(line)) { isDateFirst = false; break; }
     }
 
-    // STEP 4: Group lines into per-transaction blocks.
     const blocks: string[][] = [];
     let acc: string[] = [];
 
@@ -646,8 +702,7 @@ class StatementImportService {
     }
     if (acc.length > 0) blocks.push(acc);
 
-    // STEP 5: Parse each block into a transaction.
-    const ANY_DATE_RE = /\b(\d{1,2}[\s\/\-\.](?:\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)[\s\/\-\.]\d{2,4})\b/i;
+    const ANY_DATE_RE = /(?:^|[^\d])(\d{1,2}[\s\/\-\.](?:\d{1,2}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*)[\s\/\-\.]\d{2,4})(?=\D|$)/i;
 
     for (const block of blocks) {
       const fullText = block.join(' ');
@@ -657,10 +712,9 @@ class StatementImportService {
       const date = parseDate(dateMatch[1]);
       if (!date || isNaN(date.getTime())) continue;
 
-      // Collect amounts (strip INR prefix)
       const allNums = [...fullText.matchAll(/(?:INR\s*)?(\d[\d,]*\.\d{2})/g)]
         .map(m => parseAmount(m[1]))
-        .filter((v): v is number => v != null && Number.isFinite(v) && v >= 0);
+        .filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
       if (allNums.length === 0) continue;
 
       const balance = allNums.length > 1 ? allNums[1] : undefined;
@@ -683,7 +737,6 @@ class StatementImportService {
         txnType = hasTrKw ? 'transfer' : 'expense';
       }
 
-      // Clean description
       const cleanedRaw = fullText
         .replace(dateMatch[0], '')
         .replace(/(?:INR\s*)?[\d,]+\.\d{2}/g, '')
@@ -695,7 +748,6 @@ class StatementImportService {
         .replace(/\bpage\s*\d+\b/gi, '')
         .replace(/\s{2,}/g, ' ').trim();
 
-      // Merchant extraction
       let merchantName: string | undefined;
       const upiM = fullText.match(/UPI\/(?:DR|CR)\/\d+\/([^\/\s][^\/]{1,40}?)\//i);
       if (upiM) {
@@ -732,10 +784,35 @@ class StatementImportService {
       });
     }
 
+    if (transactions.length > 0) {
+      const obMatch = text.match(/(?:opening balance|balance\s+b\/f|brought forward)[^\d]*([\d,]+\.\d{2})/i);
+      const openingBalance = obMatch ? parseAmount(obMatch[1]) : undefined;
+
+      const firstDate = transactions[0].transaction_date.getTime();
+      const lastDate = transactions[transactions.length - 1].transaction_date.getTime();
+      const isNewestFirst = firstDate > lastDate;
+
+      const chronological = isNewestFirst ? [...transactions].reverse() : transactions;
+
+      for (let i = 0; i < chronological.length; i++) {
+        const curr = chronological[i];
+        const prevBalance = i === 0 ? openingBalance : chronological[i - 1].balance_after_transaction;
+
+        if (prevBalance !== undefined && curr.balance_after_transaction !== undefined) {
+          const diff = curr.balance_after_transaction - prevBalance;
+          if (Math.abs(diff - curr.amount) < 0.05) {
+            curr.transaction_type = 'income';
+          } else if (Math.abs(diff + curr.amount) < 0.05) {
+            curr.transaction_type = 'expense';
+          }
+        }
+      }
+    }
+
     return transactions;
   }
 
-    private async annotateTransactions(transactions: ParsedTransaction[], options: StatementImportOptions) {
+  private async annotateTransactions(transactions: ParsedTransaction[], options: StatementImportOptions) {
     const existingTransactions = await db.transactions.where('accountId').equals(options.accountId).toArray();
     const existingKeys = new Set(existingTransactions.map((transaction) => this.generateExistingDuplicateKey(options.accountId, transaction)));
 
@@ -747,7 +824,7 @@ class StatementImportService {
         ...transaction,
         duplicateKey,
         isDuplicate,
-        duplicateReason: isDuplicate ? 'Possible duplicate transaction detected' : undefined,
+        duplicateReason: isDuplicate ? 'Already in database' : undefined,
       };
     });
   }
@@ -756,22 +833,39 @@ class StatementImportService {
     const date = transaction.date instanceof Date ? transaction.date : new Date(transaction.date);
     const existingTransaction: ParsedTransaction = {
       transaction_date: date,
-      raw_description: String((transaction as unknown as Record<string, unknown>).rawDescription || transaction.description || ''),
+      raw_description: String((transaction as any).rawDescription || transaction.description || ''),
       cleaned_description: String(transaction.description || ''),
       amount: Math.abs(transaction.amount),
       transaction_type: transaction.type,
-      payment_channel: String((transaction as unknown as Record<string, unknown>).paymentChannel || 'Bank'),
+      payment_channel: String((transaction as any).paymentChannel || 'Bank'),
       merchant_name: transaction.merchant,
     };
 
     return generateDuplicateKey(accountId, existingTransaction);
   }
 
-  private async findSuggestedAccount(statementAccountName?: string) {
-    if (!statementAccountName) return null;
+  private async findSuggestedAccount(bankName?: string, accountNumber?: string) {
     const accounts = await db.accounts.toArray();
-    const normalizedTarget = normalizeText(statementAccountName);
-    return accounts.find((account) => normalizeText(account.name).includes(normalizedTarget)) ?? null;
+    
+    if (accountNumber) {
+      const targetSuffix = accountNumber.slice(-4);
+      const match = accounts.find(a => {
+        const accNum = (a as any).accountNumber || '';
+        return accNum.toString().endsWith(targetSuffix);
+      });
+      if (match) return match;
+    }
+
+    if (bankName) {
+      const normalizedBank = normalizeText(bankName);
+      const match = accounts.find(a => 
+        normalizeText(a.name).includes(normalizedBank) || 
+        normalizeText(a.bankName || '').includes(normalizedBank)
+      );
+      if (match) return match;
+    }
+
+    return null;
   }
 
   private generateSummary(transactions: ParsedTransaction[]) {
