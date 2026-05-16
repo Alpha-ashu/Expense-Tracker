@@ -38,17 +38,17 @@ export interface FinancialAction {
   requiresReview: boolean;
 }
 
-// ── Keyword maps ──────────────────────────────────────────────────────────────
+//  Keyword maps 
 
 const EXPENSE_KEYWORDS = [
   'spent', 'spend', 'paid', 'pay', 'bought', 'buy', 'purchased', 'purchase',
   'dinner', 'lunch', 'breakfast', 'food', 'petrol', 'fuel', 'medicine', 'bill', 'fees',
-  'खर्च', 'खाया', 'दिया',
+  '', '', '',
 ];
 
 const INCOME_KEYWORDS = [
   'received', 'receive', 'earned', 'earn', 'salary', 'income', 'payment received',
-  'got', 'credited', 'मिला', 'मिली',
+  'got', 'credited', '', '',
 ];
 
 const TRANSFER_KEYWORDS = [
@@ -56,15 +56,15 @@ const TRANSFER_KEYWORDS = [
 ];
 
 const LOAN_BORROW_KEYWORDS = [
-  'borrowed', 'borrow', 'took loan', 'liya', 'उधार लिया',
+  'borrowed', 'borrow', 'took loan', 'liya', ' ',
 ];
 
 const LOAN_LEND_KEYWORDS = [
-  'lent', 'gave', 'give', 'gave loan', 'diya', 'उधार दिया',
+  'lent', 'gave', 'give', 'gave loan', 'diya', ' ',
 ];
 
 const GOAL_KEYWORDS = [
-  'save', 'saving', 'goal', 'target', 'want to save', 'plan to save', 'बचाना',
+  'save', 'saving', 'goal', 'target', 'want to save', 'plan to save', '',
 ];
 
 const INVESTMENT_KEYWORDS = [
@@ -87,7 +87,7 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 // Indian name detection heuristic (capitalized word after give/gave/received/from/to)
 const NAME_CONTEXT_PATTERN = /(?:to|from|gave|give|lent|with|borrowed from|lent to)\s+([A-Z][a-z]+(?: [A-Z][a-z]+)*)/g;
 
-// ── Segmentation ──────────────────────────────────────────────────────────────
+//  Segmentation 
 
 const SEGMENT_SEPARATORS = /(?:,\s*(?:and\s+)?|;\s*|(?:\s+and\s+)(?=(?:spent|paid|bought|received|transferred|gave|saved|lent|borrowed)))/gi;
 
@@ -107,11 +107,11 @@ export function segmentTranscript(transcript: string): string[] {
   return segments.length > 0 ? segments : [raw];
 }
 
-// ── Amount extraction ─────────────────────────────────────────────────────────
+//  Amount extraction 
 
 const AMOUNT_PATTERNS = [
-  /(?:₹|rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)/gi,
-  /([\d,]+(?:\.\d{1,2})?)\s*(?:rupees?|rs\.?|₹)/gi,
+  /(?:|rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)/gi,
+  /([\d,]+(?:\.\d{1,2})?)\s*(?:rupees?|rs\.?|)/gi,
   /\b([\d,]+(?:\.\d{1,2})?)\b/g,
 ];
 
@@ -127,7 +127,7 @@ function extractAmount(text: string): number | undefined {
   return undefined;
 }
 
-// ── Category detection ────────────────────────────────────────────────────────
+//  Category detection 
 
 function detectCategory(text: string): string | undefined {
   const lower = text.toLowerCase();
@@ -139,7 +139,7 @@ function detectCategory(text: string): string | undefined {
   return undefined;
 }
 
-// ── Intent classification ─────────────────────────────────────────────────────
+//  Intent classification 
 
 function classifyIntent(segment: string): { type: FinancialActionType; confidence: number } {
   const lower = segment.toLowerCase();
@@ -172,7 +172,7 @@ function classifyIntent(segment: string): { type: FinancialActionType; confidenc
   return { type: 'unknown', confidence: 0.2 };
 }
 
-// ── Entity extraction ─────────────────────────────────────────────────────────
+//  Entity extraction 
 
 function extractEntities(segment: string, type: FinancialActionType): ExtractedEntity {
   const entities: ExtractedEntity = {};
@@ -201,7 +201,7 @@ function extractEntities(segment: string, type: FinancialActionType): ExtractedE
 
   // Goal-specific: extract target amount and duration
   if (type === 'goal') {
-    const goalAmountMatch = segment.match(/(?:save|target|goal)\s+(?:₹|rs\.?|inr\s*)?([\d,]+(?:\.\d{1,2})?)/i);
+    const goalAmountMatch = segment.match(/(?:save|target|goal)\s+(?:|rs\.?|inr\s*)?([\d,]+(?:\.\d{1,2})?)/i);
     if (goalAmountMatch) {
       entities.goalTarget = parseFloat(goalAmountMatch[1].replace(/,/g, ''));
     }
@@ -233,7 +233,7 @@ function extractEntities(segment: string, type: FinancialActionType): ExtractedE
   return entities;
 }
 
-// ── Clean filler words ────────────────────────────────────────────────────────
+//  Clean filler words 
 
 const FILLER_PATTERN = /\b(um+|uh+|err+|like|you know|actually|basically|so|well|i mean|i think|kind of|sort of)\b/gi;
 
@@ -244,7 +244,7 @@ function cleanTranscript(text: string): string {
     .trim();
 }
 
-// ── Main pipeline ─────────────────────────────────────────────────────────────
+//  Main pipeline 
 
 export async function processVoiceTranscript(transcript: string): Promise<FinancialAction[]> {
   const cleaned = cleanTranscript(transcript);

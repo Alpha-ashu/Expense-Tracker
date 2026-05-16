@@ -1,4 +1,4 @@
-﻿# KANKU: Modern Expense Tracker
+# KANKU: Modern Expense Tracker
 
 > [!IMPORTANT]
 > **AI DEVELOPER NOTICE**: Before making any changes, please read the [KANKU_DEVELOPER_CONTEXT.md](./KANKU_DEVELOPER_CONTEXT.md) for architecture rules and the design system guide.

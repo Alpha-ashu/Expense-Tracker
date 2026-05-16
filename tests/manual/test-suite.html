@@ -184,17 +184,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>🧪 Expense Tracker - Comprehensive Test Suite</h1>
+        <h1> Expense Tracker - Comprehensive Test Suite</h1>
         
         <div class="credentials-box">
-            <h4>🔐 Admin Test Credentials</h4>
+            <h4> Admin Test Credentials</h4>
             <p><strong>Email:</strong> shaik.job.details@gmail.com</p>
             <p><strong>Password:</strong> 123456789</p>
             <p><strong>PIN:</strong> 123456</p>
         </div>
 
         <div class="test-section">
-            <div class="section-header">🌐 Server Connectivity Tests</div>
+            <div class="section-header"> Server Connectivity Tests</div>
             <div class="test-grid">
                 <div class="test-card">
                     <h3>Frontend Server</h3>
@@ -231,7 +231,7 @@
         </div>
 
         <div class="test-section">
-            <div class="section-header">🔐 Authentication & Authorization Tests</div>
+            <div class="section-header"> Authentication & Authorization Tests</div>
             <div class="test-grid">
                 <div class="test-card">
                     <h3>Admin Login</h3>
@@ -268,7 +268,7 @@
         </div>
 
         <div class="test-section">
-            <div class="section-header">📱 Page & Component Tests</div>
+            <div class="section-header"> Page & Component Tests</div>
             <div class="test-grid">
                 <div class="test-card">
                     <h3>Dashboard Page</h3>
@@ -321,7 +321,7 @@
         </div>
 
         <div class="test-section">
-            <div class="section-header">⚡ Performance & Integration Tests</div>
+            <div class="section-header"> Performance & Integration Tests</div>
             <div class="test-grid">
                 <div class="test-card">
                     <h3>API Response Times</h3>
@@ -359,7 +359,7 @@
         </div>
 
         <div class="test-section">
-            <div class="section-header">📊 Test Results Summary</div>
+            <div class="section-header"> Test Results Summary</div>
             <div class="test-grid">
                 <div class="test-card">
                     <h3>Overall Status</h3>
@@ -431,14 +431,14 @@
                 const response = await fetch(CONFIG.frontendUrl, { method: 'HEAD' });
                 if (response.ok) {
                     setStatus('frontend', 'pass', 'Frontend server accessible');
-                    updateResult('frontend', '✓ Frontend server responding on port 5173');
+                    updateResult('frontend', ' Frontend server responding on port 5173');
                 } else {
                     setStatus('frontend', 'fail', 'Frontend server error');
-                    updateResult('frontend', '✗ Frontend server returned error: ' + response.status, true);
+                    updateResult('frontend', ' Frontend server returned error: ' + response.status, true);
                 }
             } catch (error) {
                 setStatus('frontend', 'fail', 'Frontend server unreachable');
-                updateResult('frontend', '✗ Frontend server error: ' + error.message, true);
+                updateResult('frontend', ' Frontend server error: ' + error.message, true);
             }
         }
 
@@ -449,15 +449,15 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('backend', 'pass', 'Backend API accessible');
-                    updateResult('backend', '✓ Backend API responding on port 3001');
-                    updateResult('backend', '✓ Health check: ' + JSON.stringify(data));
+                    updateResult('backend', ' Backend API responding on port 3001');
+                    updateResult('backend', ' Health check: ' + JSON.stringify(data));
                 } else {
                     setStatus('backend', 'fail', 'Backend API error');
-                    updateResult('backend', '✗ Backend API returned error: ' + response.status, true);
+                    updateResult('backend', ' Backend API returned error: ' + response.status, true);
                 }
             } catch (error) {
                 setStatus('backend', 'fail', 'Backend API unreachable');
-                updateResult('backend', '✗ Backend API error: ' + error.message, true);
+                updateResult('backend', ' Backend API error: ' + error.message, true);
             }
         }
 
@@ -468,15 +468,15 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('db', 'pass', 'Database connected');
-                    updateResult('db', '✓ Database connection successful');
-                    updateResult('db', '✓ Database status: ' + JSON.stringify(data));
+                    updateResult('db', ' Database connection successful');
+                    updateResult('db', ' Database status: ' + JSON.stringify(data));
                 } else {
                     setStatus('db', 'fail', 'Database connection failed');
-                    updateResult('db', '✗ Database error: ' + response.status, true);
+                    updateResult('db', ' Database error: ' + response.status, true);
                 }
             } catch (error) {
                 setStatus('db', 'fail', 'Database unreachable');
-                updateResult('db', '✗ Database error: ' + error.message, true);
+                updateResult('db', ' Database error: ' + error.message, true);
             }
         }
 
@@ -486,19 +486,19 @@
                 const ws = new WebSocket('ws://localhost:3001');
                 ws.onopen = () => {
                     setStatus('ws', 'pass', 'WebSocket connected');
-                    updateResult('ws', '✓ WebSocket connection established');
+                    updateResult('ws', ' WebSocket connection established');
                     ws.close();
                 };
                 ws.onerror = () => {
                     setStatus('ws', 'fail', 'WebSocket connection failed');
-                    updateResult('ws', '✗ WebSocket connection error', true);
+                    updateResult('ws', ' WebSocket connection error', true);
                 };
                 ws.onclose = () => {
-                    updateResult('ws', '✓ WebSocket connection closed gracefully');
+                    updateResult('ws', ' WebSocket connection closed gracefully');
                 };
             } catch (error) {
                 setStatus('ws', 'fail', 'WebSocket error');
-                updateResult('ws', '✗ WebSocket error: ' + error.message, true);
+                updateResult('ws', ' WebSocket error: ' + error.message, true);
             }
         }
 
@@ -517,18 +517,18 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('login', 'pass', 'Admin login successful');
-                    updateResult('login', '✓ Admin login successful');
-                    updateResult('login', '✓ User ID: ' + data.userId);
-                    updateResult('login', '✓ Role: ' + data.role);
+                    updateResult('login', ' Admin login successful');
+                    updateResult('login', ' User ID: ' + data.userId);
+                    updateResult('login', ' Role: ' + data.role);
                     testResults.login = true;
                 } else {
                     setStatus('login', 'fail', 'Admin login failed');
-                    updateResult('login', '✗ Admin login failed: ' + response.status, true);
+                    updateResult('login', ' Admin login failed: ' + response.status, true);
                     testResults.login = false;
                 }
             } catch (error) {
                 setStatus('login', 'fail', 'Login error');
-                updateResult('login', '✗ Login error: ' + error.message, true);
+                updateResult('login', ' Login error: ' + error.message, true);
                 testResults.login = false;
             }
         }
@@ -553,22 +553,22 @@
 
                     if (adminResponse.ok) {
                         setStatus('role', 'pass', 'Admin role access granted');
-                        updateResult('role', '✓ Admin role permissions working correctly');
-                        updateResult('role', '✓ Admin endpoints accessible');
+                        updateResult('role', ' Admin role permissions working correctly');
+                        updateResult('role', ' Admin endpoints accessible');
                         testResults.role = true;
                     } else {
                         setStatus('role', 'fail', 'Admin role access denied');
-                        updateResult('role', '✗ Admin role access failed: ' + adminResponse.status, true);
+                        updateResult('role', ' Admin role access failed: ' + adminResponse.status, true);
                         testResults.role = false;
                     }
                 } else {
                     setStatus('role', 'fail', 'Cannot test without login');
-                    updateResult('role', '✗ Login required for role testing', true);
+                    updateResult('role', ' Login required for role testing', true);
                     testResults.role = false;
                 }
             } catch (error) {
                 setStatus('role', 'fail', 'Role testing error');
-                updateResult('role', '✗ Role testing error: ' + error.message, true);
+                updateResult('role', ' Role testing error: ' + error.message, true);
                 testResults.role = false;
             }
         }
@@ -584,16 +584,16 @@
 
                 if (response.ok) {
                     setStatus('session', 'pass', 'Session management working');
-                    updateResult('session', '✓ Session persistence verified');
+                    updateResult('session', ' Session persistence verified');
                     testResults.session = true;
                 } else {
                     setStatus('session', 'fail', 'Session management failed');
-                    updateResult('session', '✗ Session error: ' + response.status, true);
+                    updateResult('session', ' Session error: ' + response.status, true);
                     testResults.session = false;
                 }
             } catch (error) {
                 setStatus('session', 'fail', 'Session error');
-                updateResult('session', '✗ Session error: ' + error.message, true);
+                updateResult('session', ' Session error: ' + error.message, true);
                 testResults.session = false;
             }
         }
@@ -613,16 +613,16 @@
 
                 if (response.ok) {
                     setStatus('security', 'pass', 'Security features working');
-                    updateResult('security', '✓ PIN authentication successful');
+                    updateResult('security', ' PIN authentication successful');
                     testResults.security = true;
                 } else {
                     setStatus('security', 'fail', 'Security features failed');
-                    updateResult('security', '✗ PIN authentication failed: ' + response.status, true);
+                    updateResult('security', ' PIN authentication failed: ' + response.status, true);
                     testResults.security = false;
                 }
             } catch (error) {
                 setStatus('security', 'fail', 'Security error');
-                updateResult('security', '✗ Security error: ' + error.message, true);
+                updateResult('security', ' Security error: ' + error.message, true);
                 testResults.security = false;
             }
         }
@@ -638,17 +638,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('dashboard', 'pass', 'Dashboard functionality working');
-                    updateResult('dashboard', '✓ Dashboard data loaded successfully');
-                    updateResult('dashboard', '✓ Dashboard components accessible');
+                    updateResult('dashboard', ' Dashboard data loaded successfully');
+                    updateResult('dashboard', ' Dashboard components accessible');
                     testResults.dashboard = true;
                 } else {
                     setStatus('dashboard', 'fail', 'Dashboard functionality failed');
-                    updateResult('dashboard', '✗ Dashboard error: ' + response.status, true);
+                    updateResult('dashboard', ' Dashboard error: ' + response.status, true);
                     testResults.dashboard = false;
                 }
             } catch (error) {
                 setStatus('dashboard', 'fail', 'Dashboard error');
-                updateResult('dashboard', '✗ Dashboard error: ' + error.message, true);
+                updateResult('dashboard', ' Dashboard error: ' + error.message, true);
                 testResults.dashboard = false;
             }
         }
@@ -675,17 +675,17 @@
 
                 if (response.ok) {
                     setStatus('expenses', 'pass', 'Expense management working');
-                    updateResult('expenses', '✓ Expense creation successful');
-                    updateResult('expenses', '✓ Expense management functions accessible');
+                    updateResult('expenses', ' Expense creation successful');
+                    updateResult('expenses', ' Expense management functions accessible');
                     testResults.expenses = true;
                 } else {
                     setStatus('expenses', 'fail', 'Expense management failed');
-                    updateResult('expenses', '✗ Expense error: ' + response.status, true);
+                    updateResult('expenses', ' Expense error: ' + response.status, true);
                     testResults.expenses = false;
                 }
             } catch (error) {
                 setStatus('expenses', 'fail', 'Expense error');
-                updateResult('expenses', '✗ Expense error: ' + error.message, true);
+                updateResult('expenses', ' Expense error: ' + error.message, true);
                 testResults.expenses = false;
             }
         }
@@ -712,17 +712,17 @@
 
                 if (response.ok) {
                     setStatus('transfers', 'pass', 'Transfer functionality working');
-                    updateResult('transfers', '✓ Transfer creation successful');
-                    updateResult('transfers', '✓ Transfer management functions accessible');
+                    updateResult('transfers', ' Transfer creation successful');
+                    updateResult('transfers', ' Transfer management functions accessible');
                     testResults.transfers = true;
                 } else {
                     setStatus('transfers', 'fail', 'Transfer functionality failed');
-                    updateResult('transfers', '✗ Transfer error: ' + response.status, true);
+                    updateResult('transfers', ' Transfer error: ' + response.status, true);
                     testResults.transfers = false;
                 }
             } catch (error) {
                 setStatus('transfers', 'fail', 'Transfer error');
-                updateResult('transfers', '✗ Transfer error: ' + error.message, true);
+                updateResult('transfers', ' Transfer error: ' + error.message, true);
                 testResults.transfers = false;
             }
         }
@@ -738,17 +738,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('reports', 'pass', 'Reports functionality working');
-                    updateResult('reports', '✓ Report generation successful');
-                    updateResult('reports', '✓ Analytics functions accessible');
+                    updateResult('reports', ' Report generation successful');
+                    updateResult('reports', ' Analytics functions accessible');
                     testResults.reports = true;
                 } else {
                     setStatus('reports', 'fail', 'Reports functionality failed');
-                    updateResult('reports', '✗ Report error: ' + response.status, true);
+                    updateResult('reports', ' Report error: ' + response.status, true);
                     testResults.reports = false;
                 }
             } catch (error) {
                 setStatus('reports', 'fail', 'Report error');
-                updateResult('reports', '✗ Report error: ' + error.message, true);
+                updateResult('reports', ' Report error: ' + error.message, true);
                 testResults.reports = false;
             }
         }
@@ -764,17 +764,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('settings', 'pass', 'Settings functionality working');
-                    updateResult('settings', '✓ Settings access successful');
-                    updateResult('settings', '✓ Configuration functions accessible');
+                    updateResult('settings', ' Settings access successful');
+                    updateResult('settings', ' Configuration functions accessible');
                     testResults.settings = true;
                 } else {
                     setStatus('settings', 'fail', 'Settings functionality failed');
-                    updateResult('settings', '✗ Settings error: ' + response.status, true);
+                    updateResult('settings', ' Settings error: ' + response.status, true);
                     testResults.settings = false;
                 }
             } catch (error) {
                 setStatus('settings', 'fail', 'Settings error');
-                updateResult('settings', '✗ Settings error: ' + error.message, true);
+                updateResult('settings', ' Settings error: ' + error.message, true);
                 testResults.settings = false;
             }
         }
@@ -790,17 +790,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('notifications', 'pass', 'Notifications working');
-                    updateResult('notifications', '✓ Notifications system accessible');
-                    updateResult('notifications', '✓ Alert functions working');
+                    updateResult('notifications', ' Notifications system accessible');
+                    updateResult('notifications', ' Alert functions working');
                     testResults.notifications = true;
                 } else {
                     setStatus('notifications', 'fail', 'Notifications failed');
-                    updateResult('notifications', '✗ Notifications error: ' + response.status, true);
+                    updateResult('notifications', ' Notifications error: ' + response.status, true);
                     testResults.notifications = false;
                 }
             } catch (error) {
                 setStatus('notifications', 'fail', 'Notifications error');
-                updateResult('notifications', '✗ Notifications error: ' + error.message, true);
+                updateResult('notifications', ' Notifications error: ' + error.message, true);
                 testResults.notifications = false;
             }
         }
@@ -816,18 +816,18 @@
                 
                 if (response.ok && responseTime < 1000) {
                     setStatus('performance', 'pass', 'Performance acceptable');
-                    updateResult('performance', '✓ API response time: ' + responseTime + 'ms');
-                    updateResult('performance', '✓ Performance within acceptable limits');
+                    updateResult('performance', ' API response time: ' + responseTime + 'ms');
+                    updateResult('performance', ' Performance within acceptable limits');
                     testResults.performance = true;
                 } else {
                     setStatus('performance', 'warning', 'Performance concerns');
-                    updateResult('performance', '⚠ API response time: ' + responseTime + 'ms');
-                    updateResult('performance', '⚠ Performance may need optimization');
+                    updateResult('performance', ' API response time: ' + responseTime + 'ms');
+                    updateResult('performance', ' Performance may need optimization');
                     testResults.performance = false;
                 }
             } catch (error) {
                 setStatus('performance', 'fail', 'Performance test failed');
-                updateResult('performance', '✗ Performance error: ' + error.message, true);
+                updateResult('performance', ' Performance error: ' + error.message, true);
                 testResults.performance = false;
             }
         }
@@ -843,17 +843,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     setStatus('sync', 'pass', 'Data sync working');
-                    updateResult('sync', '✓ Data synchronization successful');
-                    updateResult('sync', '✓ Sync status: ' + JSON.stringify(data));
+                    updateResult('sync', ' Data synchronization successful');
+                    updateResult('sync', ' Sync status: ' + JSON.stringify(data));
                     testResults.sync = true;
                 } else {
                     setStatus('sync', 'fail', 'Data sync failed');
-                    updateResult('sync', '✗ Sync error: ' + response.status, true);
+                    updateResult('sync', ' Sync error: ' + response.status, true);
                     testResults.sync = false;
                 }
             } catch (error) {
                 setStatus('sync', 'fail', 'Sync error');
-                updateResult('sync', '✗ Sync error: ' + error.message, true);
+                updateResult('sync', ' Sync error: ' + error.message, true);
                 testResults.sync = false;
             }
         }
@@ -868,17 +868,17 @@
 
                 if (response.status === 404) {
                     setStatus('errors', 'pass', 'Error handling working');
-                    updateResult('errors', '✓ 404 error handled gracefully');
-                    updateResult('errors', '✓ Error responses properly formatted');
+                    updateResult('errors', ' 404 error handled gracefully');
+                    updateResult('errors', ' Error responses properly formatted');
                     testResults.errors = true;
                 } else {
                     setStatus('errors', 'fail', 'Error handling failed');
-                    updateResult('errors', '✗ Unexpected error response: ' + response.status, true);
+                    updateResult('errors', ' Unexpected error response: ' + response.status, true);
                     testResults.errors = false;
                 }
             } catch (error) {
                 setStatus('errors', 'pass', 'Network error handled');
-                updateResult('errors', '✓ Network errors handled gracefully');
+                updateResult('errors', ' Network errors handled gracefully');
                 testResults.errors = true;
             }
         }
@@ -945,7 +945,7 @@
             await new Promise(resolve => setTimeout(resolve, 500));
             
             setStatus('all-tests', 'pass', 'All tests completed');
-            updateResult('all-tests', '✓ Comprehensive test suite completed');
+            updateResult('all-tests', ' Comprehensive test suite completed');
             generateReport();
         }
 
@@ -963,13 +963,13 @@
             const overallStatus = document.getElementById('overall-status');
             if (successRate === 100) {
                 overallStatus.className = 'status-badge status-pass';
-                overallStatus.textContent = 'All Tests Passed ✓';
+                overallStatus.textContent = 'All Tests Passed ';
             } else if (successRate >= 80) {
                 overallStatus.className = 'status-badge status-warning';
-                overallStatus.textContent = 'Most Tests Passed ⚠';
+                overallStatus.textContent = 'Most Tests Passed ';
             } else {
                 overallStatus.className = 'status-badge status-fail';
-                overallStatus.textContent = 'Tests Failed ✗';
+                overallStatus.textContent = 'Tests Failed ';
             }
 
             updateResult('all-tests', '\n=== TEST SUMMARY ===');

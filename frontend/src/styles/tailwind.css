@@ -1,4 +1,4 @@
-/* Self-hosted fonts — no CDN dependency, works offline, eliminates 503 errors */
+/* Self-hosted fonts  no CDN dependency, works offline, eliminates 503 errors */
 @import '@fontsource/inter/400.css';
 @import '@fontsource/inter/500.css';
 @import '@fontsource/inter/600.css';
@@ -127,7 +127,7 @@
     box-shadow: var(--shadow-colored-red);
   }
 
-  /* ── Scrollbar hide ── */
+  /*  Scrollbar hide  */
   .scrollbar-hide {
     -ms-overflow-style: none;
   }
@@ -136,7 +136,7 @@
     display: none;
   }
 
-  /* ── Global page layout ── */
+  /*  Global page layout  */
   .page-shell {
     width: 100%;
     min-height: 100vh;

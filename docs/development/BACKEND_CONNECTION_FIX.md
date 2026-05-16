@@ -1,12 +1,12 @@
 # Backend Connection Error - Quick Fix
 
-## 🚨 Main Issue Identified
+##  Main Issue Identified
 
 **Error**: `POST http://localhost:5000/api/v1/accounts net::ERR_CONNECTION_REFUSED`
 
 **Problem**: Your backend server is **not running** on port 5000.
 
-## ✅ Quick Solution
+##  Quick Solution
 
 ### Step 1: Start Backend Server
 ```bash
@@ -33,7 +33,7 @@ curl http://localhost:5000/api/v1/health
 {"status": "ok", "timestamp": "..."}
 ```
 
-## 🛠️ Troubleshooting
+##  Troubleshooting
 
 ### If Backend Won't Start
 
@@ -82,7 +82,7 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
-## 🔄 Development Workflow
+##  Development Workflow
 
 ### **Correct Terminal Setup**
 
@@ -101,17 +101,17 @@ npm run dev
 ### **Expected Console Output**
 After backend is running, you should see:
 ```bash
-✅ Permissions fetched successfully
-✅ Account created successfully
-✅ Data saved to backend
+ Permissions fetched successfully
+ Account created successfully
+ Data saved to backend
 ```
 
 ### **No More Console Errors**
-- ❌ `net::ERR_CONNECTION_REFUSED` → ✅ Successful API calls
-- ❌ `Failed to save account` → ✅ Account creation works
-- ❌ `Network Error` → ✅ Smooth data synchronization
+-  `net::ERR_CONNECTION_REFUSED`   Successful API calls
+-  `Failed to save account`   Account creation works
+-  `Network Error`   Smooth data synchronization
 
-## 🎯 **Verification Steps**
+##  **Verification Steps**
 
 ### 1. Check Backend Status
 ```bash
@@ -133,7 +133,7 @@ Open browser and navigate to:
 - Try to add an account
 - Check console for successful API calls
 
-## 🚀 **Common Issues & Solutions**
+##  **Common Issues & Solutions**
 
 ### **Issue**: Port 5000 already in use
 **Solution**: Kill existing process or use different port
@@ -172,7 +172,7 @@ cp .env.example .env
 notepad .env
 ```
 
-## 📋 **Backend Package Scripts**
+##  **Backend Package Scripts**
 
 Check your `backend/package.json` has these scripts:
 ```json
@@ -187,19 +187,19 @@ Check your `backend/package.json` has these scripts:
 }
 ```
 
-## 🎉 **Expected Result**
+##  **Expected Result**
 
 After starting the backend:
 
-✅ **Backend running** on http://localhost:5000  
-✅ **API endpoints accessible** - All routes work  
-✅ **Database connected** - Data persistence works  
-✅ **No connection errors** - Smooth frontend-backend communication  
-✅ **Full functionality** - Account creation, data sync, etc.  
+ **Backend running** on http://localhost:5000  
+ **API endpoints accessible** - All routes work  
+ **Database connected** - Data persistence works  
+ **No connection errors** - Smooth frontend-backend communication  
+ **Full functionality** - Account creation, data sync, etc.  
 
-**Your app will be fully functional once the backend is running!** 🚀
+**Your app will be fully functional once the backend is running!** 
 
-## 📱 **Quick Test**
+##  **Quick Test**
 
 1. Start backend: `npm run dev` in backend folder
 2. Start frontend: `npm run dev` in frontend folder  

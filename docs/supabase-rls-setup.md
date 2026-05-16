@@ -278,11 +278,11 @@ RLS will be automatically applied when you:
 
 ## Important Notes
 
-⚠️ **Service Role Key**: When using the service role key on the backend, RLS policies are bypassed. Only use this for admin operations.
+ **Service Role Key**: When using the service role key on the backend, RLS policies are bypassed. Only use this for admin operations.
 
-✅ **Testing**: Always test policies with different users to ensure security.
+ **Testing**: Always test policies with different users to ensure security.
 
-✅ **Performance**: Add indexes to user_id columns for better performance:
+ **Performance**: Add indexes to user_id columns for better performance:
 
 ```sql
 CREATE INDEX idx_accounts_user_id ON accounts(user_id);

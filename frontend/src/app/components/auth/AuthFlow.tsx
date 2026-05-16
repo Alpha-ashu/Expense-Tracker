@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, TrendingUp, Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
 import { KANKULogo } from '@/app/components/ui/KANKULogo';
 import { motion } from 'framer-motion';

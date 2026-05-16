@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'advisor' | 'user';
+export type UserRole = 'admin' | 'manager' | 'advisor' | 'user';
 
 export type FeatureKey =
   | 'accounts'
@@ -14,6 +14,7 @@ export type FeatureKey =
   | 'taxCalculator'
   | 'bookAdvisor'
   | 'adminPanel'
+  | 'managerPanel'
   | 'advisorPanel'
   | 'notifications'
   | 'userProfile'
@@ -34,6 +35,7 @@ export interface FeatureVisibility extends Record<FeatureKey, boolean> {
   taxCalculator: boolean;
   bookAdvisor: boolean;
   adminPanel: boolean;
+  managerPanel: boolean;
   advisorPanel: boolean;
   notifications: boolean;
   userProfile: boolean;
@@ -55,6 +57,7 @@ const DEFAULT_FEATURES: FeatureVisibility = {
   taxCalculator: true,
   bookAdvisor: true,
   adminPanel: true,
+  managerPanel: true,
   advisorPanel: true,
   notifications: true,
   userProfile: true,
@@ -77,11 +80,33 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     taxCalculator: true,
     bookAdvisor: true,
     adminPanel: true,
+    managerPanel: true,
     advisorPanel: false,
     notifications: true,
     userProfile: true,
     settings: true,
     dashboard: true,
+  },
+  manager: {
+    accounts: false,
+    transactions: false,
+    loans: false,
+    goals: false,
+    groups: false,
+    investments: false,
+    reports: false,
+    calendar: false,
+    todoLists: false,
+    transfer: false,
+    taxCalculator: false,
+    bookAdvisor: false,
+    adminPanel: false,
+    managerPanel: true,
+    advisorPanel: false,
+    notifications: true,
+    userProfile: true,
+    settings: true,
+    dashboard: false,
   },
   advisor: {
     accounts: true,
@@ -97,6 +122,7 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     taxCalculator: true,
     bookAdvisor: true,
     adminPanel: false,
+    managerPanel: false,
     advisorPanel: true,
     notifications: true,
     userProfile: true,
@@ -117,6 +143,7 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     taxCalculator: true,
     bookAdvisor: true,
     adminPanel: false,
+    managerPanel: false,
     advisorPanel: false,
     notifications: true,
     userProfile: true,

@@ -5,24 +5,24 @@ Your Expense Tracker database is designed with clean separation between **produc
 
 ---
 
-## 📋 Migration Files (Execution Order)
+##  Migration Files (Execution Order)
 
-### 1️⃣ `001_create_tables.sql` - Schema Creation
+### 1 `001_create_tables.sql` - Schema Creation
 - Creates all 16 database tables
 - Sets up relationships and constraints
 - **Run this FIRST in Supabase SQL Editor**
 
-### 2️⃣ `002_enable_rls.sql` - Security Policies
+### 2 `002_enable_rls.sql` - Security Policies
 - Enables Row Level Security (RLS) on all tables
 - Ensures users can only access their own data
 - **Run this SECOND after tables are created**
 
-### 3️⃣ `004_create_profile_on_signup.sql` - Auto Profile Creation
+### 3 `004_create_profile_on_signup.sql` - Auto Profile Creation
 - Creates trigger to auto-generate user profile on signup
 - **Run this THIRD** (actually before seed data)
 - Ensures new users get empty, clean state with no mock data
 
-### 4️⃣ `003_seed_data.sql` - Development Data (Optional)
+### 4 `003_seed_data.sql` - Development Data (Optional)
 - **FOR DEVELOPMENT/TESTING ONLY**
 - Adds 50+ sample records across all tables
 - **Run this LAST and ONLY when needed for testing**
@@ -30,19 +30,19 @@ Your Expense Tracker database is designed with clean separation between **produc
 
 ---
 
-## 🚀 New User Registration Flow
+##  New User Registration Flow
 
 When a new user signs up:
 
 ```
-User Signs Up → Auth System Creates User Record
-                        ↓
+User Signs Up  Auth System Creates User Record
+                        
                 Auto-trigger fires (handle_new_user)
-                        ↓
+                        
                 Profile table gets ONE entry
                 (email, full_name, created_at)
-                        ↓
-                ✅ Clean, Empty App Ready
+                        
+                 Clean, Empty App Ready
       (NO mock accounts, transactions, etc.)
 ```
 
@@ -50,7 +50,7 @@ User Signs Up → Auth System Creates User Record
 
 ---
 
-## 🧪 Development/Testing Setup
+##  Development/Testing Setup
 
 ### If you want to TEST with sample data:
 
@@ -67,20 +67,20 @@ User Signs Up → Auth System Creates User Record
 5. **Run in Supabase SQL Editor**
 
 ### Safety Features:
-- ✅ **Idempotency Check:** Prevents duplicate data if script is run twice
-- ✅ **User Verification:** Exits if user doesn't exist
-- ✅ **Clear Error Messages:** Tells you if data already exists
+-  **Idempotency Check:** Prevents duplicate data if script is run twice
+-  **User Verification:** Exits if user doesn't exist
+-  **Clear Error Messages:** Tells you if data already exists
 
 ### Example Error Prevention:
 ```
-First Run:  ✅ SUCCESS - 50+ records created
-Second Run: ❌ ERROR - "Seed data already exists for this user"
-            → Delete existing data first or use different user
+First Run:   SUCCESS - 50+ records created
+Second Run:  ERROR - "Seed data already exists for this user"
+             Delete existing data first or use different user
 ```
 
 ---
 
-## 🗑️ Cleaning Up Test Data
+##  Cleaning Up Test Data
 
 To remove test data and start fresh:
 
@@ -105,14 +105,14 @@ DELETE FROM public.group_expenses WHERE user_id = 'USER_ID';
 
 ---
 
-## 📊 Data Isolation with RLS
+##  Data Isolation with RLS
 
 Each user's data is isolated at the database level using Row Level Security:
 
-- 🔒 Users can ONLY see their own records
-- 🔒 Users can ONLY create/edit/delete their own data
-- 🔒 No user can access another user's financial data
-- 🔒 Even admin cannot bypass RLS in the app
+-  Users can ONLY see their own records
+-  Users can ONLY create/edit/delete their own data
+-  No user can access another user's financial data
+-  Even admin cannot bypass RLS in the app
 
 **Example:**
 ```sql
@@ -124,19 +124,19 @@ SELECT * FROM transactions WHERE user_id = 'user-b-id';
 
 ---
 
-## ✅ Production Checklist
+##  Production Checklist
 
 - [ ] 1. Run `001_create_tables.sql`
 - [ ] 2. Run `002_enable_rls.sql`
 - [ ] 3. Run `004_create_profile_on_signup.sql`
-- [ ] 4. ❌ DO NOT run `003_seed_data.sql` in production
+- [ ] 4.  DO NOT run `003_seed_data.sql` in production
 - [ ] 5. Test user signup - should be clean with no mock data
 - [ ] 6. Verify RLS policies are enabled
 - [ ] 7. Test that users see only their own data
 
 ---
 
-## 🧑‍💻 Development Checklist
+##  Development Checklist
 
 - [ ] 1-3. Run all three main migrations
 - [ ] 4. Sign up as test user
@@ -148,7 +148,7 @@ SELECT * FROM transactions WHERE user_id = 'user-b-id';
 
 ---
 
-## 🔄 No Automatic Duplicates
+##  No Automatic Duplicates
 
 The system is designed to prevent duplicates:
 
@@ -156,12 +156,12 @@ The system is designed to prevent duplicates:
 |----------|--------|-------|
 | User signs up | No data | Profile only (no mock data) |
 | Run seed once | Empty app | 50+ test records |
-| Run seed again | Test data exists | ❌ Error + no duplicates |
+| Run seed again | Test data exists |  Error + no duplicates |
 | Delete user | All data gone | Ready for new setup |
 
 ---
 
-## 📝 Notes
+##  Notes
 
 - Seed script is **idempotent** - safe to run ONCE per user
 - **Never** run seed script on production accounts
@@ -171,7 +171,7 @@ The system is designed to prevent duplicates:
 
 ---
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 **Q: New user signs up but sees old test data?**
 A: Check if RLS policies didn't apply. Run `002_enable_rls.sql` again.

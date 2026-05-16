@@ -1,4 +1,4 @@
-﻿// Unified Auth Helpers - Centralized authentication operations
+// Unified Auth Helpers - Centralized authentication operations
 import supabase from '@/utils/supabase/client';
 import { handleLogout } from './auth-sync-integration';
 import { db } from './database';

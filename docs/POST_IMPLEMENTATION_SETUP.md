@@ -4,7 +4,7 @@
 
 ---
 
-## ⚠️ CRITICAL: Database Migration
+##  CRITICAL: Database Migration
 
 ### Step 1: Run Prisma Migration
 
@@ -79,7 +79,7 @@ UPDATE "User" SET role = 'admin', "isApproved" = true WHERE email = 'admin@examp
 
 ---
 
-## 🔧 Environment Configuration
+##  Environment Configuration
 
 ### Step 1: Set Environment Variables
 
@@ -115,7 +115,7 @@ VITE_API_URL="http://localhost:5000/api/v1"
 
 ---
 
-## ✅ Testing the System
+##  Testing the System
 
 ### Test 1: Basic Auth with Roles
 
@@ -217,7 +217,7 @@ See `backend/API_DOCUMENTATION.md` section "Testing Instructions" for full workf
 
 ---
 
-## 🚀 Server Startup
+##  Server Startup
 
 ### Start Backend Server
 
@@ -256,7 +256,7 @@ npm run dev
 
 ---
 
-## 📝 Common Issues & Solutions
+##  Common Issues & Solutions
 
 ### Issue 1: "relation 'User' does not exist"
 
@@ -319,7 +319,7 @@ npm run dev
 
 ---
 
-## 🔑 Default Test Credentials
+##  Default Test Credentials
 
 After initial setup, use these for testing:
 
@@ -344,7 +344,7 @@ To create these test users, register them via `/auth/register` endpoint, then ma
 
 ---
 
-## 📚 Documentation Files Created
+##  Documentation Files Created
 
 | File | Purpose |
 |------|---------|
@@ -355,7 +355,7 @@ To create these test users, register them via `/auth/register` endpoint, then ma
 
 ---
 
-## 🔍 Verification Checklist
+##  Verification Checklist
 
 After following all steps above:
 
@@ -374,9 +374,9 @@ After following all steps above:
 
 ---
 
-## 🎯 Next Priority Tasks
+##  Next Priority Tasks
 
-1. **Database Migration** ← START HERE (5 minutes)
+1. **Database Migration**  START HERE (5 minutes)
 2. **Test all endpoints** (15 minutes)
 3. **Stripe/Razorpay integration** (2-3 hours)
 4. **Frontend integration** (2-3 hours)
@@ -385,7 +385,7 @@ After following all steps above:
 
 ---
 
-## 📞 Quick Reference
+##  Quick Reference
 
 **After migration, to verify:**
 

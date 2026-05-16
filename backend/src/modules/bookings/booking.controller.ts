@@ -384,7 +384,7 @@ export const markFeePaid = async (req: AuthRequest, res: Response) => {
       data: {
         userId: booking.clientId,
         title: 'Payment Received',
-        message: `Your consultation fee of ₹${amount ?? booking.amount} has been recorded`,
+        message: `Your consultation fee of ${amount ?? booking.amount} has been recorded`,
         category: 'payment',
       },
     });

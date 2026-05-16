@@ -265,7 +265,7 @@ public final class SmsTransactionParser {
     private static String extractCurrencyCode(String body) {
         String upper = body.toUpperCase(Locale.ENGLISH);
         if (upper.contains("USD") || upper.contains("$")) return "USD";
-        if (upper.contains("EUR") || upper.contains("€")) return "EUR";
+        if (upper.contains("EUR") || upper.contains("")) return "EUR";
         if (upper.contains("GBP") || upper.contains("£")) return "GBP";
         if (upper.contains("AED")) return "AED";
         return "INR";

@@ -1,4 +1,4 @@
-﻿interface ExpenseSubcategorySeed {
+interface ExpenseSubcategorySeed {
   name: string;
   keywords?: string[];
 }

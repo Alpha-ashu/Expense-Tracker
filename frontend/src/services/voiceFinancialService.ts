@@ -59,14 +59,14 @@ export async function submitVoiceCorrection(correction: {
 
 export function getActionTypeLabel(type: FinancialAction['type']): string {
   const labels: Record<string, string> = {
-    expense: '💸 Expense',
-    income: '💰 Income',
-    transfer: '↔️ Transfer',
-    loan_borrow: '🏦 Borrowed',
-    loan_lend: '🤝 Lent',
-    goal: '🎯 Goal',
-    investment: '📈 Investment',
-    unknown: '❓ Unknown',
+    expense: ' Expense',
+    income: ' Income',
+    transfer: ' Transfer',
+    loan_borrow: ' Borrowed',
+    loan_lend: ' Lent',
+    goal: ' Goal',
+    investment: ' Investment',
+    unknown: ' Unknown',
   };
   return labels[type] ?? type;
 }

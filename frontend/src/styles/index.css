@@ -1,4 +1,4 @@
-﻿@import './fonts.css';
+@import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
 @import './design-system.css';
@@ -9,8 +9,10 @@
 /* Uncomment for debugging mobile issues: */
 /* @import './mobile-test-classes.css'; */
 
-/* â”€â”€â”€ Universal horizontal overflow prevention â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-html, body, #root {
+/* Universal horizontal overflow prevention */
+html,
+body,
+#root {
   overflow-x: hidden;
   max-width: 100%;
 }
@@ -24,7 +26,7 @@ html, body, #root {
   /* Total space needed for bottom nav + safe area */
   --bottom-reserved-space: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
   --header-height: 64px;
-  
+
   /* Responsive breakpoints */
   --mobile-max: 640px;
   --tablet-max: 1024px;
@@ -40,21 +42,24 @@ html, body, #root {
     --bottom-nav-height: 64px;
     font-size: 14px;
   }
-  
+
   body {
     font-size: 14px;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     line-height: 1.5;
   }
-  
+
   /* Keep touch targets opt-in via utility classes (e.g., .tap-target) */
-  
+
   /* Fix text selection on mobile */
-  input, textarea, select {
-    font-size: 16px; /* Prevents zoom on iOS */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    /* Prevents zoom on iOS */
   }
-  
+
   /* Hide desktop elements */
   .desktop-only {
     display: none !important;
@@ -66,11 +71,11 @@ html, body, #root {
   :root {
     --bottom-nav-height: 64px;
   }
-  
+
   body {
     font-size: 15px;
   }
-  
+
   /* Keep button sizing component-driven on tablet to avoid layout regressions */
 }
 
@@ -79,16 +84,16 @@ html, body, #root {
   :root {
     --bottom-nav-height: 0px;
   }
-  
+
   body {
     font-size: 16px;
   }
-  
+
   /* Hide mobile elements */
   .mobile-only {
     display: none !important;
   }
-  
+
   /* Show desktop elements */
   .desktop-only {
     display: block !important;
@@ -170,24 +175,66 @@ html, body, #root {
 }
 
 /* Responsive Typography */
-.responsive-text-xs { font-size: clamp(0.75rem, 2vw, 0.875rem); }
-.responsive-text-sm { font-size: clamp(0.875rem, 2.5vw, 1rem); }
-.responsive-text-base { font-size: clamp(1rem, 3vw, 1.125rem); }
-.responsive-text-lg { font-size: clamp(1.125rem, 3.5vw, 1.25rem); }
-.responsive-text-xl { font-size: clamp(1.25rem, 4vw, 1.5rem); }
-.responsive-text-2xl { font-size: clamp(1.5rem, 5vw, 2rem); }
-.responsive-text-3xl { font-size: clamp(2rem, 6vw, 3rem); }
+.responsive-text-xs {
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+}
+
+.responsive-text-sm {
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+.responsive-text-base {
+  font-size: clamp(1rem, 3vw, 1.125rem);
+}
+
+.responsive-text-lg {
+  font-size: clamp(1.125rem, 3.5vw, 1.25rem);
+}
+
+.responsive-text-xl {
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+.responsive-text-2xl {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.responsive-text-3xl {
+  font-size: clamp(2rem, 6vw, 3rem);
+}
 
 /* Responsive Spacing */
-.responsive-p-1 { padding: clamp(0.25rem, 2vw, 0.5rem); }
-.responsive-p-2 { padding: clamp(0.5rem, 3vw, 1rem); }
-.responsive-p-4 { padding: clamp(1rem, 4vw, 2rem); }
-.responsive-p-6 { padding: clamp(1.5rem, 5vw, 3rem); }
+.responsive-p-1 {
+  padding: clamp(0.25rem, 2vw, 0.5rem);
+}
 
-.responsive-m-1 { margin: clamp(0.25rem, 2vw, 0.5rem); }
-.responsive-m-2 { margin: clamp(0.5rem, 3vw, 1rem); }
-.responsive-m-4 { margin: clamp(1rem, 4vw, 2rem); }
-.responsive-m-6 { margin: clamp(1.5rem, 5vw, 3rem); }
+.responsive-p-2 {
+  padding: clamp(0.5rem, 3vw, 1rem);
+}
+
+.responsive-p-4 {
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+.responsive-p-6 {
+  padding: clamp(1.5rem, 5vw, 3rem);
+}
+
+.responsive-m-1 {
+  margin: clamp(0.25rem, 2vw, 0.5rem);
+}
+
+.responsive-m-2 {
+  margin: clamp(0.5rem, 3vw, 1rem);
+}
+
+.responsive-m-4 {
+  margin: clamp(1rem, 4vw, 2rem);
+}
+
+.responsive-m-6 {
+  margin: clamp(1.5rem, 5vw, 3rem);
+}
 
 /* Responsive Images */
 .responsive-img {
@@ -199,11 +246,13 @@ html, body, #root {
 
 /* Universal scrollbar hiding - Hide scrollbars from all elements */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  -ms-overflow-style: none;
+  /* Internet Explorer 10+ */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none;
+  /* Safari and Chrome */
 }
 
 /* Hide scrollbars from all scrollable elements */
@@ -245,7 +294,9 @@ html {
 }
 
 /* High DPI displays */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
   /* Sharper text on high DPI displays */
   body {
     -webkit-font-smoothing: antialiased;
@@ -256,9 +307,10 @@ html {
 /* Landscape mobile optimizations */
 @media (max-width: 1024px) and (orientation: landscape) {
   :root {
-    --bottom-nav-height: 56px; /* Smaller nav in landscape */
+    --bottom-nav-height: 56px;
+    /* Smaller nav in landscape */
   }
-  
+
   .responsive-container {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -286,7 +338,7 @@ html {
   .no-print {
     display: none !important;
   }
-  
+
   .responsive-container {
     max-width: none;
     padding: 0;
@@ -295,20 +347,21 @@ html {
 
 /* Desktop horizontal scrolling fix */
 @media (min-width: 1025px) {
+
   /* Ensure smooth horizontal scrolling */
   .horizontal-scroll-container {
     overflow-x: auto;
     overflow-y: hidden;
     scroll-behavior: smooth;
   }
-  
+
   /* Make first item reachable */
   .scroll-snap-x {
     scroll-snap-type: x mandatory;
     scroll-behavior: smooth;
   }
-  
-  .scroll-snap-x > * {
+
+  .scroll-snap-x>* {
     scroll-snap-align: start;
     min-width: -webkit-fill-available;
     min-width: max-content;
@@ -336,4 +389,3 @@ html {
 .live-market-flash-track:hover {
   animation-play-state: paused;
 }
-

@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Expense Tracker! This document provides guidelines and instructions for contributing to the project.
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
@@ -13,7 +13,7 @@ Thank you for your interest in contributing to Expense Tracker! This document pr
 - [Testing Guidelines](#testing-guidelines)
 - [Documentation](#documentation)
 
-## 🤝 Code of Conduct
+##  Code of Conduct
 
 By participating in this project, you agree to:
 
@@ -22,7 +22,7 @@ By participating in this project, you agree to:
 - Focus on what is best for the community
 - Show empathy towards other community members
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Prerequisites
 
@@ -62,7 +62,7 @@ By participating in this project, you agree to:
    npm run dev
    ```
 
-## 💻 Development Workflow
+##  Development Workflow
 
 ### Branching Strategy
 
@@ -93,7 +93,7 @@ git commit -m "feat: add amazing feature"
 git push origin feature/amazing-feature
 ```
 
-## 📝 Coding Standards
+##  Coding Standards
 
 ### TypeScript
 
@@ -153,16 +153,16 @@ export const Button = (props: any) => {
 
 ```
 frontend/src/
-├── app/
-│   └── components/        # React components
-│       ├── Dashboard.tsx
-│       └── ui/           # Reusable UI components
-├── contexts/             # React contexts
-├── hooks/                # Custom hooks
-├── lib/                  # Utilities and helpers
-├── types/                # TypeScript types
-├── constants/            # Constants and config
-└── utils/                # Helper functions
+ app/
+    components/        # React components
+        Dashboard.tsx
+        ui/           # Reusable UI components
+ contexts/             # React contexts
+ hooks/                # Custom hooks
+ lib/                  # Utilities and helpers
+ types/                # TypeScript types
+ constants/            # Constants and config
+ utils/                # Helper functions
 ```
 
 ### Naming Conventions
@@ -192,7 +192,7 @@ frontend/src/
 <div style={{ padding: '16px' }}> // Bad
 ```
 
-## 📦 Commit Guidelines
+##  Commit Guidelines
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -236,7 +236,7 @@ git commit -m "feat(api): change response format
 BREAKING CHANGE: API responses now use camelCase instead of snake_case"
 ```
 
-## 🔄 Pull Request Process
+##  Pull Request Process
 
 ### Before Submitting
 
@@ -298,7 +298,7 @@ Add screenshots or GIFs
 4. All conversations resolved
 5. Documentation updated
 
-## 🧪 Testing Guidelines
+##  Testing Guidelines
 
 ### Unit Tests
 
@@ -345,7 +345,7 @@ describe('POST /api/v1/transactions', () => {
 - Include edge cases
 - Test error handling
 
-## 📚 Documentation
+##  Documentation
 
 ### Code Comments
 
@@ -377,7 +377,7 @@ When adding features:
 3. Update relevant documentation
 4. Add examples and usage
 
-## 🐛 Bug Reports
+##  Bug Reports
 
 ### Creating Issues
 
@@ -410,7 +410,7 @@ If applicable
 Any other relevant information
 ```
 
-## ✨ Feature Requests
+##  Feature Requests
 
 ### Proposing Features
 
@@ -431,7 +431,7 @@ What other approaches did you consider?
 Mockups, examples, references
 ```
 
-## 🎯 Development Principles
+##  Development Principles
 
 ### Keep It Modular
 
@@ -461,13 +461,13 @@ Mockups, examples, references
 - Use environment variables
 - Don't commit secrets
 
-## 📞 Getting Help
+##  Getting Help
 
-- 💬 [GitHub Discussions](https://github.com/Alpha-ashu/Expense-Tracker/discussions)
-- 🐛 [Issue Tracker](https://github.com/Alpha-ashu/Expense-Tracker/issues)
-- 📧 Email: support@expensetracker.app
+-  [GitHub Discussions](https://github.com/Alpha-ashu/Expense-Tracker/discussions)
+-  [Issue Tracker](https://github.com/Alpha-ashu/Expense-Tracker/issues)
+-  Email: support@expensetracker.app
 
-## 🙏 Thank You!
+##  Thank You!
 
 Your contributions make this project better. We appreciate your time and effort!
 

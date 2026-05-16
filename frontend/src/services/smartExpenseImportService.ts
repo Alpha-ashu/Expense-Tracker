@@ -1,4 +1,4 @@
-﻿import {
+import {
   db,
   type Account,
   type AppCategory,

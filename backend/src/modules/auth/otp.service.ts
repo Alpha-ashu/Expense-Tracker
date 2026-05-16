@@ -91,7 +91,7 @@ export async function verifyOtp(userId: string, inputCode: string): Promise<OtpR
     return { success: false, message: 'Invalid OTP code.' };
   }
 
-  // OTP is valid — mark used
+  // OTP is valid  mark used
   await prisma.otpCode.update({
     where: { id: otp.id },
     data: { used: true },

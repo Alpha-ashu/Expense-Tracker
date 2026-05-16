@@ -1,4 +1,4 @@
-﻿import { KANKUAI } from './KANKUIntelligenceEngine';
+import { KANKUAI } from './KANKUIntelligenceEngine';
 import { parseMultipleTransactions, parseVoiceExpense } from '@/lib/voiceExpenseParser';
 
 export interface VoiceExpenseResult {

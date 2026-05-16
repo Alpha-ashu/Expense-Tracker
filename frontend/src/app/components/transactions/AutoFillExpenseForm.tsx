@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, Mic, Upload, X, Check, AlertCircle, Zap, Brain } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ocrEngine, ExpenseData } from '@/services/tesseractOCRService';

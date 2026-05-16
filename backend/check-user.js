@@ -16,7 +16,7 @@ async function checkAndUpdateUser() {
     });
     
     if (!user) {
-      console.log('❌ User not found in database');
+      console.log(' User not found in database');
       console.log('\nAvailable users:');
       const allUsers = await prisma.user.findMany({
         select: { email: true, role: true, isApproved: true }
@@ -29,14 +29,14 @@ async function checkAndUpdateUser() {
         console.log('  No users in database');
       }
     } else {
-      console.log('✅ User found:');
+      console.log(' User found:');
       console.log('  Email:', user.email);
       console.log('  Name:', user.name);
       console.log('  Role:', user.role);
       console.log('  Approved:', user.isApproved);
       
       if (user.role !== 'admin' || !user.isApproved) {
-        console.log('\n⚙️  Updating role to admin and approving...');
+        console.log('\n  Updating role to admin and approving...');
         const updated = await prisma.user.update({
           where: { email: 'Shaik.job.details@gmail.com' },
           data: { 
@@ -44,15 +44,15 @@ async function checkAndUpdateUser() {
             isApproved: true
           }
         });
-        console.log('✅ User updated successfully!');
+        console.log(' User updated successfully!');
         console.log('  New role:', updated.role);
         console.log('  New approved status:', updated.isApproved);
       } else {
-        console.log('\n✅ User already has admin role and is approved!');
+        console.log('\n User already has admin role and is approved!');
       }
     }
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error(' Error:', error.message);
   } finally {
     await prisma.$disconnect();
   }

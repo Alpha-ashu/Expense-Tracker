@@ -70,7 +70,7 @@ export const AIInsightsCard: React.FC<{ compact?: boolean }> = ({ compact = fals
   }
 
   if (error || !data) {
-    return null; // Silent fail — don't break dashboard
+    return null; // Silent fail  don't break dashboard
   }
 
   const topRecs = data.recommendations.slice(0, compact ? 2 : 4);
@@ -117,7 +117,7 @@ export const AIInsightsCard: React.FC<{ compact?: boolean }> = ({ compact = fals
                   <Bell size={12} className="text-indigo-400" />
                   <span className="text-xs font-medium text-indigo-800 capitalize">{bill.merchant}</span>
                 </div>
-                <span className="text-xs font-bold text-indigo-700">₹{bill.predictedAmount.toFixed(0)} · {new Date(bill.predictedDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
+                <span className="text-xs font-bold text-indigo-700">{bill.predictedAmount.toFixed(0)}  {new Date(bill.predictedDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
               </div>
             ))}
           </div>
@@ -143,7 +143,7 @@ export const AIInsightsCard: React.FC<{ compact?: boolean }> = ({ compact = fals
 
       {topRecs.length === 0 && data.fraudAlerts.length === 0 && (
         <div className="px-5 py-4 text-center">
-          <p className="text-sm text-slate-500">Your finances look healthy! 🎉</p>
+          <p className="text-sm text-slate-500">Your finances look healthy! </p>
         </div>
       )}
     </div>

@@ -1,9 +1,9 @@
 # Expense Tracker - Feature Specification
 
-## 🎯 Product Overview
+##  Product Overview
 A full-stack, cloud-synced personal finance management platform with modular architecture, clean UI, role-based control, and scalable performance.
 
-## ✨ Core Principles
+##  Core Principles
 - **Modular Design**: All features are reusable components
 - **Clean Architecture**: Consistent UI/UX patterns
 - **Scalability**: Built for performance and growth
@@ -11,7 +11,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 📋 Feature Modules
+##  Feature Modules
 
 ### 1. Dashboard (Home)
 **Purpose**: Centralized DashBoard
@@ -23,10 +23,10 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 - Recent transactions feed
 - Active goals progress bars
 - Quick actions:
-  - ➕ Add Expense
-  - ➕ Add Income
-  - ➕ Transfer
-  - 🎤 Voice input
+  -  Add Expense
+  -  Add Income
+  -  Transfer
+  -  Voice input
 
 **Components**: `Dashboard.tsx`
 
@@ -36,10 +36,10 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 **Purpose**: Multi-account financial tracking
 
 **Account Types**:
-- 🏦 Bank
-- 💵 Cash
-- 💳 Credit Cards
-- 💰 Savings
+-  Bank
+-  Cash
+-  Credit Cards
+-  Savings
 
 **Features**:
 - Add / Edit / Delete accounts
@@ -57,9 +57,9 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 **Purpose**: Comprehensive transaction management
 
 **Input Methods**:
-- ✔ Manual form entry
-- 🎤 Voice AI (speech → structured data)
-- 📸 Receipt scan (OCR)
+-  Manual form entry
+-  Voice AI (speech  structured data)
+-  Receipt scan (OCR)
 
 **Transaction Schema**:
 ```typescript
@@ -122,10 +122,10 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 **Purpose**: Track investment performance
 
 **Supported Assets**:
-- 📈 Stocks
-- ₿ Cryptocurrency
-- 🪙 Gold
-- 💱 Forex
+-  Stocks
+-  Cryptocurrency
+-  Gold
+-  Forex
 
 **Features**:
 - Current value tracking
@@ -174,9 +174,9 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 - Trend analysis
 - Forecasting
 - Export formats:
-  - 📄 PDF
-  - 📊 Excel
-  - 📋 CSV
+  -  PDF
+  -  Excel
+  -  CSV
 
 **Components**: `Reports.tsx`, `ExportReports.tsx`
 
@@ -223,44 +223,44 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 🔐 Security Features
+##  Security Features
 
-- ✅ JWT authentication
-- ✅ Encrypted passwords (bcrypt)
-- ✅ User data isolation (RLS)
-- ✅ PIN lock
-- ✅ Optional 2FA
-- ✅ Token invalidation on logout
-- ✅ Session management
+-  JWT authentication
+-  Encrypted passwords (bcrypt)
+-  User data isolation (RLS)
+-  PIN lock
+-  Optional 2FA
+-  Token invalidation on logout
+-  Session management
 
 ---
 
-## ☁️ Cloud & Synchronization
+##  Cloud & Synchronization
 
 **Technology**: PostgreSQL + Supabase
 
 **Features**:
-- ✅ Cross-device sync
-- ✅ Real-time updates (WebSockets)
-- ✅ Offline queue
-- ✅ Auto-sync on reconnection
-- ✅ No data loss on logout
-- ✅ Conflict resolution
+-  Cross-device sync
+-  Real-time updates (WebSockets)
+-  Offline queue
+-  Auto-sync on reconnection
+-  No data loss on logout
+-  Conflict resolution
 
 ---
 
-## 📱 Platform Support
+##  Platform Support
 
-- ✅ Progressive Web App (PWA)
-- ✅ Mobile responsive design
-- ✅ Desktop responsive design
-- ✅ Native gestures (swipe, tap)
-- ✅ Push notifications
-- ✅ Offline capability
+-  Progressive Web App (PWA)
+-  Mobile responsive design
+-  Desktop responsive design
+-  Native gestures (swipe, tap)
+-  Push notifications
+-  Offline capability
 
 ---
 
-## 🎨 UX Standards
+##  UX Standards
 
 **Design System**:
 - Dark/Light mode toggle
@@ -278,7 +278,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 🛠️ Technology Stack
+##  Technology Stack
 
 ### Frontend
 - **Framework**: React 18 + TypeScript
@@ -304,7 +304,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 👑 Admin Controls
+##  Admin Controls
 
 **Admin Features**:
 - Feature flag management
@@ -317,7 +317,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 📤 Data Export System
+##  Data Export System
 
 **Export Formats**:
 - PDF reports
@@ -331,9 +331,9 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 🚨 Development Guidelines
+##  Development Guidelines
 
-### ✅ DO:
+###  DO:
 - Keep features modular
 - Use reusable components
 - Follow clean architecture
@@ -341,7 +341,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 - Write type-safe code
 - Test across devices
 
-### ❌ DON'T:
+###  DON'T:
 - Break existing features
 - Duplicate UI pages
 - Use inline hacks
@@ -351,7 +351,7 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 🎯 Unique Selling Points
+##  Unique Selling Points
 
 1. **AI Automation**: Voice input + OCR receipt scanning
 2. **Complete Ecosystem**: All-in-one financial management
@@ -362,39 +362,39 @@ A full-stack, cloud-synced personal finance management platform with modular arc
 
 ---
 
-## 📊 Architecture Diagram
+##  Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────┐
-│           React Frontend (PWA)              │
-│  ┌───────────┐  ┌───────────┐             │
-│  │ Components│  │  Contexts │             │
-│  └─────┬─────┘  └─────┬─────┘             │
-│        │              │                     │
-│  ┌─────▼──────────────▼─────┐             │
-│  │   Dexie (IndexedDB)      │             │
-│  └─────┬──────────────┬─────┘             │
-└────────┼──────────────┼───────────────────┘
-         │              │
-         │  Sync Layer  │
-         │              │
-┌────────▼──────────────▼───────────────────┐
-│      Supabase (PostgreSQL)                │
-│  ┌──────────┐  ┌──────────┐             │
-│  │   Auth   │  │ Real-time│             │
-│  └──────────┘  └──────────┘             │
-└───────────────────────────────────────────┘
+
+           React Frontend (PWA)              
+                 
+   Components    Contexts              
+                 
+                                           
+               
+     Dexie (IndexedDB)                   
+               
+
+                       
+           Sync Layer  
+                       
+
+      Supabase (PostgreSQL)                
+                 
+     Auth      Real-time             
+                 
+
 ```
 
 ---
 
-## 📝 Current Implementation Status
+##  Current Implementation Status
 
 See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for detailed progress tracking.
 
 ---
 
-## 🔗 Related Documentation
+##  Related Documentation
 
 - [Architecture](./architecture.md)
 - [API Documentation](./api.md)

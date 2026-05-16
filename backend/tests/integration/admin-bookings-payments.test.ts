@@ -35,9 +35,9 @@ const getSignedAuthHeaders = (userId = 'pin-test-user') => {
   };
 };
 
-// ═══════════════════════════════════════════
+// 
 // ADMIN MODULE - RBAC Tests
-// ═══════════════════════════════════════════
+// 
 describe('ADMIN MODULE', () => {
   describe('GET /admin/users', () => {
     it('should return 401 without auth', async () => {
@@ -101,9 +101,9 @@ describe('ADMIN MODULE', () => {
   });
 });
 
-// ═══════════════════════════════════════════
+// 
 // BOOKINGS MODULE
-// ═══════════════════════════════════════════
+// 
 describe('BOOKINGS MODULE', () => {
   describe('POST /bookings', () => {
     it('should return 401 without auth', async () => {
@@ -224,9 +224,9 @@ describe('BOOKINGS MODULE', () => {
   });
 });
 
-// ═══════════════════════════════════════════
+// 
 // PAYMENTS MODULE
-// ═══════════════════════════════════════════
+// 
 describe('PAYMENTS MODULE', () => {
   describe('GET /payments', () => {
     it('should return 401 without auth', async () => {
@@ -261,9 +261,9 @@ describe('PAYMENTS MODULE', () => {
   });
 });
 
-// ═══════════════════════════════════════════
+// 
 // PIN MODULE
-// ═══════════════════════════════════════════
+// 
 describe('PIN MODULE', () => {
   describe('POST /pin/create', () => {
     it('should return 401 without auth', async () => {
@@ -387,9 +387,9 @@ describe('PIN MODULE', () => {
   });
 });
 
-// ═══════════════════════════════════════════
+// 
 // HEALTH CHECK
-// ═══════════════════════════════════════════
+// 
 describe('HEALTH CHECK', () => {
   it('should return OK from /health', async () => {
     const res = await request(app).get('/health');

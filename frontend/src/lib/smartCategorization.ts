@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Smart Categorization Engine
  * Multi-layer text classification for financial transactions:
  *   Layer 1 - Exact keyword matching (fastest)

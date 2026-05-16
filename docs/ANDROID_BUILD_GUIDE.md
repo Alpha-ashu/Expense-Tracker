@@ -5,10 +5,10 @@ This document explains the complete end-to-end Android build automation system s
 ## Overview
 
 The project includes:
-1. **Local E2E Build Script** (`e2e-build.ps1`) — automate debug APK and signed release AAB builds on your machine
-2. **GitHub Actions CI/CD** (`build-android-aab.yml`) — automatic builds on every push to main/master or manual workflow dispatch
-3. **Gradle Configuration** — Java 17 / Kotlin jvmTarget 17 enforcement to ensure consistent compilation
-4. **Keystore & Signing** — automated signing for release builds using GitHub Secrets
+1. **Local E2E Build Script** (`e2e-build.ps1`)  automate debug APK and signed release AAB builds on your machine
+2. **GitHub Actions CI/CD** (`build-android-aab.yml`)  automatic builds on every push to main/master or manual workflow dispatch
+3. **Gradle Configuration**  Java 17 / Kotlin jvmTarget 17 enforcement to ensure consistent compilation
+4. **Keystore & Signing**  automated signing for release builds using GitHub Secrets
 
 ---
 
@@ -58,7 +58,7 @@ Done.
 ### 1. Store Secrets in GitHub Repository
 
 Navigate to your GitHub repository settings:
-- **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+- **Settings**  **Secrets and variables**  **Actions**  **New repository secret**
 
 Add the following secrets:
 
@@ -106,34 +106,34 @@ After a successful build:
 
 ```
 android/
-├── app/
-│   ├── build.gradle              ← Added keystore signing config
-│   └── capacitor.build.gradle    ← Auto-generated (watch for VERSION_21!)
-├── build.gradle                  ← Java/Kotlin 17 enforcement for all modules
-├── capacitor-cordova-android-plugins/
-│   └── build.gradle              ← Updated to Java 17
-└── gradlew, gradlew.bat          ← Gradle wrapper
+ app/
+    build.gradle               Added keystore signing config
+    capacitor.build.gradle     Auto-generated (watch for VERSION_21!)
+ build.gradle                   Java/Kotlin 17 enforcement for all modules
+ capacitor-cordova-android-plugins/
+    build.gradle               Updated to Java 17
+ gradlew, gradlew.bat           Gradle wrapper
 
 node_modules/@capacitor/*/android/build.gradle
-├── @capacitor/android/capacitor/
-├── @capacitor/app/android/
-├── @capacitor/device/android/
-├── @capacitor/filesystem/android/
-├── @capacitor/haptics/android/
-├── @capacitor/keyboard/android/
-├── @capacitor/local-notifications/android/
-├── @capacitor/preferences/android/
-├── @capacitor/splash-screen/android/
-└── @capacitor/status-bar/android/
-    └── build.gradle              ← All updated to Java 17 & Kotlin jvmTarget 17
+ @capacitor/android/capacitor/
+ @capacitor/app/android/
+ @capacitor/device/android/
+ @capacitor/filesystem/android/
+ @capacitor/haptics/android/
+ @capacitor/keyboard/android/
+ @capacitor/local-notifications/android/
+ @capacitor/preferences/android/
+ @capacitor/splash-screen/android/
+ @capacitor/status-bar/android/
+     build.gradle               All updated to Java 17 & Kotlin jvmTarget 17
 
 .github/workflows/
-└── build-android-aab.yml         ← CI/CD automation
+ build-android-aab.yml          CI/CD automation
 
-e2e-build.ps1                      ← Local PowerShell build automation
-README_E2E_BUILD.md                ← Usage guide for e2e script
-.patchpackagerc.json               ← Config for patch-package
-patches/                           ← Patches for node_modules (future use)
+e2e-build.ps1                       Local PowerShell build automation
+README_E2E_BUILD.md                 Usage guide for e2e script
+.patchpackagerc.json                Config for patch-package
+patches/                            Patches for node_modules (future use)
 ```
 
 ---
@@ -183,19 +183,19 @@ This **overrides** module-level settings from node_modules without editing the f
 ### Long-Term Considerations
 
 **Option A (Current):** Keep the enforcement in `android/build.gradle`
-- ✅ Works with local JDK 17
-- ✅ No persistent node_modules edits (but we did edit them for clarity)
-- ⚠️  Will need to re-apply if Capacitor major version updates
+-  Works with local JDK 17
+-  No persistent node_modules edits (but we did edit them for clarity)
+-   Will need to re-apply if Capacitor major version updates
 
 **Option B (Future):** Upgrade local JDK to 21
-- ✅ No overrides needed
-- ✅ Plugin defaults work as-is
-- ⚠️  Requires team/CI environment update
+-  No overrides needed
+-  Plugin defaults work as-is
+-   Requires team/CI environment update
 
 **Option C (Recommended for Teams):** Use Gradle Java Toolchains
-- ✅ Clean, maintainable, official Android/Gradle approach
-- ✅ Works with any JDK version
-- ⚠️  Requires AGP 8.0+ (already satisfied)
+-  Clean, maintainable, official Android/Gradle approach
+-  Works with any JDK version
+-   Requires AGP 8.0+ (already satisfied)
 
 For now, **Option A is active and working**. Transition to Option C when convenient.
 
@@ -209,8 +209,8 @@ This file is **auto-generated** by `npx capacitor update`. After running that co
 **Quick fix:**
 ```powershell
 # Edit android/app/capacitor.build.gradle and change:
-# sourceCompatibility JavaVersion.VERSION_21 → JavaVersion.VERSION_17
-# targetCompatibility JavaVersion.VERSION_21 → JavaVersion.VERSION_17
+# sourceCompatibility JavaVersion.VERSION_21  JavaVersion.VERSION_17
+# targetCompatibility JavaVersion.VERSION_21  JavaVersion.VERSION_17
 ```
 
 Or run:

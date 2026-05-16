@@ -1,4 +1,4 @@
-﻿export interface AIMerchantPattern {
+export interface AIMerchantPattern {
   merchant: string;
   category: string;
   confidence: number;

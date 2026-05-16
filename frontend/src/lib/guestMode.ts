@@ -1,4 +1,4 @@
-﻿/**
+/**
  * guestMode.ts
  * 
  * Guest Mode: allows the app to be used without an account.

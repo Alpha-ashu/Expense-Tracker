@@ -13,7 +13,7 @@ const getAuthHeaders = (token = 'mock-access-token') => ({
 });
 
 describe('ACCOUNTS MODULE', () => {
-  // ───────── GET /accounts ─────────
+  //  GET /accounts 
   describe('GET /accounts', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app).get(`${API}/accounts`);
@@ -31,7 +31,7 @@ describe('ACCOUNTS MODULE', () => {
     });
   });
 
-  // ───────── POST /accounts ─────────
+  //  POST /accounts 
   describe('POST /accounts', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app)
@@ -90,7 +90,7 @@ describe('ACCOUNTS MODULE', () => {
     });
   });
 
-  // ───────── GET /accounts/:id ─────────
+  //  GET /accounts/:id 
   describe('GET /accounts/:id', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app).get(`${API}/accounts/some-id`);
@@ -105,7 +105,7 @@ describe('ACCOUNTS MODULE', () => {
     });
   });
 
-  // ───────── PUT /accounts/:id ─────────
+  //  PUT /accounts/:id 
   describe('PUT /accounts/:id', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app)
@@ -123,7 +123,7 @@ describe('ACCOUNTS MODULE', () => {
     });
   });
 
-  // ───────── DELETE /accounts/:id ─────────
+  //  DELETE /accounts/:id 
   describe('DELETE /accounts/:id', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app).delete(`${API}/accounts/some-id`);
@@ -138,7 +138,7 @@ describe('ACCOUNTS MODULE', () => {
     });
   });
 
-  // ───────── IDOR Tests ─────────
+  //  IDOR Tests 
   describe('IDOR Protection', () => {
     it('should not allow accessing another users account', async () => {
       // With a valid token for user A, try to access user B's account

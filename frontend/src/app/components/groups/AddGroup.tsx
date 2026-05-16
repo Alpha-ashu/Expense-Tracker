@@ -12,12 +12,12 @@ import { db } from '@/lib/database';
 
 // --- Constants ---
 const GROUP_CATEGORIES = [
-  { value: 'general', label: 'General', icon: '📁' },
-  { value: 'food', label: 'Food & Dining', icon: '🍔' },
-  { value: 'travel', label: 'Travel', icon: '✈️' },
-  { value: 'entertainment', label: 'Entertainment', icon: '🎬' },
-  { value: 'rent', label: 'Rent', icon: '🏠' },
-  { value: 'utilities', label: 'Utilities', icon: '💡' },
+  { value: 'general', label: 'General', icon: '' },
+  { value: 'food', label: 'Food & Dining', icon: '' },
+  { value: 'travel', label: 'Travel', icon: '' },
+  { value: 'entertainment', label: 'Entertainment', icon: '' },
+  { value: 'rent', label: 'Rent', icon: '' },
+  { value: 'utilities', label: 'Utilities', icon: '' },
 ];
 
 const groupCategoryOptions = GROUP_CATEGORIES.map((category) => ({

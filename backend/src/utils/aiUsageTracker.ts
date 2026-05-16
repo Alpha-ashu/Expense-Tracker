@@ -14,7 +14,7 @@ import { logger } from '../config/logger';
 /** Max AI (Gemini / OCR) calls a single user can make per day. */
 const DEFAULT_DAILY_LIMIT = Number(process.env.AI_DAILY_LIMIT_PER_USER || 50);
 
-/** TTL for the counter key (seconds) – 24 h with a small buffer. */
+/** TTL for the counter key (seconds)  24 h with a small buffer. */
 const TTL_SECONDS = 86_400 + 60; // 24 h + 1 min
 
 /** In-memory fallback when Redis is unavailable. */
@@ -58,7 +58,7 @@ export async function incrementAIUsage(
     try {
       const raw = await redis.incr(key);
       if (raw === 1) {
-        // First call today – set expiry
+        // First call today  set expiry
         await redis.expire(key, TTL_SECONDS);
       }
       current = raw;

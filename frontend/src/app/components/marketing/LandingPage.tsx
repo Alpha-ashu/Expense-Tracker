@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { KANKULogo } from '@/app/components/ui/KANKULogo';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';
 

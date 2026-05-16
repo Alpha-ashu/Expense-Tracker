@@ -1,6 +1,6 @@
 # Development Environment Setup Guide
 
-## 🛠️ Current Issues Identified
+##  Current Issues Identified
 
 From your console logs, I see several problems:
 
@@ -19,7 +19,7 @@ Access to fetch at 'https://mmwrckfqeqjfqciymemh.supabase.co/functions/v1/get-us
 ### 3. **React DevTools Not Available**
 **Problem**: Missing React DevTools for better debugging experience
 
-## 🚀 Quick Fixes
+##  Quick Fixes
 
 ### Fix 1: Start Backend Server
 ```bash
@@ -59,11 +59,11 @@ Ensure your backend is configured to run on port 5000:
 
 ### Fix 4: CORS Issues (if using Supabase)
 Update your Supabase CORS configuration in the dashboard:
-1. Go to Supabase Dashboard → Settings → API
+1. Go to Supabase Dashboard  Settings  API
 2. Add `http://localhost:5173` to allowed origins
 3. Save and redeploy functions
 
-## 🔧 Development Workflow
+##  Development Workflow
 
 ### 1. Start Backend First
 ```bash
@@ -86,7 +86,7 @@ npm run dev
 - Open React DevTools to inspect components
 - Resize browser to test responsive behavior
 
-## 🐛 Common Issues & Solutions
+##  Common Issues & Solutions
 
 ### Backend Won't Start
 ```bash
@@ -126,7 +126,7 @@ npm install
 npm run build -- --mode development
 ```
 
-## 📱 Recommended VS Code Extensions
+##  Recommended VS Code Extensions
 
 ### Essential Extensions:
 1. **React Developer Tools** - msjsdiag.debugger-for-react
@@ -147,7 +147,7 @@ npm run build -- --mode development
 }
 ```
 
-## 🎯 Next Steps
+##  Next Steps
 
 1. **Fix backend connection** - Start backend server on port 5000
 2. **Install React DevTools** - Better debugging experience
@@ -155,13 +155,13 @@ npm run build -- --mode development
 4. **Fix CORS issues** - Update Supabase configuration if needed
 5. **Use proper workflow** - Backend + frontend running simultaneously
 
-## 🚀 Ready to Develop
+##  Ready to Develop
 
 Once these fixes are applied, you'll have:
-- ✅ Backend API running on localhost:5000
-- ✅ Frontend running on localhost:5173  
-- ✅ React DevTools for debugging
-- ✅ Auto-sizing system ready for testing
-- ✅ Proper development workflow
+-  Backend API running on localhost:5000
+-  Frontend running on localhost:5173  
+-  React DevTools for debugging
+-  Auto-sizing system ready for testing
+-  Proper development workflow
 
-Your development environment will be fully set up for productive work! 🎉
+Your development environment will be fully set up for productive work! 

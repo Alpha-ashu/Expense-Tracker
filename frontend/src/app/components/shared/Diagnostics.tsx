@@ -3,11 +3,14 @@ import { CenteredLayout } from '@/app/components/shared/CenteredLayout';
 import { useApp } from '@/contexts/AppContext';
 import supabase from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { ChevronLeft, RefreshCw, Copy, ExternalLink } from 'lucide-react';
+import { ChevronLeft, RefreshCw, Copy, ExternalLink, Database, Trash2, ShieldCheck } from 'lucide-react';
+import { db } from '@/lib/database';
+import { deduplicateLocalData } from '@/lib/auth-sync-integration';
 
 export const Diagnostics: React.FC = () => {
   const { setCurrentPage } = useApp();
   const [isTesting, setIsTesting] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
   const [testResult, setTestResult] = useState<string>('Not tested');
 
   const envStatus = useMemo(() => {
@@ -53,19 +56,124 @@ export const Diagnostics: React.FC = () => {
     toast.success('Template copied - fill in your actual key from the Supabase dashboard');
   };
 
+  const handleDeduplicate = async () => {
+    setIsCleaning(true);
+    try {
+      await deduplicateLocalData();
+      toast.success('Database deduplication complete');
+    } catch (error) {
+      console.error('Deduplication failed:', error);
+      toast.error('Failed to deduplicate data');
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
+  const handleResetDatabase = async () => {
+    if (!window.confirm('Are you sure? This will wipe ALL local data and require a fresh sync from the cloud.')) {
+      return;
+    }
+
+    try {
+      // Close database connection first to avoid conflicts
+      db.close();
+      
+      // Re-open to clear
+      await db.open();
+      await Promise.all(db.tables.map(table => table.clear()));
+      
+      toast.success('Local database cleared. Reloading...');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+      console.error('Reset failed:', error);
+      toast.error('Failed to reset database');
+    }
+  };
+
+  const handleMockLogin = (targetRole: 'admin' | 'manager' | 'advisor') => {
+    if (import.meta.env.PROD) {
+      toast.error('Mock login is disabled in production.');
+      return;
+    }
+
+    const mockUser = {
+      id: `mock-${targetRole}-id`,
+      email: `${targetRole}@kanku.com`,
+      user_metadata: { role: targetRole, full_name: `Mock ${targetRole}` },
+      aud: 'authenticated',
+      role: 'authenticated',
+    };
+
+    // Store mock session info
+    localStorage.setItem('supabase.auth.token', JSON.stringify({
+      currentSession: {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        user: mockUser,
+        expires_at: Math.floor(Date.now() / 1000) + 3600
+      }
+    }));
+    
+    localStorage.setItem('user_role', targetRole);
+    localStorage.setItem('onboarding_completed', 'true');
+    
+    toast.success(`Forcing session as ${targetRole.toUpperCase()}...`);
+    setTimeout(() => window.location.reload(), 1000);
+  };
+
   return (
     <CenteredLayout>
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setCurrentPage('settings')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden"
+            onClick={() => setCurrentPage('dashboard')}
+            className="p-2 hover:bg-white rounded-xl transition-all"
           >
-            <ChevronLeft size={24} className="text-gray-600" />
+            <ChevronLeft size={20} className="text-gray-900" />
           </button>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Diagnostics</h2>
-            <p className="text-gray-500 mt-1">Check environment and Supabase status</p>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Diagnostics</h2>
+        </div>
+
+        <div className="bg-white rounded-[2rem] border border-gray-100 p-8 space-y-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center">
+              <ShieldCheck size={20} className="text-pink-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-gray-900">Dev: Auth & Role Bypass</h3>
+              <p className="text-sm text-gray-500 font-medium">Instantly switch roles to test RBAC logic without real credentials.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <button
+              onClick={() => handleMockLogin('admin')}
+              className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold text-sm hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
+            >
+              <ShieldCheck size={18} />
+              Login as Admin
+            </button>
+            <button
+              onClick={() => handleMockLogin('manager')}
+              className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-[1.5rem] font-bold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+            >
+              <Users size={18} />
+              Login as Manager
+            </button>
+            <button
+              onClick={() => handleMockLogin('advisor')}
+              className="flex items-center justify-center gap-2 px-6 py-4 bg-emerald-600 text-white rounded-[1.5rem] font-bold text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+            >
+              <Star size={18} />
+              Login as Advisor
+            </button>
+          </div>
+          
+          <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3">
+            <AlertCircle size={18} className="text-amber-600 mt-0.5" />
+            <p className="text-xs text-amber-800 font-medium leading-relaxed">
+              <b>Development Only:</b> These buttons inject a mock session into local storage. This allows you to test role-specific UI like the <i>Advisor Verification Queue</i> immediately. Real authentication is bypassed.
+            </p>
           </div>
         </div>
 
@@ -111,6 +219,50 @@ export const Diagnostics: React.FC = () => {
               >
                 <RefreshCw size={16} className={isTesting ? 'animate-spin' : ''} />
                 {isTesting ? 'Testing...' : 'Run test'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Database size={20} className="text-gray-900" />
+            <h3 className="text-lg font-semibold text-gray-900">Database Maintenance</h3>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-gray-200 p-5 space-y-3 bg-gray-50/50 hover:bg-white transition-all">
+              <div className="flex items-center gap-2 text-blue-600">
+                <ShieldCheck size={18} />
+                <h4 className="font-semibold">Purge Duplicates</h4>
+              </div>
+              <p className="text-sm text-gray-600">
+                Merges redundant accounts and transactions by matching dates, amounts, and descriptions.
+              </p>
+              <button
+                onClick={handleDeduplicate}
+                disabled={isCleaning}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-900 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-300 shadow-sm transition-all disabled:opacity-50"
+              >
+                {isCleaning ? <RefreshCw size={16} className="animate-spin" /> : <Database size={16} />}
+                {isCleaning ? 'Cleaning...' : 'Deduplicate Now'}
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-red-100 p-5 space-y-3 bg-red-50/30 hover:bg-white transition-all">
+              <div className="flex items-center gap-2 text-red-600">
+                <Trash2 size={18} />
+                <h4 className="font-semibold">Factory Reset</h4>
+              </div>
+              <p className="text-sm text-gray-600">
+                Wipes all local data. Use this if your database feels corrupted. Data will re-sync from cloud.
+              </p>
+              <button
+                onClick={handleResetDatabase}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm"
+              >
+                <Trash2 size={16} />
+                Reset Database
               </button>
             </div>
           </div>

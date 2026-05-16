@@ -1,6 +1,6 @@
 # Console Errors Fix - Complete Solution
 
-## 🚨 Issues Identified
+##  Issues Identified
 
 From your console logs, I see several critical errors:
 
@@ -19,12 +19,12 @@ POST https://mmwrckfqeqjfqciymemh.supabase.co/functions/v1/get-user-permissions 
 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
 ```
 
-## ✅ Solutions
+##  Solutions
 
 ### Fix 1: CORS Configuration
 
 #### **Option A: Update Supabase CORS Settings**
-1. Go to **Supabase Dashboard** → **Settings** → **API**
+1. Go to **Supabase Dashboard**  **Settings**  **API**
 2. Add `http://localhost:5173` to **Allowed Origins**
 3. Add `http://localhost:5173` to **Redirect URLs**
 4. Save and **Redeploy Functions**
@@ -97,7 +97,7 @@ Update `permissionService.ts` to handle network errors gracefully:
 ```typescript
 async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<UserPermissions> {
   try {
-    console.log('🔐 Fetching permissions for user:', userId);
+    console.log(' Fetching permissions for user:', userId);
 
     // Call backend function to get user permissions
     const { data, error } = await supabase.functions.invoke('get-user-permissions', {
@@ -105,11 +105,11 @@ async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<Use
     });
 
     if (error) {
-      console.error('❌ Error fetching permissions:', error);
+      console.error(' Error fetching permissions:', error);
       
       // Check if it's a network/CORS error
       if (error.message?.includes('CORS') || error.message?.includes('fetch')) {
-        console.log('🔄 Using fallback permissions due to network/CORS error');
+        console.log(' Using fallback permissions due to network/CORS error');
         const role = fallbackRole || 'user';
         const fallback = this.getDefaultPermissions(role);
         this.permissions = fallback;
@@ -119,7 +119,7 @@ async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<Use
       
       // Use fallback role if provided, otherwise default to 'user'
       const role = fallbackRole || 'user';
-      console.log('🔄 Using fallback permissions for role:', role);
+      console.log(' Using fallback permissions for role:', role);
       const fallback = this.getDefaultPermissions(role);
       this.permissions = fallback;
       this.notifyListeners();
@@ -127,7 +127,7 @@ async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<Use
     }
 
     if (!data) {
-      console.warn('⚠️ No permissions data returned, using defaults');
+      console.warn(' No permissions data returned, using defaults');
       const role = fallbackRole || 'user';
       const fallback = this.getDefaultPermissions(role);
       this.permissions = fallback;
@@ -135,12 +135,12 @@ async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<Use
       return fallback;
     }
 
-    console.log('✅ Permissions fetched successfully');
+    console.log(' Permissions fetched successfully');
     this.permissions = data;
     this.notifyListeners();
     return data;
   } catch (error) {
-    console.error('❌ Unexpected error in fetchUserPermissions:', error);
+    console.error(' Unexpected error in fetchUserPermissions:', error);
     const role = fallbackRole || 'user';
     const fallback = this.getDefaultPermissions(role);
     this.permissions = fallback;
@@ -150,13 +150,13 @@ async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<Use
 }
 ```
 
-## 🛠️ Implementation Steps
+##  Implementation Steps
 
 ### Step 1: Fix CORS (Choose One)
 
 #### **Option A: Supabase Dashboard**
 1. Open **Supabase Dashboard**
-2. Navigate to **Settings** → **API**
+2. Navigate to **Settings**  **API**
 3. Add `http://localhost:5173` to **Allowed Origins**
 4. Add `http://localhost:5173` to **Redirect URLs**
 5. Click **Save**
@@ -177,7 +177,7 @@ async fetchUserPermissions(userId: string, fallbackRole?: UserRole): Promise<Use
 2. Test permission fetching
 3. Verify fallback behavior works
 
-## 🧪 Testing the Fixes
+##  Testing the Fixes
 
 ### Test CORS Fix
 ```bash
@@ -190,7 +190,7 @@ curl -X POST \
 
 ### Test PWA Install Prompt
 1. Open app in Chrome
-2. Open DevTools → Application → Manifest
+2. Open DevTools  Application  Manifest
 3. Check if PWA install prompt works
 4. Verify no console errors
 
@@ -200,17 +200,17 @@ curl -X POST \
 3. Verify fallback permissions work
 4. Test user role functionality
 
-## 🎯 Expected Results
+##  Expected Results
 
 ### After Fixes
-✅ **No CORS errors** - API calls work properly  
-✅ **No network failures** - Permission service works  
-✅ **PWA install prompt** - Shows correctly without errors  
-✅ **Graceful fallbacks** - App works even when backend fails  
-✅ **Clean console** - No error messages cluttering  
-✅ **Better UX** - Smooth user experience  
+ **No CORS errors** - API calls work properly  
+ **No network failures** - Permission service works  
+ **PWA install prompt** - Shows correctly without errors  
+ **Graceful fallbacks** - App works even when backend fails  
+ **Clean console** - No error messages cluttering  
+ **Better UX** - Smooth user experience  
 
-## 🚀 Production Considerations
+##  Production Considerations
 
 ### CORS in Production
 - Add your production domain to Supabase CORS settings
@@ -228,7 +228,7 @@ curl -X POST \
 - Log errors for debugging
 - Provide fallback functionality
 
-## 📱 Development Workflow
+##  Development Workflow
 
 ### Before Starting Development
 1. **Start Backend**: `npm run dev` in backend folder
@@ -251,15 +251,15 @@ curl -X POST \
 - **Problem**: `beforeinstallprompt event errors`
 - **Solution**: Proper event handling and prompt showing
 
-## 🎉 Final Result
+##  Final Result
 
 After implementing these fixes, your development environment will have:
 
-✅ **Working API calls** - No CORS or network errors  
-✅ **Functional PWA** - Install prompt works correctly  
-✅ **Graceful error handling** - App works even with failures  
-✅ **Clean console** - No unnecessary error messages  
-✅ **Better development experience** - Smooth workflow  
-✅ **Production-ready code** - Works in all environments  
+ **Working API calls** - No CORS or network errors  
+ **Functional PWA** - Install prompt works correctly  
+ **Graceful error handling** - App works even with failures  
+ **Clean console** - No unnecessary error messages  
+ **Better development experience** - Smooth workflow  
+ **Production-ready code** - Works in all environments  
 
-Your app will be **fully functional** with proper error handling and no console errors! 🚀
+Your app will be **fully functional** with proper error handling and no console errors! 

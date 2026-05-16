@@ -12,7 +12,7 @@ const getAuthHeaders = (token = 'mock-access-token') => ({
 });
 
 describe('TRANSACTIONS MODULE', () => {
-  // ───────── GET /transactions ─────────
+  //  GET /transactions 
   describe('GET /transactions', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app).get(`${API}/transactions`);
@@ -55,7 +55,7 @@ describe('TRANSACTIONS MODULE', () => {
     });
   });
 
-  // ───────── POST /transactions ─────────
+  //  POST /transactions 
   describe('POST /transactions', () => {
     it('should return 401 without authentication', async () => {
       const res = await request(app)
@@ -183,7 +183,7 @@ describe('TRANSACTIONS MODULE', () => {
     });
   });
 
-  // ───────── GET /transactions/:id ─────────
+  //  GET /transactions/:id 
   describe('GET /transactions/:id', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app).get(`${API}/transactions/some-id`);
@@ -198,7 +198,7 @@ describe('TRANSACTIONS MODULE', () => {
     });
   });
 
-  // ───────── PUT /transactions/:id ─────────
+  //  PUT /transactions/:id 
   describe('PUT /transactions/:id', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app)
@@ -208,7 +208,7 @@ describe('TRANSACTIONS MODULE', () => {
     });
   });
 
-  // ───────── DELETE /transactions/:id ─────────
+  //  DELETE /transactions/:id 
   describe('DELETE /transactions/:id', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app).delete(`${API}/transactions/some-id`);
@@ -223,7 +223,7 @@ describe('TRANSACTIONS MODULE', () => {
     });
   });
 
-  // ───────── Balance Consistency ─────────
+  //  Balance Consistency 
   describe('Balance Consistency', () => {
     it('should not allow expense exceeding account balance', async () => {
       // This depends on account having insufficient funds

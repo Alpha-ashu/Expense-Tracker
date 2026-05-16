@@ -30,7 +30,7 @@ const getAuthHeaders = (userId = 'sync-test-user') => ({
 });
 
 describe('SYNC MODULE', () => {
-  // ───────── POST /sync/pull ─────────
+  //  POST /sync/pull 
   describe('POST /sync/pull', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app)
@@ -67,7 +67,7 @@ describe('SYNC MODULE', () => {
     });
   });
 
-  // ───────── POST /sync/push ─────────
+  //  POST /sync/push 
   describe('POST /sync/push', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app)
@@ -104,7 +104,7 @@ describe('SYNC MODULE', () => {
     });
   });
 
-  // ───────── POST /sync/register-device ─────────
+  //  POST /sync/register-device 
   describe('POST /sync/register-device', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app)
@@ -132,7 +132,7 @@ describe('SYNC MODULE', () => {
     });
   });
 
-  // ───────── GET /sync/devices ─────────
+  //  GET /sync/devices 
   describe('GET /sync/devices', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app).get(`${API}/sync/devices`);
@@ -140,7 +140,7 @@ describe('SYNC MODULE', () => {
     });
   });
 
-  // ───────── POST /sync/deactivate-device ─────────
+  //  POST /sync/deactivate-device 
   describe('POST /sync/deactivate-device', () => {
     it('should return 401 without auth', async () => {
       const res = await request(app)

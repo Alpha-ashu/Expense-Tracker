@@ -47,11 +47,11 @@ const convertPdfToImageForOcr = async (validated: ValidatedUpload): Promise<Vali
   }
 
   // Strategy 2: For scanned PDFs with no extractable text, render first page to image
-  // We use sharp to create a white canvas with the PDF text overlaid — this is a
+  // We use sharp to create a white canvas with the PDF text overlaid  this is a
   // lightweight approach that avoids heavy dependencies like poppler/pdf2image
   try {
     const sharp = require('sharp');
-    // Create a blank canvas and composite — Tesseract will process this
+    // Create a blank canvas and composite  Tesseract will process this
     // For true PDF rendering, a production system would use pdf-poppler or pdf2pic
     const placeholderImage = await sharp({
       create: { width: 800, height: 1200, channels: 3, background: { r: 255, g: 255, b: 255 } },
@@ -71,7 +71,7 @@ const convertPdfToImageForOcr = async (validated: ValidatedUpload): Promise<Vali
     logger.warn('sharp PDF fallback failed', { error: sharpErr.message });
   }
 
-  // Strategy 3: Last resort — pass the raw PDF buffer and let Tesseract try (will likely fail)
+  // Strategy 3: Last resort  pass the raw PDF buffer and let Tesseract try (will likely fail)
   logger.warn('All PDF conversion strategies failed, passing raw buffer');
   return { ...validated, kind: 'image' as const };
 };
@@ -139,7 +139,7 @@ const normalizeOcrResponse = (raw: JsonMap) => {
   // This must NEVER be used as the grand total candidate.
   const printedNetTotal = parseNumber(raw.nett) ?? parseNumber(raw.net_total);
 
-  // Grand-total candidates — explicitly exclude net_total / nett (pre-tax)
+  // Grand-total candidates  explicitly exclude net_total / nett (pre-tax)
   const totalCandidates = [
     parseNumber(raw.netAmount),        // AI field for Grand Total
     parseNumber(raw.grand_total),
@@ -162,26 +162,26 @@ const normalizeOcrResponse = (raw: JsonMap) => {
     : undefined;
   let resolvedTaxAmount = taxAmountRaw ?? derivedTaxTotal;
 
-  // ── INDIAN TAX HEURISTICS ────────────────────────────────────────────
+  //  INDIAN TAX HEURISTICS 
   if (taxBreakdown && taxBreakdown.length > 0 && resolvedTaxAmount) {
     const upperNames = taxBreakdown.map(t => t.name.toUpperCase());
     const hasCGST = upperNames.some(n => n.includes('CGST'));
     const hasSGST = upperNames.some(n => n.includes('SGST'));
     const hasIGST = upperNames.some(n => n.includes('IGST'));
 
-    // Case 1: Only CGST found (SGST missing — OCR missed the mirror line)
+    // Case 1: Only CGST found (SGST missing  OCR missed the mirror line)
     // SGST always mirrors CGST, so double the tax.
     // But NOT if IGST is present (IGST = CGST+SGST combined, used for inter-state).
     if (hasCGST && !hasSGST && !hasIGST && taxBreakdown.length === 1) {
       resolvedTaxAmount = Number((resolvedTaxAmount * 2).toFixed(2));
     }
 
-    // Case 2: Only SGST found (CGST missing — OCR missed the mirror line)
+    // Case 2: Only SGST found (CGST missing  OCR missed the mirror line)
     if (hasSGST && !hasCGST && !hasIGST && taxBreakdown.length === 1) {
       resolvedTaxAmount = Number((resolvedTaxAmount * 2).toFixed(2));
     }
 
-    // Case 3: IGST is present — it's already the combined rate. No doubling needed.
+    // Case 3: IGST is present  it's already the combined rate. No doubling needed.
     // This is correct as-is because IGST = CGST% + SGST% applied as single tax.
   }
 
@@ -232,7 +232,7 @@ const normalizeOcrResponse = (raw: JsonMap) => {
 
   // VALIDATION: Only meaningful when we have an independently observed subtotal
   // (i.e. the subtotal came from the OCR output, not computed from the total).
-  // Avoids the circular case where subtotal = total - tax → calculated always = total.
+  // Avoids the circular case where subtotal = total - tax  calculated always = total.
   let validationResult: { isValid: boolean; calculated: number; detected: number } | undefined;
   const hasIndependentSubtotal =
     subtotal !== undefined &&
@@ -286,7 +286,7 @@ const parseOcrSpaceRawText = (rawText: string): JsonMap => {
   const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
   const result: JsonMap = {};
 
-  // Extract numbers from end of line: "Grand Total    70.00" → 70
+  // Extract numbers from end of line: "Grand Total    70.00"  70
   const extractLineAmount = (line: string): number | undefined => {
     const m = line.match(/([\d,]+\.?\d*)\s*$/);
     if (!m) return undefined;
@@ -418,11 +418,11 @@ const executeFullOcrPipeline = async (userId: string, file: any, validated: any)
 
   audit({ event: 'ai.ocr_request', userId, meta: { fileSize: file.size, contentType: validated.contentType, isPdfText: !!pdfExtractedText } });
 
-  // 1. Try Gemini OCR first (or PDF text → Gemini structuring)
+  // 1. Try Gemini OCR first (or PDF text  Gemini structuring)
   if (process.env.GOOGLE_API_KEY) {
     try {
       if (pdfExtractedText) {
-        // PDF text already extracted — send to Gemini for structuring directly
+        // PDF text already extracted  send to Gemini for structuring directly
         const { scanReceiptFromText } = await import('../ai/ocr.engine');
         raw = await scanReceiptFromText(pdfExtractedText);
       } else {

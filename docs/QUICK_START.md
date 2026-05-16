@@ -1,22 +1,22 @@
-# 🚀 Quick Reference - Supabase Setup
+#  Quick Reference - Supabase Setup
 
-## ⚡ **Run These 3 Scripts:**
+##  **Run These 3 Scripts:**
 
 Open [Supabase SQL Editor](https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh/sql)
 
-### 1️⃣ **Create Tables** (Required)
+### 1 **Create Tables** (Required)
 ```sql
 -- Copy content from: supabase/migrations/001_create_tables.sql
--- Paste in SQL Editor → Run
+-- Paste in SQL Editor  Run
 ```
 
-### 2️⃣ **Enable Security** (Required)
+### 2 **Enable Security** (Required)
 ```sql
 -- Copy content from: supabase/migrations/002_enable_rls.sql
--- Paste in SQL Editor → Run
+-- Paste in SQL Editor  Run
 ```
 
-### 3️⃣ **Add Test Data** (Optional)
+### 3 **Add Test Data** (Optional)
 ```sql
 -- First, get your user ID:
 SELECT id, email FROM auth.users;
@@ -25,12 +25,12 @@ SELECT id, email FROM auth.users;
 v_user_id UUID := 'YOUR_USER_ID_HERE';
 
 -- Copy content from: supabase/migrations/003_seed_data.sql
--- Paste in SQL Editor → Run
+-- Paste in SQL Editor  Run
 ```
 
 ---
 
-## 🔑 **Your Credentials:**
+##  **Your Credentials:**
 
 ```bash
 Project URL: https://mmwrckfqeqjfqciymemh.supabase.co
@@ -40,7 +40,7 @@ Database: postgres.mmwrckfqeqjfqciymemh
 
 ---
 
-## ✅ **Verify Setup:**
+##  **Verify Setup:**
 
 ```sql
 -- Check all tables exist
@@ -56,7 +56,7 @@ WHERE table_schema = 'public' ORDER BY table_name;
 
 ---
 
-## 🧪 **Test Connection:**
+##  **Test Connection:**
 
 ### In Browser:
 1. Open http://localhost:5173
@@ -77,7 +77,7 @@ console.log({ data, error });
 
 ---
 
-## 📊 **Common Queries:**
+##  **Common Queries:**
 
 ### Get your user ID:
 ```sql
@@ -101,9 +101,9 @@ WHERE schemaname = 'public';
 
 ---
 
-## 🔄 **Reset Everything:**
+##  **Reset Everything:**
 
-⚠️ **WARNING: Deletes ALL data!**
+ **WARNING: Deletes ALL data!**
 
 ```sql
 DROP SCHEMA public CASCADE;
@@ -116,7 +116,7 @@ Then re-run migrations 001 and 002.
 
 ---
 
-## 📚 **Full Documentation:**
+##  **Full Documentation:**
 
 - **Setup Guide**: [supabase/SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)
 - **Database Schema**: [supabase/README.md](README.md)
@@ -125,27 +125,27 @@ Then re-run migrations 001 and 002.
 
 ---
 
-## 🆘 **Troubleshooting:**
+##  **Troubleshooting:**
 
 | Error | Solution |
 |-------|----------|
 | "permission denied" | Run 002_enable_rls.sql |
 | "relation does not exist" | Run 001_create_tables.sql |
-| "user does not exist" | Create user in Auth → Users |
+| "user does not exist" | Create user in Auth  Users |
 | Can't see data | Make sure you're logged in |
 
 ---
 
-## 🎯 **Next Steps:**
+##  **Next Steps:**
 
-1. ✅ Run migrations 001 & 002
-2. ✅ Create a user (Auth → Users)
-3. ✅ Run seed data (optional)
-4. ✅ Test connection in app
-5. 🔄 Start building features!
+1.  Run migrations 001 & 002
+2.  Create a user (Auth  Users)
+3.  Run seed data (optional)
+4.  Test connection in app
+5.  Start building features!
 
 ---
 
 **Dashboard**: https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh
 
-**Ready to code!** 🚀
+**Ready to code!** 

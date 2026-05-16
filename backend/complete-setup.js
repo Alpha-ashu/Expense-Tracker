@@ -3,7 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 // Create database file
 const db = new sqlite3.Database('./dev.db');
 
-console.log('🚀 Completing database setup...');
+console.log(' Completing database setup...');
 
 // Create all missing tables
 const createTables = `
@@ -59,10 +59,10 @@ CREATE INDEX IF NOT EXISTS idx_goal_target_date ON Goal(targetDate);
 db.serialize(() => {
   db.run(createTables, (err) => {
     if (err) {
-      console.error('❌ Error creating tables:', err);
+      console.error(' Error creating tables:', err);
       return;
     }
-    console.log('✅ All tables created successfully');
+    console.log(' All tables created successfully');
     
     // Add test data
     addCompleteTestData();
@@ -70,12 +70,12 @@ db.serialize(() => {
 });
 
 function addCompleteTestData() {
-  console.log('📝 Adding complete test data...');
+  console.log(' Adding complete test data...');
   
   // Get admin user
   db.get("SELECT id FROM User WHERE email = 'shaik.job.details@gmail.com'", (err, user) => {
     if (err || !user) {
-      console.error('❌ Error getting admin user:', err);
+      console.error(' Error getting admin user:', err);
       return;
     }
     
@@ -86,21 +86,21 @@ function addCompleteTestData() {
     const transactionStmt = db.prepare("INSERT INTO Transactions (id, userId, accountId, type, amount, category, description, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     transactionStmt.run([transactionId, userId, 'cl65joghvvb', 'income', 500.00, 'salary', 'Test salary income', new Date()], function(err) {
       if (err) {
-        console.error('❌ Error creating test transaction:', err);
+        console.error(' Error creating test transaction:', err);
         return;
       }
-      console.log('✅ Test transaction created');
+      console.log(' Test transaction created');
       
       // Create test goal
       const goalId = 'cl' + Math.random().toString(36).substr(2, 9);
       const goalStmt = db.prepare("INSERT INTO Goal (id, userId, name, targetAmount, currentAmount, targetDate, category) VALUES (?, ?, ?, ?, ?, ?, ?)");
       goalStmt.run([goalId, userId, 'Test Savings Goal', 1000.00, 200.00, new Date(Date.now() + 30*24*60*60*1000), 'savings'], function(err) {
         if (err) {
-          console.error('❌ Error creating test goal:', err);
+          console.error(' Error creating test goal:', err);
           return;
         }
-        console.log('✅ Test goal created');
-        console.log('🎉 Complete database setup finished!');
+        console.log(' Test goal created');
+        console.log(' Complete database setup finished!');
         db.close();
       });
       goalStmt.finalize();
@@ -111,5 +111,5 @@ function addCompleteTestData() {
 
 // Handle errors
 db.on('error', (err) => {
-  console.error('❌ Database error:', err);
+  console.error(' Database error:', err);
 });

@@ -1,10 +1,10 @@
-# 🔌 RBAC Backend Integration Guide
+#  RBAC Backend Integration Guide
 
 Guide for backend developers to implement RBAC validation on API endpoints.
 
 ---
 
-## 📌 Overview
+##  Overview
 
 The RBAC system defines permissions in the frontend, but **backend must validate all requests** for security.
 
@@ -12,10 +12,10 @@ The RBAC system defines permissions in the frontend, but **backend must validate
 
 ---
 
-## 🏗️ Backend Architecture
+##  Backend Architecture
 
 ```
-Request → Auth Middleware → Role Check → Permission Check → Action
+Request  Auth Middleware  Role Check  Permission Check  Action
                 (JWT)         (Parse)      (Validate)       (Execute)
 ```
 
@@ -29,7 +29,7 @@ Request → Auth Middleware → Role Check → Permission Check → Action
 
 ---
 
-## 🔐 Auth Middleware Implementation
+##  Auth Middleware Implementation
 
 ### Node.js/Express Example
 
@@ -80,7 +80,7 @@ export const parseUserRole = (
 ): 'admin' | 'advisor' | 'user' => {
   // Admin check (hardcoded)
   if (email.toLowerCase() === 'shake.job.atgmail.com') {
-    console.log('🔐 Admin role assigned to:', email);
+    console.log(' Admin role assigned to:', email);
     return 'admin';
   }
   
@@ -105,7 +105,7 @@ export const parseUserRole = (
 
 ---
 
-## ✅ Permission Check Middleware
+##  Permission Check Middleware
 
 ### Generic Permission Checker
 
@@ -208,7 +208,7 @@ export const canPerformAction = (role: string, action: string): boolean => {
 
 ---
 
-## 🛣️ Route Examples
+##  Route Examples
 
 ### Admin-Only Endpoint
 
@@ -364,7 +364,7 @@ router.post(
 
 ---
 
-## 🧪 Session Management API
+##  Session Management API
 
 ### Accept/Reject Booking (Advisor Only)
 
@@ -484,7 +484,7 @@ router.post(
 
 ---
 
-## 🔍 Data Validation Examples
+##  Data Validation Examples
 
 ### Validate Request User Owns Resource
 
@@ -534,7 +534,7 @@ router.get(
 
 ---
 
-## 📊 Logging & Audit Trail
+##  Logging & Audit Trail
 
 ```typescript
 // utils/auditLog.ts
@@ -619,7 +619,7 @@ router.post(
 
 ---
 
-## ✅ API Endpoint Checklist
+##  API Endpoint Checklist
 
 ### Admin Endpoints
 - [ ] POST `/api/admin/feature-control` - Change feature status
@@ -650,17 +650,17 @@ router.post(
 
 ---
 
-## 🚨 Security Considerations
+##  Security Considerations
 
 ### Never Trust Client-Side Permissions
 ```typescript
-// ❌ WRONG - Never do this
+//  WRONG - Never do this
 const token = req.headers.authorization;
 if (token.includes('admin')) {  // Client could forge token
   // Grant admin access
 }
 
-// ✅ CORRECT - Always verify
+//  CORRECT - Always verify
 const decoded = jwt.verify(token, SECRET);
 if (decoded.email === 'shake.job.atgmail.com') {
   // Grant admin access
@@ -669,13 +669,13 @@ if (decoded.email === 'shake.job.atgmail.com') {
 
 ### Always Validate Request Data
 ```typescript
-// ❌ WRONG
+//  WRONG
 router.post('/api/payment', (req) => {
   const { amount } = req.body;
   processPayment(amount); // What if amount is $1,000,000?
 });
 
-// ✅ CORRECT
+//  CORRECT
 router.post('/api/payment', (req) => {
   const booking = await getBooking(req.body.bookingId);
   const { amount } = booking; // Use stored amount, not from client
@@ -685,12 +685,12 @@ router.post('/api/payment', (req) => {
 
 ### Prevent Privilege Escalation
 ```typescript
-// ❌ WRONG - User could change their role
+//  WRONG - User could change their role
 app.post('/api/user/profile', (req) => {
   updateUser(req.body); // Includes role
 });
 
-// ✅ CORRECT - Role comes from token only
+//  CORRECT - Role comes from token only
 app.post('/api/user/profile', (req) => {
   const { name, email, phone } = req.body;
   // role is NOT updated from request body
@@ -700,7 +700,7 @@ app.post('/api/user/profile', (req) => {
 
 ---
 
-## 📝 Related Files
+##  Related Files
 
 - Frontend RBAC: [rbac.ts](../frontend/src/lib/rbac.ts)
 - Frontend Hooks: [useRBAC.ts](../frontend/src/hooks/useRBAC.ts)

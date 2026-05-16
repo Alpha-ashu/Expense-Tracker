@@ -2,7 +2,7 @@
 
 Welcome to the Expense Tracker documentation. This guide will help you navigate through all available documentation resources.
 
-## 📚 Table of Contents
+##  Table of Contents
 
 ### Getting Started
 - [Quick Start Guide](./QUICK_START.md) - Get up and running in minutes
@@ -39,36 +39,36 @@ Welcome to the Expense Tracker documentation. This guide will help you navigate 
 ### Admin
 - [Admin Feature Flags](./ADMIN_FEATURE_FLAGS.md) - Feature flag management
 
-## 🗂️ Documentation Structure
+##  Documentation Structure
 
 ```
 docs/
-├── README.md                          # This file
-├── QUICK_START.md                     # Quick start guide
-├── FEATURES.md                        # Features specification
-├── architecture.md                    # Architecture documentation
-├── api.md                             # API documentation
-├── deployment.md                      # Deployment guide
-├── deployment-guide.md                # Extended deployment guide
-├── ADMIN_FEATURE_FLAGS.md             # Admin controls
-│
-├── setup/                             # Setup guides
-│   ├── DATABASE_SETUP_GUIDE.md
-│   ├── SUPABASE_SETUP.md
-│   └── docker-postgres-setup.md
-│
-├── implementation/                    # Implementation docs
-│   ├── IMPLEMENTATION_STATUS.md
-│   ├── INTEGRATION_COMPLETE.md
-│   ├── MOBILE_OPTIMIZATION.md
-│   └── QUICK_ACTIONS_IMPLEMENTATION.md
-│
-└── fixes/                             # Technical fixes
-    ├── BOTTOM_NAV_SAFE_AREA_FIX.md
-    └── EMAIL_CONFIRMATION_FIX.md
+ README.md                          # This file
+ QUICK_START.md                     # Quick start guide
+ FEATURES.md                        # Features specification
+ architecture.md                    # Architecture documentation
+ api.md                             # API documentation
+ deployment.md                      # Deployment guide
+ deployment-guide.md                # Extended deployment guide
+ ADMIN_FEATURE_FLAGS.md             # Admin controls
+
+ setup/                             # Setup guides
+    DATABASE_SETUP_GUIDE.md
+    SUPABASE_SETUP.md
+    docker-postgres-setup.md
+
+ implementation/                    # Implementation docs
+    IMPLEMENTATION_STATUS.md
+    INTEGRATION_COMPLETE.md
+    MOBILE_OPTIMIZATION.md
+    QUICK_ACTIONS_IMPLEMENTATION.md
+
+ fixes/                             # Technical fixes
+     BOTTOM_NAV_SAFE_AREA_FIX.md
+     EMAIL_CONFIRMATION_FIX.md
 ```
 
-## 🎯 Quick Links by Role
+##  Quick Links by Role
 
 ### For Developers
 1. [Quick Start](./QUICK_START.md)
@@ -90,7 +90,7 @@ docs/
 1. [Admin Feature Flags](./ADMIN_FEATURE_FLAGS.md)
 2. [Deployment Guide](./deployment.md)
 
-## 📖 Documentation Standards
+##  Documentation Standards
 
 All documentation in this project follows these standards:
 
@@ -101,7 +101,7 @@ All documentation in this project follows these standards:
 - **Cross-References**: Links to related documentation
 - **Version Info**: Last updated dates and version compatibility
 
-## 🔄 Keeping Documentation Updated
+##  Keeping Documentation Updated
 
 When making changes:
 
@@ -111,7 +111,7 @@ When making changes:
 4. Cross-reference related documentation
 5. Test all code examples
 
-## 🤝 Contributing to Documentation
+##  Contributing to Documentation
 
 To contribute documentation:
 
@@ -122,15 +122,15 @@ To contribute documentation:
 5. Update the index file
 6. Submit a pull request
 
-## 📞 Documentation Support
+##  Documentation Support
 
 If you find any issues or have suggestions:
 
-- 🐛 Report documentation bugs in [GitHub Issues](https://github.com/Alpha-ashu/Expense-Tracker/issues)
-- 💬 Ask questions in [Discussions](https://github.com/Alpha-ashu/Expense-Tracker/discussions)
-- ✏️ Submit documentation improvements via Pull Requests
+-  Report documentation bugs in [GitHub Issues](https://github.com/Alpha-ashu/Expense-Tracker/issues)
+-  Ask questions in [Discussions](https://github.com/Alpha-ashu/Expense-Tracker/discussions)
+-  Submit documentation improvements via Pull Requests
 
-## 🔗 External Resources
+##  External Resources
 
 - [React Documentation](https://react.dev/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)

@@ -347,18 +347,18 @@ Routes are processed in this order:
 
 ```
 1. Public routes (no auth)
-   ├─ POST /auth/register
-   ├─ POST /auth/login
-   └─ GET  /advisors
+    POST /auth/register
+    POST /auth/login
+    GET  /advisors
 
 2. Auth required
-   ├─ authMiddleware
-   └─ requireRole/requireFeature
+    authMiddleware
+    requireRole/requireFeature
 
 3. Admin only
-   ├─ authMiddleware
-   ├─ requireRole('admin')
-   └─ endpoint handler
+    authMiddleware
+    requireRole('admin')
+    endpoint handler
 ```
 
 **Key:** You can't have `requireRole()` without `authMiddleware` first!
@@ -377,8 +377,8 @@ const login = async (email, password) => {
   // NOW includes role!
   setUser({
     ...response.user,
-    role: response.user.role,        // ← NEW
-    isApproved: response.user.isApproved // ← NEW
+    role: response.user.role,        //  NEW
+    isApproved: response.user.isApproved //  NEW
   });
   
   setToken(response.accessToken);
@@ -442,14 +442,14 @@ const initiatePayment = async (sessionId) => {
 
 ## Security Reminders
 
-✅ **DO:**
+ **DO:**
 - Always include auth token in protected endpoints
 - Validate data on both frontend AND backend
 - Use HTTPS in production
 - Store JWT securely (httpOnly cookies if possible)
 - Implement CSRF protection
 
-❌ **DON'T:**
+ **DON'T:**
 - Store passwords in plain text (bcrypt handles this)
 - Trust client-side role checks (backend validates)
 - Expose sensitive errors to users
@@ -548,15 +548,15 @@ BOOKING=$(curl -s -X POST $API/bookings \
 BOOKING_ID=$(echo $BOOKING | jq -r '.id')
 echo "Booking ID: $BOOKING_ID"
 
-echo "✅ Basic flow working!"
+echo " Basic flow working!"
 ```
 
 ---
 
 ## This Quarter's Goals
 
-- [x] Phase 1: RBAC System ✅
-- [x] Phase 2: Advisor Booking ✅
+- [x] Phase 1: RBAC System 
+- [x] Phase 2: Advisor Booking 
 - [ ] Stripe/Razorpay integration (next)
 - [ ] WebSocket real-time (next)
 - [ ] Email notifications (next)

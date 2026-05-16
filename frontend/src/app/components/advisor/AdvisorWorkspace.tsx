@@ -184,7 +184,7 @@ export const AdvisorWorkspace: React.FC = () => {
                               <p className="font-bold text-gray-900">{b.client?.name ?? 'Client'}</p>
                               <p className="text-xs text-gray-500">{b.client?.email}</p>
                               <p className="text-sm text-gray-700 mt-1">{b.description}</p>
-                              <p className="text-xs text-gray-400 mt-1">{b.sessionType} · {new Date(b.proposedDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })} at {b.proposedTime}</p>
+                              <p className="text-xs text-gray-400 mt-1">{b.sessionType}  {new Date(b.proposedDate).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })} at {b.proposedTime}</p>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -215,7 +215,7 @@ export const AdvisorWorkspace: React.FC = () => {
                       <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center font-black text-indigo-600 text-sm shrink-0">{b.client?.name?.charAt(0) ?? '?'}</div>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-900 text-sm">{b.client?.name ?? 'Client'}</p>
-                        <p className="text-xs text-gray-500">{b.sessionType} · {new Date(b.proposedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} at {b.proposedTime}</p>
+                        <p className="text-xs text-gray-500">{b.sessionType}  {new Date(b.proposedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} at {b.proposedTime}</p>
                       </div>
                       {getStatusBadge(b.status)}
                     </div>
@@ -280,7 +280,7 @@ export const AdvisorWorkspace: React.FC = () => {
                         <button onClick={() => updateDaySlot(idx, !(slot?.isActive))}
                           className={cn('px-4 py-2 rounded-xl text-sm font-bold border-2 transition-all whitespace-nowrap shrink-0',
                             slot?.isActive ? 'border-emerald-400 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-indigo-300')}>
-                          {slot?.isActive ? '✓ Active' : 'Set Active'}
+                          {slot?.isActive ? ' Active' : 'Set Active'}
                         </button>
                       </div>
                     </div>
@@ -295,7 +295,7 @@ export const AdvisorWorkspace: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white">
                     <TrendingUp size={20} className="mb-2 opacity-80" />
-                    <p className="text-2xl font-black">₹{totalEarnings.toLocaleString('en-IN')}</p>
+                    <p className="text-2xl font-black">{totalEarnings.toLocaleString('en-IN')}</p>
                     <p className="text-sm text-emerald-100 mt-0.5">Total Earnings</p>
                   </div>
                   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -312,10 +312,10 @@ export const AdvisorWorkspace: React.FC = () => {
                     <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0"><IndianRupee size={16} className="text-emerald-600" /></div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-900 text-sm">{s.client?.name ?? 'Client'}</p>
-                      <p className="text-xs text-gray-500">{s.sessionType} · {s.startTime ? new Date(s.startTime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'}</p>
+                      <p className="text-xs text-gray-500">{s.sessionType}  {s.startTime ? new Date(s.startTime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      {s.amount ? <p className="font-black text-emerald-700 text-sm">₹{Number(s.amount).toLocaleString('en-IN')}</p> : <p className="text-xs text-gray-400">—</p>}
+                      {s.amount ? <p className="font-black text-emerald-700 text-sm">{Number(s.amount).toLocaleString('en-IN')}</p> : <p className="text-xs text-gray-400"></p>}
                       {s.rating && <span className="flex items-center gap-0.5 text-amber-500 text-xs justify-end"><Star size={10} className="fill-amber-400" />{s.rating}</span>}
                     </div>
                     {getStatusBadge(s.status)}

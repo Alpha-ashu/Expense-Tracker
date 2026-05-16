@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Users, Target, Heart, Zap, Globe, Lock } from 'lucide-react';
 import { KANKULogo } from '@/app/components/ui/KANKULogo';

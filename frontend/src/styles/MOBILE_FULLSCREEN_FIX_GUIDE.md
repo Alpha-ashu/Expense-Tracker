@@ -81,7 +81,7 @@ This fix ensures that all pages in the KANKUapplication display in full screen o
 
 ## Responsive Breakpoints
 
-### ≤320px (Extra Small)
+### 320px (Extra Small)
 - Minimal padding (0.5rem)
 - Compact gaps (0.5rem)
 - Ultra-compact layout
@@ -208,11 +208,11 @@ File: `mobile-test-classes.css` (commented out by default)
 ## Browser Compatibility
 
 ### Supported Browsers
-- ✅ Chrome (Mobile)
-- ✅ Safari (iOS)
-- ✅ Firefox (Mobile)
-- ✅ Edge (Mobile)
-- ✅ Samsung Internet
+-  Chrome (Mobile)
+-  Safari (iOS)
+-  Firefox (Mobile)
+-  Edge (Mobile)
+-  Samsung Internet
 
 ### CSS Features Used
 - `viewport-fit=cover` for full-screen support

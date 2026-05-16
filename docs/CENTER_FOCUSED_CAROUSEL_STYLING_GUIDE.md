@@ -435,24 +435,24 @@ const handleCarouselScroll = () => {
 ### GPU Acceleration
 CSS properties that trigger GPU acceleration:
 ```css
-transform: scale(1);        /* ✅ GPU accelerated */
-opacity: 1;                 /* ✅ GPU accelerated */
-transition: all 0.3s;       /* ✅ Smooth 60fps */
+transform: scale(1);        /*  GPU accelerated */
+opacity: 1;                 /*  GPU accelerated */
+transition: all 0.3s;       /*  Smooth 60fps */
 ```
 
 Avoid these for animations:
 ```css
-left/right/top/bottom       /* ❌ CPU intensive */
-width/height                /* ❌ CPU intensive */
-font-size                   /* ❌ CPU intensive */
+left/right/top/bottom       /*  CPU intensive */
+width/height                /*  CPU intensive */
+font-size                   /*  CPU intensive */
 ```
 
 ### Import Optimization
 ```tsx
-// ✅ Only import needed icons
+//  Only import needed icons
 import { Plus, Wallet, CreditCard } from 'lucide-react';
 
-// ❌ Avoid importing entire library
+//  Avoid importing entire library
 import * as Icons from 'lucide-react';
 ```
 

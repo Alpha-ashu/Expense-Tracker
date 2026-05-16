@@ -79,11 +79,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-key
 Create `api` directory in frontend:
 ```
 frontend/
-├── api/
-│   ├── auth/
-│   │   ├── register.ts
-│   │   └── login.ts
-│   └── health.ts
+ api/
+    auth/
+       register.ts
+       login.ts
+    health.ts
 ```
 
 **Example API Route (`frontend/api/health.ts`):**

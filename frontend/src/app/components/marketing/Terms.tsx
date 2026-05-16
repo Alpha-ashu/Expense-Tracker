@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Shield, Info, AlertTriangle, Scale, Mail } from 'lucide-react';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';

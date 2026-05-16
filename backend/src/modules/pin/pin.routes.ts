@@ -102,7 +102,7 @@ router.get('/status', async (req: AuthRequest, res: Response, next: NextFunction
     const result = await pinService.getPinStatus(req.user?.id || '');
     res.json(result);
   } catch (error) {
-    // PIN status is non-critical — degrade gracefully rather than erroring
+    // PIN status is non-critical  degrade gracefully rather than erroring
     res.json({
       success: false,
       message: 'PIN service temporarily unavailable',

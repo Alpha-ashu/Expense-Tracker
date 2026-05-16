@@ -1,25 +1,36 @@
-﻿:root {
+:root {
   /* Spacing Tokens */
-  --space-xs: 0.25rem;  /* 4px */
-  --space-sm: 0.5rem;   /* 8px */
-  --space-md: 0.75rem;  /* 12px */
-  --space-lg: 1rem;     /* 16px */
-  --space-xl: 1.5rem;   /* 24px */
-  --space-2xl: 2rem;    /* 32px */
-  --space-3xl: 3rem;    /* 48px */
+  --space-xs: 0.25rem;
+  /* 4px */
+  --space-sm: 0.5rem;
+  /* 8px */
+  --space-md: 0.75rem;
+  /* 12px */
+  --space-lg: 1rem;
+  /* 16px */
+  --space-xl: 1.5rem;
+  /* 24px */
+  --space-2xl: 2rem;
+  /* 32px */
+  --space-3xl: 3rem;
+  /* 48px */
 
   /* Radius Tokens */
   --radius-xs: 0.5rem;
   --radius-sm: 0.75rem;
   --radius-md: 1rem;
   --radius-lg: 1.5rem;
-  --radius-xl: 2.5rem;  /* 40px */
+  --radius-xl: 2.5rem;
+  /* 40px */
   --radius-full: 9999px;
 
   /* Height Tokens */
-  --h-button: 2.75rem;  /* 44px */
-  --h-input: 2.75rem;   /* 44px */
-  --h-header: 4rem;     /* 64px */
+  --h-button: 2.75rem;
+  /* 44px */
+  --h-input: 2.75rem;
+  /* 44px */
+  --h-header: 4rem;
+  /* 64px */
 
   /* Layout Tokens */
   --max-w-app: 1280px;
@@ -32,7 +43,7 @@
   }
 }
 
-/* â”€â”€â”€ Global Layout System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Global Layout System */
 
 .layout-container {
   width: 100%;
@@ -72,7 +83,7 @@
   z-index: 10;
 }
 
-/* â”€â”€â”€ Standardized Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Standardized Components */
 
 .KANKU-card {
   background-color: white;
@@ -89,7 +100,8 @@
   padding: 0 var(--space-xl);
   border-radius: var(--radius-md);
   font-weight: 900;
-  font-size: 0.625rem; /* 10px */
+  font-size: 0.625rem;
+  /* 10px */
   text-transform: uppercase;
   letter-spacing: 0.1em;
   display: flex;
@@ -100,7 +112,8 @@
 }
 
 .KANKU-btn-primary {
-  background-color: #EF4444; /* Standard Red */
+  background-color: #EF4444;
+  /* Standard Red */
   color: white;
   box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
 }
@@ -145,7 +158,8 @@
   background-color: #F8FAFC;
   border: 1px solid #F1F5F9;
   border-radius: var(--radius-md);
-  height: 2.5rem; /* 40px */
+  height: 2.5rem;
+  /* 40px */
   padding-left: 2.75rem;
   font-size: 0.875rem;
   width: 100%;
@@ -160,10 +174,11 @@
   outline: none;
 }
 
-/* â”€â”€â”€ Typography & Alignment Utilities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Typography & Alignment Utilities */
 
 .KANKU-label {
-  font-size: 0.625rem; /* 10px */
+  font-size: 0.625rem;
+  /* 10px */
   font-weight: 900;
   color: #94A3B8;
   text-transform: uppercase;
@@ -188,7 +203,7 @@
   justify-content: center;
 }
 
-/* â”€â”€â”€ Header Specifics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Header Specifics */
 
 .page-title {
   font-size: 1.5rem;
@@ -228,7 +243,7 @@
 .segment-btn-active {
   background-color: white;
   color: #0F172A;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .segment-btn-inactive {
@@ -238,4 +253,3 @@
 .segment-btn-inactive:hover {
   color: #64748B;
 }
-

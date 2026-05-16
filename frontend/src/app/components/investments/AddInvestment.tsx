@@ -21,12 +21,12 @@ import '@/styles/premium-transactions.css';
 type InvestmentFormType = 'stocks' | 'bonds' | 'mutual-funds' | 'real-estate' | 'crypto' | 'other';
 
 const INVESTMENT_TYPES = [
-  { key: 'stocks', label: 'Stocks', icon: '📈' },
-  { key: 'crypto', label: 'Crypto', icon: '₿' },
-  { key: 'mutual-funds', label: 'Funds', icon: '🏦' },
-  { key: 'real-estate', label: 'Property', icon: '🏠' },
-  { key: 'bonds', label: 'Bonds', icon: '📜' },
-  { key: 'other', label: 'Other', icon: '✨' },
+  { key: 'stocks', label: 'Stocks', icon: '' },
+  { key: 'crypto', label: 'Crypto', icon: '' },
+  { key: 'mutual-funds', label: 'Funds', icon: '' },
+  { key: 'real-estate', label: 'Property', icon: '' },
+  { key: 'bonds', label: 'Bonds', icon: '' },
+  { key: 'other', label: 'Other', icon: '' },
 ];
 
 const PENDING_INVESTMENT_DRAFT_KEY = 'pendingInvestmentDraft';

@@ -368,7 +368,7 @@ class SyncService {
 
       const existingDup = await prisma.transaction.findUnique({ where: { dedupHash } });
       if (existingDup) {
-        // Duplicate from another device — skip silently
+        // Duplicate from another device  skip silently
         return;
       }
 
@@ -415,7 +415,7 @@ class SyncService {
       } else {
         const localVersion = typeof data?.version === 'number' ? data.version : 0;
         if (localVersion <= existing.version) {
-          // Server version is same or newer — conflict
+          // Server version is same or newer  conflict
           conflicts.push({
             entityType: 'transactions',
             entityId,

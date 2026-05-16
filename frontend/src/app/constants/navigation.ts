@@ -13,9 +13,10 @@ import {
   User,
   CheckSquare,
   BookOpen,
+  ShieldCheck,
 } from 'lucide-react';
 
-export type UserRole = 'admin' | 'advisor' | 'user';
+export type UserRole = 'admin' | 'manager' | 'advisor' | 'user';
 
 export interface NavigationItem {
   id: string;
@@ -40,8 +41,9 @@ export const headerMenuItems: NavigationItem[] = [
   { id: 'notifications', label: 'Notifications', icon: Bell, feature: 'notifications' },
   { id: 'user-profile', label: 'Profile', icon: User, feature: 'userProfile' },
   { id: 'settings', label: 'Settings', icon: Settings, feature: 'settings' },
-  // Admin-only items
+  // Admin/Manager items
   { id: 'admin-feature-panel', label: 'Admin Panel', icon: BarChart3, feature: 'adminPanel', roles: ['admin'] },
+  { id: 'manager-advisor-verification', label: 'Advisor Verification', icon: ShieldCheck, feature: 'managerPanel', roles: ['admin', 'manager'] },
 ];
 
 export const sidebarMenuItems: NavigationItem[] = [
@@ -59,6 +61,8 @@ export const sidebarMenuItems: NavigationItem[] = [
   { id: 'settings', label: 'Settings', icon: Settings, feature: 'settings' },
   // Admin-only items
   { id: 'admin-feature-panel', label: 'Admin Panel', icon: BarChart3, feature: 'adminPanel', roles: ['admin'] },
+  // Manager-only items
+  { id: 'manager-advisor-verification', label: 'Advisor Verification', icon: ShieldCheck, feature: 'managerPanel', roles: ['manager', 'admin'] },
   // Advisor-only items
   { id: 'advisor-panel', label: 'Advisor Panel', icon: Users, feature: 'advisorPanel', roles: ['advisor'] },
 ];

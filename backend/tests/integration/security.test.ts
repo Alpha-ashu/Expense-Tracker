@@ -12,7 +12,7 @@ const getAuthHeaders = (token = 'mock-access-token') => ({
 });
 
 describe('SECURITY TESTS', () => {
-  // ───────── SQL Injection ─────────
+  //  SQL Injection 
   describe('SQL Injection Prevention', () => {
     it('should prevent SQL injection in login email', async () => {
       const res = await request(app)
@@ -49,7 +49,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── NoSQL Injection ─────────
+  //  NoSQL Injection 
   describe('NoSQL Injection Prevention', () => {
     it('should prevent NoSQL injection in login', async () => {
       const res = await request(app)
@@ -66,7 +66,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── XSS Prevention ─────────
+  //  XSS Prevention 
   describe('XSS Prevention', () => {
     it('should not reflect XSS in error responses', async () => {
       const res = await request(app)
@@ -99,7 +99,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── Authentication Bypass ─────────
+  //  Authentication Bypass 
   describe('Authentication Bypass Prevention', () => {
     it('should reject requests without Authorization header', async () => {
       const endpoints = [
@@ -152,7 +152,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── Authorization (RBAC) ─────────
+  //  Authorization (RBAC) 
   describe('RBAC Enforcement', () => {
     it('should reject non-admin from admin endpoints', async () => {
       const adminEndpoints = [
@@ -171,7 +171,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── IDOR (Insecure Direct Object Reference) ─────────
+  //  IDOR (Insecure Direct Object Reference) 
   describe('IDOR Prevention', () => {
     it('should not allow accessing other users data via ID manipulation', async () => {
       const res = await request(app)
@@ -189,7 +189,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── Content Type Validation ─────────
+  //  Content Type Validation 
   describe('Content Type Validation', () => {
     it('should handle non-JSON content type', async () => {
       const res = await request(app)
@@ -208,7 +208,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── HTTP Method Enforcement ─────────
+  //  HTTP Method Enforcement 
   describe('HTTP Method Enforcement', () => {
     it('should reject GET on POST-only auth endpoints', async () => {
       const res = await request(app).get(`${API}/auth/register`);
@@ -221,7 +221,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── Response Headers ─────────
+  //  Response Headers 
   describe('Security Headers', () => {
     it('should not expose server technology in headers', async () => {
       const res = await request(app).get('/health');
@@ -238,7 +238,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── Payload Size ─────────
+  //  Payload Size 
   describe('Payload Size Limits', () => {
     it('should reject extremely large request body', async () => {
       const largePayload = { data: 'x'.repeat(10 * 1024 * 1024) }; // 10MB
@@ -249,7 +249,7 @@ describe('SECURITY TESTS', () => {
     });
   });
 
-  // ───────── Path Traversal ─────────
+  //  Path Traversal 
   describe('Path Traversal Prevention', () => {
     it('should not allow path traversal in route params', async () => {
       const res = await request(app)

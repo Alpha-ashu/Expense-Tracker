@@ -1,10 +1,10 @@
-# 🔐 Role-Based Access Control (RBAC) System Implementation
+#  Role-Based Access Control (RBAC) System Implementation
 
 This document outlines the complete RBAC system implemented in the Expense Tracker application.
 
 ---
 
-## 📋 System Overview
+##  System Overview
 
 The application implements a **three-tier role hierarchy**:
 
@@ -14,7 +14,7 @@ The application implements a **three-tier role hierarchy**:
 
 ---
 
-## 👤 Admin Role
+##  Admin Role
 
 ### Access Requirements
 - **Email Only**: `shake.job.atgmail.com`
@@ -22,19 +22,19 @@ The application implements a **three-tier role hierarchy**:
 - **Security**: Cannot be overridden by metadata or environment variables
 
 ### Admin Capabilities
-✅ Access to **ALL features**  
-✅ Access to **ALL new features before public release**  
-✅ Feature control panel (Feature Readiness Management)  
-✅ Can test and validate features in staging environment  
-✅ Can approve features for public release  
-✅ Can manage feature rollout by setting readiness status  
-✅ Can view all users and statistics  
-✅ Can manage advisor accounts  
+ Access to **ALL features**  
+ Access to **ALL new features before public release**  
+ Feature control panel (Feature Readiness Management)  
+ Can test and validate features in staging environment  
+ Can approve features for public release  
+ Can manage feature rollout by setting readiness status  
+ Can view all users and statistics  
+ Can manage advisor accounts  
 
 ### Admin Actions
-- **Features** → Accounts, Transactions, Loans, Goals, Groups, Investments, Reports, Calendar, ToDoLists, Transfer, TaxCalculator, BookAdvisor
-- **Admin Panel** → Feature Control Panel (new route: `admin-feature-panel`)
-- **Feature Control** → Manage feature readiness (unreleased, beta, released, deprecated)
+- **Features**  Accounts, Transactions, Loans, Goals, Groups, Investments, Reports, Calendar, ToDoLists, Transfer, TaxCalculator, BookAdvisor
+- **Admin Panel**  Feature Control Panel (new route: `admin-feature-panel`)
+- **Feature Control**  Manage feature readiness (unreleased, beta, released, deprecated)
 
 ### Files
 - Component: `frontend/src/app/components/AdminFeaturePanel.tsx`
@@ -42,7 +42,7 @@ The application implements a **three-tier role hierarchy**:
 
 ---
 
-## 👔 Advisor Role
+##  Advisor Role
 
 ### How to Get Advisor Role
 Add email to environment variable:
@@ -58,25 +58,25 @@ Or user metadata during registration:
 ```
 
 ### Advisor Capabilities
-✅ All standard user features EXCEPT `bookAdvisor`  
-✅ Can set availability schedule  
-✅ Can receive and manage booking requests  
-✅ Can start chat/audio/video sessions  
-✅ Can complete sessions  
-✅ Can receive payments/settlements  
-✅ Access to **Advisor Panel**  
+ All standard user features EXCEPT `bookAdvisor`  
+ Can set availability schedule  
+ Can receive and manage booking requests  
+ Can start chat/audio/video sessions  
+ Can complete sessions  
+ Can receive payments/settlements  
+ Access to **Advisor Panel**  
 
 ### What Advisors CANNOT Do
-❌ Cannot book other advisors (no self-booking)  
-❌ Cannot access admin features  
-❌ Cannot control feature flags  
+ Cannot book other advisors (no self-booking)  
+ Cannot access admin features  
+ Cannot control feature flags  
 
 ### Advisor Actions
-- **Setup Availability** → Set working hours and days
-- **Manage Bookings** → Accept/reject booking requests from users
-- **Session Management** → Start and complete sessions
-- **Earnings** → View and track payments received
-- **Session History** → View completed sessions and ratings
+- **Setup Availability**  Set working hours and days
+- **Manage Bookings**  Accept/reject booking requests from users
+- **Session Management**  Start and complete sessions
+- **Earnings**  View and track payments received
+- **Session History**  View completed sessions and ratings
 
 ### Files
 - Component: `frontend/src/app/components/AdvisorPanel.tsx`
@@ -86,51 +86,51 @@ Or user metadata during registration:
 
 ---
 
-## 👤 User Role
+##  User Role
 
 ### Default Role
 All users without admin/advisor designation receive the `user` role.
 
 ### User Capabilities
-✅ All standard app features (Accounts, Transactions, Loans, Goals, etc.)  
-✅ Can book financial advisors  
-✅ Can pay for sessions  
-✅ Can join sessions  
-✅ Can view session history  
-✅ Can rate advisors  
-✅ Can view notifications  
+ All standard app features (Accounts, Transactions, Loans, Goals, etc.)  
+ Can book financial advisors  
+ Can pay for sessions  
+ Can join sessions  
+ Can view session history  
+ Can rate advisors  
+ Can view notifications  
 
 ### What Users CANNOT Do
-❌ Cannot initiate chat/audio/video directly  
-❌ Cannot start sessions (only advisors can)  
-❌ Cannot access admin features  
-❌ Cannot access advisor panel  
+ Cannot initiate chat/audio/video directly  
+ Cannot start sessions (only advisors can)  
+ Cannot access admin features  
+ Cannot access advisor panel  
 
 ---
 
-## 🎯 Feature Control System
+##  Feature Control System
 
 ### Feature Readiness Levels
 
-#### 1. **Unreleased** 🔒
+#### 1. **Unreleased** 
 - Visible to **Admin only**
 - Used for feature testing and development
 - Not visible to users or advisors
 - Status: Development/Internal Testing
 
-#### 2. **Beta** 🧪
+#### 2. **Beta** 
 - Visible to **Admin + Advisors**
 - Gathering feedback from advisors
 - Testing with select group
 - Status: Pre-Community Testing
 
-#### 3. **Released** ✅
+#### 3. **Released** 
 - Visible to **Everyone** (Admin, Advisors, Users)
 - Production-ready
 - Fully supported
 - Status: Public
 
-#### 4. **Deprecated** ⚠️
+#### 4. **Deprecated** 
 - Visible to **No one**
 - Scheduled for removal
 - Users previously using it warned
@@ -152,9 +152,9 @@ Admin can change feature readiness from **Admin Feature Panel**:
 
 ---
 
-## 📊 Session Management Workflow
+##  Session Management Workflow
 
-### Complete User → Advisor Session Flow
+### Complete User  Advisor Session Flow
 
 #### Step 1: User Books Advisor
 ```
@@ -176,11 +176,11 @@ Advisor:
 - Clicks "Accept" or "Decline"
 
 If Accept:
-- Status → "accepted"
+- Status  "accepted"
 - User receives "booking_accepted" notification
 
 If Decline:
-- Status → "rejected"
+- Status  "rejected"
 - User receives "booking_rejected" notification
 ```
 
@@ -220,7 +220,7 @@ System:
 2. Calculate session amount:
    - Base: Advisor hourly rate
    - Duration: Session minutes
-   - Amount: (duration/60 minutes) × hourly rate
+   - Amount: (duration/60 minutes)  hourly rate
 
 3. Process payment:
    - User: Charged full amount
@@ -240,14 +240,14 @@ System:
 
 ### Session States
 ```
-pending → accepted → ready → active → completed
+pending  accepted  ready  active  completed
 ```
 
 Only valid state transitions allowed.
 
 ---
 
-## 🔔 Notification System
+##  Notification System
 
 ### Notification Triggers
 
@@ -287,7 +287,7 @@ const isCritical = shouldPlayAlert('booking_request'); // true
 
 ---
 
-## 💳 Payment Settlement System
+##  Payment Settlement System
 
 ### Payment Flow
 
@@ -312,7 +312,7 @@ const isCritical = shouldPlayAlert('booking_request'); // true
 
 ### Payment States
 ```
-pending → processing → completed → [optional: refunded]
+pending  processing  completed  [optional: refunded]
 ```
 
 ### Fee Structure
@@ -330,85 +330,85 @@ Advisor Settlement (90%): $90
 
 ---
 
-## 🔧 Implementation Files
+##  Implementation Files
 
 ### Core RBAC System
 ```
 frontend/src/lib/rbac.ts
-├── ROLE_PERMISSIONS (all roles and capabilities)
-├── isAdminEmail() (strict admin validation)
-├── hasFeatureAccess() (check feature permission)
-├── canPerformAction() (check action permission)
-├── isFeatureVisible() (check readiness + role)
-└── Feature readiness definitions
+ ROLE_PERMISSIONS (all roles and capabilities)
+ isAdminEmail() (strict admin validation)
+ hasFeatureAccess() (check feature permission)
+ canPerformAction() (check action permission)
+ isFeatureVisible() (check readiness + role)
+ Feature readiness definitions
 ```
 
 ### Hooks for Components
 ```
 frontend/src/hooks/useRBAC.ts
-├── useFeatureAccess(feature)
-├── useActionPermission(action)
-├── useIsAdmin()
-├── useIsAdvisor()
-├── useIsUser()
-└── useRequireRole(role)
+ useFeatureAccess(feature)
+ useActionPermission(action)
+ useIsAdmin()
+ useIsAdvisor()
+ useIsUser()
+ useRequireRole(role)
 ```
 
 ### Session Management
 ```
 frontend/src/lib/sessionManagement.ts
-├── AdvisorBooking interface
-├── AdvisorSession interface
-├── SESSION_STATE_FLOW
-├── isValidStateTransition()
-└── Session utilities
+ AdvisorBooking interface
+ AdvisorSession interface
+ SESSION_STATE_FLOW
+ isValidStateTransition()
+ Session utilities
 ```
 
 ### Notifications
 ```
 frontend/src/lib/notificationSystem.ts
-├── Notification templates
-├── createNotification()
-├── getNotificationRecipients()
-├── shouldPlayAlert()
-└── Critical notification rules
+ Notification templates
+ createNotification()
+ getNotificationRecipients()
+ shouldPlayAlert()
+ Critical notification rules
 ```
 
 ### Payments
 ```
 frontend/src/lib/paymentSettlement.ts
-├── Payment interface
-├── PLATFORM_FEE_PERCENTAGE (10%)
-├── calculatePlatformSplit()
-├── processPayment()
-├── settlePaymentToAdvisor()
-└── refundPayment()
+ Payment interface
+ PLATFORM_FEE_PERCENTAGE (10%)
+ calculatePlatformSplit()
+ processPayment()
+ settlePaymentToAdvisor()
+ refundPayment()
 ```
 
 ### Auth Context (Updated)
 ```
 frontend/src/contexts/AuthContext.tsx
-├── Strict admin email validation
-├── Role resolution with RBAC
-├── Email-based admin check
-└── Advisor email list support
+ Strict admin email validation
+ Role resolution with RBAC
+ Email-based admin check
+ Advisor email list support
 ```
 
 ### Components
 ```
 frontend/src/app/components/AdminFeaturePanel.tsx
-└── Admin feature control interface
+ Admin feature control interface
 
 frontend/src/app/components/AdvisorPanel.tsx
-└── Advisor workspace and management
+ Advisor workspace and management
 
 frontend/src/app/components/BookAdvisor.tsx
-└── User booking interface (updated)
+ User booking interface (updated)
 ```
 
 ---
 
-## 🛡️ Security Measures
+##  Security Measures
 
 ### Admin Email Lock
 - Admin role is **hardcoded** to `shake.job.atgmail.com`
@@ -430,7 +430,7 @@ frontend/src/app/components/BookAdvisor.tsx
 
 ---
 
-## 📦 Environment Setup
+##  Environment Setup
 
 ### Required Environment Variables
 
@@ -450,7 +450,7 @@ VITE_ADMIN_EMAILS=shake.job.atgmail.com
 
 ---
 
-## 🎯 Future Enhancements
+##  Future Enhancements
 
 1. **Payment Gateway Integration**
    - Stripe/Razorpay integration
@@ -479,7 +479,7 @@ VITE_ADMIN_EMAILS=shake.job.atgmail.com
 
 ---
 
-## ✅ Testing Checklist
+##  Testing Checklist
 
 - [ ] Admin email `shake.job.atgmail.com` can access admin panel
 - [ ] Other emails cannot access admin panel
@@ -494,7 +494,7 @@ VITE_ADMIN_EMAILS=shake.job.atgmail.com
 
 ---
 
-## 📞 Support
+##  Support
 
 For issues or questions about the RBAC system, refer to:
 - Feature flags: `frontend/src/lib/rbac.ts`

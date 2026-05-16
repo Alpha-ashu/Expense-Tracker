@@ -32,19 +32,19 @@ The Expense Tracker is a modern full-stack application built with TypeScript, Re
 
 ```
 expense-tracker/
-├── backend/           # Node.js API server
-│   ├── src/
-│   │   ├── modules/   # Feature modules (auth, users, todos)
-│   │   ├── middleware/ # Express middleware
-│   │   ├── utils/     # Shared utilities
-│   │   └── config/    # Configuration
-│   └── prisma/        # Database schema
-├── frontend/          # React application
-│   ├── src/
-│   │   ├── app/       # Application logic
-│   │   ├── components/ # Reusable components
-│   │   └── lib/       # Utilities
-└── docs/              # Documentation
+ backend/           # Node.js API server
+    src/
+       modules/   # Feature modules (auth, users, todos)
+       middleware/ # Express middleware
+       utils/     # Shared utilities
+       config/    # Configuration
+    prisma/        # Database schema
+ frontend/          # React application
+    src/
+       app/       # Application logic
+       components/ # Reusable components
+       lib/       # Utilities
+ docs/              # Documentation
 ```
 
 ## API Design

@@ -54,98 +54,98 @@
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Onboarding Flow Test</h1>
+        <h1> Onboarding Flow Test</h1>
         
         <div class="test-section">
-            <h2>📋 Test Summary</h2>
+            <h2> Test Summary</h2>
             <p>Testing the improved onboarding experience with the following changes:</p>
             <ul>
-                <li>✅ Removed emergency contact section</li>
-                <li>✅ Simplified profile setup (removed job industry)</li>
-                <li>✅ Fixed profile data persistence</li>
-                <li>✅ Fixed account creation visibility</li>
-                <li>✅ Enhanced global state updates</li>
-                <li>✅ Removed mock data dependency</li>
+                <li> Removed emergency contact section</li>
+                <li> Simplified profile setup (removed job industry)</li>
+                <li> Fixed profile data persistence</li>
+                <li> Fixed account creation visibility</li>
+                <li> Enhanced global state updates</li>
+                <li> Removed mock data dependency</li>
             </ul>
         </div>
 
         <div class="test-section">
-            <h2>🎯 Expected Flow</h2>
+            <h2> Expected Flow</h2>
             <div class="steps">
                 <div class="step">
                     <h3>Step 1: Profile Setup</h3>
-                    <p>• Display Name<br>• Date of Birth<br>• Job Type<br>• Annual Salary</p>
+                    <p> Display Name<br> Date of Birth<br> Job Type<br> Annual Salary</p>
                 </div>
                 <div class="step">
                     <h3>Step 2: Bank Account</h3>
-                    <p>• Bank Name<br>• Account Holder Name<br>• Account Number<br>• Salary Credit Date</p>
+                    <p> Bank Name<br> Account Holder Name<br> Account Number<br> Salary Credit Date</p>
                 </div>
                 <div class="step">
                     <h3>Step 3: Complete Setup</h3>
-                    <p>• Save to database<br>• Create account entry<br>• Set up salary tracking<br>• Refresh global state</p>
+                    <p> Save to database<br> Create account entry<br> Set up salary tracking<br> Refresh global state</p>
                 </div>
             </div>
         </div>
 
         <div class="test-section">
-            <h2>🔧 Technical Improvements</h2>
+            <h2> Technical Improvements</h2>
             <div class="test-result success">
-                <strong>✅ Emergency Contact Removed</strong><br>
+                <strong> Emergency Contact Removed</strong><br>
                 Removed EmergencyContactStep.tsx and all related references
             </div>
             
             <div class="test-result success">
-                <strong>✅ Simplified Profile Setup</strong><br>
+                <strong> Simplified Profile Setup</strong><br>
                 Removed jobIndustry field from ProfileSetupStep and data interfaces
             </div>
             
             <div class="test-result success">
-                <strong>✅ Enhanced Data Persistence</strong><br>
-                • Profile data saved to Supabase and localStorage<br>
-                • Account creation in Dexie database<br>
-                • Monthly salary template setup
+                <strong> Enhanced Data Persistence</strong><br>
+                 Profile data saved to Supabase and localStorage<br>
+                 Account creation in Dexie database<br>
+                 Monthly salary template setup
             </div>
             
             <div class="test-result success">
-                <strong>✅ Global State Updates</strong><br>
-                • ONBOARDING_COMPLETED event dispatched<br>
-                • onboarding_refresh_timestamp for forced refresh<br>
-                • AppContext listens for storage changes
+                <strong> Global State Updates</strong><br>
+                 ONBOARDING_COMPLETED event dispatched<br>
+                 onboarding_refresh_timestamp for forced refresh<br>
+                 AppContext listens for storage changes
             </div>
             
             <div class="test-result success">
-                <strong>✅ Real Data Loading</strong><br>
-                • UserProfile component loads from Supabase first<br>
-                • Falls back to localStorage onboarding data<br>
-                • No mock data for authenticated users
+                <strong> Real Data Loading</strong><br>
+                 UserProfile component loads from Supabase first<br>
+                 Falls back to localStorage onboarding data<br>
+                 No mock data for authenticated users
             </div>
         </div>
 
         <div class="test-section">
-            <h2>📊 Test Results</h2>
+            <h2> Test Results</h2>
             <div class="test-result info">
-                <strong>✅ TypeScript Compilation</strong><br>
+                <strong> TypeScript Compilation</strong><br>
                 All onboarding components compile without errors
             </div>
             
             <div class="test-result info">
-                <strong>✅ Component Structure</strong><br>
-                NewUserOnboarding → ProfileSetupStep → BankAccountStep → OnboardingCompleteStep
+                <strong> Component Structure</strong><br>
+                NewUserOnboarding  ProfileSetupStep  BankAccountStep  OnboardingCompleteStep
             </div>
             
             <div class="test-result info">
-                <strong>✅ Data Flow</strong><br>
+                <strong> Data Flow</strong><br>
                 Profile data flows through all steps and persists correctly
             </div>
             
             <div class="test-result info">
-                <strong>✅ State Management</strong><br>
+                <strong> State Management</strong><br>
                 AppContext properly refreshes when onboarding completes
             </div>
         </div>
 
         <div class="test-section">
-            <h2>🚀 Ready for Testing</h2>
+            <h2> Ready for Testing</h2>
             <p>The onboarding flow is now simplified and should work as follows:</p>
             <ol>
                 <li>User registers and is redirected to onboarding</li>
@@ -160,7 +160,7 @@
 
     <script>
         // Simple test to verify localStorage functionality
-        console.log('🧪 Onboarding Test Page Loaded');
+        console.log(' Onboarding Test Page Loaded');
         
         // Test data persistence
         const testProfile = {
@@ -174,15 +174,15 @@
         const retrieved = JSON.stringify(testProfile);
         
         if (retrieved) {
-            console.log('✅ LocalStorage test passed');
+            console.log(' LocalStorage test passed');
             console.log('Test data:', testProfile);
         } else {
-            console.log('❌ LocalStorage test failed');
+            console.log(' LocalStorage test failed');
         }
         
         // Test event dispatching
         window.addEventListener('ONBOARDING_COMPLETED', (event) => {
-            console.log('✅ ONBOARDING_COMPLETED event received:', event.detail);
+            console.log(' ONBOARDING_COMPLETED event received:', event.detail);
         });
         
         // Simulate onboarding completion

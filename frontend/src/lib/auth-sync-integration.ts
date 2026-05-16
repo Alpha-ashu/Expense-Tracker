@@ -1239,7 +1239,7 @@ async function syncUserDataFromBackend(
   requestedTables: SyncedTableName[] = CORE_SYNC_TABLES,
 ) {
   initializeBackendSync();
-  
+
   // Clean up any local duplicates before merging backend data
   await deduplicateLocalData();
 
@@ -1982,7 +1982,7 @@ function scheduleCloudPull(userId: string, tables: SyncedTableName[] = CORE_SYNC
 
 export function subscribeToUserCloudSync(userId: string) {
   if (!DIRECT_CLOUD_SYNC_ENABLED) {
-    return () => {};
+    return () => { };
   }
 
   initializeBackendSync();
@@ -2103,7 +2103,7 @@ export async function saveTransactionWithBackendSync(transaction: any) {
 
     if (canSyncToBackend) {
       if (transaction.transferToAccountId && !transferTargetAccount?.cloudId) {
-        // Fall through to local save â€” target account not yet synced
+        // Fall through to local save  target account not yet synced
       } else {
         try {
           const response = await apiClient.post('/transactions', {

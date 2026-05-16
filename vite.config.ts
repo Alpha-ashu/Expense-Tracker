@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 // ---------------------------------------------------------------------------
-// Dev-only stock API plugin — replicates api/stocks.ts for the Vite dev server
+// Dev-only stock API plugin  replicates api/stocks.ts for the Vite dev server
 // so /api/v1/stocks/* works without a running backend or Vercel CLI.
 // Registered via configureServer (no return value) so it runs BEFORE the proxy.
 // ---------------------------------------------------------------------------
@@ -18,7 +18,7 @@ function stockApiDevPlugin() {
 
   function toYahooSym(symbol: string, market?: string) {
     const s = symbol.trim().toUpperCase()
-    if (s.endsWith('.US')) return s.slice(0, -3)   // AAPL.US → AAPL
+    if (s.endsWith('.US')) return s.slice(0, -3)   // AAPL.US  AAPL
     if (/[.=^-]/.test(s)) return s                  // already qualified
     if (market === 'bse') return `${s}.BO`
     if (market === 'nse') return `${s}.NS`
@@ -43,16 +43,16 @@ function stockApiDevPlugin() {
     const ex = String(meta?.exchangeName || '').toUpperCase()
     if (ex.includes('BSE') || sym.endsWith('.BO')) return 'BSE'
     if (ex.includes('NSE') || ex.includes('NSI') || sym.endsWith('.NS')) return 'NSE'
-    if (ex.includes('NAS') || ex.includes('NYS') || ['NMS','NGM','NYQ','PCX'].includes(ex)) return 'US'
+    if (ex.includes('NAS') || ex.includes('NYS') || ['NMS', 'NGM', 'NYQ', 'PCX'].includes(ex)) return 'US'
     if (ex.includes('CCY') || sym.includes('=X')) return 'FOREX'
     if (ex.includes('CCC') || sym.includes('-USD')) return 'CRYPTO'
     return ex || 'NSE'
   }
 
   function currencySymbol(code?: string, exchange?: string) {
-    const map: Record<string, string> = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥', AUD: 'A$', CAD: 'C$' }
+    const map: Record<string, string> = { INR: '', USD: '$', EUR: '', GBP: '', JPY: '', AUD: 'A$', CAD: 'C$' }
     const c = String(code || '').toUpperCase()
-    return map[c] ?? ((exchange === 'NSE' || exchange === 'BSE') ? '₹' : '$')
+    return map[c] ?? ((exchange === 'NSE' || exchange === 'BSE') ? '' : '$')
   }
 
   function mktState(meta: any, exchange: string) {
@@ -112,11 +112,11 @@ function stockApiDevPlugin() {
         if (endpoint === 'markets') {
           const mkt = sp.get('market') || 'nse'
           const defaults: Record<string, string[]> = {
-            nse:    ['RELIANCE.NS','TCS.NS','INFY.NS','HDFCBANK.NS','ICICIBANK.NS'],
-            bse:    ['RELIANCE.BO','TCS.BO','INFY.BO','HDFCBANK.BO','ICICIBANK.BO'],
-            us:     ['AAPL','TSLA','MSFT','NVDA','GOOGL'],
-            forex:  ['USDINR=X','EURUSD=X','GBPUSD=X','USDJPY=X'],
-            crypto: ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD'],
+            nse: ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS'],
+            bse: ['RELIANCE.BO', 'TCS.BO', 'INFY.BO', 'HDFCBANK.BO', 'ICICIBANK.BO'],
+            us: ['AAPL', 'TSLA', 'MSFT', 'NVDA', 'GOOGL'],
+            forex: ['USDINR=X', 'EURUSD=X', 'GBPUSD=X', 'USDJPY=X'],
+            crypto: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD'],
           }
           send(res, 200, { status: 'success', market: mkt, symbols: defaults[mkt] ?? defaults.nse })
           return
@@ -194,50 +194,50 @@ export default defineConfig(({ mode }) => {
     assetsInclude: ['**/*.svg', '**/*.csv'],
 
     build: {
-    // Target modern browsers for smaller output
-    target: 'es2020',
-    chunkSizeWarningLimit: 600,
-    // Enable CSS code splitting per chunk
-    cssCodeSplit: true,
-    minify: 'esbuild',
-    rollupOptions: {
-      output: {
-        // Smart manual chunk splitting — vendors in separate cacheable chunks
-        manualChunks(id) {
-          // ── Heavy UI libs ──────────────────────────────────────────────────
-          if (id.includes('node_modules/@mui')) return 'vendor-mui';
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3')) return 'vendor-charts';
-          if (id.includes('node_modules/pdfjs-dist')) return 'vendor-pdf';
-          if (id.includes('node_modules/@capacitor')) return 'vendor-capacitor';
+      // Target modern browsers for smaller output
+      target: 'es2020',
+      chunkSizeWarningLimit: 600,
+      // Enable CSS code splitting per chunk
+      cssCodeSplit: true,
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          // Smart manual chunk splitting  vendors in separate cacheable chunks
+          manualChunks(id) {
+            //  Heavy UI libs 
+            if (id.includes('node_modules/@mui')) return 'vendor-mui';
+            if (id.includes('node_modules/recharts') || id.includes('node_modules/d3')) return 'vendor-charts';
+            if (id.includes('node_modules/pdfjs-dist')) return 'vendor-pdf';
+            if (id.includes('node_modules/@capacitor')) return 'vendor-capacitor';
 
-          // ── Core React ecosystem ────────────────────────────────────────────
-          if (id.includes('node_modules/react-dom')) return 'vendor-react';
-          if (id.includes('node_modules/react/')) return 'vendor-react';
-          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) return 'vendor-motion';
+            //  Core React ecosystem 
+            if (id.includes('node_modules/react-dom')) return 'vendor-react';
+            if (id.includes('node_modules/react/')) return 'vendor-react';
+            if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) return 'vendor-motion';
 
-          // ── Supabase ────────────────────────────────────────────────────────
-          if (id.includes('node_modules/@supabase')) return 'vendor-supabase';
+            //  Supabase 
+            if (id.includes('node_modules/@supabase')) return 'vendor-supabase';
 
-          // ── Database / offline ──────────────────────────────────────────────
-          if (id.includes('node_modules/dexie')) return 'vendor-dexie';
+            //  Database / offline 
+            if (id.includes('node_modules/dexie')) return 'vendor-dexie';
 
-          // ── Radix UI components ─────────────────────────────────────────────
-          if (id.includes('node_modules/@radix-ui')) return 'vendor-radix';
+            //  Radix UI components 
+            if (id.includes('node_modules/@radix-ui')) return 'vendor-radix';
 
-          // ── Utilities ───────────────────────────────────────────────────────
-          if (id.includes('node_modules/date-fns')) return 'vendor-utils';
-          if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
-          if (id.includes('node_modules/sonner')) return 'vendor-utils';
-          if (id.includes('node_modules/clsx') || id.includes('node_modules/tailwind-merge')) return 'vendor-utils';
+            //  Utilities 
+            if (id.includes('node_modules/date-fns')) return 'vendor-utils';
+            if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
+            if (id.includes('node_modules/sonner')) return 'vendor-utils';
+            if (id.includes('node_modules/clsx') || id.includes('node_modules/tailwind-merge')) return 'vendor-utils';
 
-          // ── Fonts ───────────────────────────────────────────────────────────
-          if (id.includes('node_modules/@fontsource')) return 'vendor-fonts';
+            //  Fonts 
+            if (id.includes('node_modules/@fontsource')) return 'vendor-fonts';
+          },
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash][extname]',
         },
-        chunkFileNames: 'assets/[name]-[hash].js',
-        entryFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]',
       },
-    },
     },
 
     optimizeDeps: {

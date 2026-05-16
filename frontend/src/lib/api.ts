@@ -53,7 +53,7 @@ function getUserMessage(
   serverCode: string | undefined,
   technicalMessage: string,
 ): string {
-  // Log the raw technical detail for debugging – never shown to the user
+  // Log the raw technical detail for debugging  never shown to the user
   console.error(
     `[API Error] HTTP ${status} | code=${serverCode ?? 'n/a'} | ${technicalMessage}`,
   );
@@ -91,29 +91,32 @@ let profileRequestInFlight: Promise<ApiResponse<any>> | null = null;
 
 export const TokenManager = {
   getAccessToken: (): string | null => {
-    return localStorage.getItem('accessToken');
+    return localStorage.getItem('auth_token') || localStorage.getItem('accessToken') || localStorage.getItem('token');
   },
 
   setAccessToken: (token: string): void => {
+    localStorage.setItem('auth_token', token);
+    // Also set legacy key for safety
     localStorage.setItem('accessToken', token);
   },
 
   getRefreshToken: (): string | null => {
-    return localStorage.getItem('refreshToken');
+    return localStorage.getItem('refresh_token') || localStorage.getItem('refreshToken');
   },
 
   setRefreshToken: (token: string): void => {
+    localStorage.setItem('refresh_token', token);
     localStorage.setItem('refreshToken', token);
   },
 
   clearTokens: (): void => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    // Clear legacy tokens if they exist
     localStorage.removeItem('auth_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('token');
     localStorage.removeItem('authToken');
+    localStorage.removeItem('auth_token_v1');
   },
 
   setTokens: (accessToken: string, refreshToken: string): void => {

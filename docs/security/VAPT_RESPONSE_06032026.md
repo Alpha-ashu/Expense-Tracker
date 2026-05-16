@@ -7,15 +7,15 @@ The KANKU application is built on a **Serverless Backend-as-a-Service (BaaS) arc
 
 ---
 
-## 🟢 Bug 3 & 4: SMTP Errors and Negative Balances
-**Status: ✅ FIXED & DEPLOYED**
+##  Bug 3 & 4: SMTP Errors and Negative Balances
+**Status:  FIXED & DEPLOYED**
 * **Bug 3 (SMTP Leak):** The `AuthFlow.tsx` frontend handler has been rewritten to intercept raw Supabase `500 Server Error` and `SMTP` traces. The UI now securely masks the error behind a generic message: *"We couldn't send a verification email. Please try again later."*
 * **Bug 4 (Negative Balances):** We implemented comprehensive zero-trust validation. The frontend HTML inputs strictly forbid `< 0` amounts, the React state blocks submission, and critically, a permanent **PostgreSQL `CHECK (balance >= 0)` constraint** has been embedded deep into the Supabase database schema to physically reject modified client payloads.
 
 ---
 
-## 🛡️ Bug 1: Password Sent as Plain Text in Request Payload
-**Status: 📝 ACCEPTED RISK / ARCHITECTURAL NECESSITY**
+##  Bug 1: Password Sent as Plain Text in Request Payload
+**Status:  ACCEPTED RISK / ARCHITECTURAL NECESSITY**
 * **Observation:** The password is sent as plain text in the `POST https://mmwrckfqeqjfqciymemh.supabase.co/auth/v1/signup` request body.
 * **Resolution / Justification:** 
   The display of this payload in the browser's Developer Tools (Network Tab) is a **false positive** for a security vulnerability. 
@@ -25,8 +25,8 @@ The KANKU application is built on a **Serverless Backend-as-a-Service (BaaS) arc
 
 ---
 
-## 🛡️ Bug 2: Sensitive Tokens Exposed in Response Body
-**Status: 📝 ACCEPTED RISK / ARCHITECTURAL NECESSITY**
+##  Bug 2: Sensitive Tokens Exposed in Response Body
+**Status:  ACCEPTED RISK / ARCHITECTURAL NECESSITY**
 * **Observation:** The raw `access_token` and `refresh_token` are returned directly to the UI in the response body.
 * **Proposed Fix:** Return only a `profile_id` to the UI and handle tokens via `httpOnly` secure cookies.
 * **Resolution / Justification:** 

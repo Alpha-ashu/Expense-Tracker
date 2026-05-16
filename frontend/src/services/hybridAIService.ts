@@ -1,4 +1,4 @@
-﻿import { TokenManager } from '@/lib/api';
+import { TokenManager } from '@/lib/api';
 import { ocrEngine, ExpenseData } from './tesseractOCRService';
 import { createVoiceAIProcessor, VoiceExpenseResult } from './voiceAIProcessor';
 import { KANKUAI } from './KANKUIntelligenceEngine';

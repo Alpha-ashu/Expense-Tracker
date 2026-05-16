@@ -205,7 +205,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, onClose })
                 };
                 setCurrentPage(persistVoiceRouteDraft(draft));
               } else {
-                // Multiple actions or needs review — go to review page
+                // Multiple actions or needs review  go to review page
                 writeVoiceBatchDraft(result.actions.map((a) => ({
                   type: (a.type as any),
                   amount: a.entities.amount,

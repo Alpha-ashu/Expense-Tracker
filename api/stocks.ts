@@ -155,11 +155,11 @@ function detectExchange(meta: any, symbol: string): string {
 function currencyCodeToSymbol(code?: string, exchange?: string) {
   const normalized = String(code || '').toUpperCase();
   const symbols: Record<string, string> = {
-    INR: '₹',
+    INR: '',
     USD: '$',
-    EUR: '€',
-    GBP: '£',
-    JPY: '¥',
+    EUR: '',
+    GBP: '',
+    JPY: '',
     AUD: 'A$',
     CAD: 'C$',
     SGD: 'S$',
@@ -171,7 +171,7 @@ function currencyCodeToSymbol(code?: string, exchange?: string) {
   }
 
   if (exchange === 'NSE' || exchange === 'BSE') {
-    return '₹';
+    return '';
   }
 
   return '$';

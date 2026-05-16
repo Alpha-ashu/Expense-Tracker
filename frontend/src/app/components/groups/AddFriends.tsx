@@ -150,7 +150,7 @@ export const AddFriends: React.FC = () => {
                      <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-xs">{f.name[0].toUpperCase()}</div>
                      <div>
                         <p className="text-[11px] font-black text-slate-900">{f.name}</p>
-                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">{f.relationship} · {f.phone || f.email || 'No contact'}</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight">{f.relationship}  {f.phone || f.email || 'No contact'}</p>
                      </div>
                   </div>
                   <button onClick={() => removeFromQueue(i)} className="text-slate-300 hover:text-rose-500 transition-colors">

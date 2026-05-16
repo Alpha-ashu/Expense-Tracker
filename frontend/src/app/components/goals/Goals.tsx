@@ -508,7 +508,7 @@ export const Goals: React.FC = () => {
           >
             <h3 className="text-2xl font-bold text-gray-900">Apply Voice Goal Draft</h3>
             <p className="mt-2 text-sm text-gray-500">
-              We heard {formatCurrency(pendingVoiceGoalDraft.amount)} for “{pendingVoiceGoalDraft.description || 'goal contribution'}”.
+              We heard {formatCurrency(pendingVoiceGoalDraft.amount)} for {pendingVoiceGoalDraft.description || 'goal contribution'}.
               Choose an existing goal to contribute to, or create a new one.
             </p>
 

@@ -53,7 +53,7 @@ interface AuditPayload {
   resourceId?: string;
   /** HTTP method + path (e.g. "POST /api/v1/receipts/scan") */
   action?: string;
-  /** Freeform metadata (keep small – logged as JSON). */
+  /** Freeform metadata (keep small  logged as JSON). */
   meta?: Record<string, unknown>;
 }
 

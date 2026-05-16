@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-// ── Domain event types ──────────────────────────────────────────────
+//  Domain event types 
 export type AppEvent =
   | { type: 'TRANSACTION_CREATED'; payload: { userId: string; transactionId: string; accountId: string; amount: number; category: string } }
   | { type: 'TRANSACTION_UPDATED'; payload: { userId: string; transactionId: string } }
@@ -16,7 +16,7 @@ export type AppEvent =
 export type AppEventType = AppEvent['type'];
 type EventOfType<T extends AppEventType> = Extract<AppEvent, { type: T }>;
 
-// ── Type-safe event bus ─────────────────────────────────────────────
+//  Type-safe event bus 
 class AppEventBus {
   private emitter = new EventEmitter();
 

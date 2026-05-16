@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Shield, Zap, Target, Star, Crown } from 'lucide-react';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';

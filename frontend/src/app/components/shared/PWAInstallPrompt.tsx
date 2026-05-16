@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { canInstallPWA, showInstallPrompt, isAppInstalled } from '@/lib/pwa';

@@ -27,14 +27,14 @@
                 const deviceId = `device_${timestamp}_${random}`;
                 document.getElementById('result').innerHTML = `
                     <div style="background: #d4edda; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                        <strong>✅ Device ID Generated Successfully:</strong><br>
+                        <strong> Device ID Generated Successfully:</strong><br>
                         ${deviceId}
                     </div>
                 `;
             } catch (error) {
                 document.getElementById('result').innerHTML = `
                     <div style="background: #f8d7da; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                        <strong>❌ Device ID Generation Failed:</strong><br>
+                        <strong> Device ID Generation Failed:</strong><br>
                         ${error.message}
                     </div>
                 `;
@@ -68,7 +68,7 @@
                 
                 document.getElementById('result').innerHTML = `
                     <div style="background: #d4edda; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                        <strong>✅ Device Info Generated Successfully:</strong><br>
+                        <strong> Device Info Generated Successfully:</strong><br>
                         Device Name: ${deviceName}<br>
                         Device Type: ${deviceType}<br>
                         Platform: ${platform}<br>
@@ -78,7 +78,7 @@
             } catch (error) {
                 document.getElementById('result').innerHTML = `
                     <div style="background: #f8d7da; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                        <strong>❌ Device Info Generation Failed:</strong><br>
+                        <strong> Device Info Generation Failed:</strong><br>
                         ${error.message}
                     </div>
                 `;

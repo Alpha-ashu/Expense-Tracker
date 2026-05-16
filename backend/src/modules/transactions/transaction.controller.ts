@@ -85,7 +85,7 @@ export const getTransactions = async (req: AuthRequest, res: Response, next: Nex
       if (endDate) where.date.lte = new Date(endDate as string);
     }
 
-    // Pagination — default 50 items per page, max 200
+    // Pagination  default 50 items per page, max 200
     const pageNum = Math.max(1, parseInt((page as string) || '1', 10));
     const pageSize = Math.min(200, Math.max(1, parseInt((limit as string) || '50', 10)));
     const skip = (pageNum - 1) * pageSize;

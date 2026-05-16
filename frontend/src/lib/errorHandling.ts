@@ -197,7 +197,7 @@ export class ErrorHandler {
       case ErrorType.NETWORK:
         // Check connection and retry
         if (navigator.onLine) {
-          console.info('[Network] Connection appears to be restored – consider retrying the failed request.');
+          console.info('[Network] Connection appears to be restored  consider retrying the failed request.');
         }
         break;
 
@@ -342,14 +342,14 @@ export interface ValidationError {
 
 export class ValidationErrorHandler {
   static formatErrors(errors: ValidationError[]): string {
-    // Human-readable message only – never expose raw field names to the user
+    // Human-readable message only  never expose raw field names to the user
     return errors.map((e) => e.message).join('\n');
   }
 
   static showErrors(errors: ValidationError[]): void {
     errors.forEach((error) => {
       // Log technical field details for debugging
-      console.warn(`[Validation] field="${error.field}" value=${JSON.stringify(error.value)} → ${error.message}`);
+      console.warn(`[Validation] field="${error.field}" value=${JSON.stringify(error.value)}  ${error.message}`);
       // Only show the friendly message to the user
       toast.error(error.message, { duration: TOAST_DURATION.NORMAL });
     });
@@ -463,7 +463,7 @@ export function setupGlobalErrorHandlers(): void {
 
   ErrorHandler.register(ErrorType.NETWORK, (_error) => {
     // Queue failed requests for retry when connection is restored
-    console.warn('[Network] Network error detected – queuing requests for retry when connection restores.');
+    console.warn('[Network] Network error detected  queuing requests for retry when connection restores.');
   });
 }
 

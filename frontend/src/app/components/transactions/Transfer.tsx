@@ -280,7 +280,7 @@ export const Transfer: React.FC<{ onBack?: () => void }> = ({ onBack }) => {
                 <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center"><ArrowRightLeft size={16} className="text-white" /></div>
                 <div>
                   <p className="text-[8px] font-black text-white/60 uppercase">Final Review</p>
-                  <p className="text-[10px] font-black truncate max-w-[120px]">{fromAcc?.name || '---'} → {toAcc?.name || '---'}</p>
+                  <p className="text-[10px] font-black truncate max-w-[120px]">{fromAcc?.name || '---'}  {toAcc?.name || '---'}</p>
                 </div>
              </div>
              <div className="text-right">

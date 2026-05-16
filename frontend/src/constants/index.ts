@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Application Constants
  * Centralized configuration and constant values
  */

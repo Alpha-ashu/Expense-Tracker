@@ -302,7 +302,7 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
   }
 };
 
-// ── OTP Endpoints ───────────────────────────────────────────────────
+//  OTP Endpoints 
 
 export const sendOtp = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -338,7 +338,7 @@ export const verifyOtpEndpoint = async (req: AuthRequest, res: Response, next: N
   }
 };
 
-// ── Device Management Endpoints ─────────────────────────────────────
+//  Device Management Endpoints 
 
 export const getDevices = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

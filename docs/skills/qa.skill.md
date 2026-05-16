@@ -1,4 +1,4 @@
-﻿# QA & Testing Skill Reference â€“ KANKU
+# QA & Testing Skill Reference  KANKU
 
 This document provides the standard quality assurance and testing protocols for the KANKUproject.
 

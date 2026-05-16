@@ -1,4 +1,4 @@
-﻿import { db } from './database';
+import { db } from './database';
 import { encryptData, decryptData } from './encryption';
 
 // Backend API interface for cloud sync functionality

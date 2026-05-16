@@ -34,7 +34,7 @@ const PROMPT_INJECTION_PATTERNS = [
   /forget\s+(everything|all|your)\s+/i,
 ];
 
-// ── Core XSS sanitizer (existing) ──────────────────────────────────
+//  Core XSS sanitizer (existing) 
 
 /**
  * Strip all HTML tags from a string to prevent stored/reflected XSS.
@@ -49,7 +49,7 @@ export function sanitize(input: string): string {
     .trim();
 }
 
-// ── AI / OCR specific ──────────────────────────────────────────────
+//  AI / OCR specific 
 
 /**
  * Returns `true` when the text contains a likely prompt-injection

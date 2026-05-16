@@ -5,7 +5,7 @@ import { categorizeTextForUser } from '../categorization/categorization.engine';
 
 type JsonRow = Record<string, string>;
 
-// ── Column Mapping ─────────────────────────────────────────────────────────────
+//  Column Mapping 
 
 const AMOUNT_ALIASES = ['amount', 'value', 'debit', 'credit', 'transaction amount', 'txn amount', 'amt'];
 const DESCRIPTION_ALIASES = ['description', 'narration', 'note', 'notes', 'remarks', 'remark', 'particulars', 'details', 'memo'];
@@ -35,7 +35,7 @@ function detectColumns(headers: string[]): ColumnMap {
   return map;
 }
 
-// ── CSV parsing (no external dependency) ──────────────────────────────────────
+//  CSV parsing (no external dependency) 
 
 function parseCSV(text: string): JsonRow[] {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -69,16 +69,16 @@ function parseCSV(text: string): JsonRow[] {
   }).filter(row => Object.values(row).some(v => v));
 }
 
-// ── Amount normalization ───────────────────────────────────────────────────────
+//  Amount normalization 
 
 function normalizeAmount(raw: string): number | undefined {
   if (!raw) return undefined;
-  const cleaned = raw.replace(/[₹$€£,\s]/g, '').replace(/[()]/g, '');
+  const cleaned = raw.replace(/[$,\s]/g, '').replace(/[()]/g, '');
   const val = parseFloat(cleaned);
   return isNaN(val) ? undefined : Math.abs(val);
 }
 
-// ── Date normalization ─────────────────────────────────────────────────────────
+//  Date normalization 
 
 function normalizeDate(raw: string): string {
   if (!raw) return new Date().toISOString().slice(0, 10);
@@ -104,7 +104,7 @@ function normalizeDate(raw: string): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-// ── Interface ──────────────────────────────────────────────────────────────────
+//  Interface 
 
 export interface ImportedTransaction {
   rowIndex: number;
@@ -131,12 +131,12 @@ export interface ImportPreview {
 // In-memory import sessions (replace with Redis/DB for production)
 const importSessions = new Map<string, ImportPreview>();
 
-// ── Controllers ────────────────────────────────────────────────────────────────
+//  Controllers 
 
 export const uploadImport = async (req: AuthRequest, res: Response) => {
   try {
     const userId = getUserId(req);
-    const file = req.file;    if (!file) {
+    const file = req.file; if (!file) {
       return res.status(400).json({ error: 'File is required' });
     }
 
@@ -147,7 +147,7 @@ export const uploadImport = async (req: AuthRequest, res: Response) => {
       const text = file.buffer.toString('utf-8');
       rows = parseCSV(text);
     } else if (contentType.includes('excel') || contentType.includes('spreadsheet')
-               || file.originalname.match(/\.xlsx?$/i)) {
+      || file.originalname.match(/\.xlsx?$/i)) {
       // Try to parse XLSX if available
       try {
         const XLSX = require('xlsx');

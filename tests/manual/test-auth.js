@@ -7,7 +7,7 @@
 const API_BASE = typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:3000/api/v1';
 
 async function testAuth() {
-  console.log('🧪 Testing Authentication Endpoints...\n');
+  console.log(' Testing Authentication Endpoints...\n');
 
   // Test 1: Register new user
   console.log('1. Testing user registration...');
@@ -32,16 +32,16 @@ async function testAuth() {
     }));
     
     if (registerResponse.ok) {
-      console.log('✅ Registration successful');
+      console.log(' Registration successful');
       console.log('   User registered:', testUser.email);
       console.log('   Access token received:', !!registerData.accessToken);
     } else {
-      console.log('❌ Registration failed:', registerData.error);
+      console.log(' Registration failed:', registerData.error);
       console.log('   Status code:', registerResponse.status);
       console.log('   Error code:', registerData.code);
     }
   } catch (error) {
-    console.log('❌ Registration error:', error.message);
+    console.log(' Registration error:', error.message);
   }
 
   console.log('\n2. Testing duplicate email registration...');
@@ -66,16 +66,16 @@ async function testAuth() {
     }));
     
     if (duplicateResponse.status === 409) {
-      console.log('✅ Duplicate email correctly rejected');
+      console.log(' Duplicate email correctly rejected');
       console.log('   Error message:', duplicateData.error);
       console.log('   Error code:', duplicateData.code);
     } else {
-      console.log('❌ Duplicate email should be rejected');
+      console.log(' Duplicate email should be rejected');
       console.log('   Status code:', duplicateResponse.status);
       console.log('   Response:', duplicateData);
     }
   } catch (error) {
-    console.log('❌ Duplicate registration test error:', error.message);
+    console.log(' Duplicate registration test error:', error.message);
   }
 
   console.log('\n3. Testing login with valid credentials...');
@@ -99,16 +99,16 @@ async function testAuth() {
     }));
     
     if (loginResponse.ok) {
-      console.log('✅ Login successful');
+      console.log(' Login successful');
       console.log('   Access token received:', !!loginResult.accessToken);
       console.log('   Refresh token received:', !!loginResult.refreshToken);
     } else {
-      console.log('❌ Login failed:', loginResult.error);
+      console.log(' Login failed:', loginResult.error);
       console.log('   Status code:', loginResponse.status);
       console.log('   Error code:', loginResult.code);
     }
   } catch (error) {
-    console.log('❌ Login error:', error.message);
+    console.log(' Login error:', error.message);
   }
 
   console.log('\n4. Testing login with invalid credentials...');
@@ -132,16 +132,16 @@ async function testAuth() {
     }));
     
     if (invalidLoginResponse.status === 401) {
-      console.log('✅ Invalid credentials correctly rejected');
+      console.log(' Invalid credentials correctly rejected');
       console.log('   Error message:', invalidLoginResult.error);
       console.log('   Error code:', invalidLoginResult.code);
     } else {
-      console.log('❌ Invalid credentials should be rejected');
+      console.log(' Invalid credentials should be rejected');
       console.log('   Status code:', invalidLoginResponse.status);
       console.log('   Response:', invalidLoginResult);
     }
   } catch (error) {
-    console.log('❌ Invalid login test error:', error.message);
+    console.log(' Invalid login test error:', error.message);
   }
 
   console.log('\n5. Testing email validation...');
@@ -166,25 +166,25 @@ async function testAuth() {
     }));
     
     if (invalidEmailResponse.status === 400 && invalidEmailData.code === 'INVALID_EMAIL') {
-      console.log('✅ Invalid email correctly rejected');
+      console.log(' Invalid email correctly rejected');
       console.log('   Error message:', invalidEmailData.error);
     } else {
-      console.log('❌ Invalid email should be rejected');
+      console.log(' Invalid email should be rejected');
       console.log('   Status code:', invalidEmailResponse.status);
       console.log('   Response:', invalidEmailData);
     }
   } catch (error) {
-    console.log('❌ Email validation test error:', error.message);
+    console.log(' Email validation test error:', error.message);
   }
 
-  console.log('\n🎉 Authentication tests completed!');
+  console.log('\n Authentication tests completed!');
 }
 
 // Export for use in browser or Node.js
 if (typeof window !== 'undefined') {
   // Browser environment - attach to window
   window.testAuth = testAuth;
-  console.log('🧪 Test function loaded. Run testAuth() in the console to test authentication.');
+  console.log(' Test function loaded. Run testAuth() in the console to test authentication.');
 } else {
   // Node.js environment
   module.exports = { testAuth };

@@ -1,10 +1,10 @@
-# 📋 RBAC Testing & Deployment Guide
+#  RBAC Testing & Deployment Guide
 
 Complete guide for testing, validating, and deploying the role-based access control system.
 
 ---
 
-## 🧪 Testing Scenarios
+##  Testing Scenarios
 
 ### Scenario 1: Admin Login
 
@@ -13,12 +13,12 @@ Complete guide for testing, validating, and deploying the role-based access cont
 2. Password: Your test password
 
 **Expected Results**:
-- ✅ User role in `AuthContext` is `admin`
-- ✅ Can see "Admin Panel" in navigation
-- ✅ Can navigate to `/admin-feature-panel`
-- ✅ Can see all features in the feature control grid
-- ✅ Can change feature readiness (Unreleased → Beta → Released → Deprecated)
-- ✅ Console shows: "🔐 Admin role assigned to: shake.job.atgmail.com"
+-  User role in `AuthContext` is `admin`
+-  Can see "Admin Panel" in navigation
+-  Can navigate to `/admin-feature-panel`
+-  Can see all features in the feature control grid
+-  Can change feature readiness (Unreleased  Beta  Released  Deprecated)
+-  Console shows: " Admin role assigned to: shake.job.atgmail.com"
 
 **Test Actions**:
 ```javascript
@@ -44,14 +44,14 @@ console.log(hasFeatureAccess('admin', 'adminPanel')); // true
 3. Login with: `advisor@example.com`
 
 **Expected Results**:
-- ✅ User role is `advisor`
-- ✅ Can see "Advisor Panel" in navigation
-- ✅ CAN see `bookAdvisor` feature in feature list
-- ✅ CANNOT see "Admin Panel" option
-- ✅ Can navigate to `/advisor-panel`
-- ✅ Can set availability schedule
-- ✅ Can accept/reject bookings
-- ✅ Can start sessions
+-  User role is `advisor`
+-  Can see "Advisor Panel" in navigation
+-  CAN see `bookAdvisor` feature in feature list
+-  CANNOT see "Admin Panel" option
+-  Can navigate to `/advisor-panel`
+-  Can set availability schedule
+-  Can accept/reject bookings
+-  Can start sessions
 
 **Test Actions**:
 ```javascript
@@ -72,13 +72,13 @@ console.log(hasFeatureAccess('advisor', 'adminPanel')); // false
 2. Example: `user@example.com`
 
 **Expected Results**:
-- ✅ User role is `user`
-- ✅ Can see "Book Advisor" in navigation
-- ✅ CAN access `bookAdvisor` feature
-- ✅ CANNOT see "Admin Panel" or "Advisor Panel"
-- ✅ Can see all standard features
-- ✅ Can book advisors
-- ✅ Can pay for sessions
+-  User role is `user`
+-  Can see "Book Advisor" in navigation
+-  CAN access `bookAdvisor` feature
+-  CANNOT see "Admin Panel" or "Advisor Panel"
+-  Can see all standard features
+-  Can book advisors
+-  Can pay for sessions
 
 **Test Actions**:
 ```javascript
@@ -94,7 +94,7 @@ console.log(hasFeatureAccess('user', 'adminPanel')); // false
 
 ---
 
-## ✅ Feature Access Testing Matrix
+##  Feature Access Testing Matrix
 
 Run this test to validate all role-feature combinations:
 
@@ -140,7 +140,7 @@ console.table(
 
 ---
 
-## 🔐 Admin Email Lock Testing
+##  Admin Email Lock Testing
 
 ### Test 1: Admin Email Must Match Exactly
 
@@ -175,30 +175,30 @@ console.log(role); // Should be 'user', NOT 'admin'
 
 ---
 
-## 🎯 Admin Feature Panel Testing
+##  Admin Feature Panel Testing
 
 ### Test: Feature Readiness States
 
 **Access Admin Panel**:
 1. Login as `shake.job.atgmail.com`
-2. Navigate: Menu → Admin Panel
+2. Navigate: Menu  Admin Panel
 3. Verify you see feature control grid
 
 **Change Feature Status**:
 
-#### Unreleased → Beta
+#### Unreleased  Beta
 1. Click "Unreleased" button for any feature
 2. Confirm status changes to "Beta"
 3. Verify advisor can now see this feature
 4. Verify regular users cannot
 
-#### Beta → Released
+#### Beta  Released
 1. Click "Beta" button for any feature
 2. Confirm status changes to "Released"
 3. Verify all users can see this feature
 4. Verify feature appears in navigation
 
-#### Released → Deprecated
+#### Released  Deprecated
 1. Click "Released" button for any feature
 2. Confirm status changes to "Deprecated"
 3. Verify no users can see this feature
@@ -218,19 +218,19 @@ console.log(canChangeFeatureStatus('user', 'bookAdvisor')); // false
 
 ---
 
-## 👔 Advisor Panel Testing
+##  Advisor Panel Testing
 
 ### Test: Advisor Panel Access
 
 1. Login as advisor
 2. Navigate to Advisor Panel
 3. Verify you see:
-   - ✅ Pending Bookings count
-   - ✅ Confirmed Sessions count
-   - ✅ Monthly Earnings display
-   - ✅ Availability Schedule (7 days)
-   - ✅ Booking Requests section
-   - ✅ Confirmed Sessions section
+   -  Pending Bookings count
+   -  Confirmed Sessions count
+   -  Monthly Earnings display
+   -  Availability Schedule (7 days)
+   -  Booking Requests section
+   -  Confirmed Sessions section
 
 ### Test: Availability Management
 
@@ -238,7 +238,7 @@ console.log(canChangeFeatureStatus('user', 'bookAdvisor')); // false
 1. In "Availability Schedule" section
 2. Click day toggles (Monday-Sunday)
 3. Verify toggle state changes
-4. ✅ Should save to state (or database in production)
+4.  Should save to state (or database in production)
 
 **Expected Toggle States**:
 - Green/enabled = Available that day
@@ -248,25 +248,25 @@ console.log(canChangeFeatureStatus('user', 'bookAdvisor')); // false
 
 **Accept Booking**:
 1. Click "Accept" button on pending booking
-2. ✅ Status changes to "Confirmed Sessions"
-3. ✅ Toast notification appears
-4. ✅ Button changes to "Start Session"
+2.  Status changes to "Confirmed Sessions"
+3.  Toast notification appears
+4.  Button changes to "Start Session"
 
 **Reject Booking**:
 1. Click "Decline" on pending booking
-2. ✅ Booking disappears from list
-3. ✅ Toast notification shows rejection
-4. ✅ User is notified
+2.  Booking disappears from list
+3.  Toast notification shows rejection
+4.  User is notified
 
 **Start Session**:
 1. Click "Start Session" on confirmed booking
-2. ✅ Session begins
-3. ✅ Both parties see notification
-4. ✅ Session mode activated
+2.  Session begins
+3.  Both parties see notification
+4.  Session mode activated
 
 ---
 
-## 🔔 Notification Testing
+##  Notification Testing
 
 ### Test: Notification Creation
 
@@ -288,7 +288,7 @@ console.log(notification);
 //   type: 'booking_request',
 //   title: 'Booking Request Received',
 //   message: 'John has requested a booking...',
-//   icon: '📅',
+//   icon: '',
 //   createdAt: timestamp,
 //   read: false,
 //   metadata: { bookingId: 'book-456' }
@@ -329,7 +329,7 @@ console.log(shouldPlayAlert('feature_released')); // false - no sound
 
 ---
 
-## 💳 Payment Settlement Testing
+##  Payment Settlement Testing
 
 ### Test: Payment Calculation
 
@@ -367,7 +367,7 @@ console.log(isValidPaymentTransition('pending', 'completed')); // false - must g
 
 ---
 
-## 🧠 Session State Machine Testing
+##  Session State Machine Testing
 
 ### Test: Valid Transitions
 
@@ -392,7 +392,7 @@ console.log(isValidStateTransition('active', 'cancelled')); // true
 
 ---
 
-## 🚀 Pre-Deployment Checklist
+##  Pre-Deployment Checklist
 
 - [ ] **Admin Email Lock**
   - [ ] Only `shake.job.atgmail.com` can be admin
@@ -450,19 +450,19 @@ console.log(isValidStateTransition('active', 'cancelled')); // true
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Issue: Admin Panel Shows Error "Access Denied"
 
 **Solution**:
 1. Verify email is exactly: `shake.job.atgmail.com`
-2. Check AuthContext console log: Should show "🔐 Admin role assigned to:"
+2. Check AuthContext console log: Should show " Admin role assigned to:"
 3. Clear localStorage and re-login
 4. Check JWT token includes correct email in `email` field
 
 ### Issue: Advisor Cannot See bookAdvisor Feature
 
-**Expected Behavior** ✅ - This is correct! Advisors should NOT see bookAdvisor.
+**Expected Behavior**  - This is correct! Advisors should NOT see bookAdvisor.
 
 If they DO see it, check:
 1. Role is actually 'advisor' (not 'user' or 'admin')
@@ -475,7 +475,7 @@ If they DO see it, check:
 1. Admin panel changes are immediate in mock
 2. In production, wait for sync from backend
 3. Try page refresh if needed
-4. Check Dexie database updated (open DevTools → Application → IndexedDB)
+4. Check Dexie database updated (open DevTools  Application  IndexedDB)
 
 ### Issue: Notifications Not Showing
 
@@ -495,7 +495,7 @@ If they DO see it, check:
 
 ---
 
-## 📊 Performance Metrics
+##  Performance Metrics
 
 Monitor these during/after deployment:
 
@@ -519,7 +519,7 @@ console.timeEnd('hook'); // Should be < 5ms
 
 ---
 
-## ✅ Sign-off
+##  Sign-off
 
 Once all tests pass, system is ready for production deployment.
 

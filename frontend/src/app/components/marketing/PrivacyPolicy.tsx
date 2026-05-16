@@ -1,4 +1,4 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Lock, Eye, Cloud, Database, Mail, HardDrive } from 'lucide-react';
 import { PublicNavbar } from '@/app/components/ui/PublicNavbar';

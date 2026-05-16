@@ -45,7 +45,7 @@ serve(async (req) => {
     const userEmail = user.email?.toLowerCase();
     const userId = user.id;
 
-    console.log('🔐 Permission check for user:', { userEmail, userId });
+    console.log(' Permission check for user:', { userEmail, userId });
 
     // Define admin emails (can be moved to database later)
     const ADMIN_EMAILS = [
@@ -188,7 +188,7 @@ serve(async (req) => {
     if (requestBody.updatePermissions) {
       const { role: targetRole, features: newFeatures } = requestBody.updatePermissions;
 
-      console.log('🔧 Admin updating permissions for role:', targetRole, newFeatures);
+      console.log(' Admin updating permissions for role:', targetRole, newFeatures);
 
       // In a real implementation, this would update a database
       // For now, just return success response
@@ -210,7 +210,7 @@ serve(async (req) => {
       userId
     };
 
-    console.log('✅ Permissions determined:', userPermissions);
+    console.log(' Permissions determined:', userPermissions);
 
     return new Response(
       JSON.stringify(userPermissions),
@@ -223,7 +223,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('❌ Permission check error:', error);
+    console.error(' Permission check error:', error);
     return new Response(
       JSON.stringify({
         error: 'Internal server error',

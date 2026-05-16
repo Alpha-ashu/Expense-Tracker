@@ -274,7 +274,7 @@ export const rateSession = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ── ADMIN: Apply to become advisor ────────────────────────────────────────────
+//  ADMIN: Apply to become advisor 
 
 export const applyAsAdvisor = async (req: AuthRequest, res: Response) => {
   try {
@@ -299,7 +299,7 @@ export const applyAsAdvisor = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ── ADMIN: List all pending advisor applications ──────────────────────────────
+//  ADMIN: List all pending advisor applications 
 
 export const listPendingAdvisors = async (req: AuthRequest, res: Response) => {
   try {
@@ -344,7 +344,7 @@ export const listPendingAdvisors = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ── ADMIN: Approve an advisor application ────────────────────────────────────
+//  ADMIN: Approve an advisor application 
 
 export const approveAdvisor = async (req: AuthRequest, res: Response) => {
   try {
@@ -364,7 +364,7 @@ export const approveAdvisor = async (req: AuthRequest, res: Response) => {
     await prisma.notification.create({
       data: {
         userId: id,
-        title: '🎉 Advisor Application Approved!',
+        title: ' Advisor Application Approved!',
         message: 'Congratulations! Your advisor application has been approved. You can now accept client bookings.',
         category: 'system',
       },
@@ -377,7 +377,7 @@ export const approveAdvisor = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ── ADMIN: Reject / revoke an advisor ────────────────────────────────────────
+//  ADMIN: Reject / revoke an advisor 
 
 export const rejectAdvisor = async (req: AuthRequest, res: Response) => {
   try {

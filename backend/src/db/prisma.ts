@@ -1,12 +1,12 @@
 import { config } from 'dotenv';
 
-// Load .env before PrismaClient instantiation — Prisma reads DATABASE_URL at import time.
+// Load .env before PrismaClient instantiation  Prisma reads DATABASE_URL at import time.
 // ts-node-dev runs from the backend/ directory, so .env is in the cwd.
 config();
 
 import { PrismaClient } from './prisma-client';
 
-// Lazy singleton — instantiated on first use rather than at module load time.
+// Lazy singleton  instantiated on first use rather than at module load time.
 // This prevents Vercel cold-start crashes when DATABASE_URL is missing or the
 // binary hasn't been generated yet, allowing other (non-DB) routes to still work.
 let _prisma: PrismaClient | null = null;

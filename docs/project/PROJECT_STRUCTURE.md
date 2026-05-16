@@ -4,17 +4,17 @@ This is the current high-level layout of the repo after the organization pass.
 
 ```text
 Expense Tracker/
-├── frontend/                 React app, local-first UX, OCR/import/voice flows
-├── backend/                  Express API, Prisma, auth, sync, sockets
-├── database/                 Raw SQL and direct DB helpers
-├── api/                      Serverless endpoints
-├── supabase/                 Supabase migrations, setup, edge functions
-├── tests/                    Fixtures, runners, manual checks, scenario notes
-├── samples/                  Demo/sample file staging area
-├── scripts/                  Repo-wide automation
-├── resources/                Shared assets and archived experiments
-├── docs/                     Current and historical documentation
-└── android/                  Capacitor Android project
+ frontend/                 React app, local-first UX, OCR/import/voice flows
+ backend/                  Express API, Prisma, auth, sync, sockets
+ database/                 Raw SQL and direct DB helpers
+ api/                      Serverless endpoints
+ supabase/                 Supabase migrations, setup, edge functions
+ tests/                    Fixtures, runners, manual checks, scenario notes
+ samples/                  Demo/sample file staging area
+ scripts/                  Repo-wide automation
+ resources/                Shared assets and archived experiments
+ docs/                     Current and historical documentation
+ android/                  Capacitor Android project
 ```
 
 ## Runtime boundaries

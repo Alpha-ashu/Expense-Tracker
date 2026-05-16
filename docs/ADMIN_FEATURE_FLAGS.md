@@ -1,6 +1,6 @@
 # Admin Feature Flag Control Panel
 
-## ✅ What Was Built
+##  What Was Built
 
 A safe, admin-only feature flag system that lets you test features before rolling them out to advisors and regular users.
 
@@ -11,7 +11,7 @@ A safe, admin-only feature flag system that lets you test features before rollin
 4. **Updated [Sidebar.tsx](frontend/src/app/components/Sidebar.tsx)** - Admin-only menu item
 5. **Updated [AppContext.tsx](frontend/src/contexts/AppContext.tsx)** - Reads admin flag overrides
 
-## 🎯 How It Works
+##  How It Works
 
 ### User Flow:
 1. **Login as Admin** (email: `shaik.job.details@gmail.com`)
@@ -26,9 +26,9 @@ A safe, admin-only feature flag system that lets you test features before rollin
 ### Example Use Case:
 ```
 User toggles:
-✓ financeAdvisor ON for admin
-✗ financeAdvisor OFF for advisor
-✗ financeAdvisor OFF for user
+ financeAdvisor ON for admin
+ financeAdvisor OFF for advisor
+ financeAdvisor OFF for user
 
 Result:
 - Only ADMIN can see "Finance Advisor" menu item & page
@@ -36,23 +36,23 @@ Result:
 - NO code changes needed
 ```
 
-## 🚀 Control Flow
+##  Control Flow
 
 ```
 Admin toggles icon in AdminDashboard
-  ↓
+  
 Feature flag saved to localStorage[featureFlagsOverride]
-  ↓
+  
 AppContext detects change (window.storage event)
-  ↓
+  
 Re-computes visibleFeatures for current role
-  ↓
+  
 Sidebar, menu items, pages auto-update
-  ↓
+  
 Other logged-in users see their flags immediately
 ```
 
-## 🧪 Testing Workflow
+##  Testing Workflow
 
 ### Test a new feature before releasing:
 
@@ -67,38 +67,38 @@ Other logged-in users see their flags immediately
 - No other users affected
 
 **Step 3: Rolling release**
-- Turn feature ON for advisor → test
-- Turn feature ON for user → go live
+- Turn feature ON for advisor  test
+- Turn feature ON for user  go live
 
 **Step 4: Reset anytime**
 - Button to reset all to defaults
 - Revert unwanted changes instantly
 
-## 📋 Current Feature Flags
+##  Current Feature Flags
 
 | Feature | Admin | Advisor | User | Description |
 |---------|:-----:|:-------:|:----:|-------------|
-| accounts | ✅ | ❌ | ✅ | Bank accounts & cards |
-| transactions | ✅ | ❌ | ✅ | Expense tracking |
-| loans | ✅ | ❌ | ✅ | Loans & EMIs |
-| goals | ✅ | ❌ | ✅ | Savings goals |
-| groups | ✅ | ❌ | ✅ | Shared expenses |
-| investments | ✅ | ❌ | ✅ | Investment portfolio |
-| reports | ✅ | ✅ | ✅ | Analytics |
-| calendar | ✅ | ✅ | ✅ | Calendar view |
-| todoLists | ✅ | ❌ | ✅ | To-do lists |
-| transfer | ✅ | ❌ | ✅ | Money transfers |
-| taxCalculator | ✅ | ❌ | ✅ | Tax tools |
-| financeAdvisor | ✅ | ✅ | ✅ | Advisor booking |
+| accounts |  |  |  | Bank accounts & cards |
+| transactions |  |  |  | Expense tracking |
+| loans |  |  |  | Loans & EMIs |
+| goals |  |  |  | Savings goals |
+| groups |  |  |  | Shared expenses |
+| investments |  |  |  | Investment portfolio |
+| reports |  |  |  | Analytics |
+| calendar |  |  |  | Calendar view |
+| todoLists |  |  |  | To-do lists |
+| transfer |  |  |  | Money transfers |
+| taxCalculator |  |  |  | Tax tools |
+| financeAdvisor |  |  |  | Advisor booking |
 
-## 🔐 Security Notes
+##  Security Notes
 
 - Admin panel blocks non-admin users (403 error)
 - Feature flags stored in **browser localStorage** (dev/test only)
 - **Not production-ready** for multi-user deployments
-- For production → integrate with backend feature flag service (LaunchDarkly, CloudFlare, etc.)
+- For production  integrate with backend feature flag service (LaunchDarkly, CloudFlare, etc.)
 
-## 🛠️ For Production:
+##  For Production:
 
 When ready to deploy, replace localStorage with:
 1. **Server-side flag service** (API endpoint)
@@ -106,15 +106,15 @@ When ready to deploy, replace localStorage with:
 3. **Cache via Redis** (performance)
 4. **Admin UI makes API calls** (persist to DB)
 
-## 📝 Next Steps:
+##  Next Steps:
 
-✅ **Done:** Feature flag system + admin UI ✅ **Next (if needed):**
+ **Done:** Feature flag system + admin UI  **Next (if needed):**
 - [ ] Advisor workspace (assigned users list, chat)
 - [ ] Secure PIN system (first-time login)
 - [ ] Backend RBAC policies (Supabase RLS)
 - [ ] Production-grade flag service integration
 
-## 🎓 How to Test Right Now:
+##  How to Test Right Now:
 
 **Open browser DevTools**:
 ```javascript

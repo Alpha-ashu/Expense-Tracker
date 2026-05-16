@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { signIn, signUp } from '@/lib/supabase-helpers';
 import { Shield, Eye, EyeOff, Mail, Lock, User, Check, ArrowRight, Loader2 } from 'lucide-react';
 import { KANKULogo } from '@/app/components/ui/KANKULogo';

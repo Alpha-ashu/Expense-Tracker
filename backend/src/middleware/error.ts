@@ -16,7 +16,7 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction,
 ) => {
-  // ── 1. Normalise to AppError ──────────────────────────────────────
+  //  1. Normalise to AppError 
 
   let appError: AppError;
 
@@ -27,11 +27,11 @@ export const errorHandler = (
   } else if (isDatabaseConnectivityError(err)) {
     appError = new AppError(503, 'DATABASE_UNAVAILABLE', 'Database is temporarily unavailable. Please try again shortly.', false);
   } else if ((err as any)?.name === 'ZodError') {
-    // Zod validation – surface the first human-readable message
+    // Zod validation  surface the first human-readable message
     const zodErr = err as any;
     const firstIssue = zodErr.issues?.[0];
     const humanMessage = firstIssue
-      ? `${firstIssue.path.join(' → ')}: ${firstIssue.message}`
+      ? `${firstIssue.path.join('  ')}: ${firstIssue.message}`
       : 'Validation failed. Please check your input.';
     appError = AppError.badRequest(humanMessage, 'VALIDATION_ERROR');
   } else if (err instanceof SyntaxError && (err as any).status === 400) {
@@ -48,7 +48,7 @@ export const errorHandler = (
     );
   }
 
-  // ── 2. Logging ────────────────────────────────────────────────────
+  //  2. Logging 
 
   const logPayload = {
     statusCode: appError.statusCode,
@@ -68,9 +68,9 @@ export const errorHandler = (
     logger.warn('Client error', logPayload);
   }
 
-  // ── 3. Response ───────────────────────────────────────────────────
+  //  3. Response 
 
-  // Never leak internal details in the response – only user-friendly message
+  // Never leak internal details in the response  only user-friendly message
   res.status(appError.statusCode).json({
     success: false,
     error: appError.message,

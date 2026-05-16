@@ -15,12 +15,12 @@ The command line build is failing due to Java version conflicts. The easiest sol
 2. **Wait for Gradle Sync** to complete
 
 3. **Build APK for Testing:**
-   - Go to **Build → Build Bundle(s) / APK(s) → Build APK(s)**
+   - Go to **Build  Build Bundle(s) / APK(s)  Build APK(s)**
    - Choose **Debug** variant
    - APK will be generated at: `android/app/build/outputs/apk/debug/app-debug.apk`
 
 4. **Build AAB for Play Store:**
-   - Go to **Build → Generate Signed Bundle / APK**
+   - Go to **Build  Generate Signed Bundle / APK**
    - Select **Android App Bundle**
    - Create or upload keystore:
      - Keystore path: `finance-life-release.keystore` (already generated)
@@ -82,4 +82,4 @@ android/app/build/outputs/apk/release/app-release.apk
 - **Validity**: 10,000 days
 - **Owner**: shaik ashraf
 
-⚠️ **Important**: Keep your keystore file and passwords secure! You'll need them for all future app updates.
+ **Important**: Keep your keystore file and passwords secure! You'll need them for all future app updates.

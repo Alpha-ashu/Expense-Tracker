@@ -6,7 +6,7 @@ import { logger } from '../../config/logger';
 const cache = new Map<string, { data: any; expiry: number }>();
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache for faster updates
 
-// ── Market category definitions ────────────────────────────────────────
+//  Market category definitions 
 type MarketCategory = 'nse' | 'bse' | 'us' | 'forex' | 'crypto';
 
 const MARKET_DEFAULTS: Record<MarketCategory, string[]> = {
@@ -61,7 +61,7 @@ function getMarketState(meta: any): string {
 
 function currencySymbol(exchange: string): string {
   if (exchange === 'US' || exchange === 'CRYPTO' || exchange === 'FOREX') return '$';
-  return '₹';
+  return '';
 }
 
 /** Fetch a single chart from Yahoo Finance. Returns result.meta or null. */

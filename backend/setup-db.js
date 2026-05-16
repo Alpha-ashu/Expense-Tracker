@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 // Create database file
 const db = new sqlite3.Database('./dev.db');
 
-console.log('🚀 Setting up SQLite database...');
+console.log(' Setting up SQLite database...');
 
 // Create tables
 const createTables = `
@@ -90,10 +90,10 @@ CREATE INDEX IF NOT EXISTS idx_goal_target_date ON Goal(targetDate);
 db.serialize(() => {
   db.run(createTables, (err) => {
     if (err) {
-      console.error('❌ Error creating tables:', err);
+      console.error(' Error creating tables:', err);
       return;
     }
-    console.log('✅ Database tables created successfully');
+    console.log(' Database tables created successfully');
     
     // Create admin user
     createAdminUser();
@@ -108,18 +108,18 @@ function createAdminUser() {
   // Check if admin exists
   db.get("SELECT * FROM User WHERE email = ?", [adminEmail], (err, row) => {
     if (err) {
-      console.error('❌ Error checking admin user:', err);
+      console.error(' Error checking admin user:', err);
       return;
     }
     
     if (row) {
-      console.log('✅ Admin user already exists:', adminEmail);
+      console.log(' Admin user already exists:', adminEmail);
       createTestData(row.id);
     } else {
       // Create admin user
       bcrypt.hash(adminPassword, 10, (err, hashedPassword) => {
         if (err) {
-          console.error('❌ Error hashing password:', err);
+          console.error(' Error hashing password:', err);
           return;
         }
         
@@ -127,10 +127,10 @@ function createAdminUser() {
         const stmt = db.prepare("INSERT INTO User (id, email, name, password, role, isApproved) VALUES (?, ?, ?, ?, ?, ?)");
         stmt.run([userId, adminEmail, adminName, hashedPassword, 'admin', 1], function(err) {
           if (err) {
-            console.error('❌ Error creating admin user:', err);
+            console.error(' Error creating admin user:', err);
             return;
           }
-          console.log('✅ Admin user created:', adminEmail);
+          console.log(' Admin user created:', adminEmail);
           createTestData(userId);
         });
         stmt.finalize();
@@ -140,28 +140,28 @@ function createAdminUser() {
 }
 
 function createTestData(userId) {
-  console.log('📝 Creating test data...');
+  console.log(' Creating test data...');
   
   // Create test account
   const accountId = generateId();
   const accountStmt = db.prepare("INSERT INTO Account (id, userId, name, type, balance, currency) VALUES (?, ?, ?, ?, ?, ?)");
   accountStmt.run([accountId, userId, 'Test Account', 'bank', 1000.00, 'USD'], function(err) {
     if (err) {
-      console.error('❌ Error creating test account:', err);
+      console.error(' Error creating test account:', err);
       return;
     }
-    console.log('✅ Test account created');
+    console.log(' Test account created');
     
     // Create test transaction
     const transactionId = generateId();
     const transactionStmt = db.prepare("INSERT INTO Transaction (id, userId, accountId, type, amount, category, description, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     transactionStmt.run([transactionId, userId, accountId, 'income', 500.00, 'salary', 'Test salary income', new Date()], function(err) {
       if (err) {
-        console.error('❌ Error creating test transaction:', err);
+        console.error(' Error creating test transaction:', err);
         return;
       }
-      console.log('✅ Test transaction created');
-      console.log('🎉 Database setup completed successfully!');
+      console.log(' Test transaction created');
+      console.log(' Database setup completed successfully!');
       db.close();
     });
     transactionStmt.finalize();
@@ -175,7 +175,7 @@ function generateId() {
 
 // Handle errors
 db.on('error', (err) => {
-  console.error('❌ Database error:', err);
+  console.error(' Database error:', err);
 });
 
 console.log('Database setup script running...');

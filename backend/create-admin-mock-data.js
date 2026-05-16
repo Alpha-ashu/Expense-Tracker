@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 // Create comprehensive mock data for admin role only
 const db = new sqlite3.Database('./dev.db');
 
-console.log('🚀 Creating comprehensive mock data for admin role only...');
+console.log(' Creating comprehensive mock data for admin role only...');
 
 // Admin user details
 const adminEmail = 'shaik.job.details@gmail.com';
@@ -22,12 +22,12 @@ async function createAdminMockData() {
     });
 
     if (!admin) {
-      console.error('❌ Admin user not found in database');
+      console.error(' Admin user not found in database');
       return;
     }
 
     const adminId = admin.id;
-    console.log('✅ Admin user found:', adminEmail);
+    console.log(' Admin user found:', adminEmail);
 
     // Create comprehensive mock data for admin
     await createAdminAccounts(adminId);
@@ -36,8 +36,8 @@ async function createAdminMockData() {
     await createAdminLoans(adminId);
     await createAdminInvestments(adminId);
 
-    console.log('🎉 Comprehensive admin mock data created successfully!');
-    console.log('📊 Mock Data Summary:');
+    console.log(' Comprehensive admin mock data created successfully!');
+    console.log(' Mock Data Summary:');
     console.log('   - 5 bank accounts with different currencies');
     console.log('   - 50+ transactions (income, expenses, transfers)');
     console.log('   - 3 savings and investment goals');
@@ -47,13 +47,13 @@ async function createAdminMockData() {
 
     db.close();
   } catch (error) {
-    console.error('❌ Error creating admin mock data:', error);
+    console.error(' Error creating admin mock data:', error);
     db.close();
   }
 }
 
 async function createAdminAccounts(adminId) {
-  console.log('📝 Creating admin accounts...');
+  console.log(' Creating admin accounts...');
   
   const accounts = [
     {
@@ -102,7 +102,7 @@ async function createAdminAccounts(adminId) {
       stmt.run([accountId, adminId, account.name, account.type, account.balance, account.currency, account.isActive], function(err) {
         if (err) reject(err);
         else {
-          console.log(`   ✅ Created account: ${account.name} - $${account.balance} ${account.currency}`);
+          console.log(`    Created account: ${account.name} - $${account.balance} ${account.currency}`);
           resolve();
         }
       });
@@ -112,7 +112,7 @@ async function createAdminAccounts(adminId) {
 }
 
 async function createAdminTransactions(adminId) {
-  console.log('📝 Creating admin transactions...');
+  console.log(' Creating admin transactions...');
   
   // Get all admin account IDs
   const accounts = await new Promise((resolve, reject) => {
@@ -165,11 +165,11 @@ async function createAdminTransactions(adminId) {
     stmt.finalize();
   }
 
-  console.log(`   ✅ Created 50 transactions for admin`);
+  console.log(`    Created 50 transactions for admin`);
 }
 
 async function createAdminGoals(adminId) {
-  console.log('📝 Creating admin goals...');
+  console.log(' Creating admin goals...');
   
   const goals = [
     {
@@ -207,7 +207,7 @@ async function createAdminGoals(adminId) {
       stmt.run([goalId, adminId, goal.name, goal.targetAmount, goal.currentAmount, targetDate, goal.category], function(err) {
         if (err) reject(err);
         else {
-          console.log(`   ✅ Created goal: ${goal.name} - $${goal.currentAmount}/${goal.targetAmount}`);
+          console.log(`    Created goal: ${goal.name} - $${goal.currentAmount}/${goal.targetAmount}`);
           resolve();
         }
       });
@@ -217,7 +217,7 @@ async function createAdminGoals(adminId) {
 }
 
 async function createAdminLoans(adminId) {
-  console.log('📝 Creating admin loans...');
+  console.log(' Creating admin loans...');
   
   const loans = [
     {
@@ -254,7 +254,7 @@ async function createAdminLoans(adminId) {
       stmt.run([loanId, adminId, loan.name, loan.principalAmount, loan.outstandingBalance, dueDate, loan.type], function(err) {
         if (err) reject(err);
         else {
-          console.log(`   ✅ Created loan: ${loan.name} - Outstanding: $${loan.outstandingBalance}`);
+          console.log(`    Created loan: ${loan.name} - Outstanding: $${loan.outstandingBalance}`);
           resolve();
         }
       });
@@ -264,7 +264,7 @@ async function createAdminLoans(adminId) {
 }
 
 async function createAdminInvestments(adminId) {
-  console.log('📝 Creating admin investments...');
+  console.log(' Creating admin investments...');
   
   const investments = [
     {
@@ -313,7 +313,7 @@ async function createAdminInvestments(adminId) {
       stmt.run([investmentId, adminId, inv.assetName, totalInvested, currentValue, purchaseDate, inv.assetType], function(err) {
         if (err) reject(err);
         else {
-          console.log(`   ✅ Created investment: ${inv.assetName} - P/L: $${profitLoss.toFixed(2)}`);
+          console.log(`    Created investment: ${inv.assetName} - P/L: $${profitLoss.toFixed(2)}`);
           resolve();
         }
       });
@@ -324,7 +324,7 @@ async function createAdminInvestments(adminId) {
 
 // Handle errors
 db.on('error', (err) => {
-  console.error('❌ Database error:', err);
+  console.error(' Database error:', err);
 });
 
 // Run the mock data creation

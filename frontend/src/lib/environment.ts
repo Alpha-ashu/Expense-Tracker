@@ -1,4 +1,4 @@
-﻿// Environment configuration for production
+// Environment configuration for production
 export const ENVIRONMENT_CONFIG = {
   // Environment type
   NODE_ENV: process.env.NODE_ENV || 'production',

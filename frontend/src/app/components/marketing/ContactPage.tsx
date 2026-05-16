@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, MessageSquare, MapPin, Send, Loader2, Globe } from 'lucide-react';
 import { toast } from 'sonner';

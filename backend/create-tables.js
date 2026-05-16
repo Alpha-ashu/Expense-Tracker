@@ -3,7 +3,7 @@ const sqlite3 = require('sqlite3').verbose();
 // Create database file
 const db = new sqlite3.Database('./dev.db');
 
-console.log('🚀 Creating missing tables...');
+console.log(' Creating missing tables...');
 
 // Create missing tables
 const createTables = `
@@ -75,10 +75,10 @@ CREATE INDEX IF NOT EXISTS idx_goal_target_date ON Goal(targetDate);
 db.serialize(() => {
   db.run(createTables, (err) => {
     if (err) {
-      console.error('❌ Error creating tables:', err);
+      console.error(' Error creating tables:', err);
       return;
     }
-    console.log('✅ Missing tables created successfully');
+    console.log(' Missing tables created successfully');
     
     // Add test data
     addTestData();
@@ -86,12 +86,12 @@ db.serialize(() => {
 });
 
 function addTestData() {
-  console.log('📝 Adding test data...');
+  console.log(' Adding test data...');
   
   // Get admin user
   db.get("SELECT id FROM User WHERE email = 'shaik.job.details@gmail.com'", (err, user) => {
     if (err || !user) {
-      console.error('❌ Error getting admin user:', err);
+      console.error(' Error getting admin user:', err);
       return;
     }
     
@@ -102,21 +102,21 @@ function addTestData() {
     const accountStmt = db.prepare("INSERT INTO Account (id, userId, name, type, balance, currency) VALUES (?, ?, ?, ?, ?, ?)");
     accountStmt.run([accountId, userId, 'Test Account', 'bank', 1000.00, 'USD'], function(err) {
       if (err) {
-        console.error('❌ Error creating test account:', err);
+        console.error(' Error creating test account:', err);
         return;
       }
-      console.log('✅ Test account created');
+      console.log(' Test account created');
       
       // Create test transaction
       const transactionId = 'cl' + Math.random().toString(36).substr(2, 9);
       const transactionStmt = db.prepare("INSERT INTO Transactions (id, userId, accountId, type, amount, category, description, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
       transactionStmt.run([transactionId, userId, accountId, 'income', 500.00, 'salary', 'Test salary income', new Date()], function(err) {
         if (err) {
-          console.error('❌ Error creating test transaction:', err);
+          console.error(' Error creating test transaction:', err);
           return;
         }
-        console.log('✅ Test transaction created');
-        console.log('🎉 Database setup completed successfully!');
+        console.log(' Test transaction created');
+        console.log(' Database setup completed successfully!');
         db.close();
       });
       transactionStmt.finalize();
@@ -127,5 +127,5 @@ function addTestData() {
 
 // Handle errors
 db.on('error', (err) => {
-  console.error('❌ Database error:', err);
+  console.error(' Database error:', err);
 });

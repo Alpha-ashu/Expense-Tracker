@@ -12,9 +12,9 @@ import '@/styles/premium-transactions.css';
 
 // --- Constants ---
 const GOLD_TYPES = [
-  { id: 'gold', label: 'Pure Gold', icon: '🏆' },
-  { id: 'jewelry', label: 'Jewelry', icon: '💍' },
-  { id: 'coin', label: 'Gold Coin', icon: '🪙' },
+  { id: 'gold', label: 'Pure Gold', icon: '' },
+  { id: 'jewelry', label: 'Jewelry', icon: '' },
+  { id: 'coin', label: 'Gold Coin', icon: '' },
 ] as const;
 
 const PURITY_PRESETS = [

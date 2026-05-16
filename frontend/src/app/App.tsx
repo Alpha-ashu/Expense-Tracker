@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, Suspense, lazy, useRef } from 'react';
+import React, { useEffect, useState, Suspense, lazy, useRef } from 'react';
 import { AppProvider, useOptionalApp } from '@/contexts/AppContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SecurityProvider, useSecurity } from '@/contexts/SecurityContext';
@@ -55,6 +55,7 @@ const BookAdvisor = lazy(() => import('@/app/components/advisor/BookAdvisor').th
 const AdminAdvisorVerification = lazy(() => import('@/app/components/admin/AdminAdvisorVerification').then(m => ({ default: m.AdminAdvisorVerification })));
 const PayEMI = lazy(() => import('@/app/components/transactions/PayEMI').then(m => ({ default: m.PayEMI })));
 const Diagnostics = lazy(() => import('@/app/components/shared/Diagnostics').then(m => ({ default: m.Diagnostics })));
+const ManagerAdvisorVerification = lazy(() => import('@/app/components/manager/ManagerAdvisorVerification').then(m => ({ default: m.ManagerAdvisorVerification })));
 const ExportReports = lazy(() => import('@/app/components/features/ExportReports').then(m => ({ default: m.ExportReports })));
 const ToDoLists = lazy(() => import('@/app/components/features/ToDoLists').then(m => ({ default: m.ToDoLists })));
 const ToDoListDetail = lazy(() => import('@/app/components/features/ToDoListDetail').then(m => ({ default: m.ToDoListDetail })));
@@ -98,7 +99,7 @@ class PageErrorBoundary extends React.Component<
     return { error };
   }
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Log full technical details for developers â€” never show to users
+    // Log full technical details for developers  never show to users
     console.error('[PageErrorBoundary] Caught render error:', {
       message: error.message,
       stack: error.stack,
@@ -109,7 +110,7 @@ class PageErrorBoundary extends React.Component<
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center gap-4">
-          <div className="text-4xl">âš ï¸</div>
+          <div className="text-4xl"></div>
           <h2 className="text-lg font-bold text-gray-900">Something went wrong</h2>
           <p className="text-sm text-gray-500 max-w-sm">
             We hit an unexpected problem loading this page. Please try again.
@@ -320,10 +321,10 @@ const AppContent: React.FC = () => {
         setCurrentPage('add-transaction');
         break;
       case 'add-goal': setCurrentPage('add-goal'); break;
-      case 'transfer': 
+      case 'transfer':
         localStorage.setItem('quickFormType', 'transfer');
         localStorage.setItem('quickBackPage', 'transactions');
-        setCurrentPage('add-transaction'); 
+        setCurrentPage('add-transaction');
         break;
       case 'voice-entry': setCurrentPage('voice-input'); break;
       case 'calendar': setCurrentPage('calendar'); break;
@@ -584,6 +585,7 @@ const AppContent: React.FC = () => {
       case 'admin-ai': return <AdminAIDashboard />;
       case 'sync-monitor': return <SyncMonitorDashboard />;
       case 'admin-advisor-verification': return <AdminAdvisorVerification />;
+      case 'manager-advisor-verification': return <ManagerAdvisorVerification />;
       case 'advisor': return <AdvisorWorkspace />;
       case 'voice-input': return <VoiceInput />;
       case 'voice-review': return <VoiceReview />;
@@ -609,7 +611,7 @@ const AppContent: React.FC = () => {
           <LimitedModeBanner />
           <TopBar />
           <main className="w-full pt-16 overflow-x-hidden mobile-safe-bottom mobile-main flex-1 bg-transparent">
-          {dataSyncError && (
+            {dataSyncError && (
               <div className="px-4 sm:px-6 pt-4">
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 shadow-sm">
                   <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -635,7 +637,7 @@ const AppContent: React.FC = () => {
                 {renderPage()}
               </Suspense>
             </PageErrorBoundary>
-        </main>
+          </main>
         </div>
       </div>
 

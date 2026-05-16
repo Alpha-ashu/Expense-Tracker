@@ -2,9 +2,9 @@
  * Lightweight circuit-breaker for external API calls (Gemini, Donut, etc.).
  *
  * States:
- *  CLOSED  → requests pass through normally
- *  OPEN    → requests fail-fast (no network call)
- *  HALF    → allow a single probe; if it succeeds → CLOSED, else → OPEN
+ *  CLOSED   requests pass through normally
+ *  OPEN     requests fail-fast (no network call)
+ *  HALF     allow a single probe; if it succeeds  CLOSED, else  OPEN
  */
 
 import { logger } from '../config/logger';
@@ -53,14 +53,14 @@ export async function withCircuitBreaker<T>(
   const resetMs = options.resetTimeoutMs ?? DEFAULT_RESET_TIMEOUT_MS;
   const cb = getOrCreate(options.name);
 
-  // Check whether we should transition OPEN → HALF_OPEN
+  // Check whether we should transition OPEN  HALF_OPEN
   if (cb.state === 'OPEN') {
     if (Date.now() - cb.lastFailureAt >= resetMs) {
       cb.state = 'HALF_OPEN';
       cb.successesSinceHalf = 0;
       logger.info('Circuit breaker half-open', { circuit: options.name });
     } else {
-      logger.warn('Circuit breaker open – failing fast', { circuit: options.name });
+      logger.warn('Circuit breaker open  failing fast', { circuit: options.name });
       throw new Error(`Circuit breaker OPEN for ${options.name}. Retry later.`);
     }
   }

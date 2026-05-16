@@ -1,6 +1,11 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { db } from '@/lib/database';
-import { Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, AlertCircle, CheckCircle2, Bell, ExternalLink, FileText } from 'lucide-react';
+import { 
+  Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, 
+  LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, AlertCircle, CheckCircle2, 
+  Bell, ExternalLink, FileText, LayoutDashboard, Wallet, Receipt, Landmark, Target, 
+  TrendingUp, FileBarChart, Calendar, CheckSquare, UserCog 
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -698,18 +703,18 @@ export const Settings: React.FC = () => {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                { key: 'dashboard', label: 'Dashboard', icon: '' },
-                { key: 'accounts', label: 'Accounts', icon: '' },
-                { key: 'transactions', label: 'Transactions', icon: '' },
-                { key: 'loans', label: 'Loans & EMIs', icon: '' },
-                { key: 'goals', label: 'Goals', icon: '' },
-                { key: 'groups', label: 'Group Expenses', icon: '' },
-                { key: 'investments', label: 'Investments', icon: '' },
-                { key: 'reports', label: 'Reports', icon: '' },
-                { key: 'calendar', label: 'Calendar', icon: '' },
-                { key: 'todoLists', label: 'To-Do Lists', icon: '' },
-                { key: 'bookAdvisor', label: 'Book Advisor', icon: '' },
-                { key: 'notifications', label: 'Notifications', icon: '' },
+                { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+                { key: 'accounts', label: 'Accounts', icon: <Wallet size={18} /> },
+                { key: 'transactions', label: 'Transactions', icon: <Receipt size={18} /> },
+                { key: 'loans', label: 'Loans & EMIs', icon: <Landmark size={18} /> },
+                { key: 'goals', label: 'Goals', icon: <Target size={18} /> },
+                { key: 'groups', label: 'Group Expenses', icon: <Users size={18} /> },
+                { key: 'investments', label: 'Investments', icon: <TrendingUp size={18} /> },
+                { key: 'reports', label: 'Reports', icon: <FileBarChart size={18} /> },
+                { key: 'calendar', label: 'Calendar', icon: <Calendar size={18} /> },
+                { key: 'todoLists', label: 'To-Do Lists', icon: <CheckSquare size={18} /> },
+                { key: 'bookAdvisor', label: 'Book Advisor', icon: <UserCog size={18} /> },
+                { key: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
               ].map(feature => (
                 <button
                   key={feature.key}
@@ -717,20 +722,27 @@ export const Settings: React.FC = () => {
                   className={cn(
                     "p-4 rounded-2xl border-2 transition-all text-left backdrop-blur-sm",
                     visibleFeatures[feature.key]
-                      ? 'border-black/20 bg-white/80 shadow-sm'
+                      ? 'border-black/10 bg-white/80 shadow-sm'
                       : 'border-gray-200/50 bg-gray-50/60'
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{feature.icon}</span>
-                      <p className="font-medium text-gray-900">{feature.label}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                        visibleFeatures[feature.key] ? "bg-black/5 text-black" : "bg-gray-200/50 text-gray-400"
+                      )}>
+                        {feature.icon}
+                      </div>
+                      <span className="font-medium text-gray-900 truncate">{feature.label}</span>
                     </div>
-                    {visibleFeatures[feature.key] ? (
-                      <Eye size={20} className="text-gray-700" />
-                    ) : (
-                      <EyeOff size={20} className="text-gray-400" />
-                    )}
+                    <div className="shrink-0">
+                      {visibleFeatures[feature.key] ? (
+                        <Eye size={18} className="text-gray-700" />
+                      ) : (
+                        <EyeOff size={18} className="text-gray-400" />
+                      )}
+                    </div>
                   </div>
                 </button>
               ))}
@@ -933,18 +945,18 @@ export const Settings: React.FC = () => {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { key: 'dashboard', label: 'Dashboard', icon: '' },
-                  { key: 'accounts', label: 'Accounts', icon: '' },
-                  { key: 'transactions', label: 'Transactions', icon: '' },
-                  { key: 'loans', label: 'Loans & EMIs', icon: '' },
-                  { key: 'goals', label: 'Goals', icon: '' },
-                  { key: 'groups', label: 'Group Expenses', icon: '' },
-                  { key: 'investments', label: 'Investments', icon: '' },
-                  { key: 'reports', label: 'Reports', icon: '' },
-                  { key: 'calendar', label: 'Calendar', icon: '' },
-                  { key: 'todoLists', label: 'To-Do Lists', icon: '' },
-                  { key: 'bookAdvisor', label: 'Book Advisor', icon: '' },
-                  { key: 'notifications', label: 'Notifications', icon: '' },
+                  { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+                  { key: 'accounts', label: 'Accounts', icon: <Wallet size={18} /> },
+                  { key: 'transactions', label: 'Transactions', icon: <Receipt size={18} /> },
+                  { key: 'loans', label: 'Loans & EMIs', icon: <Landmark size={18} /> },
+                  { key: 'goals', label: 'Goals', icon: <Target size={18} /> },
+                  { key: 'groups', label: 'Group Expenses', icon: <Users size={18} /> },
+                  { key: 'investments', label: 'Investments', icon: <TrendingUp size={18} /> },
+                  { key: 'reports', label: 'Reports', icon: <FileBarChart size={18} /> },
+                  { key: 'calendar', label: 'Calendar', icon: <Calendar size={18} /> },
+                  { key: 'todoLists', label: 'To-Do Lists', icon: <CheckSquare size={18} /> },
+                  { key: 'bookAdvisor', label: 'Book Advisor', icon: <UserCog size={18} /> },
+                  { key: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
                 ].map(feature => (
                   <button
                     key={feature.key}
@@ -952,20 +964,27 @@ export const Settings: React.FC = () => {
                     className={cn(
                       "p-4 rounded-2xl border-2 transition-all text-left backdrop-blur-sm",
                       visibleFeatures[feature.key]
-                        ? 'border-black/20 bg-white/80 shadow-sm'
+                        ? 'border-black/10 bg-white/80 shadow-sm'
                         : 'border-gray-200/50 bg-gray-50/60'
                     )}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{feature.icon}</span>
-                        <p className="font-medium text-gray-900">{feature.label}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                          visibleFeatures[feature.key] ? "bg-black/5 text-black" : "bg-gray-200/50 text-gray-400"
+                        )}>
+                          {feature.icon}
+                        </div>
+                        <span className="font-medium text-gray-900 truncate">{feature.label}</span>
                       </div>
-                      {visibleFeatures[feature.key] ? (
-                        <Eye size={20} className="text-gray-700" />
-                      ) : (
-                        <EyeOff size={20} className="text-gray-400" />
-                      )}
+                      <div className="shrink-0">
+                        {visibleFeatures[feature.key] ? (
+                          <Eye size={18} className="text-gray-700" />
+                        ) : (
+                          <EyeOff size={18} className="text-gray-400" />
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))}

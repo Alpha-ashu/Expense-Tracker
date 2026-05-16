@@ -1,6 +1,4 @@
-import { TokenManager } from '@/lib/api';
-
-const API_BASE = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '');
+import { apiClient } from '@/lib/api';
 
 export interface AIOverviewDto {
   usersAnalyzed: number;
@@ -73,35 +71,44 @@ export interface AIRawUserDataDto {
   }>;
 }
 
-const getToken = () => TokenManager.getAccessToken() || '';
-
-const request = async <T>(endpoint: string, options?: RequestInit): Promise<T> => {
-  const token = getToken();
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options?.headers || {}),
-    },
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as { success?: boolean; data?: T; error?: string };
-
-  if (!response.ok || payload.success === false) {
-    throw new Error(payload.error || `Request failed: ${response.status}`);
-  }
-
-  return (payload.data ?? payload) as T;
-};
-
 export const adminAIService = {
-  getOverview: () => request<AIOverviewDto>('/admin/ai/overview'),
-  getUsers: (limit = 50) => request<AIUserIntelligenceDto[]>(`/admin/ai/users?limit=${limit}`),
-  getInsights: (limit = 80) => request<AIInsightFeedDto[]>(`/admin/ai/insights?limit=${limit}`),
-  getPatterns: () => request<AIPatternAnalyticsDto>('/admin/ai/patterns'),
-  getAccuracy: () => request<AIAccuracyDto>('/admin/ai/accuracy'),
-  getRawUserData: (userId: string) => request<AIRawUserDataDto>(`/admin/ai/raw/${userId}`),
-  runFeatureEngine: () => request<{ processedUsers: number }>('/admin/ai/run/features', { method: 'POST', body: JSON.stringify({}) }),
-  runPredictionEngine: () => request<{ processedUsers: number }>('/admin/ai/run/predictions', { method: 'POST', body: JSON.stringify({}) }),
+  getOverview: async () => {
+    const res = await apiClient.get<AIOverviewDto>('/admin/ai/overview');
+    return res.data;
+  },
+  
+  getUsers: async (limit = 50) => {
+    const res = await apiClient.get<AIUserIntelligenceDto[]>(`/admin/ai/users?limit=${limit}`);
+    return res.data;
+  },
+  
+  getInsights: async (limit = 80) => {
+    const res = await apiClient.get<AIInsightFeedDto[]>(`/admin/ai/insights?limit=${limit}`);
+    return res.data;
+  },
+  
+  getPatterns: async () => {
+    const res = await apiClient.get<AIPatternAnalyticsDto>('/admin/ai/patterns');
+    return res.data;
+  },
+  
+  getAccuracy: async () => {
+    const res = await apiClient.get<AIAccuracyDto>('/admin/ai/accuracy');
+    return res.data;
+  },
+  
+  getRawUserData: async (userId: string) => {
+    const res = await apiClient.get<AIRawUserDataDto>(`/admin/ai/raw/${userId}`);
+    return res.data;
+  },
+  
+  runFeatureEngine: async () => {
+    const res = await apiClient.post<{ processedUsers: number }>('/admin/ai/run/features', {});
+    return res.data;
+  },
+  
+  runPredictionEngine: async () => {
+    const res = await apiClient.post<{ processedUsers: number }>('/admin/ai/run/predictions', {});
+    return res.data;
+  },
 };

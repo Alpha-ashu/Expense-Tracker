@@ -5,7 +5,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Supabase credentials not found in .env');
+  console.error(' Supabase credentials not found in .env');
   process.exit(1);
 }
 
@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function updateUserToAdmin() {
   try {
-    console.log('🔍 Checking user in Supabase...');
+    console.log(' Checking user in Supabase...');
     
     // Try different table names
     let users = null;
@@ -36,8 +36,8 @@ async function updateUserToAdmin() {
     }
 
     if (error && (!users || users.length === 0)) {
-      console.error('❌ Error fetching user:', error.message);
-      console.log('\n💡 Trying to list all tables...');
+      console.error(' Error fetching user:', error.message);
+      console.log('\n Trying to list all tables...');
       
       // Try to get any data to see what tables exist
       const { error: listError } = await supabase
@@ -46,15 +46,15 @@ async function updateUserToAdmin() {
         .limit(1);
       
       if (listError) {
-        console.log(`\n📝 Table names might be lowercase. Trying 'users'...`);
+        console.log(`\n Table names might be lowercase. Trying 'users'...`);
       }
       
       process.exit(1);
     }
 
     if (!users || users.length === 0) {
-      console.log('❌ User not found with that email');
-      console.log('\n📋 Listing all users:');
+      console.log(' User not found with that email');
+      console.log('\n Listing all users:');
       const { data: allUsers } = await supabase
         .from(tableName)
         .select('email, role, isApproved');
@@ -70,18 +70,18 @@ async function updateUserToAdmin() {
     }
 
     const user = users[0];
-    console.log('✅ User found:');
+    console.log(' User found:');
     console.log(`  Email: ${user.email}`);
     console.log(`  Name: ${user.name}`);
     console.log(`  Current Role: ${user.role}`);
     console.log(`  Approved: ${user.isApproved}`);
 
     if (user.role === 'admin' && user.isApproved) {
-      console.log('\n✅ User already has admin role and is approved!');
+      console.log('\n User already has admin role and is approved!');
       process.exit(0);
     }
 
-    console.log('\n⚙️  Updating user to admin role...');
+    console.log('\n  Updating user to admin role...');
     
     const { data: updatedUser, error: updateError } = await supabase
       .from(tableName)
@@ -90,20 +90,20 @@ async function updateUserToAdmin() {
       .select('email, role, isApproved');
 
     if (updateError) {
-      console.error('❌ Error updating user:', updateError.message);
+      console.error(' Error updating user:', updateError.message);
       process.exit(1);
     }
 
-    console.log('✅ User successfully updated to admin!');
+    console.log(' User successfully updated to admin!');
     if (updatedUser && updatedUser.length > 0) {
       console.log(`  New Role: ${updatedUser[0].role}`);
       console.log(`  New Approved Status: ${updatedUser[0].isApproved}`);
     }
 
-    console.log('\n💡 Please re-login to see admin features');
+    console.log('\n Please re-login to see admin features');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Unexpected error:', error.message);
+    console.error(' Unexpected error:', error.message);
     process.exit(1);
   }
 }

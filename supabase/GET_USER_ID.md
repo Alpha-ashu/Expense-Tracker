@@ -2,21 +2,21 @@
 
 After running the table and RLS migrations, you need your user ID to add sample data.
 
-## 🔍 **Method 1: Supabase Dashboard (Easiest)**
+##  **Method 1: Supabase Dashboard (Easiest)**
 
 1. Go to your Supabase Dashboard: https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh
-2. Click **Authentication** → **Users** in the left sidebar
-3. If no users exist, click **"Add user"** → **"Create new user"**
+2. Click **Authentication**  **Users** in the left sidebar
+3. If no users exist, click **"Add user"**  **"Create new user"**
 4. Fill in:
    - **Email**: your-email@example.com
    - **Password**: YourPassword123!
-   - **Auto Confirm User**: ✅ Check this box
+   - **Auto Confirm User**:  Check this box
 5. Click "Create user"
 6. Copy the **User UID** (it looks like: `a1b2c3d4-1234-5678-abcd-1234567890ab`)
 
 ---
 
-## 🔍 **Method 2: SQL Query**
+##  **Method 2: SQL Query**
 
 1. Go to **SQL Editor** in Supabase Dashboard
 2. Run this query:
@@ -31,7 +31,7 @@ FROM auth.users;
 
 ---
 
-## 🔍 **Method 3: Sign Up in Your App**
+##  **Method 3: Sign Up in Your App**
 
 1. Make sure your dev server is running: `npm run dev`
 2. Open http://localhost:5173
@@ -46,7 +46,7 @@ SELECT id, email FROM auth.users;
 
 ---
 
-## ✏️ **Use Your User ID**
+##  **Use Your User ID**
 
 1. Open [`supabase/migrations/003_seed_data.sql`](migrations/003_seed_data.sql)
 2. Find line 17: 
@@ -62,7 +62,7 @@ SELECT id, email FROM auth.users;
 
 ---
 
-## ✅ **Expected Output**
+##  **Expected Output**
 
 After running the seed data script, you should see:
 
@@ -78,7 +78,7 @@ NOTICE:  SEED DATA CREATED SUCCESSFULLY!
 
 ---
 
-## 🎉 **Test Your Data**
+##  **Test Your Data**
 
 Go to **Table Editor** and check:
 
@@ -90,17 +90,17 @@ Go to **Table Editor** and check:
 
 ---
 
-## 🐛 **Troubleshooting**
+##  **Troubleshooting**
 
 ### **Error: "User ID ... does not exist"**
-→ You haven't created a user yet. Use Method 1 or 3 above.
+ You haven't created a user yet. Use Method 1 or 3 above.
 
 ### **Error: "invalid input syntax for type uuid"**
-→ Make sure you copied the full UUID (36 characters with dashes)
+ Make sure you copied the full UUID (36 characters with dashes)
 
 ### **No data appears in app**
-→ Make sure you're logged in with the same user whose ID you used in the seed data
+ Make sure you're logged in with the same user whose ID you used in the seed data
 
 ---
 
-**Ready to test with real data!** 🚀
+**Ready to test with real data!** 

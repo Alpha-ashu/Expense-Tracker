@@ -42,12 +42,12 @@ class BackendSyncService {
 
   private setupNetworkListeners() {
     window.addEventListener('online', () => {
-      console.info('[BackendSync] Back online – initiating backend sync.');
+      console.info('[BackendSync] Back online  initiating backend sync.');
       this.syncWithBackend();
     });
 
     window.addEventListener('offline', () => {
-      console.info('[BackendSync] Offline – backend sync paused.');
+      console.info('[BackendSync] Offline  backend sync paused.');
     });
   }
 

@@ -1,4 +1,4 @@
-# 🗄️ Supabase Database Migrations
+#  Supabase Database Migrations
 
 This folder contains all SQL scripts to set up your Expense Tracker database in Supabase.
 
@@ -6,7 +6,7 @@ This folder contains all SQL scripts to set up your Expense Tracker database in 
 
 The current application path treats the backend Prisma `UserPin` model as the authoritative PIN state. Historical `user_pins` SQL in this folder is kept for legacy environments and should not be treated as the primary PIN source for new backend work.
 
-## 📋 Quick Start
+##  Quick Start
 
 ### **1. Run Migrations in Order:**
 
@@ -26,7 +26,7 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 
 ---
 
-## 📊 Database Schema
+##  Database Schema
 
 ### **Tables Created:**
 
@@ -54,22 +54,22 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 
 ---
 
-## 🔐 Security Features
+##  Security Features
 
 ### **Row Level Security (RLS):**
-- ✅ All tables have RLS enabled
-- ✅ Users can **only** access their own data
-- ✅ Todo lists can be shared with permissions (view/edit)
-- ✅ File uploads are user-specific
+-  All tables have RLS enabled
+-  Users can **only** access their own data
+-  Todo lists can be shared with permissions (view/edit)
+-  File uploads are user-specific
 
 ### **Automatic Features:**
-- ✅ `updated_at` timestamps are auto-updated (for tables that include the column)
-- ✅ User profiles are auto-created on signup
-- ✅ User IDs are automatically enforced by RLS
+-  `updated_at` timestamps are auto-updated (for tables that include the column)
+-  User profiles are auto-created on signup
+-  User IDs are automatically enforced by RLS
 
 ---
 
-## 🚀 Migration Files Explained
+##  Migration Files Explained
 
 ### **001_create_tables.sql**
 - Creates all 16 tables
@@ -114,12 +114,12 @@ See **[SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)** for step-by-step guide.
 
 ---
 
-## 💻 How to Run Migrations
+##  How to Run Migrations
 
 ### **Method 1: Supabase Dashboard (Recommended)**
 
 1. Go to https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh
-2. Click **SQL Editor** → **New query**
+2. Click **SQL Editor**  **New query**
 3. Copy & paste the SQL file content
 4. Click **Run** or press `Ctrl+Enter`
 
@@ -141,7 +141,7 @@ supabase db push
 
 ---
 
-## ✅ Verification Checklist
+##  Verification Checklist
 
 After running migrations, verify:
 
@@ -154,7 +154,7 @@ After running migrations, verify:
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 ### **Test Query 1: Check Tables**
 ```sql
@@ -181,9 +181,9 @@ FROM auth.users;
 
 ---
 
-## 🔄 Reset Database (If Needed)
+##  Reset Database (If Needed)
 
-**⚠️ WARNING: This deletes ALL data!**
+** WARNING: This deletes ALL data!**
 
 ```sql
 -- Drop all tables
@@ -201,7 +201,7 @@ GRANT ALL ON SCHEMA public TO public;
 
 ---
 
-## 📚 Resources
+##  Resources
 
 - **Setup Guide**: [SETUP_INSTRUCTIONS.md](SETUP_INSTRUCTIONS.md)
 - **Supabase Docs**: https://supabase.com/docs
@@ -209,23 +209,23 @@ GRANT ALL ON SCHEMA public TO public;
 
 ---
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 ### **"permission denied for table"**
-→ Run `002_enable_rls.sql` to create policies
+ Run `002_enable_rls.sql` to create policies
 
 ### **"relation does not exist"**
-→ Run `001_create_tables.sql` to create tables
+ Run `001_create_tables.sql` to create tables
 
 ### **"user does not exist" in seed data**
-→ Sign up first, then get your user ID with: `SELECT id FROM auth.users;`
+ Sign up first, then get your user ID with: `SELECT id FROM auth.users;`
 
 ### **Can't see any data in app**
-→ Check that user is authenticated and `user_id` matches `auth.uid()`
+ Check that user is authenticated and `user_id` matches `auth.uid()`
 
 ---
 
-## 📝 Notes
+##  Notes
 
 - Always run migrations in order
 - Never commit sensitive data to Git
@@ -235,4 +235,4 @@ GRANT ALL ON SCHEMA public TO public;
 
 ---
 
-**Ready to build!** 🎉
+**Ready to build!** 

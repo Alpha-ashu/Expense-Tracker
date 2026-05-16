@@ -444,7 +444,7 @@ export function AddTransaction() {
         const newBalance = selectedAccount.balance + balanceAdjustment;
         await db.accounts.update(formData.accountId, { balance: newBalance, updatedAt: now });
 
-        // ── Create GroupExpense record so it appears in the Groups page ──
+        //  Create GroupExpense record so it appears in the Groups page 
         if (isExpense && expenseMode === 'group' && result?.id && groupParticipants.length > 0) {
           const perHead = formData.amount / (groupParticipants.length + 1); // +1 for current user
           const members: import('@/lib/database').GroupMember[] = [
@@ -494,7 +494,7 @@ export function AddTransaction() {
             updatedAt: now,
           });
         } else if (isExpense && expenseMode === 'loan' && result?.id) {
-          // ── Create Loan record ──
+          //  Create Loan record 
           await db.loans.add({
             type: (loanType === 'borrowed' && loanDraft.emiAmount > 0) ? 'emi' : (loanType as 'borrowed' | 'lent'),
             name: formData.description || loanDraft.category || 'Loan',
@@ -575,7 +575,7 @@ export function AddTransaction() {
           </button>
         </div>
 
-        {/* Row 2: Type Tabs — full width pill */}
+        {/* Row 2: Type Tabs  full width pill */}
         <div className="px-4 lg:px-6 pb-3">
           <div className="flex items-center bg-slate-100 rounded-2xl p-1 gap-0.5">
             {([
@@ -1269,7 +1269,7 @@ export function AddTransaction() {
               />
             </div>
 
-            {/* To Account — Bank Transfer: self */}
+            {/* To Account  Bank Transfer: self */}
             {isTransfer && transferSubType === 'self' && transferMethod === 'bank' && (
               <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex justify-center"><ArrowDown size={14} className="text-slate-300" /></div>
@@ -1289,12 +1289,12 @@ export function AddTransaction() {
               </div>
             )}
 
-            {/* Cash Transfer: self — show info banner, no To Account needed */}
+            {/* Cash Transfer: self  show info banner, no To Account needed */}
             {isTransfer && transferSubType === 'self' && transferMethod === 'cash' && (
               <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl animate-in fade-in duration-200">
                 <Banknote size={16} className="text-amber-500 shrink-0" />
                 <p className="text-[10px] font-bold text-amber-700">
-                  Cash handed over directly — no destination account needed.
+                  Cash handed over directly  no destination account needed.
                 </p>
               </div>
             )}
@@ -1320,7 +1320,7 @@ export function AddTransaction() {
               </div>
             )}
 
-            {/* Others transfer — recipient picker + name input */}
+            {/* Others transfer  recipient picker + name input */}
             {isTransfer && transferSubType === 'others' && (
               <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex justify-center"><ArrowDown size={14} className="text-slate-300" /></div>
@@ -1468,7 +1468,7 @@ export function AddTransaction() {
               </div>
             )}
 
-            {/* Receipt attached — show summary + remove option */}
+            {/* Receipt attached  show summary + remove option */}
             {(scanDocumentId || attachmentDocumentId) && (
               <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
                 {scanDocumentId ? (
@@ -1481,7 +1481,7 @@ export function AddTransaction() {
                     {scanDocumentId ? 'Scanned Receipt' : 'Attachment'}
                   </p>
                   <p className="text-[9px] font-semibold text-emerald-500">
-                    {scanDocumentId ? 'Data was auto-extracted by OCR' : 'Saved as proof — no OCR'}
+                    {scanDocumentId ? 'Data was auto-extracted by OCR' : 'Saved as proof  no OCR'}
                   </p>
                 </div>
                 <button

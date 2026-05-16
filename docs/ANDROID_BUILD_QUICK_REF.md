@@ -40,20 +40,20 @@ From `android/` folder:
 ## CI/CD
 
 ### Manual Trigger
-- Go to GitHub repo → **Actions** tab
+- Go to GitHub repo  **Actions** tab
 - Select **Build Android AAB (Release)** workflow
-- Click **Run workflow** → choose variant (debug/release)
+- Click **Run workflow**  choose variant (debug/release)
 
 ### Automatic Trigger
 - Push to `main` or `master` branch automatically builds Release AAB
 
 ### Download Build
-- Actions tab → workflow run → **Artifacts** section
+- Actions tab  workflow run  **Artifacts** section
 
 ## Setup (One-Time)
 
 ### GitHub Secrets (for CI)
-1. Repo Settings → Secrets and variables → Actions
+1. Repo Settings  Secrets and variables  Actions
 2. Add:
    - `ANDROID_KEYSTORE_BASE64` (base64-encoded keystore)
    - `ANDROID_KEYSTORE_PASSWORD`

@@ -179,30 +179,30 @@ The entire Transaction History section animates in when a card is selected:
 
 ### Desktop Layout (Hidden on Mobile/Tablet)
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   TOTAL BALANCE                         │
-│                    ₹27,740.00                           │
-│              5 Active Accounts                          │
-└─────────────────────────────────────────────────────────┘
 
-┌─────────────────────────────────────────────────────────┐
-│                CENTER-FOCUSED CAROUSEL                  │
-│                                                         │
-│     [Physical Wallet]  [Apple Cash]  [Chase Card]      │
-│       (Faded 50%)      (Bright 100%)   (Faded 50%)     │
-│         90% scale        100% scale      90% scale      │
-│                                                         │
-│  User swipes left/right → Cards snap to center         │
-└─────────────────────────────────────────────────────────┘
+                   TOTAL BALANCE                         
+                    27,740.00                           
+              5 Active Accounts                          
 
-┌─────────────────────────────────────────────────────────┐
-│              TRANSACTION HISTORY                        │
-│              for Apple Cash                            │
-│                                                         │
-│  DATE  │  DESCRIPTION  │  CATEGORY  │  AMOUNT         │
-│  ──────────────────────────────────────────────────   │
-│        │               │            │                  │
-└─────────────────────────────────────────────────────────┘
+
+
+                CENTER-FOCUSED CAROUSEL                  
+                                                         
+     [Physical Wallet]  [Apple Cash]  [Chase Card]      
+       (Faded 50%)      (Bright 100%)   (Faded 50%)     
+         90% scale        100% scale      90% scale      
+                                                         
+  User swipes left/right  Cards snap to center         
+
+
+
+              TRANSACTION HISTORY                        
+              for Apple Cash                            
+                                                         
+  DATE    DESCRIPTION    CATEGORY    AMOUNT         
+     
+                                                     
+
 ```
 
 ### Mobile Layout (Vertical Accordion)
@@ -237,30 +237,30 @@ const accountTransactions = useMemo(() => {
 
 ---
 
-## Implementation Checklist ✅
+## Implementation Checklist 
 
 | Feature | Technical Requirement | Status |
 |---------|----------------------|--------|
-| **Snap Alignment** | `scroll-snap-type: x mandatory` with `scroll-snap-align: center` | ✅ Complete |
-| **Center Card Scale** | 100% scale, 100% opacity when centered | ✅ Complete |
-| **Side Card Scale** | 90% scale, 50% opacity when not centered | ✅ Complete |
-| **Active Index Tracking** | Scroll listener detecting closest-to-center card | ✅ Complete |
-| **Transaction Filtering** | Auto-filter based on active index via `useMemo` | ✅ Complete |
-| **Smooth Transitions** | `transition: all 0.3s ease-in-out` on scale/opacity | ✅ Complete |
-| **Snap Stop** | `scroll-snap-stop: always` prevents skipped cards | ✅ Complete |
-| **Initial Detection** | 100ms timeout for proper initial active card detection | ✅ Complete |
-| **Active Badge Animation** | Framer Motion entrance/exit animation | ✅ Complete |
-| **Transaction History Animation** | Slide-up animation when account is selected | ✅ Complete |
+| **Snap Alignment** | `scroll-snap-type: x mandatory` with `scroll-snap-align: center` |  Complete |
+| **Center Card Scale** | 100% scale, 100% opacity when centered |  Complete |
+| **Side Card Scale** | 90% scale, 50% opacity when not centered |  Complete |
+| **Active Index Tracking** | Scroll listener detecting closest-to-center card |  Complete |
+| **Transaction Filtering** | Auto-filter based on active index via `useMemo` |  Complete |
+| **Smooth Transitions** | `transition: all 0.3s ease-in-out` on scale/opacity |  Complete |
+| **Snap Stop** | `scroll-snap-stop: always` prevents skipped cards |  Complete |
+| **Initial Detection** | 100ms timeout for proper initial active card detection |  Complete |
+| **Active Badge Animation** | Framer Motion entrance/exit animation |  Complete |
+| **Transaction History Animation** | Slide-up animation when account is selected |  Complete |
 
 ---
 
 ## Browser Compatibility
 
 ### CSS Scroll Snap Support
-- ✅ Chrome 69+
-- ✅ Firefox 68+
-- ✅ Safari 15+
-- ✅ Edge 79+
+-  Chrome 69+
+-  Firefox 68+
+-  Safari 15+
+-  Edge 79+
 
 ### Fallback Behavior
 - JavaScript scroll listener provides reliable center detection even if scroll-snap isn't fully supported

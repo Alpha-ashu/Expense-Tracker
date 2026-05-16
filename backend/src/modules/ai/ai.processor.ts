@@ -1,4 +1,4 @@
-﻿import { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthRequest, getUserId } from '../../middleware/auth';
 import { logger } from '../../config/logger';
 import { prisma } from '../../db/prisma';
@@ -6,7 +6,7 @@ import { sanitizeAIInput } from '../../utils/sanitize';
 import { incrementAIUsage } from '../../utils/aiUsageTracker';
 import { audit } from '../../utils/auditLogger';
 
-// ðŸ”¥ BACKEND AI EXTRACTION LOGIC
+//  BACKEND AI EXTRACTION LOGIC
 // Simplified version of KANKUAI for backend processing
 
 async function extractExpenseDataBackend(text: string, source: 'ocr' | 'voice'): Promise<{
@@ -16,7 +16,7 @@ async function extractExpenseDataBackend(text: string, source: 'ocr' | 'voice'):
   category?: string;
   confidence: number;
 }> {
-  console.log(`ðŸ§  Backend AI extracting from ${source}: "${text}"`);
+  console.log(` Backend AI extracting from ${source}: "${text}"`);
 
   const result = {
     amount: extractAmount(text),
@@ -37,14 +37,14 @@ async function extractExpenseDataBackend(text: string, source: 'ocr' | 'voice'):
 
   result.confidence = dataPoints > 0 ? totalConfidence / dataPoints : 0.5;
 
-  console.log('ðŸ“‹ Backend AI extracted:', result);
+  console.log(' Backend AI extracted:', result);
   return result;
 }
 
 function extractAmount(text: string): number | undefined {
   const amountPatterns = [
-    /(?:total|amount|sum|payable|due|bill|charge|spent|cost|price|rupees?|rs|â‚¹)\s*([\d,]+(?:\.\d{2})?)/i,
-    /([\d,]+(?:\.\d{2})?)\s*(?:rupees?|rs|â‚¹)/i,
+    /(?:total|amount|sum|payable|due|bill|charge|spent|cost|price|rupees?|rs|)\s*([\d,]+(?:\.\d{2})?)/i,
+    /([\d,]+(?:\.\d{2})?)\s*(?:rupees?|rs|)/i,
   ];
 
   for (const pattern of amountPatterns) {
@@ -108,7 +108,7 @@ function classifyCategory(text: string): string {
   return 'Others';
 }
 
-// ðŸ”¥ AI PROCESSOR BACKEND APIs
+//  AI PROCESSOR BACKEND APIs
 // These endpoints handle the core AI processing logic
 
 export const processOCRRequest = async (req: AuthRequest, res: Response) => {
@@ -120,14 +120,14 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Image data is required' });
     }
 
-    // â”€â”€ AI quota enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // AI quota enforcement 
     const quota = await incrementAIUsage(userId);
     if (!quota.allowed) {
       audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
       return res.status(429).json({ error: 'Daily AI limit reached. Try again tomorrow.', limit: quota.limit });
     }
 
-    // â”€â”€ Sanitise input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Sanitise input 
     const { sanitized: cleanData, flagged } = sanitizeAIInput(imageData);
     if (flagged) {
       audit({ event: 'ai.prompt_injection', userId, resource: 'ocr', meta: { inputLength: imageData.length } });
@@ -143,11 +143,11 @@ export const processOCRRequest = async (req: AuthRequest, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    // ðŸ§  Backend AI extraction logic (simplified version of KANKUAI)
+    //  Backend AI extraction logic (simplified version of KANKUAI)
     const extractedData = await extractExpenseDataBackend(cleanData, 'ocr');
 
     const processingTime = performance.now() - startTime;
-    console.log(`âš¡ OCR processing completed in ${processingTime.toFixed(2)}ms`);
+    console.log(` OCR processing completed in ${processingTime.toFixed(2)}ms`);
 
     // Store prediction for learning
     await storeAIPrediction(userId, 'ocr', rawInputId, extractedData, processingTime);
@@ -177,7 +177,7 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Transcript or audio data is required' });
     }
 
-    // â”€â”€ AI quota enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // AI quota enforcement 
     const quota = await incrementAIUsage(userId);
     if (!quota.allowed) {
       audit({ event: 'ai.quota_exceeded', userId, meta: { current: quota.current, limit: quota.limit } });
@@ -186,7 +186,7 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
 
     const voiceData = transcript || audioData;
 
-    // â”€â”€ Sanitise input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Sanitise input 
     const { sanitized: cleanData, flagged } = sanitizeAIInput(voiceData);
     if (flagged) {
       audit({ event: 'ai.prompt_injection', userId, resource: 'voice', meta: { inputLength: voiceData.length } });
@@ -202,11 +202,11 @@ export const processVoiceRequest = async (req: AuthRequest, res: Response) => {
       hasAudio: !!audioData,
     });
 
-    // ðŸ§  Backend AI extraction logic
+    //  Backend AI extraction logic
     const extractedData = await extractExpenseDataBackend(cleanData, 'voice');
 
     const processingTime = performance.now() - startTime;
-    console.log(`âš¡ Voice processing completed in ${processingTime.toFixed(2)}ms`);
+    console.log(` Voice processing completed in ${processingTime.toFixed(2)}ms`);
 
     // Store prediction for learning
     await storeAIPrediction(userId, 'voice', rawInputId, extractedData, processingTime);
@@ -236,7 +236,7 @@ export const submitAIFeedback = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Prediction ID and corrected data are required' });
     }
 
-    console.log('ðŸŽ“ Storing AI feedback for user:', userId);
+    console.log(' Storing AI feedback for user:', userId);
 
     // Store feedback for learning
     await prisma.$executeRaw`
@@ -258,9 +258,9 @@ export const submitAIFeedback = async (req: AuthRequest, res: Response) => {
       WHERE id = ${predictionId}
     `;
 
-    // ðŸ§  Update learning patterns based on feedback (backend logic)
+    //  Update learning patterns based on feedback (backend logic)
     if (correctedData.merchant && correctedData.category) {
-      console.log(`ðŸŽ“ Backend learning: ${correctedData.merchant} â†’ ${correctedData.category}`);
+      console.log(` Backend learning: ${correctedData.merchant}  ${correctedData.category}`);
       // Pattern update is handled in updateLearningPatterns function
     }
 
@@ -323,7 +323,7 @@ export const getAIPersonalization = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ðŸ” ADMIN-ONLY ENDPOINTS
+//  ADMIN-ONLY ENDPOINTS
 
 export const getAIAnalytics = async (req: AuthRequest, res: Response) => {
   try {
@@ -446,7 +446,7 @@ export const getAIPatterns = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// ðŸ” HELPER FUNCTIONS (Privacy-first)
+//  HELPER FUNCTIONS (Privacy-first)
 
 async function storeAIData(
   userId: string,

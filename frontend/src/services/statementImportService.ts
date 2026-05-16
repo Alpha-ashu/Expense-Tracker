@@ -12,6 +12,7 @@ import * as pdfjsLib from 'pdfjs-dist/build/pdf.mjs';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+const STANDARD_FONT_DATA_URL = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/standard_fonts/`;
 
 export interface ParsedTransaction {
   transaction_date: Date;
@@ -563,7 +564,12 @@ class StatementImportService {
 
   private async extractPdfText(file: File) {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableFontFace: true }).promise;
+    const pdf = await pdfjsLib.getDocument({ 
+      data: arrayBuffer, 
+      disableFontFace: true,
+      standardFontDataUrl: STANDARD_FONT_DATA_URL
+    }).promise;
+
     let fullText = '';
 
     for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex += 1) {
@@ -597,7 +603,12 @@ class StatementImportService {
 
   private async extractPdfTextWithOcr(file: File) {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, disableFontFace: true }).promise;
+    const pdf = await pdfjsLib.getDocument({ 
+      data: arrayBuffer, 
+      disableFontFace: true,
+      standardFontDataUrl: STANDARD_FONT_DATA_URL
+    }).promise;
+
     const maxPages = Math.min(pdf.numPages, 4);
     const pageTexts: string[] = [];
 
@@ -652,7 +663,7 @@ class StatementImportService {
   private async extractTransactionsFromText(text: string, userId: string) {
     const rawLines = text.split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim());
 
-    // ── STEP 1: Find the table header row ─────────────────────────────────────
+    //  STEP 1: Find the table header row 
     const HEADER_RE = /\b(?:date\b.{0,60}\b(?:particulars|description|transaction\s*details?|narration|details)\b|\b(?:particulars|description|transaction\s*details?|narration)\b.{0,60}\bdate\b)/i;
 
     let headerIdx = -1;

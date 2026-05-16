@@ -1,10 +1,10 @@
-# ⚡ RBAC Quick Reference Guide
+#  RBAC Quick Reference Guide
 
 **Copy-paste ready code examples and checklists for quick implementation.**
 
 ---
 
-## 🚀 5-Minute Setup
+##  5-Minute Setup
 
 ### 1. Check Your Role (Browser Console)
 ```javascript
@@ -45,7 +45,7 @@ setCurrentPage('advisor-panel');
 
 ---
 
-## 📋 Common Code Snippets
+##  Common Code Snippets
 
 ### Check If User Has Feature Access
 
@@ -129,7 +129,7 @@ export const AdvisorOnly = () => {
 
 ---
 
-## 🔐 Admin Email Lock Verification
+##  Admin Email Lock Verification
 
 ### Frontend
 ```javascript
@@ -144,7 +144,7 @@ export const isAdminEmail = (email: string | undefined): boolean => {
 ```javascript
 // In AuthContext - Line ~45
 if (isAdminEmail(email)) {
-  console.log('🔐 Admin role assigned to:', email);
+  console.log(' Admin role assigned to:', email);
   return 'admin';
 }
 ```
@@ -158,27 +158,27 @@ console.log(isAdminEmail('hacker@example.com'));     // false
 
 ---
 
-## 📊 Feature Matrix
+##  Feature Matrix
 
 ### Quick Lookup
 
 ```
 FEATURE               ADMIN  ADVISOR  USER
-────────────────────────────────────────
-accounts              ✅     ✅       ✅
-transactions          ✅     ✅       ✅
-loans                 ✅     ✅       ✅
-goals                 ✅     ✅       ✅
-groups                ✅     ✅       ✅
-investments           ✅     ✅       ✅
-reports               ✅     ✅       ✅
-calendar              ✅     ✅       ✅
-todoLists             ✅     ✅       ✅
-transfer              ✅     ✅       ✅
-taxCalculator         ✅     ✅       ✅
-bookAdvisor           ✅     ❌       ✅ ⬅️ KEY DIFFERENCE
-adminPanel            ✅     ❌       ❌
-advisorPanel          ❌     ✅       ❌
+
+accounts                          
+transactions                      
+loans                             
+goals                             
+groups                            
+investments                       
+reports                           
+calendar                          
+todoLists                         
+transfer                          
+taxCalculator                     
+bookAdvisor                         KEY DIFFERENCE
+adminPanel                        
+advisorPanel                      
 ```
 
 ### How to Use Check
@@ -187,29 +187,29 @@ const { hasFeatureAccess } = require('./lib/rbac');
 
 // Check any feature
 hasFeatureAccess('admin', 'bookAdvisor');    // true
-hasFeatureAccess('advisor', 'bookAdvisor');  // false ⬅️
+hasFeatureAccess('advisor', 'bookAdvisor');  // false 
 hasFeatureAccess('user', 'bookAdvisor');     // true
 ```
 
 ---
 
-## 🔄 Session State Flow
+##  Session State Flow
 
 ### Valid Transitions
 
 ```
 pending
-   ↓
+   
 accepted
-   ↓
+   
 ready
-   ↓
+   
 active
-   ↓
+   
 completed
 
 From ANY state:
-   ↓
+   
 cancelled
 ```
 
@@ -230,7 +230,7 @@ isValidStateTransition('completed', 'pending');   // false - no backwards
 
 ---
 
-## 💳 Payment System
+##  Payment System
 
 ### Quick Calculation
 
@@ -248,26 +248,26 @@ const { platformFee, advisorSettlement } = calculatePlatformSplit(amount);
 ### Payment States
 
 ```
-pending → processing → completed → [refund]
+pending  processing  completed  [refund]
          (Processing)  (Done)
 ```
 
 ---
 
-## 🔔 Notifications
+##  Notifications
 
 ### When They're Sent
 
 | Event | Recipient | Status |
 |-------|-----------|--------|
-| User books | Advisor | ✅ Implemented |
-| Advisor accepts | User | ✅ Implemented |
-| Advisor rejects | User | ✅ Implemented |
-| Session ready | Both | ✅ Implemented |
-| Session starts | Both | ✅ Implemented |
-| Session ends | Both | ✅ Implemented |
-| Payment done | User | ✅ Implemented |
-| Admin approved payment | Advisor | ✅ Implemented |
+| User books | Advisor |  Implemented |
+| Advisor accepts | User |  Implemented |
+| Advisor rejects | User |  Implemented |
+| Session ready | Both |  Implemented |
+| Session starts | Both |  Implemented |
+| Session ends | Both |  Implemented |
+| Payment done | User |  Implemented |
+| Admin approved payment | Advisor |  Implemented |
 
 ### Alert Sound? (Critical Only)
 ```javascript
@@ -281,16 +281,16 @@ shouldPlayAlert('feature_released');   // false - no sound
 
 ---
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### Problem: Component doesn't see role
 
 ```tsx
-// ❌ WRONG - useAuth might not be updated
+//  WRONG - useAuth might not be updated
 const auth = useAuth();
 console.log(auth.user.role); // undefined?
 
-// ✅ CORRECT - Use the hooks
+//  CORRECT - Use the hooks
 const isAdmin = useIsAdmin();
 console.log(isAdmin);
 ```
@@ -298,10 +298,10 @@ console.log(isAdmin);
 ### Problem: Feature access always false
 
 ```javascript
-// ❌ WRONG - typo in feature name
+//  WRONG - typo in feature name
 hasFeatureAccess('admin', 'bookadvisor'); // lowercase 'a'
 
-// ✅ CORRECT - exact case
+//  CORRECT - exact case
 hasFeatureAccess('admin', 'bookAdvisor'); // camelCase
 ```
 
@@ -322,7 +322,7 @@ console.log(isAdminEmail('shake.job.atgmail.com'));
 
 ```javascript
 // Current behavior: Advisors can see bookAdvisor in feature check
-hasFeatureAccess('advisor', 'bookAdvisor'); // false ✅
+hasFeatureAccess('advisor', 'bookAdvisor'); // false 
 
 // If they CAN book, check:
 1. Their role is 'advisor' (not 'user')
@@ -332,7 +332,7 @@ hasFeatureAccess('advisor', 'bookAdvisor'); // false ✅
 
 ---
 
-## ✅ Pre-Deployment Checklist
+##  Pre-Deployment Checklist
 
 - [ ] Admin email `shake.job.atgmail.com` works
 - [ ] Other emails cannot be admin
@@ -348,7 +348,7 @@ hasFeatureAccess('advisor', 'bookAdvisor'); // false ✅
 
 ---
 
-## 📁 File Quick Links
+##  File Quick Links
 
 | File | Purpose |
 |------|---------|
@@ -363,7 +363,7 @@ hasFeatureAccess('advisor', 'bookAdvisor'); // false ✅
 
 ---
 
-## 🎓 Learn More
+##  Learn More
 
 - **Full Details**: [RBAC_IMPLEMENTATION.md](./RBAC_IMPLEMENTATION.md)
 - **Component Usage**: [RBAC_COMPONENT_INTEGRATION.md](./RBAC_COMPONENT_INTEGRATION.md)
@@ -373,7 +373,7 @@ hasFeatureAccess('advisor', 'bookAdvisor'); // false ✅
 
 ---
 
-## 💡 Pro Tips
+##  Pro Tips
 
 ### 1. Check All Permissions at Once
 ```javascript
@@ -415,7 +415,7 @@ isFeatureVisible('aiInsights', 'admin', 'unreleased'); // true
 const amounts = [100, 500, 1000, 2500];
 amounts.forEach(a => {
   const split = calculatePlatformSplit(a);
-  console.log(`₹${a} → Platform: ₹${split.platformFee}, Advisor: ₹${split.advisorSettlement}`);
+  console.log(`${a}  Platform: ${split.platformFee}, Advisor: ${split.advisorSettlement}`);
 });
 ```
 
@@ -430,27 +430,27 @@ console.log('Admin features:', getAllowedFeatures('admin'));
 
 ---
 
-## 🚀 One-Liner Tests
+##  One-Liner Tests
 
 ```javascript
-// Copy-paste into browser console ⬇️
+// Copy-paste into browser console 
 
 // Test admin email lock
-require('./lib/rbac').isAdminEmail('shake.job.atgmail.com') ? console.log('✅ Admin lock works') : console.log('❌ Login failed');
+require('./lib/rbac').isAdminEmail('shake.job.atgmail.com') ? console.log(' Admin lock works') : console.log(' Login failed');
 
 // Test feature matrix
 ['bookAdvisor'].forEach(f => console.log(`${f}: admin=${require('./lib/rbac').hasFeatureAccess('admin',f)} advisor=${require('./lib/rbac').hasFeatureAccess('advisor',f)} user=${require('./lib/rbac').hasFeatureAccess('user',f)}`));
 
 // Test state transitions
-['pending→accepted', 'accepted→ready', 'ready→active', 'active→completed'].forEach(t => { const [from,to] = t.split('→'); console.log(`${t}: ${require('./lib/sessionManagement').isValidStateTransition(from,to) ? '✅' : '❌'}`); });
+['pendingaccepted', 'acceptedready', 'readyactive', 'activecompleted'].forEach(t => { const [from,to] = t.split(''); console.log(`${t}: ${require('./lib/sessionManagement').isValidStateTransition(from,to) ? '' : ''}`); });
 
 // Test payment split
-const split = require('./lib/paymentSettlement').calculatePlatformSplit(1000); console.log(`₹1000 → Platform: ₹${split.platformFee}, Advisor: ₹${split.advisorSettlement}`);
+const split = require('./lib/paymentSettlement').calculatePlatformSplit(1000); console.log(`1000  Platform: ${split.platformFee}, Advisor: ${split.advisorSettlement}`);
 ```
 
 ---
 
-## 📞 Quick Help
+##  Quick Help
 
 **Q: How do I make someone an advisor?**
 ```env
@@ -478,19 +478,19 @@ This is intentional for security.
 
 **Q: Where's the feature control panel?**
 ```
-Admin Login → Menu → "Admin Panel" appears
+Admin Login  Menu  "Admin Panel" appears
 Route: admin-feature-panel
 ```
 
 **Q: Where's the advisor workspace?**
 ```
-Advisor Login → Menu → "Advisor Panel" appears
+Advisor Login  Menu  "Advisor Panel" appears
 Route: advisor-panel
 ```
 
 ---
 
-## 🎯 Next Steps
+##  Next Steps
 
 1. **Test All Roles** - Login with admin, advisor, user emails
 2. **Check Features** - Verify who can see what
@@ -502,6 +502,6 @@ Route: advisor-panel
 ---
 
 **Last Updated**: February 2025  
-**Status**: ✅ Production Ready  
+**Status**:  Production Ready  
 **Version**: 1.0
 

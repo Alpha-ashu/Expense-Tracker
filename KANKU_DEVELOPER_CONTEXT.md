@@ -4,7 +4,7 @@ This document serves as the single source of truth for the project's architectur
 
 ---
 
-## 🏗 Core Architecture
+##  Core Architecture
 
 KANKU follows a **feature-modular structure** within the frontend to ensure scalability and clarity.
 
@@ -25,13 +25,13 @@ KANKU follows a **feature-modular structure** within the frontend to ensure scal
 - **`docs/`**: Archived documentation and implementation guides.
 - **`unused/`**: Deprecated or archived code (do not import from here).
 
-### 🏷 Import Conventions
+###  Import Conventions
 - **Always use absolute aliases**: Use `@/app/components/...` or `@/lib/...`.
 - **Avoid relative nesting**: Do not use `../../../`.
 
 ---
 
-## 🎨 Design System & Theme
+##  Design System & Theme
 
 KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to these standards:
 
@@ -61,35 +61,69 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 - **Modal Popups (Mobile)**: `max-w-lg` for a centered "half-size" floating card effect. Must use `z-[101]` for content and `pointer-events-auto`.
 - **Transaction Rows**: Use consolidated vertical date blocks and flexible horizontal alignment to prevent text overlap in data-dense views.
 
+###  Database Maintenance Standards
+- **Deduplication**: When implementing imports or syncs, use `deduplicateLocalData` to merge redundant records. Soft-matching should use `(date, amount, description)` for transactions.
+- **Diagnostics**: All core maintenance tools (Deduplicate, Reset) must be exposed in the `Diagnostics` component with appropriate safeguards (confirmations/spinners).
+- **Sync Integrity**: Always prefer `upsert` with `onConflict` (remoteId/cloudId) to prevent upstream duplication during sync cycles.
+
+###  UI Interaction Standards
+- **Popups**: Mobile popups must use `max-w-lg` and `pointer-events-auto` on the container to ensure button interactability.
+- **Z-Index Hierarchy**: Modal backdrops start at `z-[100]`, content at `z-[101]`. Avoid exceeding `z-[200]` unless for global notifications.
+
+###  Real Mock Credentials (Dev/Staging)
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin@kanku.com` | `Admin@2026!k` |
+| **Manager** | `manager@kanku.com` | `Manager@2026!k` |
+| **Advisor** | `advisor@kanku.com` | `Advisor@2026!k` |
+| **User** | `user@kanku.com` | `User@2026!k` |
+
+> [!IMPORTANT]
+> To use these, you MUST first create them in your **Supabase Auth** dashboard, then run the SQL below to map their roles in the `public.users` table.
+
+###  Supabase Role Mapping SQL
+```sql
+INSERT INTO public.users (id, email, role, name, status)
+VALUES 
+  ('REPLACE_WITH_AUTH_ID', 'admin@kanku.com', 'admin', 'System Admin', 'active'),
+  ('REPLACE_WITH_AUTH_ID', 'manager@kanku.com', 'manager', 'Compliance Manager', 'active'),
+  ('REPLACE_WITH_AUTH_ID', 'advisor@kanku.com', 'advisor', 'Senior Advisor', 'active'),
+  ('REPLACE_WITH_AUTH_ID', 'user@kanku.com', 'user', 'Premium Client', 'active')
+ON CONFLICT (email) DO UPDATE SET role = EXCLUDED.role;
+```
+
 ---
 
-## 📜 Change Log & Evolution
+##  Change Log & Evolution
 
 ---
 
-### **2026-05-16 — Account Import Stability & UI Overhaul**
+### **2026-05-16  Account Import Stability, AI Auth & UI Overhaul**
 
 1. **Deduplication Engine Integration**:
    - Integrated `deduplicateLocalData()` into the `syncUserDataFromBackend` cycle and the primary `AppContext` mount effect.
    - This prevents duplicate accounts and transactions from appearing during cloud-to-local merges, specifically matching by name, type, and currency.
-2. **Modularized Branding System**:
+2. **Admin AI Authentication Stabilization**:
+   - Standardized `TokenManager` in `frontend/src/lib/api.ts` to use `auth_token` consistently with fallback support for legacy keys.
+   - Refactored `adminAIService.ts` to utilize the centralized `apiClient`, ensuring automatic token resolution from Supabase sessions and robust async error handling.
+   - Synchronized `backend/.env` with project-root Supabase credentials to resolve 401 Unauthorized errors on protected AI endpoints.
+3. **Feature Visibility & Settings UI Overhaul**:
+   - Completely redesigned the "Feature Visibility" grid in `Settings.tsx` to resolve text-icon overlap and alignment regressions.
+   - Introduced a premium icon suite (Lucide) for all features and implemented `min-w-0` + `truncate` logic for robust responsiveness on mobile and desktop.
+   - Standardized feature card aesthetics with `bg-black/5` active states and consistent spacing.
+4. **Modularized Branding System**:
    - Decoupled 400+ lines of SVG-heavy logo rendering logic into a dedicated utility: `src/app/components/ui/AccountLogos.tsx`.
    - This resolved persistent Vite Fast Refresh errors (`Duplicate declaration` and `export incompatible`) across core page modules.
-3. **Glassmorphic Card Standard (V2)**:
-   - Upgraded the `Card` component's `default` and `glass` variants to use a more aggressive `backdrop-blur-xl` and `bg-white/80` aesthetic.
-   - Standardized card corners to `rounded-[30px]` for a softer, more premium look.
-4. **Statement Import Modal Finalization**:
+5. **Statement Import Modal Finalization**:
    - Overhauled the `StatementImport.tsx` UI with a high-fidelity "half-size" glassmorphic popup (`max-w-lg`).
    - Resolved header collisions and text overlapping in the transaction review grid.
-   - Restored hidden file input functionality and hardened interaction logic with `z-index` stabilization.
-   - Standardized date-block formatting for multi-column transaction lists to ensure vertical alignment.
-5. **Account Action Consistency**:
-   - Restricted the "Import" button visibility to only `bank` and `card` account types, removing it from `cash` and `digital` accounts where statement importing is not applicable.
+6. **Account Action Consistency**:
+   - Restricted the "Import" button visibility to only `bank` and `card` account types, removing it from `cash` and `digital` accounts.
    - Standardized the placement of account management actions across `Accounts.tsx` and `Dashboard.tsx`.
 
 ---
 
-### **2026-05-14 — AddTransaction Workflow & UI Finalization**
+### **2026-05-14  AddTransaction Workflow & UI Finalization**
 
 1. **Transaction Type Header Restructuring**:
    - Merged the separate transaction type tabs (`Expense`, `Income`, `Transfer`) into the primary top header bar for a compact, single-row design matching the requested pill-style layout.
@@ -109,9 +143,9 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 ---
 
-### **2026-05-13 (Afternoon) — Receipt & Transaction UX Overhaul**
+### **2026-05-13 (Afternoon)  Receipt & Transaction UX Overhaul**
 
-#### 1. Receipt Scanner — Dual-Mode Flow (`ReceiptScanner.tsx`, `ReceiptScannerViews.tsx`, `receipt.types.ts`)
+#### 1. Receipt Scanner  Dual-Mode Flow (`ReceiptScanner.tsx`, `ReceiptScannerViews.tsx`, `receipt.types.ts`)
 
 **Problem**: Camera and gallery both triggered OCR automatically. No way to just attach a file without running OCR.
 
@@ -119,42 +153,42 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 | Mode | Flow | OCR? |
 |------|------|------|
-| **Scan Receipt** | Mode → Source (Camera/Gallery) → Preview → OCR → Results | ✅ Yes |
-| **Add Attachment** | Mode → Source (Camera/Gallery) → Save doc → Done | ❌ No |
+| **Scan Receipt** | Mode  Source (Camera/Gallery)  Preview  OCR  Results |  Yes |
+| **Add Attachment** | Mode  Source (Camera/Gallery)  Save doc  Done |  No |
 
 **New components in `ReceiptScannerViews.tsx`**:
-- `ModeSelectionView` — Two large action cards: "Scan Receipt" (dark) and "Add Attachment" (light).
-- `SourcePickerView` — Camera / Gallery sub-picker reused by both modes. Shows amber info strip in attachment mode.
+- `ModeSelectionView`  Two large action cards: "Scan Receipt" (dark) and "Add Attachment" (light).
+- `SourcePickerView`  Camera / Gallery sub-picker reused by both modes. Shows amber info strip in attachment mode.
 
 **Step machine in `ReceiptScanner.tsx`**:
-- `mode` → `source-scan` / `source-attach` → `preview-scan` / `attaching` → `results`
-- Attachment path: `createDocumentRecord` → `updateDocumentStatus('completed')` → `onAttachmentSaved(docId)`. **Zero OCR.**
+- `mode`  `source-scan` / `source-attach`  `preview-scan` / `attaching`  `results`
+- Attachment path: `createDocumentRecord`  `updateDocumentStatus('completed')`  `onAttachmentSaved(docId)`. **Zero OCR.**
 - Scan path: existing OCR pipeline unchanged.
 - Supports `initialMode` prop to skip mode selection.
 
 **New props on `ReceiptScannerProps`** (in `receipt.types.ts`):
-- `onAttachmentSaved?: (documentId: number) => void` — called when attachment-only save completes.
-- `initialMode?: 'scan' | 'attachment' | null` — skips mode picker, goes straight to source picker.
+- `onAttachmentSaved?: (documentId: number) => void`  called when attachment-only save completes.
+- `initialMode?: 'scan' | 'attachment' | null`  skips mode picker, goes straight to source picker.
 
 ---
 
-#### 2. AddTransaction — Inline Receipt Section (`AddTransaction.tsx`)
+#### 2. AddTransaction  Inline Receipt Section (`AddTransaction.tsx`)
 
 **Changes**:
-- ❌ Removed standalone camera button from the header.
-- ✅ Added a **"Receipt" card** in the right column (`lg:col-span-5`) with two buttons:
-  - **Scan Receipt** (dark, `ScanLine` icon) — opens scanner in scan mode.
-  - **Add Attachment** (light, `Paperclip` icon) — opens scanner in attachment mode.
-- ✅ Added `attachmentDocumentId` state alongside existing `scanDocumentId`.
-- ✅ On save: links whichever doc ID is set (`scanDocumentId ?? attachmentDocumentId`) to the transaction via `DocumentManagementService.linkTransaction()`.
-- ✅ Shows a green "Attached" badge + removable confirmation row when a receipt/attachment is linked.
-- ✅ `scannerMode` state (`'scan' | 'attachment' | null`) passed as `initialMode` to `ReceiptScanner`.
+-  Removed standalone camera button from the header.
+-  Added a **"Receipt" card** in the right column (`lg:col-span-5`) with two buttons:
+  - **Scan Receipt** (dark, `ScanLine` icon)  opens scanner in scan mode.
+  - **Add Attachment** (light, `Paperclip` icon)  opens scanner in attachment mode.
+-  Added `attachmentDocumentId` state alongside existing `scanDocumentId`.
+-  On save: links whichever doc ID is set (`scanDocumentId ?? attachmentDocumentId`) to the transaction via `DocumentManagementService.linkTransaction()`.
+-  Shows a green "Attached" badge + removable confirmation row when a receipt/attachment is linked.
+-  `scannerMode` state (`'scan' | 'attachment' | null`) passed as `initialMode` to `ReceiptScanner`.
 
 **Document linking**: The `attachment` field on the transaction is set to `document:{id}` and `importMetadata['Document Id']` is also set. This is how `Transactions.tsx` detects a linked bill to show the Eye icon.
 
 ---
 
-#### 3. Transactions Page — Responsive List & View Bill (`Transactions.tsx`)
+#### 3. Transactions Page  Responsive List & View Bill (`Transactions.tsx`)
 
 **Problem**: Single table layout broke on mobile. Eye (View Bill) icon was hidden behind hover. No mobile detail view.
 
@@ -162,7 +196,7 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 **Desktop (lg+)**:
 - All 4 columns visible: Details, Category, Account, Amount + Actions.
-- **Eye icon** (`text-orange-400`) — **always visible** (not hover-gated) when a bill is attached.
+- **Eye icon** (`text-orange-400`)  **always visible** (not hover-gated) when a bill is attached.
 - Edit/Delete icons remain hover-only (`opacity-0 group-hover:opacity-100`).
 - "Bill attached" shown as orange `Paperclip` badge in Details cell.
 
@@ -177,13 +211,13 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 - Drag handle, header with icon + description + date.
 - **Amount hero** with transaction type badge.
 - Full detail rows: Category, Account, Date, Tax Amount, Notes.
-- **"View Attached Bill"** — full-width orange button, always visible when bill attached.
+- **"View Attached Bill"**  full-width orange button, always visible when bill attached.
 - **Edit** and **Delete** action buttons (2-column grid).
 - Backdrop tap to close.
 
 ---
 
-### **2026-05-12 (Evening) — Sync Stabilization & User Profile Finalization**
+### **2026-05-12 (Evening)  Sync Stabilization & User Profile Finalization**
 
 1. **Synchronization Engine Stabilization**:
    - Standardized `cloudId` (camelCase) indexing across `backend-sync-service.ts`, `sync-service.ts`, and `offline-sync-engine.ts`.
@@ -198,7 +232,7 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 ---
 
-### **2026-05-12 (Morning) — Account Module Finalization & Design Standardization**
+### **2026-05-12 (Morning)  Account Module Finalization & Design Standardization**
 
 1. **Account Module Stabilization**:
    - The **Account Page** and **Add Account** sub-page have been finalized with a premium responsive layout.
@@ -207,7 +241,7 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 ---
 
-### **2026-05-11 — Unified Component Architecture & Project De-cluttering**
+### **2026-05-11  Unified Component Architecture & Project De-cluttering**
 
 1. **Directory Consolidation**:
    - Eliminated `src/components/`. All active components moved to `src/app/components/`.
@@ -226,22 +260,22 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 
 ---
 
-## 🤖 Core Intelligence Systems
+##  Core Intelligence Systems
 - **OCR Bill Scanner**: Cloud OCR (Google Gemini Vision) primary, Tesseract.js on-device fallback. Privacy mode toggle preserves user data locally. Two separate modes: **Scan Receipt** (OCR-enabled) and **Add Attachment** (OCR-disabled).
 - **Bank Statement Parser**: Regex-based engine for PDF/Image bank statements (extracts account details & transactions).
 - **Voice Assistant**: Web Speech API integrated with custom NLP for hands-free expense entry.
-- **AI Categorization**: `backendService.categorizeText()` — auto-categorizes from merchant/description with confidence scoring (>0.45 threshold).
+- **AI Categorization**: `backendService.categorizeText()`  auto-categorizes from merchant/description with confidence scoring (>0.45 threshold).
 - *Reference*: [INTELLIGENCE_SYSTEMS.md](./docs/intelligence/INTELLIGENCE_SYSTEMS.md)
 
 ---
 
-## 📦 Document & Attachment System
+##  Document & Attachment System
 
 Documents are stored in the **Dexie `documents` table** (`DocumentRecord`).
 
 ### How a bill gets linked to a transaction:
-1. **Scan mode**: `useReceiptScanner` calls `DocumentManagementService.createDocumentRecord()` during scan → `linkTransaction(docId, txId)` sets `attachment: 'document:{id}'` and `importMetadata['Document Id']` on the transaction.
-2. **Attachment mode**: `ReceiptScanner` calls `createDocumentRecord()` → `updateDocumentStatus('completed')` → returns `docId` via `onAttachmentSaved`. `AddTransaction` stores it in `attachmentDocumentId` and links it on save.
+1. **Scan mode**: `useReceiptScanner` calls `DocumentManagementService.createDocumentRecord()` during scan  `linkTransaction(docId, txId)` sets `attachment: 'document:{id}'` and `importMetadata['Document Id']` on the transaction.
+2. **Attachment mode**: `ReceiptScanner` calls `createDocumentRecord()`  `updateDocumentStatus('completed')`  returns `docId` via `onAttachmentSaved`. `AddTransaction` stores it in `attachmentDocumentId` and links it on save.
 
 ### How to detect a linked bill:
 ```ts
@@ -252,17 +286,17 @@ const getDocumentIdFromTransaction = (tx) => {
   return isFinite(id) ? id : null;
 };
 ```
-- If `attachedDocumentId` is truthy → show **Eye (View Bill)** icon.
-- `DocumentManagementService.getDocument(id)` → `fileData` → `URL.createObjectURL()` for preview.
+- If `attachedDocumentId` is truthy  show **Eye (View Bill)** icon.
+- `DocumentManagementService.getDocument(id)`  `fileData`  `URL.createObjectURL()` for preview.
 
 ---
 
-## 📚 Project Documentation
+##  Project Documentation
 - [Frontend Architecture](./frontend/FRONTEND_ARCHITECTURE.md)
 
 ---
 
-## 🛠 Tech Stack Details
+##  Tech Stack Details
 - **Frontend**: React + Vite + TypeScript.
 - **Styling**: Tailwind CSS (Glassmorphism focus).
 - **Backend/Auth**: Supabase.
@@ -272,7 +306,7 @@ const getDocumentIdFromTransaction = (tx) => {
 
 ---
 
-## 💡 Developer Instructions for New Features
+##  Developer Instructions for New Features
 1. **Reuse UI**: Check `src/app/components/ui/` before creating new primitive elements.
 2. **Standard Headers**: Use `PageHeader` from UI for consistency across modules.
 3. **Local-First**: Always ensure data is saved to `localStorage` or `Dexie` before syncing to the cloud.

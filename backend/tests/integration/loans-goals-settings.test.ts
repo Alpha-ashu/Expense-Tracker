@@ -11,9 +11,9 @@ const getAuthHeaders = (token = 'mock-access-token') => ({
   Authorization: `Bearer ${token}`,
 });
 
-// ═══════════════════════════════════════════
+// 
 // GOALS MODULE
-// ═══════════════════════════════════════════
+// 
 describe('GOALS MODULE', () => {
   describe('GET /goals', () => {
     it('should return 401 without auth', async () => {
@@ -73,9 +73,9 @@ describe('GOALS MODULE', () => {
   });
 });
 
-// ═══════════════════════════════════════════
+// 
 // LOANS MODULE
-// ═══════════════════════════════════════════
+// 
 describe('LOANS MODULE', () => {
   describe('GET /loans', () => {
     it('should return 401 without auth', async () => {
@@ -175,9 +175,9 @@ describe('LOANS MODULE', () => {
   });
 });
 
-// ═══════════════════════════════════════════
+// 
 // SETTINGS MODULE
-// ═══════════════════════════════════════════
+// 
 describe('SETTINGS MODULE', () => {
   describe('GET /settings', () => {
     it('should return 401 without auth', async () => {

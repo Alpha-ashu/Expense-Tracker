@@ -26,7 +26,7 @@ router.get('/quota', async (req: AuthRequest, res: Response) => {
   res.json(info);
 });
 
-// ── AI Agents Endpoints ────────────────────────────────────────────────────────
+//  AI Agents Endpoints 
 
 // Run all agents and return consolidated insights
 router.get('/insights', async (req: AuthRequest, res: Response) => {

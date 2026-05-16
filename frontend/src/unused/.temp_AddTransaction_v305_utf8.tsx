@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -793,7 +793,7 @@ export function AddTransaction() {
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Quick Category Chips ÔÇö Mobile */}
+                {/* Quick Category Chips  Mobile */}
                 <div>
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Category</p>
                   <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-hide">

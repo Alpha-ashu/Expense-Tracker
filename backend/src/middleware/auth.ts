@@ -35,7 +35,7 @@ const getSupabase = () => {
   }
   return null;
 };
-// Supabase JWT Secret — found in Supabase Dashboard → Project Settings → API → JWT Settings
+// Supabase JWT Secret  found in Supabase Dashboard  Project Settings  API  JWT Settings
 const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET || '';
 const AUTH_STATUS_LOOKUP_TIMEOUT_MS = Number(process.env.AUTH_STATUS_LOOKUP_TIMEOUT_MS || 250);
 const STATUS_LOOKUP_TIMEOUT = Symbol('auth-status-timeout');
@@ -211,7 +211,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
         const unverified = jwt.decode(token) as any;
         const userId = unverified?.sub;
         if (typeof userId === 'string' && userId.length > 0) {
-          logger.warn('⚠️  Auth: Using UNVERIFIED token in development mode. Set SUPABASE_JWT_SECRET in backend/.env to enable proper verification.');
+          logger.warn('  Auth: Using UNVERIFIED token in development mode. Set SUPABASE_JWT_SECRET in backend/.env to enable proper verification.');
           req.userId = userId;
           req.user = {
             id: userId,

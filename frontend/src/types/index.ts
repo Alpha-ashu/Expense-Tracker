@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Global Type Definitions for KANKU
  * Centralized type system for consistency across the application
  */

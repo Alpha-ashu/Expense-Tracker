@@ -58,7 +58,7 @@ export const ModeSelectionView: React.FC<{
         </div>
         <div className="text-left">
           <p className="text-sm font-black uppercase tracking-wide">Add Attachment</p>
-          <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Save file as proof — no OCR processing</p>
+          <p className="text-[11px] font-semibold text-slate-400 mt-0.5">Save file as proof  no OCR processing</p>
         </div>
       </button>
     </div>
@@ -66,7 +66,7 @@ export const ModeSelectionView: React.FC<{
 );
 
 // 
-// SOURCE PICKER VIEW  (Camera vs Gallery — used by both modes)
+// SOURCE PICKER VIEW  (Camera vs Gallery  used by both modes)
 // 
 
 export const SourcePickerView: React.FC<{
@@ -81,7 +81,7 @@ export const SourcePickerView: React.FC<{
         onClick={onBack}
         className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-700 transition-colors"
       >
-        ← Back
+         Back
       </button>
       <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">/</span>
       <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
@@ -125,18 +125,18 @@ export const FileSelectionView: React.FC<{
 }> = ({ onUploadClick, onCameraClick, onDeviceOnly, onDeviceOnlyChange }) => (
   <div className="space-y-6 pt-2">
     <div className="grid grid-cols-2 gap-4">
-      <SelectionCard 
-        onClick={onUploadClick} 
-        icon={<Upload size={24} />} 
-        label="Upload" 
-        sublabel="Gallery/Files" 
+      <SelectionCard
+        onClick={onUploadClick}
+        icon={<Upload size={24} />}
+        label="Upload"
+        sublabel="Gallery/Files"
         className="bg-slate-50 text-slate-900 hover:bg-slate-100"
       />
-      <SelectionCard 
-        onClick={onCameraClick} 
-        icon={<Camera size={24} />} 
-        label="Camera" 
-        sublabel="Take Photo" 
+      <SelectionCard
+        onClick={onCameraClick}
+        icon={<Camera size={24} />}
+        label="Camera"
+        sublabel="Take Photo"
         className="bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200"
       />
     </div>
@@ -164,10 +164,10 @@ export const FileSelectionView: React.FC<{
   </div>
 );
 
-const SelectionCard: React.FC<{ 
-  onClick: () => void; 
-  icon: React.ReactNode; 
-  label: string; 
+const SelectionCard: React.FC<{
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
   sublabel: string;
   className?: string;
 }> = ({ onClick, icon, label, sublabel, className }) => (
@@ -284,49 +284,49 @@ export const ResultsView: React.FC<{
   onRescan,
   onSubmit,
 }) => {
-  const effectiveCurrency = scanResult.currency || currency;
+    const effectiveCurrency = scanResult.currency || currency;
 
-  return (
-    <div className="KANKU-receipt-review">
-      <div className="KANKU-receipt-review__top">
-        <ConfidenceBadge confidence={scanResult.confidence ?? 0} />
-        {scanResult.location && scanResult.location !== 'UNKNOWN' && (
-          <LocationBadge location={scanResult.location} />
+    return (
+      <div className="KANKU-receipt-review">
+        <div className="KANKU-receipt-review__top">
+          <ConfidenceBadge confidence={scanResult.confidence ?? 0} />
+          {scanResult.location && scanResult.location !== 'UNKNOWN' && (
+            <LocationBadge location={scanResult.location} />
+          )}
+        </div>
+
+        {((scanResult.validationResult && !scanResult.validationResult.isValid) || scanResult.amountMismatchDetected) && (
+          <ValidationWarning
+            calculated={scanResult.validationResult?.calculated ?? 0}
+            detected={scanResult.validationResult?.detected ?? scanResult.amount ?? 0}
+            currency={effectiveCurrency}
+            amountMismatchDetected={scanResult.amountMismatchDetected}
+            amountCandidates={scanResult.amountCandidates}
+            onSelectCandidate={(val) => onFieldChange('amount', val)}
+          />
         )}
-      </div>
 
-      {((scanResult.validationResult && !scanResult.validationResult.isValid) || scanResult.amountMismatchDetected) && (
-        <ValidationWarning
-          calculated={scanResult.validationResult?.calculated ?? 0}
-          detected={scanResult.validationResult?.detected ?? scanResult.amount ?? 0}
-          currency={effectiveCurrency}
-          amountMismatchDetected={scanResult.amountMismatchDetected}
-          amountCandidates={scanResult.amountCandidates}
-          onSelectCandidate={(val) => onFieldChange('amount', val)}
-        />
-      )}
+        {scanResult.description && (
+          <SmartDescriptionBadge description={scanResult.description} />
+        )}
 
-      {scanResult.description && (
-        <SmartDescriptionBadge description={scanResult.description} />
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
-        {/* Main Grid Area */}
-        <section className="col-span-1 lg:col-span-8 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between border-b border-gray-50 px-4 py-3 bg-gray-50/50 rounded-t-2xl">
-            <p className="text-sm font-bold text-gray-900">Review Data</p>
-            <p className="text-xs font-semibold text-gray-500">
-              {scanResult.items?.length || 0} item{scanResult.items?.length === 1 ? '' : 's'}
-            </p>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mt-4">
+          {/* Main Grid Area */}
+          <section className="col-span-1 lg:col-span-8 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col">
+            <div className="flex items-center justify-between border-b border-gray-50 px-4 py-3 bg-gray-50/50 rounded-t-2xl">
+              <p className="text-sm font-bold text-gray-900">Review Data</p>
+              <p className="text-xs font-semibold text-gray-500">
+                {scanResult.items?.length || 0} item{scanResult.items?.length === 1 ? '' : 's'}
+              </p>
+            </div>
 
             <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div className="col-span-2 sm:col-span-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
-                <AmountField 
-                  amount={scanResult.amount} 
-                  currency={effectiveCurrency} 
+                <AmountField
+                  amount={scanResult.amount}
+                  currency={effectiveCurrency}
                   hasError={scanResult.amountMismatchDetected}
-                  onChange={(value) => onFieldChange('amount', value)} 
+                  onChange={(value) => onFieldChange('amount', value)}
                 />
               </div>
 
@@ -338,39 +338,39 @@ export const ResultsView: React.FC<{
                 <NumberField label="Tax Amount" value={scanResult.taxAmount} onChange={(value) => onFieldChange('taxAmount', value)} />
               </div>
             </div>
-        </section>
+          </section>
 
-        {/* Sidebar Area */}
-        <aside className="col-span-1 lg:col-span-4 flex flex-col gap-3">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <AccountSelector
-              accounts={accounts}
-              selectedId={selectedAccountId}
-              currency={currency}
-              onChange={onAccountChange}
-            />
-          </div>
-
-          {scanResult.items && scanResult.items.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-h-48 flex flex-col">
-              <ItemsPanel items={scanResult.items} currency={effectiveCurrency} />
+          {/* Sidebar Area */}
+          <aside className="col-span-1 lg:col-span-4 flex flex-col gap-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <AccountSelector
+                accounts={accounts}
+                selectedId={selectedAccountId}
+                currency={currency}
+                onChange={onAccountChange}
+              />
             </div>
-          )}
 
-          <div className="mt-auto">
-            <ActionButtons
-              onRescan={onRescan}
-              onSubmit={onSubmit}
-              isFormPrefillMode={isFormPrefillMode}
-              expenseMode={expenseMode}
-              isDisabled={!selectedAccountId || !scanResult.amount}
-            />
-          </div>
-        </aside>
+            {scanResult.items && scanResult.items.length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden max-h-48 flex flex-col">
+                <ItemsPanel items={scanResult.items} currency={effectiveCurrency} />
+              </div>
+            )}
+
+            <div className="mt-auto">
+              <ActionButtons
+                onRescan={onRescan}
+                onSubmit={onSubmit}
+                isFormPrefillMode={isFormPrefillMode}
+                expenseMode={expenseMode}
+                isDisabled={!selectedAccountId || !scanResult.amount}
+              />
+            </div>
+          </aside>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
 // 
 // INTELLIGENCE BADGES & PANELS
@@ -472,7 +472,7 @@ const ValidationWarning: React.FC<{
           {calculatedIsHigher ? (
             <>
               The printed figure <strong>{currency} {detected.toFixed(2)}</strong> may be a partial or pre-tax amount.
-              {' '}The amount field is set to the calculated total <strong>{currency} {calculated.toFixed(2)}</strong> â€” please verify before saving.
+              {' '}The amount field is set to the calculated total <strong>{currency} {calculated.toFixed(2)}</strong>  please verify before saving.
             </>
           ) : (
             <>

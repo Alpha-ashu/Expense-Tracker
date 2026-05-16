@@ -12,11 +12,11 @@ This guide documents the production-ready real-time features implemented for you
 ## Architecture Overview
 
 ```
-Frontend (React) ←→ WebSocket Client ←→ Load Balancer ←→ WebSocket Server (Node.js)
-                    ↑                                    ↑
-                    ←→ REST API ←→ Express Server ←→ Database (PostgreSQL/SQLite)
-                    ↑                                    ↑
-                    ←→ External Services (Stripe, SendGrid, etc.)
+Frontend (React)  WebSocket Client  Load Balancer  WebSocket Server (Node.js)
+                                                        
+                     REST API  Express Server  Database (PostgreSQL/SQLite)
+                                                        
+                     External Services (Stripe, SendGrid, etc.)
 ```
 
 ## Implemented Features

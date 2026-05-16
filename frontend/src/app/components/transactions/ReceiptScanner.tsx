@@ -68,7 +68,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     initialAccountId ?? accounts[0]?.id ?? null,
   );
 
-  // ── Step machine ──────────────────────────────────────────────────────────
+  //  Step machine 
   const [step, setStep] = useState<Step>(() =>
     initialMode === 'scan' ? 'source-scan'
       : initialMode === 'attachment' ? 'source-attach'
@@ -93,7 +93,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     }
   }, [accounts, initialAccountId, isOpen]);
 
-  // ── Reset on close ────────────────────────────────────────────────────────
+  //  Reset on close 
   const handleClose = () => {
     clearFile();
     setAttachFile(null);
@@ -104,7 +104,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     onClose();
   };
 
-  // ── Scan-mode file selection ──────────────────────────────────────────────
+  //  Scan-mode file selection 
   const handleScanFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -130,7 +130,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       const { calculated, detected } = result.validationResult;
       const cur = result.currency ?? '';
       const hint = calculated > detected
-        ? `The printed amount (${cur} ${detected.toFixed(2)}) appears to be a pre-tax subtotal. The amount field has been set to the calculated total (${cur} ${calculated.toFixed(2)}) — please verify.`
+        ? `The printed amount (${cur} ${detected.toFixed(2)}) appears to be a pre-tax subtotal. The amount field has been set to the calculated total (${cur} ${calculated.toFixed(2)})  please verify.`
         : `Calculated total (${cur} ${calculated.toFixed(2)}) doesn't match the printed total (${cur} ${detected.toFixed(2)}). Please verify the amount before saving.`;
       toast.warning(hint, { duration: 10000 });
     }
@@ -177,7 +177,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     });
   };
 
-  // ── Attachment-mode file selection ────────────────────────────────────────
+  //  Attachment-mode file selection 
   const handleAttachFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -198,9 +198,9 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     setIsSavingAttachment(true);
     try {
       const docId = await documentService.current.createDocumentRecord(file, selectedAccountId ?? undefined);
-      // Mark as completed immediately — no OCR
+      // Mark as completed immediately  no OCR
       await documentService.current.updateDocumentStatus(docId, 'completed');
-      toast.success('Attachment saved — link it to an expense when you save.');
+      toast.success('Attachment saved  link it to an expense when you save.');
       onAttachmentSaved?.(docId);
       handleClose();
     } catch (err) {
@@ -213,7 +213,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   if (!isOpen) return null;
 
-  // ── Dynamic header title ──────────────────────────────────────────────────
+  //  Dynamic header title 
   const headerTitle =
     step === 'mode' ? 'Receipt' :
     step === 'source-scan' || step === 'preview-scan' || step === 'results' ? 'Scan Receipt' :
@@ -221,11 +221,11 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const headerSubtitle =
     step === 'mode' ? 'Choose how you want to add a receipt' :
-    step === 'source-scan' ? 'AI-powered OCR — reads any receipt' :
-    step === 'source-attach' ? 'No OCR — file saved as proof only' :
+    step === 'source-scan' ? 'AI-powered OCR  reads any receipt' :
+    step === 'source-attach' ? 'No OCR  file saved as proof only' :
     step === 'preview-scan' ? 'Ready to extract data' :
     step === 'results' ? 'Review extracted data' :
-    'Saving attachment…';
+    'Saving attachment';
 
   const headerIcon = (step === 'source-attach' || step === 'attaching')
     ? <Paperclip size={17} className="text-white" />
@@ -266,7 +266,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
             />
           )}
 
-          {/* Step: Source picker — Scan mode */}
+          {/* Step: Source picker  Scan mode */}
           {step === 'source-scan' && (
             <SourcePickerView
               mode="scan"
@@ -276,7 +276,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
             />
           )}
 
-          {/* Step: Source picker — Attachment mode */}
+          {/* Step: Source picker  Attachment mode */}
           {step === 'source-attach' && (
             <SourcePickerView
               mode="attachment"
@@ -298,7 +298,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                 onScan={handleScanReceipt}
                 onChange={() => { clearFile(); setStep('source-scan'); }}
               />
-              {/* On-device OCR toggle — compact strip */}
+              {/* On-device OCR toggle  compact strip */}
               <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-slate-400">
@@ -344,7 +344,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
           {step === 'attaching' && (
             <div className="flex flex-col items-center justify-center gap-4 py-12">
               <Loader2 size={36} className="animate-spin text-slate-400" />
-              <p className="text-sm font-bold text-slate-600">Saving attachment…</p>
+              <p className="text-sm font-bold text-slate-600">Saving attachment</p>
               {attachFile && (
                 <p className="text-xs text-slate-400 truncate max-w-[200px]">{attachFile.name}</p>
               )}
@@ -353,7 +353,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         </div>
       </div>
 
-      {/* Hidden file inputs — Scan mode */}
+      {/* Hidden file inputs  Scan mode */}
       <input
         ref={fileInputRef}
         type="file"
@@ -372,7 +372,7 @@ export const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         aria-label="Take photo for scanning"
       />
 
-      {/* Hidden file inputs — Attachment mode */}
+      {/* Hidden file inputs  Attachment mode */}
       <input
         ref={attachFileInputRef}
         type="file"

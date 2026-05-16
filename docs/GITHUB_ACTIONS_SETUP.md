@@ -42,7 +42,7 @@ base64 -w 0 ./android/finance-life-release.keystore > keystore.b64
 
 1. Go to your GitHub repository
 2. Click **Settings** (top right)
-3. In left sidebar, click **Secrets and variables** → **Actions**
+3. In left sidebar, click **Secrets and variables**  **Actions**
 4. Click **New repository secret** button
 
 ### Secret 1: `ANDROID_KEYSTORE_BASE64`
@@ -62,10 +62,10 @@ base64 -w 0 ./android/finance-life-release.keystore > keystore.b64
 
 ## Step 4: Verify Secrets Are Added
 
-In Settings → Secrets and variables → Actions, you should see:
-- ✅ ANDROID_KEYSTORE_BASE64
-- ✅ ANDROID_KEYSTORE_PASSWORD
-- ✅ ANDROID_KEY_PASSWORD
+In Settings  Secrets and variables  Actions, you should see:
+-  ANDROID_KEYSTORE_BASE64
+-  ANDROID_KEYSTORE_PASSWORD
+-  ANDROID_KEY_PASSWORD
 
 All should show "Last updated [date]" (masked value, not visible).
 
@@ -75,7 +75,7 @@ All should show "Last updated [date]" (masked value, not visible).
 1. Make a commit and push to `main` or `master` branch
 2. Go to **Actions** tab in GitHub
 3. Watch **Build Android AAB (Release)** workflow run
-4. Check status (should show ✅ if successful)
+4. Check status (should show  if successful)
 
 ### Option B: Manual Trigger
 1. Go to **Actions** tab in GitHub
@@ -131,7 +131,7 @@ git push
 ## Manage Secrets
 
 ### View All Secrets
-Settings → Secrets and variables → Actions
+Settings  Secrets and variables  Actions
 
 ### Update a Secret
 1. Click secret name
@@ -146,7 +146,7 @@ Settings → Secrets and variables → Actions
 
 ## Security Best Practices
 
-✅ **DO:**
+ **DO:**
 - Store keystore offline in a safe location
 - Use strong, unique passwords
 - Rotate secrets every 6-12 months
@@ -154,7 +154,7 @@ Settings → Secrets and variables → Actions
 - Use GitHub's encrypted secrets (never in code/commits)
 - Review workflow logs for security issues
 
-❌ **DON'T:**
+ **DON'T:**
 - Commit keystore or passwords to git
 - Share Base64 keystore openly
 - Use weak passwords
@@ -197,6 +197,6 @@ gh run view <run-id> --log
 ---
 
 **Questions?** Refer to:
-- ANDROID_BUILD_GUIDE.md — Comprehensive guide
-- ANDROID_BUILD_QUICK_REF.md — Quick commands
-- .github/workflows/build-android-aab.yml — Workflow config
+- ANDROID_BUILD_GUIDE.md  Comprehensive guide
+- ANDROID_BUILD_QUICK_REF.md  Quick commands
+- .github/workflows/build-android-aab.yml  Workflow config

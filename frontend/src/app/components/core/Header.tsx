@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 // import { getCountryAndCurrencySymbol } from '@/lib/countryCurrency';
 import { Bell, Search, Menu, X, GripVertical } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';

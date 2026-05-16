@@ -1,4 +1,4 @@
-﻿# Reviewer Skill Reference â€“ KANKU
+# Reviewer Skill Reference  KANKU
 
 This document outlines the standards and checklist for code reviews in the KANKUproject.
 

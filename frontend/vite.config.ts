@@ -27,35 +27,35 @@ export default defineConfig(({ mode }) => {
       minify: 'esbuild',
       rollupOptions: {
         output: {
-          // Smart manual chunk splitting — vendors in separate cacheable chunks
+          // Smart manual chunk splitting  vendors in separate cacheable chunks
           manualChunks(id) {
-            // ── Heavy UI libs ──────────────────────────────────────────────────
+            //  Heavy UI libs 
             if (id.includes('node_modules/@mui')) return 'vendor-mui';
             if (id.includes('node_modules/recharts') || id.includes('node_modules/d3')) return 'vendor-charts';
             if (id.includes('node_modules/pdfjs-dist')) return 'vendor-pdf';
             if (id.includes('node_modules/@capacitor')) return 'vendor-capacitor';
 
-            // ── Core React ecosystem ────────────────────────────────────────────
+            //  Core React ecosystem 
             if (id.includes('node_modules/react-dom')) return 'vendor-react';
             if (id.includes('node_modules/react/')) return 'vendor-react';
             if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion')) return 'vendor-motion';
 
-            // ── Supabase ────────────────────────────────────────────────────────
+            //  Supabase 
             if (id.includes('node_modules/@supabase')) return 'vendor-supabase';
 
-            // ── Database / offline ──────────────────────────────────────────────
+            //  Database / offline 
             if (id.includes('node_modules/dexie')) return 'vendor-dexie';
 
-            // ── Radix UI components ─────────────────────────────────────────────
+            //  Radix UI components 
             if (id.includes('node_modules/@radix-ui')) return 'vendor-radix';
 
-            // ── Utilities ───────────────────────────────────────────────────────
+            //  Utilities 
             if (id.includes('node_modules/date-fns')) return 'vendor-utils';
             if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
             if (id.includes('node_modules/sonner')) return 'vendor-utils';
             if (id.includes('node_modules/clsx') || id.includes('node_modules/tailwind-merge')) return 'vendor-utils';
 
-            // ── Fonts ───────────────────────────────────────────────────────────
+            //  Fonts 
             if (id.includes('node_modules/@fontsource')) return 'vendor-fonts';
           },
           // Give chunks predictable names for better caching

@@ -1,6 +1,6 @@
 # Supabase Setup Guide
 
-## ✅ What's Been Configured
+##  What's Been Configured
 
 Your Supabase connection is now properly set up for a **React + Vite** project.
 
@@ -11,12 +11,12 @@ Your Supabase connection is now properly set up for a **React + Vite** project.
 4. **`frontend/src/app/page.tsx`** - Updated to use React hooks (not Next.js)
 
 ### Files Removed:
-- ❌ `frontend/src/utils/supabase/server.ts` (Next.js only)
-- ❌ `frontend/src/utils/supabase/middleware.ts` (Next.js only)
+-  `frontend/src/utils/supabase/server.ts` (Next.js only)
+-  `frontend/src/utils/supabase/middleware.ts` (Next.js only)
 
 ---
 
-## 🔌 Your Supabase Credentials
+##  Your Supabase Credentials
 
 **Project URL:** https://mmwrckfqeqjfqciymemh.supabase.co
 
@@ -36,7 +36,7 @@ Your Supabase connection is now properly set up for a **React + Vite** project.
 
 ---
 
-## 🚀 How to Use Supabase in Your App
+##  How to Use Supabase in Your App
 
 ### 1. Import the client:
 ```typescript
@@ -107,7 +107,7 @@ return () => subscription.unsubscribe();
 
 ---
 
-## 🧪 Testing Your Connection
+##  Testing Your Connection
 
 ### Option 1: Use the Test Component
 Add this to your `App.tsx` temporarily:
@@ -143,10 +143,10 @@ npm run dev
 
 ---
 
-## 📋 Next Steps
+##  Next Steps
 
 ### 1. **Create Tables in Supabase**
-Go to your Supabase dashboard → Table Editor → Create new table
+Go to your Supabase dashboard  Table Editor  Create new table
 
 Example SQL:
 ```sql
@@ -186,33 +186,33 @@ const { data: { user } } = await supabase.auth.getUser();
 ```
 
 ### 3. **Enable Row Level Security**
-Go to Supabase Dashboard → Authentication → Policies
+Go to Supabase Dashboard  Authentication  Policies
 Create policies to secure your data.
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### "Cannot read properties of undefined"
-- ✅ Make sure `.env` files exist and have the correct prefix (`VITE_`)
-- ✅ Restart your dev server after changing `.env` files
-- ✅ Check that environment variables are loaded: `console.log(import.meta.env.VITE_SUPABASE_URL)`
+-  Make sure `.env` files exist and have the correct prefix (`VITE_`)
+-  Restart your dev server after changing `.env` files
+-  Check that environment variables are loaded: `console.log(import.meta.env.VITE_SUPABASE_URL)`
 
 ### "relation does not exist" error
-- ✅ The table hasn't been created yet - go to Supabase Table Editor
-- ✅ Check table name spelling (case-sensitive)
+-  The table hasn't been created yet - go to Supabase Table Editor
+-  Check table name spelling (case-sensitive)
 
 ### CORS errors
-- ✅ Add your domain to Supabase → Settings → API → CORS
-- ✅ For local dev, add `http://localhost:5173`
+-  Add your domain to Supabase  Settings  API  CORS
+-  For local dev, add `http://localhost:5173`
 
 ### "Invalid API key"
-- ✅ Don't use the publishable key - use the Anon key for client-side
-- ✅ Check if you copied the full key (they're long!)
+-  Don't use the publishable key - use the Anon key for client-side
+-  Check if you copied the full key (they're long!)
 
 ---
 
-## 📚 Resources
+##  Resources
 
 - [Supabase Docs](https://supabase.com/docs)
 - [Supabase JavaScript Client](https://supabase.com/docs/reference/javascript/introduction)
@@ -220,14 +220,14 @@ Create policies to secure your data.
 
 ---
 
-## 🔒 Security Notes
+##  Security Notes
 
-⚠️ **Never commit these to Git:**
+ **Never commit these to Git:**
 - Service Role Key
 - JWT Secret  
 - Database password
 
-✅ **Safe to expose (already configured):**
+ **Safe to expose (already configured):**
 - Project URL
 - Publishable/Anon Key (with RLS enabled)
 

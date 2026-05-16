@@ -1,9 +1,9 @@
-﻿/**
+/**
  * migration.ts
  *
  * Handles one-time migration of legacy localStorage keys:
- *   v1: KANKU (original) â†’ KANKU(intermediate brand)
- *   v2: KANKUâ†’ KANKU  (current brand, migrating back)
+ *   v1: KANKU (original)  KANKU(intermediate brand)
+ *   v2: KANKU KANKU  (current brand, migrating back)
  */
 
 const MIGRATION_V1_KEY = 'KANKU_global_migration_v1';
@@ -12,7 +12,7 @@ const MIGRATION_V2_KEY = 'KANKU_global_migration_v2';
 export function runGlobalMigration() {
   if (typeof window === 'undefined' || !window.localStorage) return;
 
-  // â”€â”€ v1: KANKU (original) â†’ KANKUâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // v1: KANKU (original)  KANKU
   if (!localStorage.getItem(MIGRATION_V1_KEY)) {
     const v1Migrations = [
       // Encryption keys
@@ -52,12 +52,12 @@ export function runGlobalMigration() {
     }
   }
 
-  // â”€â”€ v2: KANKUâ†’ KANKU â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // v2: KANKU KANKU 
   if (!localStorage.getItem(MIGRATION_V2_KEY)) {
-    console.info('[KANKU/Migration] Starting v2 brand migration (KANKU â†’ KANKU)...');
+    console.info('[KANKU/Migration] Starting v2 brand migration (KANKU  KANKU)...');
 
     const v2Migrations = [
-      // Encryption keys (critical â€” must migrate before app reads them)
+      // Encryption keys (critical  must migrate before app reads them)
       { old: 'KANKU_encrypted_key', new: 'KANKU_encrypted_key' },
       { old: 'KANKU_salt', new: 'KANKU_salt' },
 

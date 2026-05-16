@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🚀 Initializing database...');
+  console.log(' Initializing database...');
   
   try {
     // Create admin user
@@ -18,7 +18,7 @@ async function main() {
     });
     
     if (existingAdmin) {
-      console.log('✅ Admin user already exists:', existingAdmin.email);
+      console.log(' Admin user already exists:', existingAdmin.email);
     } else {
       // Create admin user
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
@@ -34,11 +34,11 @@ async function main() {
         }
       });
       
-      console.log('✅ Admin user created:', admin.email);
+      console.log(' Admin user created:', admin.email);
     }
     
     // Create some test data
-    console.log('📝 Creating test data...');
+    console.log(' Creating test data...');
     
     // Create test account
     const account = await prisma.account.create({
@@ -51,7 +51,7 @@ async function main() {
       }
     });
     
-    console.log('✅ Test account created:', account.name);
+    console.log(' Test account created:', account.name);
     
     // Create test transaction
     const transaction = await prisma.transaction.create({
@@ -66,12 +66,12 @@ async function main() {
       }
     });
     
-    console.log('✅ Test transaction created:', transaction.description);
+    console.log(' Test transaction created:', transaction.description);
     
-    console.log('🎉 Database initialization completed successfully!');
+    console.log(' Database initialization completed successfully!');
     
   } catch (error) {
-    console.error('❌ Database initialization failed:', error);
+    console.error(' Database initialization failed:', error);
   } finally {
     await prisma.$disconnect();
   }

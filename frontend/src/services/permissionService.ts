@@ -16,7 +16,7 @@ const API_BASE = getConfiguredApiBase();
 const PROFILE_LOOKUP_TIMEOUT_MS = 15000;
 
 const normalizeUserRole = (value: unknown): UserRole => {
-  if (value === 'admin' || value === 'advisor' || value === 'user') {
+  if (value === 'admin' || value === 'manager' || value === 'advisor' || value === 'user') {
     return value;
   }
   if (value === 'customer') {

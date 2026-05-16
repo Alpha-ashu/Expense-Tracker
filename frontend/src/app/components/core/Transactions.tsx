@@ -591,10 +591,10 @@ export const Transactions: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Transaction List ─────────────────────────────────────────── */}
+      {/*  Transaction List  */}
       <Card variant="glass" className="overflow-hidden !p-0 min-h-[400px]">
 
-        {/* ── DESKTOP TABLE (lg+): all 4 columns ── */}
+        {/*  DESKTOP TABLE (lg+): all 4 columns  */}
         <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50/50 border-b border-gray-100">
@@ -651,7 +651,7 @@ export const Transactions: React.FC = () => {
                         {displayType === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </span>
                     </td>
-                    {/* Actions — always visible Eye when bill attached, edit/delete on hover */}
+                    {/* Actions  always visible Eye when bill attached, edit/delete on hover */}
                     <td className="px-4 py-4 text-right">
                       <div className="flex justify-end items-center gap-1">
                         {attachedDocumentId && (
@@ -682,7 +682,7 @@ export const Transactions: React.FC = () => {
           </table>
         </div>
 
-        {/* ── MOBILE LIST (< lg): Details + Amount only, tap to open detail sheet ── */}
+        {/*  MOBILE LIST (< lg): Details + Amount only, tap to open detail sheet  */}
         <div className="lg:hidden divide-y divide-gray-50">
           {visibleTransactions.map((transaction, i) => {
             const account = accountById.get(transaction.accountId);
@@ -739,7 +739,7 @@ export const Transactions: React.FC = () => {
         )}
       </Card>
 
-      {/* ── MOBILE TRANSACTION DETAIL SHEET ── */}
+      {/*  MOBILE TRANSACTION DETAIL SHEET  */}
       {selectedTransaction && (() => {
         const tx = selectedTransaction;
         const account = accountById.get(tx.accountId);
@@ -792,7 +792,7 @@ export const Transactions: React.FC = () => {
                     displayType === 'income' ? 'bg-emerald-100 text-emerald-700' :
                     tx.type === 'transfer' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'
                   )}>
-                    {displayType === 'income' ? '↓ Income' : tx.type === 'transfer' ? '⇄ Transfer' : '↑ Expense'}
+                    {displayType === 'income' ? ' Income' : tx.type === 'transfer' ? ' Transfer' : ' Expense'}
                   </span>
                 </div>
 
@@ -800,7 +800,7 @@ export const Transactions: React.FC = () => {
                 <div className="px-6 py-4 space-y-3">
                   {[
                     { label: 'Category', value: tx.category },
-                    { label: 'Account', value: account?.name || '—' },
+                    { label: 'Account', value: account?.name || '' },
                     { label: 'Date', value: formatLocalDate(tx.date, 'en-US') },
                     ...(attachedTaxAmount > 0 ? [{ label: 'Tax Amount', value: formatCurrency(attachedTaxAmount) }] : []),
                     ...(tx.notes ? [{ label: 'Notes', value: tx.notes }] : []),
@@ -812,7 +812,7 @@ export const Transactions: React.FC = () => {
                   ))}
                 </div>
 
-                {/* View Bill button — always visible when bill attached */}
+                {/* View Bill button  always visible when bill attached */}
                 {attachedDocumentId && (
                   <div className="px-6 pb-2">
                     <button

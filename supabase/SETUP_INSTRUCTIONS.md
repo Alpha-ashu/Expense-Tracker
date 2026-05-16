@@ -1,12 +1,12 @@
-# Supabase Database Setup Guide 🚀
+# Supabase Database Setup Guide 
 
-## ✅ Connection Verified!
+##  Connection Verified!
 
 Your Supabase connection is working! Now let's set up your database tables and security.
 
 ---
 
-## 📋 Step-by-Step Instructions
+##  Step-by-Step Instructions
 
 ### **Step 1: Open Supabase SQL Editor**
 
@@ -22,7 +22,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 2. **Copy the entire content** 
 3. **Paste it** into the Supabase SQL Editor
 4. Click **"Run"** (or press `Ctrl+Enter`)
-5. You should see: ✅ **"Success. No rows returned"**
+5. You should see:  **"Success. No rows returned"**
 
 **What this does:**
 - Creates 16 tables for your app (accounts, transactions, loans, goals, etc.)
@@ -39,7 +39,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 3. **Copy the entire content**
 4. **Paste it** into the SQL Editor
 5. Click **"Run"**
-6. You should see: ✅ **"Success. No rows returned"**
+6. You should see:  **"Success. No rows returned"**
 
 **What this does:**
 - Enables RLS on all tables
@@ -56,7 +56,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 3. **Copy the entire content**
 4. **Paste it** into the SQL Editor
 5. Click **"Run"**
-6. You should see: ✅ **"Success. No rows returned"**
+6. You should see:  **"Success. No rows returned"**
 
 **What this does:**
 - Adds `updated_at` + `deleted_at` fields to **friends**
@@ -72,7 +72,7 @@ Your Supabase connection is working! Now let's set up your database tables and s
 3. **Copy the entire content**
 4. **Paste it** into the SQL Editor
 5. Click **"Run"**
-6. You should see: ✅ **"Success. No rows returned"**
+6. You should see:  **"Success. No rows returned"**
 
 **What this does:**
 - Creates `user_pins` table required by app PIN auth sync
@@ -85,29 +85,29 @@ Your Supabase connection is working! Now let's set up your database tables and s
 
 1. In Supabase Dashboard, go to **Table Editor**
 2. You should see all these tables:
-   - ✅ profiles
-   - ✅ user_pins
-   - ✅ accounts
-   - ✅ friends
-   - ✅ transactions
-   - ✅ loans
-   - ✅ loan_payments
-   - ✅ goals
-   - ✅ goal_contributions
-   - ✅ group_expenses
-   - ✅ investments
-   - ✅ notifications
-   - ✅ tax_calculations
-   - ✅ todo_lists
-   - ✅ todo_items
-   - ✅ todo_list_shares
-   - ✅ expense_bills
+   -  profiles
+   -  user_pins
+   -  accounts
+   -  friends
+   -  transactions
+   -  loans
+   -  loan_payments
+   -  goals
+   -  goal_contributions
+   -  group_expenses
+   -  investments
+   -  notifications
+   -  tax_calculations
+   -  todo_lists
+   -  todo_items
+   -  todo_list_shares
+   -  expense_bills
 
 ---
 
 ### **Step 7: Enable Email Authentication**
 
-1. Go to **Authentication** → **Providers** in Supabase Dashboard
+1. Go to **Authentication**  **Providers** in Supabase Dashboard
 2. Enable **Email** provider (should be enabled by default)
 3. Configure email templates if desired
 4. **Optional:** Enable other providers (Google, GitHub, etc.)
@@ -142,7 +142,7 @@ You should see all your tables with `rowsecurity = true`
 3. **Copy the entire content**
 4. **Paste it** into the SQL Editor
 5. Click **"Run"**
-6. You should see: ✅ **"Success. No rows returned"**
+6. You should see:  **"Success. No rows returned"**
 
 **What this does:**
 - Enables and forces RLS on production-critical finance tables
@@ -166,21 +166,21 @@ Expected result:
 
 ---
 
-## 🔐 Security Features Explained
+##  Security Features Explained
 
 ### **Row Level Security (RLS)**
-- ✅ Users can **only** view, create, update, and delete **their own** data
-- ✅ User A cannot see User B's transactions, accounts, or any other data
-- ✅ Todo lists can be shared with specific permissions (view/edit)
+-  Users can **only** view, create, update, and delete **their own** data
+-  User A cannot see User B's transactions, accounts, or any other data
+-  Todo lists can be shared with specific permissions (view/edit)
 
 ### **Authentication**
-- ✅ Users must sign up/login to access the app
-- ✅ User ID is automatically added to all records
-- ✅ Profile is automatically created on signup
+-  Users must sign up/login to access the app
+-  User ID is automatically added to all records
+-  Profile is automatically created on signup
 
 ---
 
-## 📊 Database Schema Overview
+##  Database Schema Overview
 
 ### **Core Financial Tables:**
 - **accounts** - Bank accounts, cards, cash, wallets
@@ -207,7 +207,7 @@ Expected result:
 
 ---
 
-## 🔄 Next Steps: Update Your Frontend
+##  Next Steps: Update Your Frontend
 
 Now that the database is set up, you need to update your React app to use Supabase instead of IndexedDB (Dexie).
 
@@ -220,7 +220,7 @@ Now that the database is set up, you need to update your React app to use Supaba
 
 ---
 
-## 🧪 Testing with Sample Data
+##  Testing with Sample Data
 
 Want to add some test data? Create a new SQL query:
 
@@ -242,24 +242,24 @@ INSERT INTO public.transactions (user_id, type, amount, account_id, category, de
 
 ---
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 ### **Error: "permission denied for table..."**
-- ❌ RLS is enabled but policies aren't created
-- ✅ Run the `002_enable_rls.sql` script
+-  RLS is enabled but policies aren't created
+-  Run the `002_enable_rls.sql` script
 
 ### **Error: "relation does not exist"**
-- ❌ Tables weren't created
-- ✅ Run the `001_create_tables.sql` script
+-  Tables weren't created
+-  Run the `001_create_tables.sql` script
 
 ### **Can't see any data**
-- ❌ User is not authenticated
-- ✅ Make sure users sign up/login first
-- ✅ Check that `user_id` matches `auth.uid()`
+-  User is not authenticated
+-  Make sure users sign up/login first
+-  Check that `user_id` matches `auth.uid()`
 
 ### **Need to reset everything?**
 ```sql
--- ⚠️ WARNING: This deletes ALL data!
+--  WARNING: This deletes ALL data!
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
@@ -269,7 +269,7 @@ GRANT ALL ON SCHEMA public TO public;
 
 ---
 
-## 📚 Resources
+##  Resources
 
 - **Supabase Docs**: https://supabase.com/docs
 - **Your Dashboard**: https://supabase.com/dashboard/project/mmwrckfqeqjfqciymemh
@@ -278,12 +278,12 @@ GRANT ALL ON SCHEMA public TO public;
 
 ---
 
-## 🎉 You're All Set!
+##  You're All Set!
 
 Once you complete these steps, your database will be:
-- ✅ Fully set up with all tables
-- ✅ Secured with Row Level Security
-- ✅ Ready to use in your React app
-- ✅ User-specific and private
+-  Fully set up with all tables
+-  Secured with Row Level Security
+-  Ready to use in your React app
+-  User-specific and private
 
-Ready to start building! 🚀
+Ready to start building! 

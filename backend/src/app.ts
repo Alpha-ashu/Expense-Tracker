@@ -13,7 +13,7 @@ import { logger } from './config/logger';
 
 const app = express();
 
-// ── Request ID stamping (B-1) ─────────────────────────────────────────
+//  Request ID stamping (B-1) 
 // Every request gets a unique ID for log correlation & error responses.
 app.use((req, res, next) => {
   (req as any).id = randomUUID();
@@ -94,7 +94,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '1mb' }));
 
-// ── Global body sanitization (B-4) ───────────────────────────────────
+//  Global body sanitization (B-4) 
 // Strip HTML/script tags from all string fields in the request body.
 app.use((req, _res, next) => {
   if (req.body && typeof req.body === 'object') {
@@ -167,7 +167,7 @@ app.use('/api-docs', docsRoutes);
 // API v1
 app.use('/api/v1', apiRoutes);
 
-// 404 – unknown routes
+// 404  unknown routes
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,

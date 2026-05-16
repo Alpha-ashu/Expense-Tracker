@@ -709,7 +709,7 @@
     overflow-x: hidden !important;
   }
 
-  /* Table fixes — do NOT change display here; table structure must stay intact.
+  /* Table fixes  do NOT change display here; table structure must stay intact.
      Tables that shouldn't show on mobile use `hidden sm:block` etc. */
   table {
     max-width: 100% !important;
@@ -768,4 +768,4 @@
 }
 
 /* Viewport is controlled via the <meta name="viewport"> tag in index.html */
-/* Do NOT set @viewport here — it is non-standard and overrides the meta tag unexpectedly */
+/* Do NOT set @viewport here  it is non-standard and overrides the meta tag unexpectedly */

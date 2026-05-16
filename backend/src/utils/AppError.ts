@@ -1,5 +1,5 @@
 /**
- * AppError – typed error class for all application-level errors.
+ * AppError  typed error class for all application-level errors.
  * Controllers should throw AppError instead of building inline res.json() error responses.
  * The central errorHandler middleware in middleware/error.ts will consume and format these.
  */
@@ -18,7 +18,7 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 
-  // ── Common factory helpers ──────────────────────────────────────────
+  //  Common factory helpers 
 
   static badRequest(message: string, code = 'BAD_REQUEST'): AppError {
     return new AppError(400, code, message);
@@ -50,7 +50,7 @@ export class AppError extends Error {
 }
 
 /**
- * Prisma error code → AppError mapper.
+ * Prisma error code  AppError mapper.
  * Call this in the errorHandler to intercept Prisma-specific codes centrally.
  */
 export function fromPrismaError(error: any): AppError | null {

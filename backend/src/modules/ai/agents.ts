@@ -7,7 +7,7 @@
 import { prisma } from '../../db/prisma';
 import { logger } from '../../config/logger';
 
-// ── Type Definitions ───────────────────────────────────────────────────────────
+//  Type Definitions 
 
 export interface AgentResult {
   agentName: string;
@@ -54,7 +54,7 @@ export interface BillPrediction {
   confidence: number;
 }
 
-// ── Helper: Get date range for analysis ───────────────────────────────────────
+//  Helper: Get date range for analysis 
 
 function dateRangeStart(daysBack: number): Date {
   const d = new Date();
@@ -70,7 +70,7 @@ async function safeQuery<T>(fn: () => Promise<T> | T, fallback: any): Promise<an
   }
 }
 
-// ── Agent 1: Expense Categorization Agent ─────────────────────────────────────
+//  Agent 1: Expense Categorization Agent 
 
 export async function runExpenseCategorizationAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -115,7 +115,7 @@ export async function runExpenseCategorizationAgent(userId: string): Promise<Age
   }
 }
 
-// ── Agent 2: Goal Recommendation Agent ────────────────────────────────────────
+//  Agent 2: Goal Recommendation Agent 
 
 export async function runGoalRecommendationAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -148,7 +148,7 @@ export async function runGoalRecommendationAgent(userId: string): Promise<AgentR
       recommendations.push({
         type: 'goal_suggestion',
         title: 'No Financial Goals Set',
-        message: `You have monthly income of ₹${income.toFixed(0)}. Set a goal to keep you motivated.`,
+        message: `You have monthly income of ${income.toFixed(0)}. Set a goal to keep you motivated.`,
         priority: 6,
         actionLabel: 'Add Goal',
       });
@@ -170,7 +170,7 @@ export async function runGoalRecommendationAgent(userId: string): Promise<AgentR
   }
 }
 
-// ── Agent 3: Budget Optimization Agent ────────────────────────────────────────
+//  Agent 3: Budget Optimization Agent 
 
 export async function runBudgetOptimizationAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -202,7 +202,7 @@ export async function runBudgetOptimizationAgent(userId: string): Promise<AgentR
       recommendations.push({
         type: 'budget_alert',
         title: 'Spending Above 80% of Income',
-        message: `This month you spent ₹${totalExpense.toFixed(0)} vs ₹${monthlyIncome.toFixed(0)} income. Try to keep spending below 80%.`,
+        message: `This month you spent ${totalExpense.toFixed(0)} vs ${monthlyIncome.toFixed(0)} income. Try to keep spending below 80%.`,
         priority: 9,
       });
     }
@@ -216,7 +216,7 @@ export async function runBudgetOptimizationAgent(userId: string): Promise<AgentR
         recommendations.push({
           type: 'budget_alert',
           title: `High ${topCat} Spending`,
-          message: `${topCat} takes up ${pct.toFixed(0)}% of your income this month (₹${topAmt.toFixed(0)}).`,
+          message: `${topCat} takes up ${pct.toFixed(0)}% of your income this month (${topAmt.toFixed(0)}).`,
           priority: 7,
         });
       }
@@ -233,7 +233,7 @@ export async function runBudgetOptimizationAgent(userId: string): Promise<AgentR
   }
 }
 
-// ── Agent 4: Spending Pattern Agent ───────────────────────────────────────────
+//  Agent 4: Spending Pattern Agent 
 
 export async function runSpendingPatternAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -257,7 +257,7 @@ export async function runSpendingPatternAgent(userId: string): Promise<AgentResu
       .map(([cat, data]) => ({
         category: 'spending',
         label: cat,
-        value: `₹${data.total.toFixed(0)} (${data.count} txns)`,
+        value: `${data.total.toFixed(0)} (${data.count} txns)`,
       }));
 
     return {
@@ -271,7 +271,7 @@ export async function runSpendingPatternAgent(userId: string): Promise<AgentResu
   }
 }
 
-// ── Agent 5: Bill Prediction Agent ────────────────────────────────────────────
+//  Agent 5: Bill Prediction Agent 
 
 export async function runBillPredictionAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -334,7 +334,7 @@ export async function runBillPredictionAgent(userId: string): Promise<AgentResul
   }
 }
 
-// ── Agent 6: Fraud Detection Agent ────────────────────────────────────────────
+//  Agent 6: Fraud Detection Agent 
 
 export async function runFraudDetectionAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -392,7 +392,7 @@ export async function runFraudDetectionAgent(userId: string): Promise<AgentResul
   }
 }
 
-// ── Agent 7: Financial Health Score Agent ─────────────────────────────────────
+//  Agent 7: Financial Health Score Agent 
 
 export async function runFinancialHealthScoreAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -460,7 +460,7 @@ export async function runFinancialHealthScoreAgent(userId: string): Promise<Agen
   }
 }
 
-// ── Agent 8: Investment Suggestion Agent ──────────────────────────────────────
+//  Agent 8: Investment Suggestion Agent 
 
 export async function runInvestmentSuggestionAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -482,7 +482,7 @@ export async function runInvestmentSuggestionAgent(userId: string): Promise<Agen
 
     const recommendations: Recommendation[] = [];
     if (surplus > 5000) {
-      recommendations.push({ type: 'investment_tip', title: 'Consider SIP Investment', message: `You have ₹${surplus.toFixed(0)} surplus this month. Consider starting a SIP of ₹${Math.round(surplus * 0.3)} in a mutual fund.`, priority: 6, actionLabel: 'Explore Investments' });
+      recommendations.push({ type: 'investment_tip', title: 'Consider SIP Investment', message: `You have ${surplus.toFixed(0)} surplus this month. Consider starting a SIP of ${Math.round(surplus * 0.3)} in a mutual fund.`, priority: 6, actionLabel: 'Explore Investments' });
     }
     if (surplus > 25000) {
       recommendations.push({ type: 'investment_tip', title: 'FD Opportunity', message: 'With your surplus, a short-term Fixed Deposit (6-12 months) could earn 6-7% returns.', priority: 5 });
@@ -494,7 +494,7 @@ export async function runInvestmentSuggestionAgent(userId: string): Promise<Agen
   }
 }
 
-// ── Agent 9: Loan Approval Heuristic ─────────────────────────────────────────
+//  Agent 9: Loan Approval Heuristic 
 
 export async function runLoanApprovalAgent(userId: string): Promise<AgentResult> {
   const start = Date.now();
@@ -518,7 +518,7 @@ export async function runLoanApprovalAgent(userId: string): Promise<AgentResult>
     const insights: Insight[] = [
       { category: 'loan', label: 'Loan Approval Likelihood', value: `${approvalLikelihood}%` },
       { category: 'loan', label: 'Debt-to-Income Ratio', value: debtToIncomeRatio.toFixed(2) },
-      { category: 'loan', label: 'Suggested Max Monthly EMI', value: `₹${Math.round(avgMonthlyIncome * 0.3)}` },
+      { category: 'loan', label: 'Suggested Max Monthly EMI', value: `${Math.round(avgMonthlyIncome * 0.3)}` },
     ];
 
     return { agentName: 'loan-approval', status: 'success', output: { score: approvalLikelihood, insights }, executionMs: Date.now() - start };
@@ -527,7 +527,7 @@ export async function runLoanApprovalAgent(userId: string): Promise<AgentResult>
   }
 }
 
-// ── Run all agents ─────────────────────────────────────────────────────────────
+//  Run all agents 
 
 export async function runAllAgents(userId: string): Promise<AgentResult[]> {
   const agentFns = [

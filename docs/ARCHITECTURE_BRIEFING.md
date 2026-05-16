@@ -53,19 +53,19 @@ The Expense Tracker is a hybrid finance platform delivering a unified experience
 ### 3-Tier Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                       │
-├─────────────────────────────────────────────────────────────┤
-│  Web Browser (React)  │  Mobile App (Capacitor WebView)     │
-├─────────────────────────────────────────────────────────────┤
-│                    Application Layer                        │
-├─────────────────────────────────────────────────────────────┤
-│  Node.js/Express API  │  Vercel Serverless Functions        │
-├─────────────────────────────────────────────────────────────┤
-│                     Data Layer                              │
-├─────────────────────────────────────────────────────────────┤
-│  PostgreSQL (Prisma)  │  Supabase  │  Local IndexedDB       │
-└─────────────────────────────────────────────────────────────┘
+
+                    Presentation Layer                       
+
+  Web Browser (React)    Mobile App (Capacitor WebView)     
+
+                    Application Layer                        
+
+  Node.js/Express API    Vercel Serverless Functions        
+
+                     Data Layer                              
+
+  PostgreSQL (Prisma)    Supabase    Local IndexedDB       
+
 ```
 
 ### Data Flow Architecture
@@ -87,7 +87,7 @@ The Expense Tracker is a hybrid finance platform delivering a unified experience
    - Fallback: Supabase for additional auth/data paths
 
 4. **API Request Lifecycle**
-   - Request → CORS/Helmet → Auth → RBAC → Validation → Controller → Response
+   - Request  CORS/Helmet  Auth  RBAC  Validation  Controller  Response
 
 ---
 

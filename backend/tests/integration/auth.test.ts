@@ -32,7 +32,7 @@ const getSignedAuthToken = (overrides: Record<string, unknown> = {}) => {
 };
 
 describe('AUTH MODULE', () => {
-  // ───────── Registration ─────────
+  //  Registration 
   describe('POST /auth/register', () => {
     it('should register a new user with valid data (or fail with DB error)', async () => {
       const res = await request(app)
@@ -104,7 +104,7 @@ describe('AUTH MODULE', () => {
       const res = await request(app)
         .post(`${API}/auth/register`)
         .send({ email: longEmail, name: 'Test', password: 'SecurePass123!' });
-      // Should either succeed, fail validation, or conflict — not crash
+      // Should either succeed, fail validation, or conflict  not crash
       expect([201, 400, 409, 500]).toContain(res.status);
     });
 
@@ -135,7 +135,7 @@ describe('AUTH MODULE', () => {
     });
   });
 
-  // ───────── Login ─────────
+  //  Login 
   describe('POST /auth/login', () => {
     it('should login with valid credentials (or fail with DB error)', async () => {
       const res = await request(app)
@@ -179,7 +179,7 @@ describe('AUTH MODULE', () => {
     });
   });
 
-  // ───────── Profile ─────────
+  //  Profile 
   describe('GET /auth/profile', () => {
     it('should return 401 without auth token', async () => {
       const res = await request(app).get(`${API}/auth/profile`);
@@ -235,7 +235,7 @@ describe('AUTH MODULE', () => {
     });
   });
 
-  // ───────── Debug endpoints removed for security ─────────
+  //  Debug endpoints removed for security 
   describe('GET /auth/debug', () => {
     it('should not expose debug endpoint', async () => {
       const res = await request(app).get(`${API}/auth/debug`);

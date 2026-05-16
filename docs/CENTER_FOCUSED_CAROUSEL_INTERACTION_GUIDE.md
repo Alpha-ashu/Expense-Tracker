@@ -10,17 +10,17 @@ User sees: Accounts page loads
            Default/first account becomes active (centered)
            
 Visual:    
-┌────────────────────────────────────────────┐
-│ [Physical]  [Apple Cash ✓]  [Chase]      │ ← Carousel
-│ (50%)       (100% + ACTIVE)   (50%)       │
-│ scale:90%   scale:100%        scale:90%   │
-│ opacity:50% opacity:100%      opacity:50% │
-└────────────────────────────────────────────┘
-                      ↓
-┌────────────────────────────────────────────┐
-│ Transaction History for Apple Cash         │
-│ [Transactions table appears here]          │
-└────────────────────────────────────────────┘
+
+ [Physical]  [Apple Cash ]  [Chase]        Carousel
+ (50%)       (100% + ACTIVE)   (50%)       
+ scale:90%   scale:100%        scale:90%   
+ opacity:50% opacity:100%      opacity:50% 
+
+                      
+
+ Transaction History for Apple Cash         
+ [Transactions table appears here]          
+
 ```
 
 #### User Swipes Right (or scrolls right)
@@ -28,29 +28,29 @@ Visual:
 Action: User swipes/scrolls carousel to the right
 
 Step 1: During scroll
-┌────────────────────────────────────────────┐
-│ [Apple]    [Chase ←]              [Amex]  │
-│ (scaling)  (becoming center)      (off)   │
-│ opacity    opacity increasing              │
-│ transitioning                              │
-└────────────────────────────────────────────┘
+
+ [Apple]    [Chase ]              [Amex]  
+ (scaling)  (becoming center)      (off)   
+ opacity    opacity increasing              
+ transitioning                              
+
 
 Step 2: After scroll stops (snap alignment activates)
-┌────────────────────────────────────────────┐
-│ [Apple]    [Chase ✓]            [Amex]   │
-│ (50%)      (100% + ACTIVE)       (50%)    │
-│ scale:90%  scale:100%            scale:90%│
-│ opacity:50% opacity:100%         opacity:50%│
-└────────────────────────────────────────────┘
+
+ [Apple]    [Chase ]            [Amex]   
+ (50%)      (100% + ACTIVE)       (50%)    
+ scale:90%  scale:100%            scale:90%
+ opacity:50% opacity:100%         opacity:50%
+
 
 Automatic: selectedAccountId updates to Chase
            Transaction History re-renders with Chase data
            
 Result:
-┌────────────────────────────────────────────┐
-│ Transaction History for Chase              │
-│ [New transactions table loaded]            │
-└────────────────────────────────────────────┘
+
+ Transaction History for Chase              
+ [New transactions table loaded]            
+
 ```
 
 #### User Swipes Left (or scrolls left)
@@ -67,55 +67,55 @@ Transaction History updates automatically
 ### Mount Phase
 ```
 Timeline:
-0ms   ↓ Component mounts
-      ↓ carouselRef and cardRefs created
-      ↓ State: selectedAccountId = null
+0ms    Component mounts
+       carouselRef and cardRefs created
+       State: selectedAccountId = null
       
-100ms ↓ useEffect callback executes
-      ↓ handleCarouselScroll() runs once
-      ↓ Finds first/closest card
-      ↓ setSelectedAccountId(accountId)
+100ms  useEffect callback executes
+       handleCarouselScroll() runs once
+       Finds first/closest card
+       setSelectedAccountId(accountId)
       
-~110ms ↓ Re-render triggered
-       ↓ selectedAccount becomes defined
-       ↓ Transaction History appears with fade-in
-       ↓ User sees initial state complete
+~110ms  Re-render triggered
+        selectedAccount becomes defined
+        Transaction History appears with fade-in
+        User sees initial state complete
 ```
 
 ### Scroll Phase
 ```
 Timeline (for each scroll event):
-0ms   ↓ User starts scrolling
-      ↓ CSS scroll-snap takes over
+0ms    User starts scrolling
+       CSS scroll-snap takes over
       
-~16ms ↓ Browser fires scroll event
-      ↓ handleCarouselScroll() executes
-      ↓ Calculate closest card to center
+~16ms  Browser fires scroll event
+       handleCarouselScroll() executes
+       Calculate closest card to center
       
-~32ms ↓ If different card is closest:
-      ↓ setSelectedAccountId(newId)
+~32ms  If different card is closest:
+       setSelectedAccountId(newId)
       
-~48ms ↓ Re-render:
-      ↓ Card scales/opacity update (0.3s transition)
-      ↓ ACTIVE badge animates in
-      ↓ Transaction History updates
+~48ms  Re-render:
+       Card scales/opacity update (0.3s transition)
+       ACTIVE badge animates in
+       Transaction History updates
       
-~350ms ↓ All animations complete
-       ↓ User sees updated account details
+~350ms  All animations complete
+        User sees updated account details
 ```
 
 ### Snap Phase
 ```
 Timeline (when scroll stops):
-0ms   ↓ User lets go of scroll
-      ↓ scroll-snap-type: mandatory activates
+0ms    User lets go of scroll
+       scroll-snap-type: mandatory activates
       
-~300ms ↓ Browser animates snap alignment
-       ↓ Card snaps to center (smooth animation)
-       ↓ handleCarouselScroll() fires again
+~300ms  Browser animates snap alignment
+        Card snaps to center (smooth animation)
+        handleCarouselScroll() fires again
        
-~350ms ↓ All animations complete
-       ↓ Card at center is confirmed active
+~350ms  All animations complete
+        Card at center is confirmed active
 ```
 
 ---
@@ -126,15 +126,15 @@ Timeline (when scroll stops):
 
 #### State 1: Card Moving Away (Right)
 ```
-Transform: scale(0.9) → scale(0.95) → ...
-Opacity:   0.5 → 0.7 → ...
+Transform: scale(0.9)  scale(0.95)  ...
+Opacity:   0.5  0.7  ...
 Motion:    Sliding right with reduced size
 ```
 
 #### State 2: Card Moving Toward Center
 ```
-Transform: scale(0.9) → scale(0.95) → scale(1.0)
-Opacity:   0.5 → 0.7 → 0.9 → 1.0
+Transform: scale(0.9)  scale(0.95)  scale(1.0)
+Opacity:   0.5  0.7  0.9  1.0
 Motion:    Sliding left, growing size, increasing brightness
 Duration:  ~0.3s (ease-in-out)
 ```
@@ -153,8 +153,8 @@ Status: "Subscribed" to transaction data
 
 #### State 4: Card Moving Away (Left)
 ```
-Transform: scale(1.0) → scale(0.95) → scale(0.9)
-Opacity:   1.0 → 0.8 → 0.5
+Transform: scale(1.0)  scale(0.95)  scale(0.9)
+Opacity:   1.0  0.8  0.5
 Motion:    Sliding left, shrinking size, fading
 Duration:  ~0.3s (ease-in-out)
 ```
@@ -166,22 +166,22 @@ Duration:  ~0.3s (ease-in-out)
 ### How Center Detection Works
 
 ```
-┌──────────────────────────────────────────────────┐
-│         CAROUSEL VIEWPORT                         │
-│  ┌─────────────────────────────────────────┐    │
-│  │ [PhysicalWallet] [Apple ✓] [Chase]    │    │
-│  └─────────────────────────────────────────┘    │
-│                                                   │
-│         CENTER POINT (calculated)                │
-│              ↓                                    │
-│  CarouselCenter = left + (width / 2)             │
-└──────────────────────────────────────────────────┘
+
+         CAROUSEL VIEWPORT                         
+      
+   [PhysicalWallet] [Apple ] [Chase]        
+      
+                                                   
+         CENTER POINT (calculated)                
+                                                  
+  CarouselCenter = left + (width / 2)             
+
 
 For each card:
   CardCenter = cardLeft + (cardWidth / 2)
   Distance = |CardCenter - CarouselCenter|
   
-  Apple:    |1250 - 1280| = 30px  ← CLOSEST ✓
+  Apple:    |1250 - 1280| = 30px   CLOSEST 
   Physical: |950 - 1280| = 330px
   Chase:    |1550 - 1280| = 270px
 ```
@@ -189,11 +189,11 @@ For each card:
 ### State Update Logic
 ```
 if (closestCard && closestCard.id !== selectedAccountId) {
-  setSelectedAccountId(closestCard.id)  ← Triggers re-render
-  ↓
+  setSelectedAccountId(closestCard.id)   Triggers re-render
+  
   isActive calculation happens:
   isActive = (selectedAccountId === account.id)
-  ↓
+  
   Components update:
   - Scale changes: scale(isActive ? 1 : 0.9)
   - Opacity changes: opacity(isActive ? 1 : 0.5)
@@ -215,18 +215,18 @@ if (closestCard && closestCard.id !== selectedAccountId) {
 const accountTransactions = useMemo(() => {
   if (!selectedAccountId) return [];
   return transactions.filter(t => t.accountId === selectedAccountId);
-}, [transactions, selectedAccountId]);  ← SUBSCRIBES TO SCROLL CHANGES
+}, [transactions, selectedAccountId]);   SUBSCRIBES TO SCROLL CHANGES
 
 Flow:
 1. User scrolls carousel
 2. handleCarouselScroll() fires
 3. Closest card detected
-4. setSelectedAccountId(newId)  ← STATE CHANGES
+4. setSelectedAccountId(newId)   STATE CHANGES
 5. useMemo dependencies change
-6. accountTransactions recalculates  ← AUTOMATIC
+6. accountTransactions recalculates   AUTOMATIC
 7. Component re-renders
-8. Transaction History shows new data  ← USER SEES UPDATE
-9. Fade-in animation plays  ← VISUAL POLISH
+8. Transaction History shows new data   USER SEES UPDATE
+9. Fade-in animation plays   VISUAL POLISH
 ```
 
 ---
@@ -306,16 +306,16 @@ Result:
 ## Mobile vs Desktop
 
 ### Desktop (> 1024px)
-✅ Center-Focused Carousel with scroll-snap
-✅ Scroll-to-Sync transaction filtering
-✅ Visual hierarchy with scale/opacity
-✅ Smooth transitions and animations
+ Center-Focused Carousel with scroll-snap
+ Scroll-to-Sync transaction filtering
+ Visual hierarchy with scale/opacity
+ Smooth transitions and animations
 
 ### Mobile/Tablet (< 1024px)
-✅ Vertical accordion layout
-✅ Click to expand accounts
-✅ Nested transaction history
-✅ Full-screen account details
+ Vertical accordion layout
+ Click to expand accounts
+ Nested transaction history
+ Full-screen account details
 
 ---
 

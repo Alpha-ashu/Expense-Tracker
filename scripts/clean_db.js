@@ -5,7 +5,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment variables.');
+  console.error(' SUPABASE_URL and SUPABASE_SERVICE_KEY must be set in environment variables.');
   process.exit(1);
 }
 
@@ -26,16 +26,16 @@ async function cleanDB() {
 
         let deletedCount = 0;
 
-        // We only keep the admin — set ADMIN_EMAIL in your .env
+        // We only keep the admin  set ADMIN_EMAIL in your .env
         const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
         if (!ADMIN_EMAIL) {
-            console.error('❌ ADMIN_EMAIL must be set in environment variables. Aborting to prevent data loss.');
+            console.error(' ADMIN_EMAIL must be set in environment variables. Aborting to prevent data loss.');
             process.exit(1);
         }
 
         for (const user of users) {
             if (user.email === ADMIN_EMAIL) {
-                console.log(`✅ Skipping admin user: ${user.email} (${user.id})`);
+                console.log(` Skipping admin user: ${user.email} (${user.id})`);
 
                 // Let's also clean all demo/testing data from the admin user just in case
                 console.log('   Removing admin demo data...');
@@ -47,17 +47,17 @@ async function cleanDB() {
                 continue;
             }
 
-            console.log(`🗑️ Deleting user: ${user.email || 'No email'} (${user.id})`);
+            console.log(` Deleting user: ${user.email || 'No email'} (${user.id})`);
             const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
 
             if (deleteError) {
-                console.error(`❌ Failed to delete ${user.id}:`, deleteError.message);
+                console.error(` Failed to delete ${user.id}:`, deleteError.message);
             } else {
                 deletedCount++;
             }
         }
 
-        console.log(`\n🎉 Cleanup complete! Deleted ${deletedCount} users and their associated records.`);
+        console.log(`\n Cleanup complete! Deleted ${deletedCount} users and their associated records.`);
 
     } catch (err) {
         console.error('Script failed:', err.message);

@@ -1,10 +1,10 @@
-# 🚀 RBAC Integration Guide for Components
+#  RBAC Integration Guide for Components
 
 Quick reference for integrating role-based access control in React components.
 
 ---
 
-## 📌 Quick Start
+##  Quick Start
 
 ### 1. Import the Hook
 ```tsx
@@ -24,7 +24,7 @@ const MyComponent = () => {
 
 ---
 
-## 🎯 Common Use Cases
+##  Common Use Cases
 
 ### Case 1: Show/Hide Feature Based on Role
 
@@ -132,7 +132,7 @@ export const AdvancedAnalyticsPanel = () => {
 
 ---
 
-## 📚 Available Hooks
+##  Available Hooks
 
 ### `useFeatureAccess(featureName: string): boolean`
 Check if user has access to a specific feature.
@@ -215,7 +215,7 @@ const isAdminOrAdvisor = useRequireRole(['admin', 'advisor']);
 
 ---
 
-## 🔌 Using RBAC in Navigation
+##  Using RBAC in Navigation
 
 ### Update Navigation to Show Role-Based Items
 
@@ -257,7 +257,7 @@ export const Navigation = ({ setCurrentPage }) => {
 
 ---
 
-## 🛠️ Direct Function Usage (Without Hooks)
+##  Direct Function Usage (Without Hooks)
 
 If you need to check permissions without React hooks:
 
@@ -279,7 +279,7 @@ export const MyComponent = () => {
 
 ---
 
-## 🎨 Component Examples
+##  Component Examples
 
 ### Example 1: Conditional Button
 
@@ -347,7 +347,7 @@ export const Dashboard = () => {
 
 ---
 
-## 🔐 Security Best Practices
+##  Security Best Practices
 
 ### 1. Always Validate Backend Too
 ```tsx
@@ -360,10 +360,10 @@ const hasAccess = useFeatureAccess('bookAdvisor');
 
 ### 2. Don't Hide Critical Info
 ```tsx
-// ❌ WRONG - Never hide security/payment info
+//  WRONG - Never hide security/payment info
 const showPrice = useFeatureAccess('bookAdvisor');
 
-// ✅ CORRECT - Always show price, just disable action
+//  CORRECT - Always show price, just disable action
 const canBook = useFeatureAccess('bookAdvisor');
 ```
 
@@ -381,7 +381,7 @@ app.post('/api/book', (req, res) => {
 
 ---
 
-## ❓ FAQ
+##  FAQ
 
 **Q: How do I add a new feature to the system?**
 A: Add it to `ROLE_PERMISSIONS` in `frontend/src/lib/rbac.ts`:
@@ -411,7 +411,7 @@ A: Login with different emails:
 
 ---
 
-## 📖 Related Documentation
+##  Related Documentation
 
 - [RBAC System Overview](./RBAC_IMPLEMENTATION.md)
 - [Session Management](../frontend/src/lib/sessionManagement.ts)

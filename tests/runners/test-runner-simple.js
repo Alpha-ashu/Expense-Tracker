@@ -15,24 +15,24 @@ const CONFIG = {
 let testResults = {};
 
 async function runTest(testName, testFunction) {
-    console.log(`\n🧪 Running test: ${testName}`);
-    console.log('─'.repeat(50));
+    console.log(`\n Running test: ${testName}`);
+    console.log(''.repeat(50));
     
     try {
         const result = await testFunction();
         testResults[testName] = result;
         
         if (result.success) {
-            console.log(`✅ ${testName}: PASSED`);
+            console.log(` ${testName}: PASSED`);
             console.log(`   ${result.message}`);
         } else {
-            console.log(`❌ ${testName}: FAILED`);
+            console.log(` ${testName}: FAILED`);
             console.log(`   ${result.message}`);
         }
         
         return result;
     } catch (error) {
-        console.log(`💥 ${testName}: ERROR`);
+        console.log(` ${testName}: ERROR`);
         console.log(`   ${error.message}`);
         testResults[testName] = { success: false, message: error.message };
         return { success: false, message: error.message };
@@ -189,7 +189,7 @@ async function testFrontendPages() {
 
 // Main test execution
 async function runAllTests() {
-    console.log('🚀 Starting Expense Tracker - Simplified Test Suite');
+    console.log(' Starting Expense Tracker - Simplified Test Suite');
     console.log('='.repeat(60));
     console.log(`Testing frontend and backend connectivity`);
     console.log(`Admin Credentials: ${CONFIG.adminCredentials.email}`);
@@ -205,7 +205,7 @@ async function runAllTests() {
     await runTest('Error Handling', testErrors);
 
     // Generate summary
-    console.log('\n📊 TEST SUMMARY');
+    console.log('\n TEST SUMMARY');
     console.log('='.repeat(60));
     
     const totalTests = Object.keys(testResults).length;
@@ -219,17 +219,17 @@ async function runAllTests() {
     console.log(`Success Rate: ${successRate}%`);
 
     if (successRate === 100) {
-        console.log('\n🎉 ALL TESTS PASSED! The application infrastructure is working correctly.');
+        console.log('\n ALL TESTS PASSED! The application infrastructure is working correctly.');
     } else if (successRate >= 80) {
-        console.log('\n⚠️  MOST TESTS PASSED! Core infrastructure works, some issues detected.');
+        console.log('\n  MOST TESTS PASSED! Core infrastructure works, some issues detected.');
     } else {
-        console.log('\n❌ TESTS FAILED! Significant infrastructure issues detected.');
+        console.log('\n TESTS FAILED! Significant infrastructure issues detected.');
     }
 
-    console.log('\n📝 DETAILED RESULTS:');
+    console.log('\n DETAILED RESULTS:');
     console.log('-'.repeat(40));
     Object.entries(testResults).forEach(([testName, result]) => {
-        const status = result.success ? '✅ PASS' : '❌ FAIL';
+        const status = result.success ? ' PASS' : ' FAIL';
         console.log(`${status} ${testName}: ${result.message}`);
     });
 
@@ -238,9 +238,9 @@ async function runAllTests() {
 
 // Run the tests
 runAllTests().then(results => {
-    console.log('\n🏁 Test suite completed!');
+    console.log('\n Test suite completed!');
     process.exit(results.successRate === 100 ? 0 : 1);
 }).catch(error => {
-    console.error('💥 Test suite failed:', error);
+    console.error(' Test suite failed:', error);
     process.exit(1);
 });
