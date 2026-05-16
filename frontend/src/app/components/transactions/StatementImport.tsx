@@ -380,21 +380,21 @@ export const StatementImport: React.FC<StatementImportProps> = ({
               className="p-5 space-y-5"
             >
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+              <div className="grid grid-cols-2 gap-2 md:gap-3">
                 {[
-                  { label: 'Total Volume', value: formatCurrency(importResult.summary.total), icon: <FileText size={18} />, color: 'bg-blue-50 text-blue-600' },
-                  { label: 'Total Credits', value: `+${formatCurrency(importResult.summary.credits)}`, icon: <CheckCircle size={18} />, color: 'bg-green-50 text-green-600' },
-                  { label: 'Total Debits', value: `-${formatCurrency(importResult.summary.debits)}`, icon: <XCircle size={18} />, color: 'bg-red-50 text-red-600' },
-                  { label: 'Duplicates', value: importResult.summary.duplicates, icon: <AlertCircle size={18} />, color: 'bg-amber-50 text-amber-600' },
+                  { label: 'Volume', value: formatCurrency(importResult.summary.total), icon: <FileText size={14} />, color: 'bg-blue-50 text-blue-600' },
+                  { label: 'Credits', value: `+${formatCurrency(importResult.summary.credits)}`, icon: <CheckCircle size={14} />, color: 'bg-green-50 text-green-600' },
+                  { label: 'Debits', value: `-${formatCurrency(importResult.summary.debits)}`, icon: <XCircle size={14} />, color: 'bg-red-50 text-red-600' },
+                  { label: 'Dupes', value: importResult.summary.duplicates, icon: <AlertCircle size={14} />, color: 'bg-amber-50 text-amber-600' },
                 ].map((stat, i) => (
-                  <div key={i} className="bg-white border border-gray-100 rounded-2xl p-3 md:p-4 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div className={`p-1.5 rounded-lg ${stat.color}`}>
-                        {React.cloneElement(stat.icon as React.ReactElement, { size: 14 })}
+                  <div key={i} className="bg-white border border-gray-100 rounded-xl p-2.5 shadow-sm">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className={`p-1 rounded-md ${stat.color}`}>
+                        {stat.icon}
                       </div>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight truncate">{stat.label}</span>
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tight truncate">{stat.label}</span>
                     </div>
-                    <p className="text-sm font-black text-gray-900 tracking-tighter truncate">{stat.value}</p>
+                    <p className="text-xs font-black text-gray-900 tracking-tighter truncate">{stat.value}</p>
                   </div>
                 ))}
               </div>
@@ -427,19 +427,19 @@ export const StatementImport: React.FC<StatementImportProps> = ({
 
               {/* Transaction List */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-2">
-                  <h3 className="text-lg font-bold text-gray-900 tracking-tight">Review Transactions</h3>
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
-                    <span className="text-[10px] font-bold text-blue-600/60 bg-blue-50 px-2 py-1 rounded-lg uppercase">
-                      {selectedTransactions.size} SELECTED
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-base font-bold text-gray-900 tracking-tight">Transactions</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md uppercase">
+                      {selectedTransactions.size} SEL
                     </span>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={toggleAllTransactions}
-                      className="h-8 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50 px-3"
+                      className="h-7 rounded-lg text-[10px] font-black text-blue-600 hover:bg-blue-50 px-2"
                     >
-                      {selectedTransactions.size === importResult.transactions.length ? 'DESELECT ALL' : 'SELECT ALL'}
+                      {selectedTransactions.size === importResult.transactions.length ? 'NONE' : 'ALL'}
                     </Button>
                   </div>
                 </div>
@@ -457,45 +457,44 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                         }`}
                         onClick={() => toggleTransactionSelection(index)}
                       >
-                        <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+                         <div className={`w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all ${
                           selectedTransactions.has(index) 
                             ? 'bg-blue-600 border-blue-600 text-white' 
                             : 'border-gray-200 bg-white group-hover:border-blue-400'
                         }`}>
-                          {selectedTransactions.has(index) && <CheckCircle size={14} strokeWidth={3} />}
+                          {selectedTransactions.has(index) && <CheckCircle size={12} strokeWidth={3} />}
                         </div>
                         
-                        <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 overflow-hidden">
-                          <div className="flex md:flex-col items-baseline md:items-start gap-1 min-w-[70px]">
-                            <p className="text-[10px] font-black text-gray-400 uppercase">
-                              {formatDate(transaction.transaction_date).split(' ')[1]} {formatDate(transaction.transaction_date).split(' ')[0]}
-                            </p>
-                            <p className="text-[10px] font-bold text-gray-300">
-                              {formatDate(transaction.transaction_date).split(' ')[2]}
-                            </p>
-                          </div>
- 
+                        <div className="flex-1 flex flex-row items-center justify-between gap-3 overflow-hidden">
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-gray-900 truncate pr-2">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="text-[9px] font-bold text-gray-400 uppercase whitespace-nowrap">
+                                {formatDate(transaction.transaction_date).split(' ')[1]} {formatDate(transaction.transaction_date).split(' ')[0]}
+                              </p>
+                              <span className="text-[8px] font-bold text-gray-300">
+                                {formatDate(transaction.transaction_date).split(' ')[2]}
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold text-gray-900 truncate mb-1">
                               {transaction.cleaned_description}
                             </p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-bold rounded uppercase">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1 py-0.25 bg-gray-50 text-gray-400 text-[8px] font-black rounded uppercase">
                                 {transaction.payment_channel}
                               </span>
                               {transaction.isDuplicate && (
-                                <span className="px-1.5 py-0.5 bg-amber-100 text-amber-600 text-[9px] font-bold rounded uppercase">
+                                <span className="px-1 py-0.25 bg-amber-50 text-amber-500 text-[8px] font-black rounded uppercase">
                                   DUP
                                 </span>
                               )}
-                              <span className="text-[9px] font-bold text-gray-300 uppercase truncate">
+                              <span className="text-[8px] font-bold text-gray-300 uppercase truncate">
                                 {transaction.category || 'MISC'}
                               </span>
                             </div>
                           </div>
  
-                          <div className="text-right whitespace-nowrap">
-                            <p className={`text-sm font-black tracking-tight ${getTransactionTypeColor(transaction.transaction_type)}`}>
+                          <div className="text-right flex-shrink-0">
+                            <p className={`text-xs font-black tracking-tight ${getTransactionTypeColor(transaction.transaction_type)}`}>
                               {transaction.transaction_type === 'income' ? '+' : '-'}
                               {formatCurrency(transaction.amount)}
                             </p>
@@ -519,10 +518,10 @@ export const StatementImport: React.FC<StatementImportProps> = ({
                 <Button
                   onClick={handleImport}
                   disabled={selectedTransactions.size === 0}
-                  className="flex-[2] h-12 md:h-14 rounded-xl md:rounded-2xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 hover:shadow-blue-300 disabled:opacity-30 disabled:shadow-none transition-all flex items-center justify-center gap-2 md:gap-3 text-sm md:text-base"
+                  className="flex-[2] h-11 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all flex items-center justify-center gap-2 text-xs"
                 >
-                  <Download size={20} />
-                  Complete Import ({selectedTransactions.size})
+                  <Download size={16} />
+                  Complete ({selectedTransactions.size})
                 </Button>
               </div>
             </motion.div>

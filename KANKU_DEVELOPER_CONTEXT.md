@@ -58,6 +58,8 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 - **Bill Preview Modal**: `z-[70]`
 - **Receipt Scanner Overlay**: `z-[80]`
 - **Overlays/Toasts**: `z-[100]`
+- **Modal Popups (Mobile)**: `max-w-lg` for a centered "half-size" floating card effect. Must use `z-[101]` for content and `pointer-events-auto`.
+- **Transaction Rows**: Use consolidated vertical date blocks and flexible horizontal alignment to prevent text overlap in data-dense views.
 
 ---
 
@@ -76,9 +78,11 @@ KANKU uses a **Premium Glassmorphic Aesthetic**. All new features must adhere to
 3. **Glassmorphic Card Standard (V2)**:
    - Upgraded the `Card` component's `default` and `glass` variants to use a more aggressive `backdrop-blur-xl` and `bg-white/80` aesthetic.
    - Standardized card corners to `rounded-[30px]` for a softer, more premium look.
-4. **Statement Import Modal Redesign**:
-   - Overhauled the `StatementImport.tsx` UI with a high-fidelity glassmorphic multi-step flow.
-   - Added robust error boundaries and defensive date-parsing logic to prevent app crashes during PDF ingestion.
+4. **Statement Import Modal Finalization**:
+   - Overhauled the `StatementImport.tsx` UI with a high-fidelity "half-size" glassmorphic popup (`max-w-lg`).
+   - Resolved header collisions and text overlapping in the transaction review grid.
+   - Restored hidden file input functionality and hardened interaction logic with `z-index` stabilization.
+   - Standardized date-block formatting for multi-column transaction lists to ensure vertical alignment.
 5. **Account Action Consistency**:
    - Restricted the "Import" button visibility to only `bank` and `card` account types, removing it from `cash` and `digital` accounts where statement importing is not applicable.
    - Standardized the placement of account management actions across `Accounts.tsx` and `Dashboard.tsx`.
