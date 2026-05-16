@@ -533,7 +533,9 @@ const AppContent: React.FC = () => {
     return <PINAuth onAuthenticated={setAuthenticated} />;
   }
 
-  if (!isInitialized) {
+  console.log('[AppContent] Status:', { authLoading, isInitialized, user: !!user, role });
+
+  if (authLoading || !isInitialized) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
         <div className="text-center">

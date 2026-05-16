@@ -649,16 +649,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               // Always record the current user so we can detect future switches
               localStorage.setItem('auth_last_user_id', nextUser.id);
 
-              // Wait for permissions first so we have the correct role for the Route Guard
+              // Wait for permissions first so we have the correct role for the Route Guard.
+              // Hard 5-second timeout so we NEVER get stuck on loading screen if backend is slow.
               try {
-                const permissions = await permissionService.fetchUserPermissions(nextUser.id, provisionalRole);
+                const permissions = await Promise.race([
+                  permissionService.fetchUserPermissions(nextUser.id, provisionalRole),
+                  new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Permission fetch timeout')), 5000)
+                  ),
+                ]);
                 if (activeSyncUserId.current === nextUser.id) {
                   setRole(permissions.role);
                 }
               } catch (permError) {
-                console.warn('Permission fetch failed, using provisional role:', permError);
+                console.warn('Permission fetch failed/timed out, using provisional role:', permError);
               } finally {
-                // Clear loading screen once role is known, even if sync is still running
+                // Always clear loading screen once role is resolved (or timed out)
                 if (isMounted) setLoading(false);
               }
 
