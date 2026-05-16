@@ -35,6 +35,9 @@ interface AppContextType {
   addAccount: (account: Omit<Account, 'id'>) => Promise<number>;
   visibleFeatures: FeatureVisibility;
   setVisibleFeatures: (features: FeatureVisibility) => void;
+  // Navigation
+  goBack: () => void;
+  historyStack: string[];
   // Offline-first sync
   syncStats: SyncStats;
   triggerSync: () => void;
@@ -46,6 +49,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const location = useLocation();
   const navigate = useNavigate();
 
+  const historyStackRef = useRef<string[]>([]);
+
   const currentPage = location.pathname.length > 1
     ? location.pathname.substring(1).split('?')[0].split('#')[0]
     : 'dashboard';
@@ -53,7 +58,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const setCurrentPage = useCallback((page: string) => {
     const targetPath = page === 'dashboard' ? '/' : `/${page}`;
     if (location.pathname !== targetPath) {
+      // Track history before navigating
+      if (currentPage && currentPage !== page) {
+        historyStackRef.current.push(currentPage);
+        // Keep history manageable
+        if (historyStackRef.current.length > 20) {
+          historyStackRef.current.shift();
+        }
+      }
       navigate(targetPath);
+    }
+  }, [navigate, location.pathname, currentPage]);
+
+  const goBack = useCallback(() => {
+    const stack = historyStackRef.current;
+    if (stack.length > 0) {
+      const prevPage = stack.pop();
+      if (prevPage) {
+        const targetPath = prevPage === 'dashboard' ? '/' : `/${prevPage}`;
+        navigate(targetPath);
+        return;
+      }
+    }
+    
+    // Fallback if no history
+    if (location.pathname !== '/') {
+      navigate('/');
+    } else {
+      // If already at root, maybe we came from a sub-page that wasn't tracked
+      window.history.back();
     }
   }, [navigate, location.pathname]);
 
@@ -576,6 +609,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addAccount,
     visibleFeatures,
     setVisibleFeatures,
+    goBack,
+    historyStack: historyStackRef.current,
     syncStats,
     triggerSync,
   }), [
@@ -600,6 +635,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addAccount,
     visibleFeatures,
     setVisibleFeatures,
+    goBack,
     syncStats,
     triggerSync,
   ]);

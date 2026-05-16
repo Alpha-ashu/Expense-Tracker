@@ -19,6 +19,8 @@ export type FeatureKey =
   | 'notifications'
   | 'userProfile'
   | 'settings'
+  | 'clientManagement'
+  | 'aiManagement'
   | 'dashboard';
 
 export interface FeatureVisibility extends Record<FeatureKey, boolean> {
@@ -40,6 +42,8 @@ export interface FeatureVisibility extends Record<FeatureKey, boolean> {
   notifications: boolean;
   userProfile: boolean;
   settings: boolean;
+  clientManagement: boolean;
+  aiManagement: boolean;
   dashboard: boolean;
 }
 
@@ -62,6 +66,8 @@ const DEFAULT_FEATURES: FeatureVisibility = {
   notifications: true,
   userProfile: true,
   settings: true,
+  clientManagement: true,
+  aiManagement: true,
   dashboard: true,
 };
 
@@ -85,6 +91,8 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     notifications: true,
     userProfile: true,
     settings: true,
+    clientManagement: true,
+    aiManagement: true,
     dashboard: true,
   },
   manager: {
@@ -106,6 +114,8 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     notifications: true,
     userProfile: true,
     settings: true,
+    clientManagement: true,
+    aiManagement: false,
     dashboard: false,
   },
   advisor: {
@@ -127,6 +137,8 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     notifications: true,
     userProfile: true,
     settings: true,
+    clientManagement: false,
+    aiManagement: false,
     dashboard: true,
   },
   user: {
@@ -148,6 +160,8 @@ const ROLE_FEATURES: Record<UserRole, FeatureVisibility> = {
     notifications: true,
     userProfile: true,
     settings: true,
+    clientManagement: false,
+    aiManagement: false,
     dashboard: true,
   },
 };
@@ -182,4 +196,33 @@ export function mergeVisibleFeatures(
   });
 
   return result as FeatureVisibility;
+}
+
+export const PAGE_TO_FEATURE_MAPPING: Record<string, FeatureKey> = {
+  'dashboard': 'dashboard',
+  'accounts': 'accounts',
+  'transactions': 'transactions',
+  'loans': 'loans',
+  'goals': 'goals',
+  'groups': 'groups',
+  'investments': 'investments',
+  'reports': 'reports',
+  'calendar': 'calendar',
+  'todo-lists': 'todoLists',
+  'book-advisor': 'bookAdvisor',
+  'admin-feature-panel': 'adminPanel',
+  'advisor-panel': 'advisorPanel',
+  'settings': 'settings',
+  'notifications': 'notifications',
+  'user-profile': 'userProfile',
+  'transfer': 'transfer',
+  'tax-calculator': 'taxCalculator',
+  'admin-ai': 'aiManagement',
+  'manager-advisor-verification': 'managerPanel',
+};
+
+export function canAccessPage(page: string, features: FeatureVisibility): boolean {
+  const featureKey = PAGE_TO_FEATURE_MAPPING[page];
+  if (!featureKey) return true; // If not mapped, assume public/essential
+  return features[featureKey] !== false;
 }

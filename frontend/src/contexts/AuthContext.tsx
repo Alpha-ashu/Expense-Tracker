@@ -51,6 +51,7 @@ type LocalProfile = {
   language?: string;
   createdAt?: string;
   updatedAt?: string;
+  role?: string;
 };
 
 type RemoteProfileSnapshot = {
@@ -204,7 +205,16 @@ const normalizeRemoteProfile = (profile: any): RemoteProfileSnapshot => {
  * fetched separately so admin/advisor capabilities come from backend-backed
  * profile data instead of client-visible auth metadata.
  */
-const resolveUserRole = (_user: User | null): UserRole => 'user';
+const resolveUserRole = (_user: User | null): UserRole => {
+  if (!_user) return 'user';
+  const localProfile = readLocalProfile();
+  if (localProfile?.role) {
+    return (['admin', 'manager', 'advisor', 'user'].includes(localProfile.role)) 
+      ? localProfile.role as UserRole 
+      : 'user';
+  }
+  return 'user';
+};
 
 /** Clear all user data from the local IndexedDB to ensure data isolation between accounts */
 const clearLocalUserData = async () => {
@@ -639,13 +649,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               // Always record the current user so we can detect future switches
               localStorage.setItem('auth_last_user_id', nextUser.id);
 
-              // Run cloud sync + permissions in background to avoid blocking initial render
+              // Wait for permissions first so we have the correct role for the Route Guard
+              try {
+                const permissions = await permissionService.fetchUserPermissions(nextUser.id, provisionalRole);
+                if (activeSyncUserId.current === nextUser.id) {
+                  setRole(permissions.role);
+                }
+              } catch (permError) {
+                console.warn('Permission fetch failed, using provisional role:', permError);
+              } finally {
+                // Clear loading screen once role is known, even if sync is still running
+                if (isMounted) setLoading(false);
+              }
+
+              // Run heavy cloud sync in background
               void (async () => {
                 try {
-                  const permissions = await permissionService.fetchUserPermissions(nextUser.id, provisionalRole);
-                  if (activeSyncUserId.current === nextUser.id) {
-                    setRole(permissions.role);
-                  }
                   await syncFromSupabase(nextUser);
                   if (activeSyncUserId.current === nextUser.id) {
                     setDataReady(true);
@@ -681,10 +700,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setDataReady(false);
             setDataSyncing(false);
             setDataSyncError(null);
+            if (isMounted) setLoading(false);
+          } else {
+            // No user session present (e.g. initial load without login)
+            if (isMounted) setLoading(false);
           }
         } catch (error) {
           console.error('Error in onAuthStateChange handler:', error);
-        } finally {
           if (isMounted) setLoading(false);
         }
       }

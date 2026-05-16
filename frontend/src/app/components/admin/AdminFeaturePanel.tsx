@@ -165,6 +165,27 @@ const FEATURES: FeatureControl[] = [
     description: 'Notifications when spending exceeds budget limits',
     lastUpdated: new Date(),
   },
+  {
+    name: 'Client Management',
+    key: 'clientManagement',
+    readiness: 'released',
+    description: 'Advisors and Managers can manage their assigned clients and portfolios',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'AI Management',
+    key: 'aiManagement',
+    readiness: 'unreleased',
+    description: 'Centralized control panel for AI models and insights configuration',
+    lastUpdated: new Date(),
+  },
+  {
+    name: 'Advisor Verification',
+    key: 'managerPanel',
+    readiness: 'released',
+    description: 'Manager module for approving and verifying advisor applications',
+    lastUpdated: new Date(),
+  },
 ];
 
 export const AdminFeaturePanel: React.FC = () => {
@@ -361,7 +382,6 @@ export const AdminFeaturePanel: React.FC = () => {
             subtitle="Feature flags & access control"
             icon={<Shield size={20} className="sm:w-6 sm:h-6" />}
             showBack
-            backTo="dashboard"
           />
         </div>
         <div className="px-4 lg:px-8 space-y-6">

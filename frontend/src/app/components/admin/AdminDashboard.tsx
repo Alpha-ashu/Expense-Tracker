@@ -1,39 +1,80 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { adminConsoleService, SystemStatsDto, AdminUserDto, UserActivityDto } from '@/services/adminConsoleService';
 import { CenteredLayout } from '@/app/components/shared/CenteredLayout';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { FeatureKey } from '@/lib/featureFlags';
-import { ChevronLeft, RotateCcw, Eye, EyeOff, Shield, ToggleLeft, Activity, Brain } from 'lucide-react';
+import { 
+  ChevronLeft, RotateCcw, Shield, Activity, Brain, LayoutDashboard, Wallet, Receipt, 
+  CreditCard, Target, Users, TrendingUp, BarChart3, Calendar, CheckSquare, Calculator, 
+  UserCog, Bell, User, Settings as SettingsIcon, ToggleLeft, ShieldCheck 
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const FEATURE_DESCRIPTIONS: Record<FeatureKey, string> = {
-  accounts: 'Bank accounts, credit cards, and wallet management',
-  transactions: 'View and manage income/expense transactions',
-  loans: 'Loans and EMI tracking',
-  goals: 'Savings goals and targets',
-  groups: 'Group expense splitting',
-  investments: 'Investment portfolio tracking',
-  reports: 'Financial reports and analytics',
-  calendar: 'Calendar view for transactions',
-  todoLists: 'To-do lists and reminders',
-  transfer: 'Money transfers between accounts',
-  taxCalculator: 'Tax calculation tools',
-  bookAdvisor: 'Book and consult with financial advisors',
-  adminPanel: 'Admin panel access for feature flag controls',
-  advisorPanel: 'Advisor workspace and tools',
-  notifications: 'User notifications and alerts',
-  userProfile: 'User profile and account settings',
-  settings: 'Application settings',
-  dashboard: 'Main dashboard view',
-};
+
+
 
 export const AdminDashboard: React.FC = () => {
-  const { setCurrentPage } = useApp();
+  const { setCurrentPage, goBack } = useApp();
   const { role } = useAuth();
-  const { flags, toggleFeature, resetToDefaults, getFeatureStatus } = useFeatureFlags();
-  const [activeTab, setActiveTab] = useState<'features' | 'advisors' | 'tools'>('features');
+  const { toggleFeature, resetToDefaults, getFeatureStatus } = useFeatureFlags();
+  const [activeTab, setActiveTab] = useState<'overview' | 'users'>('overview');
+  const [stats, setStats] = useState<SystemStatsDto | null>(null);
+  const [users, setUsers] = useState<AdminUserDto[]>([]);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDto | null>(null);
+  const [userActivity, setUserActivity] = useState<UserActivityDto | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [s, u] = await Promise.all([
+        adminConsoleService.getStats(),
+        adminConsoleService.getUsers()
+      ]);
+      if (s) setStats(s);
+      if (u) setUsers(u);
+    } catch (err) {
+      toast.error('Failed to connect to admin services');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (role === 'admin') {
+      fetchData();
+    }
+  }, [role]);
+
+  const fetchUserActivity = async (user: AdminUserDto) => {
+    try {
+      setSelectedUser(user);
+      setUserActivity(null);
+      const activity = await adminConsoleService.getActivity(user.id);
+      if (activity) setUserActivity(activity);
+    } catch (err) {
+      toast.error('Failed to load user activity');
+    }
+  };
+
+  const handleToggleStatus = async (user: AdminUserDto) => {
+    const newStatus = user.status === 'blocked' ? 'verified' : 'blocked';
+    if (!confirm(`Are you sure you want to ${newStatus === 'blocked' ? 'BLOCK' : 'UNBLOCK'} ${user.name}?`)) return;
+
+    try {
+      await adminConsoleService.toggleUserStatus(user.id, newStatus);
+      toast.success(`User ${newStatus} successfully`);
+      fetchData(); // Refresh list
+      if (selectedUser?.id === user.id) {
+        setSelectedUser({ ...user, status: newStatus });
+      }
+    } catch (err) {
+      toast.error('Failed to update user status');
+    }
+  };
 
   const handleReset = () => {
     if (confirm('Reset all feature flags to defaults? This cannot be undone.')) {
@@ -44,147 +85,281 @@ export const AdminDashboard: React.FC = () => {
 
   if (role !== 'admin') {
     return (
-      <CenteredLayout>
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-4">Only admins can access the admin panel.</p>
-          <button onClick={() => setCurrentPage('dashboard')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Go to Dashboard
+      <div className="w-full min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Shield size={32} className="text-rose-500" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Access Denied</h2>
+          <p className="text-gray-500 mb-6 font-medium">Only administrators can access the system feature matrix.</p>
+          <button onClick={() => setCurrentPage('dashboard')} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all">
+            Return to Dashboard
           </button>
         </div>
-      </CenteredLayout>
+      </div>
     );
   }
 
-  const featureKeys = Object.keys(FEATURE_DESCRIPTIONS) as FeatureKey[];
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   return (
     <CenteredLayout>
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => setCurrentPage('settings')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden" aria-label="Go back to settings">
-            <ChevronLeft size={24} className="text-gray-600" />
-          </button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">Admin Panel</h2>
-            <p className="text-gray-500 mt-1">Feature flags, advisor verification & system tools</p>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-          {([
-            { id: 'features', label: 'Feature Flags', icon: ToggleLeft },
-            { id: 'advisors', label: 'Advisor Verification', icon: Shield },
-            { id: 'tools', label: 'Tools', icon: Activity },
-          ] as const).map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all',
-                activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}>
-              <tab.icon size={14} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Feature Flags Tab */}
-        {activeTab === 'features' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Feature Flags</h3>
-              <button onClick={handleReset} className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                <RotateCcw size={16} />
-                Reset Defaults
-              </button>
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+               <button onClick={goBack} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                 <ChevronLeft size={20} />
+               </button>
+               <div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">Admin Console</h2>
+                <p className="text-slate-500 font-medium text-sm mt-0.5">System monitoring & feature control</p>
+              </div>
             </div>
-            <p className="text-sm text-gray-600">Toggle features for each role. Changes apply instantly across the app.</p>
-            <div className="space-y-4">
-              {featureKeys.map((feature) => {
-                const status = getFeatureStatus(feature);
-                const description = FEATURE_DESCRIPTIONS[feature];
-                return (
-                  <div key={feature} className="rounded-lg border border-gray-200 p-4 space-y-3">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 capitalize">{feature.replace(/([A-Z])/g, ' $1').trim()}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{description}</p>
+            
+            {/* Tab Navigation */}
+            <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl w-fit">
+               {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'users', label: 'User Activity' }
+              ].map(tab => (
+                <button 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={cn(
+                    "px-5 py-2 rounded-xl text-xs font-black transition-all",
+                    activeTab === tab.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeTab === 'overview' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: 'Active Users', value: stats?.users.total ?? '...', trend: `+${stats?.users.activeToday ?? 0} today`, color: 'blue', icon: User },
+                  { label: 'Verified Advisors', value: stats?.users.advisors ?? '...', trend: `+${stats?.users.advisorRequests ?? 0} req`, color: 'indigo', icon: UserCog },
+                  { label: 'Total Revenue', value: stats?.payments ? `$${stats.payments.totalRevenue.toLocaleString()}` : '...', trend: 'Stable', color: 'emerald', icon: Receipt },
+                  { label: 'System Health', value: stats?.system ? `${stats.system.cpu.load.toFixed(1)}%` : '...', trend: 'Stable', color: 'violet', icon: Activity },
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-md transition-all group">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110", 
+                        stat.color === 'blue' ? "bg-blue-50 text-blue-600" :
+                        stat.color === 'indigo' ? "bg-indigo-50 text-indigo-600" :
+                        stat.color === 'emerald' ? "bg-emerald-50 text-emerald-600" :
+                        "bg-violet-50 text-violet-600"
+                      )}>
+                        <stat.icon size={24} />
+                      </div>
+                      <span className={cn("text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-widest",
+                        stat.color === 'blue' ? "bg-blue-50 text-blue-600" :
+                        stat.color === 'indigo' ? "bg-indigo-50 text-indigo-600" :
+                        stat.color === 'emerald' ? "bg-emerald-50 text-emerald-600" :
+                        "bg-violet-50 text-violet-600"
+                      )}>
+                        {stat.trend}
+                      </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
-                      {(['admin', 'advisor', 'user'] as const).map((roleKey) => (
-                        <label key={roleKey} className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={status[roleKey]} onChange={(e) => toggleFeature(feature, roleKey, e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
-                          <span className="text-sm font-medium text-gray-700 capitalize">{roleKey}</span>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="flex gap-2 pt-2 text-xs">
-                      {status.admin && <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded"><Eye size={12} />Admin</span>}
-                      {status.advisor && <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded"><Eye size={12} />Advisor</span>}
-                      {status.user && <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded"><Eye size={12} />User</span>}
-                      {!status.admin && !status.advisor && !status.user && <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded"><EyeOff size={12} />Hidden from all</span>}
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">{stat.label}</p>
+                    <h4 className="text-2xl font-black text-slate-900 tracking-tight">{stat.value}</h4>
+                  </div>
+                ))}
+              </div>
+
+              {/* Server Metrics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Server Infrastructure</h3>
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      LIVE: {stats?.system.hostname}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* CPU Load */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">CPU Load</span>
+                        <span className="text-sm font-bold text-slate-900">{stats?.system.cpu.load.toFixed(1)}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-600 rounded-full transition-all duration-1000" style={{ width: `${stats?.system.cpu.load ?? 0}%` }} />
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">{stats?.system.cpu.cores} Cores • {stats?.system.cpu.model.split('@')[0]}</p>
+                    </div>
 
-        {/* Advisor Verification Tab */}
-        {activeTab === 'advisors' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center">
-                <Shield size={20} className="text-indigo-600" />
+                    {/* RAM Usage */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">RAM Usage</span>
+                        <span className="text-sm font-bold text-slate-900">{stats?.system.memory.percent.toFixed(1)}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-600 rounded-full transition-all duration-1000" style={{ width: `${stats?.system.memory.percent ?? 0}%` }} />
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">{formatBytes(stats?.system.memory.used ?? 0)} / {formatBytes(stats?.system.memory.total ?? 0)}</p>
+                    </div>
+
+                    {/* Storage */}
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Storage</span>
+                        <span className="text-sm font-bold text-slate-900">{((stats?.system.storage.usedBytes ?? 0) / (stats?.system.storage.totalBytes ?? 1) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-emerald-600 rounded-full transition-all duration-1000" style={{ width: `${((stats?.system.storage.usedBytes ?? 0) / (stats?.system.storage.totalBytes ?? 1) * 100)}%` }} />
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">{formatBytes(stats?.system.storage.usedBytes ?? 0)} consumed</p>
+                    </div>
+                  </div>
+                </div>
+                  
+                  {/* Feature Matrix Quick Access */}
+                 <div className="bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm group hover:border-indigo-100 transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                          <Shield size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-black text-slate-900 tracking-tight">Master Feature Matrix</h4>
+                          <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-xl">
+                            Configure role-based access control, manage global feature visibility, and control application readiness across all user segments.
+                          </p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => setCurrentPage('admin-feature-panel')}
+                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95 whitespace-nowrap"
+                      >
+                        Manage Feature Matrix
+                      </button>
+                    </div>
+                 </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Advisor Verification</h3>
-                <p className="text-sm text-gray-500">Review and approve advisor role applications</p>
-              </div>
             </div>
-            <p className="text-sm text-gray-600">
-              Users who apply to become advisors appear here. You can approve them (granting access to the Advisor Workspace)
-              or reject their application with a reason.
-            </p>
-            <button
-              onClick={() => setCurrentPage('admin-advisor-verification')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition-colors"
-            >
-              <Shield size={16} />
-              Open Advisor Verification Panel
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Tools Tab */}
-        {activeTab === 'tools' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">Sync Monitoring</h3>
-              <p className="text-sm text-gray-600 mb-4">Monitor offline-first sync health, view the sync queue, inspect event logs, retry failed items, and trigger force-resyncs.</p>
-              <button onClick={() => setCurrentPage('sync-monitor')} className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
-                Open Sync Monitor
-              </button>
-            </div>
-            <div className="bg-slate-950 rounded-xl border border-slate-800 p-5 shadow-sm text-slate-100">
-              <h3 className="font-semibold mb-3 flex items-center gap-2"><Brain size={18} className="text-cyan-400" /> AI Intelligence Engine</h3>
-              <p className="text-sm text-slate-300 mb-4">Open the backend AI intelligence dashboard for spending patterns, risk analytics, predictions, model health, and raw AI logs.</p>
-              <button onClick={() => setCurrentPage('admin-ai')} className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-500 transition-colors">
-                Open AI Dashboard
-              </button>
-            </div>
-            <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-              <h3 className="font-semibold text-blue-900 mb-2">How feature flags work:</h3>
-              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                <li>Toggle features for each role independently</li>
-                <li>Changes apply instantly in your current browser</li>
-                <li>Stored in localStorage (dev/test only)</li>
-                <li>Test advisor & user views before releasing features</li>
-              </ul>
-            </div>
-          </div>
-        )}
 
-      </div>
+          {activeTab === 'users' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               {/* User List */}
+               <div className="lg:col-span-1 bg-white border border-slate-100 rounded-[32px] overflow-hidden shadow-sm flex flex-col h-[600px]">
+                 <div className="p-6 border-b border-slate-50">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Active Users</h3>
+                    <p className="text-xs text-slate-400 font-medium mt-1">Select a user to view detailed activity</p>
+                 </div>
+                 <div className="flex-1 overflow-y-auto">
+                    {users.map(user => (
+                      <button 
+                        key={user.id}
+                        onClick={() => fetchUserActivity(user)}
+                        className={cn(
+                          "w-full p-4 flex items-center gap-3 border-b border-slate-50 transition-all text-left",
+                          selectedUser?.id === user.id ? "bg-slate-50" : "hover:bg-slate-50/50"
+                        )}
+                      >
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs",
+                          user.status === 'blocked' ? "bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-600"
+                        )}>
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-slate-900 truncate">{user.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium truncate uppercase tracking-widest">{user.role} • {user.status || 'verified'}</p>
+                        </div>
+                      </button>
+                    ))}
+                 </div>
+               </div>
+
+               {/* Activity Detail */}
+               <div className="lg:col-span-2 bg-white border border-slate-100 rounded-[32px] p-8 shadow-sm flex flex-col h-[600px]">
+                 {!selectedUser ? (
+                   <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                     <User size={64} className="mb-4" />
+                     <p className="font-bold text-slate-900">No User Selected</p>
+                     <p className="text-sm text-slate-500">Choose a user from the list to see their logs</p>
+                   </div>
+                 ) : (
+                   <div className="flex flex-col h-full">
+                     <div className="flex items-start justify-between mb-8">
+                       <div>
+                         <h3 className="text-xl font-black text-slate-900 tracking-tight">{selectedUser.name}</h3>
+                         <p className="text-sm text-slate-400 font-medium">{selectedUser.email}</p>
+                       </div>
+                       <button 
+                         onClick={() => handleToggleStatus(selectedUser)}
+                         className={cn(
+                           "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                           selectedUser.status === 'blocked' 
+                             ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100" 
+                             : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                         )}
+                       >
+                         {selectedUser.status === 'blocked' ? 'Unblock User' : 'Block User'}
+                       </button>
+                     </div>
+
+                     <div className="flex-1 overflow-y-auto space-y-6">
+                        {/* Activity Tabs inside details? No, just list everything */}
+                        <div className="space-y-4">
+                           <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Recent Activity Log</h4>
+                           {!userActivity ? (
+                             <div className="py-20 flex items-center justify-center">
+                               <div className="animate-spin w-8 h-8 border-4 border-slate-100 border-t-slate-900 rounded-full" />
+                             </div>
+                           ) : (
+                             <div className="space-y-3">
+                                {[
+                                  ...userActivity.aiScans.map(s => ({ type: 'AI_SCAN', time: s.createdAt, msg: `Processed document with ${Math.round(s.confidence * 100)}% confidence` })),
+                                  ...userActivity.syncs.map(s => ({ type: 'SYNC', time: s.createdAt, msg: `${s.operation} on ${s.entityType}: ${s.status}` })),
+                                  ...userActivity.imports.map(i => ({ type: 'IMPORT', time: i.createdAt, msg: `Imported ${i.importedRecords} records from ${i.fileName}` })),
+                                ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).map((log, i) => (
+                                  <div key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl">
+                                     <div className="pt-1">
+                                        <div className={cn("w-2 h-2 rounded-full", 
+                                          log.type === 'AI_SCAN' ? "bg-cyan-500" :
+                                          log.type === 'SYNC' ? "bg-indigo-500" :
+                                          "bg-emerald-500"
+                                        )} />
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-1">
+                                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{log.type}</span>
+                                           <span className="text-[10px] text-slate-400">{new Date(log.time).toLocaleString()}</span>
+                                        </div>
+                                        <p className="text-sm font-bold text-slate-900 truncate">{log.msg}</p>
+                                     </div>
+                                  </div>
+                                ))}
+                                {userActivity.aiScans.length + userActivity.syncs.length + userActivity.imports.length === 0 && (
+                                  <p className="text-center py-10 text-slate-400 text-sm font-medium">No recent activity logs found for this user.</p>
+                                )}
+                             </div>
+                           )}
+                        </div>
+                     </div>
+                   </div>
+                 )}
+               </div>
+            </div>
+          )}
+
+        </div>
     </CenteredLayout>
   );
 };

@@ -4,6 +4,7 @@ import { requireRole } from '../../middleware/rbac';
 import { prisma } from '../../db/prisma';
 import { logger } from '../../config/logger';
 import { getCacheMetricsSnapshot, getRedisStatus, resetCacheMetrics } from '../../cache/redis';
+import { getSystemMetrics } from '../../utils/system';
 
 // Get all users (admin only)
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
@@ -179,11 +180,16 @@ export const getPlatformStats = async (req: AuthRequest, res: Response) => {
       }),
     ]);
 
+    const system = await getSystemMetrics();
+
     res.json({
       users: {
         total: totalUsers,
         advisors: approvedAdvisors,
         advisorRequests: advisorCount - approvedAdvisors,
+        activeToday: await prisma.user.count({
+          where: { lastSynced: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } }
+        })
       },
       bookings: {
         total: totalBookings,
@@ -195,6 +201,7 @@ export const getPlatformStats = async (req: AuthRequest, res: Response) => {
         totalRevenue: totalRevenue._sum.amount || 0,
         currency: 'USD',
       },
+      system
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Failed to fetch statistics' });
@@ -357,5 +364,61 @@ export const getCacheMetrics = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     logger.error('Failed to fetch cache metrics', { error });
     res.status(500).json({ success: false, error: 'Failed to fetch cache metrics' });
+  }
+};
+// Get user activity log (admin only)
+export const getUserActivity = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId, limit = 50 } = req.query;
+
+    const [events, syncs, imports] = await Promise.all([
+      prisma.aiScan.findMany({
+        where: userId ? { userId: userId as string } : {},
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true, email: true } } }
+      }),
+      prisma.syncQueue.findMany({
+        where: userId ? { userId: userId as string } : {},
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+        include: { 
+          // prisma doesn't have a direct relation for SyncQueue.userId -> User in this schema yet
+          // based on my check. Let's assume it does for now or just fetch raw.
+        }
+      }),
+      prisma.importLog.findMany({
+        where: userId ? { userId: userId as string } : {},
+        take: Number(limit),
+        orderBy: { createdAt: 'desc' },
+        include: { user: { select: { name: true, email: true } } }
+      })
+    ]);
+
+    res.json({
+      aiScans: events,
+      syncs,
+      imports
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch activity log' });
+  }
+};
+
+// Block/Unblock user (admin only)
+export const toggleUserStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.body; // 'verified' or 'blocked'
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { status },
+      select: { id: true, email: true, status: true }
+    });
+
+    res.json({ message: `User ${status} successfully`, user });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to update user status' });
   }
 };

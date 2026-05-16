@@ -12,6 +12,8 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Capacitor } from '@capacitor/core';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { canAccessPage } from '@/lib/featureFlags';
+
 
 const navigationItems = [
   { id: 'dashboard', label: 'Home', icon: Home },
@@ -29,17 +31,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onQuickAdd }) => {
   const { currentPage, setCurrentPage, visibleFeatures } = useApp();
 
   const filteredNavigationItems = navigationItems.filter(item => {
-    const featureMap: Record<string, string> = {
-      'dashboard': 'dashboard',
-      'accounts': 'accounts',
-      'transactions': 'transactions',
-      'reports': 'reports',
-      'quick-add': 'quick-add',
-    };
-    const featureKey = featureMap[item.id];
-    if (item.id === 'dashboard' || item.id === 'quick-add') return true;
-    return visibleFeatures[featureKey] !== false;
+    if (item.id === 'quick-add') return true;
+    return canAccessPage(item.id, visibleFeatures);
   });
+
 
   const handleNavigation = async (itemId: string) => {
     // Haptic feedback on native platforms

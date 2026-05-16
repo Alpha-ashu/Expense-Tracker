@@ -8,6 +8,8 @@ import { registerServiceWorker, setupPWAInstallPrompt, setupNetworkListener } fr
 import { HealthChecker } from '@/lib/health';
 import { toast } from 'sonner';
 import { initializeSmsTransactionDetection } from '@/services/smsTransactionDetectionService';
+import { canAccessPage } from '@/lib/featureFlags';
+
 
 //  Shell components (always visible - eager load) 
 import { Sidebar } from '@/app/components/core/Sidebar';
@@ -132,6 +134,9 @@ type PublicPage = 'landing' | 'about' | 'pricing' | 'contact' | 'privacy' | 'ter
 
 const AppContent: React.FC = () => {
   const appContext = useOptionalApp();
+  const { user, role, loading: authLoading, dataReady, dataSyncing, dataSyncError, triggerDataSync } = useAuth();
+  const { isAuthenticated, setAuthenticated } = useSecurity();
+  
   if (!appContext) {
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-500 to-rose-600">
@@ -143,9 +148,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const { currentPage, setCurrentPage } = appContext;
-  const { user, loading: authLoading, dataReady, dataSyncing, dataSyncError, triggerDataSync } = useAuth();
-  const { isAuthenticated, setAuthenticated } = useSecurity();
+  const { currentPage, setCurrentPage, visibleFeatures } = appContext;
   const [isInitialized, setIsInitialized] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
   // Landing page: shown only to confirmed unauthenticated visitors (set via effect
@@ -270,13 +273,42 @@ const AppContent: React.FC = () => {
   }, [user, authLoading, criticalPagesPrefetched]);
 
   // Ensure we land on dashboard after login when the URL is a stale auth path
+  // ALSO: Guard against disabled features
   useEffect(() => {
     if (!user || authLoading) return;
     const staleAuthPaths = new Set(['login', 'signin', 'auth-callback', '']);
+    
+    // 1. Handle stale auth paths
     if (staleAuthPaths.has(currentPage)) {
-      setCurrentPage('dashboard');
+      if (visibleFeatures.dashboard) {
+        setCurrentPage('dashboard');
+      } else {
+        setCurrentPage('settings');
+      }
+      return;
     }
-  }, [user, authLoading, currentPage, setCurrentPage]);
+
+    // 2. Handle disabled features
+    const normalizedRole = role?.toLowerCase();
+    const isAdmin = normalizedRole === 'admin';
+    const isManager = normalizedRole === 'manager';
+    
+    const isSystemAdminPage = ['admin', 'admin-feature-panel', 'admin-ai', 'sync-monitor'].includes(currentPage);
+    const isManagerPage = ['manager-advisor-verification', 'admin-advisor-verification'].includes(currentPage);
+    const isPublicPage = ['privacy-policy', 'terms', 'diagnostics', 'auth-callback', 'settings', 'user-profile', 'notifications'].includes(currentPage);
+    
+    const hasAdminBypass = isAdmin && (isSystemAdminPage || isManagerPage);
+    const hasManagerBypass = isManager && isManagerPage;
+
+    if (!canAccessPage(currentPage, visibleFeatures) && !hasAdminBypass && !hasManagerBypass && !isPublicPage) {
+      console.warn(`[Route Guard] Redirecting from disabled page: ${currentPage} (Role: ${role})`);
+      if (visibleFeatures.dashboard && currentPage !== 'dashboard') {
+        setCurrentPage('dashboard');
+      } else if (currentPage !== 'settings') {
+        setCurrentPage('settings');
+      }
+    }
+  }, [user, authLoading, currentPage, setCurrentPage, visibleFeatures, role]);
 
   const setupNativeFeatures = async () => {
     try {
@@ -517,6 +549,24 @@ const AppContent: React.FC = () => {
       'auth-callback',
     ]);
 
+    // Role-based feature gating
+    const normalizedRole = role?.toLowerCase();
+    const isAdmin = normalizedRole === 'admin';
+    const isManager = normalizedRole === 'manager';
+    
+    const isSystemAdminPage = ['admin', 'admin-feature-panel', 'admin-ai', 'sync-monitor'].includes(currentPage);
+    const isManagerPage = ['manager-advisor-verification', 'admin-advisor-verification'].includes(currentPage);
+    const isPublicPage = ['privacy-policy', 'terms', 'diagnostics', 'auth-callback', 'settings', 'user-profile', 'notifications'].includes(currentPage);
+    
+    const hasAdminBypass = isAdmin && (isSystemAdminPage || isManagerPage);
+    const hasManagerBypass = isManager && isManagerPage;
+    
+    if (!canAccessPage(currentPage, visibleFeatures) && !hasAdminBypass && !hasManagerBypass && !isPublicPage) {
+      console.warn(`[Access Denied] User role ${role} cannot access page: ${currentPage}`);
+      if (!visibleFeatures.dashboard) return <Settings />;
+      return <Dashboard setCurrentPage={setCurrentPage} />;
+    }
+
     if (user && !dataReady && !bypassDataGatePages.has(currentPage)) {
       return (
         <div className="flex items-center justify-center h-[60vh] w-full">
@@ -579,9 +629,9 @@ const AppContent: React.FC = () => {
       );
       case 'diagnostics': return <Diagnostics />;
       case 'auth-callback': return <AuthCallback />;
-      case 'admin-feature-panel': return <AdminFeaturePanel />;
-      case 'advisor-panel': return <AdvisorPanel />;
+      case 'admin-feature-panel':
       case 'admin': return <AdminDashboard />;
+      case 'advisor-panel': return <AdvisorPanel />;
       case 'admin-ai': return <AdminAIDashboard />;
       case 'sync-monitor': return <SyncMonitorDashboard />;
       case 'admin-advisor-verification': return <AdminAdvisorVerification />;

@@ -218,6 +218,36 @@ class PermissionService {
         },
         lastUpdated: new Date().toISOString()
       },
+      manager: {
+        role: 'manager',
+        allowedFeatures: [
+          'accounts', 'transactions', 'loans', 'goals', 'groups',
+          'investments', 'reports', 'calendar', 'todoLists',
+          'transfer', 'taxCalculator', 'bookAdvisor',
+          'advisorPanel'
+        ],
+        permissions: {
+          canAccessAdminPanel: false,
+          canAccessAdvisorPanel: true,
+          canControlFeatures: false,
+          canViewAllUsers: false,
+          canManageAdvisors: true,
+          canApproveFeatures: false,
+          canTestNewFeatures: false,
+          canBookAdvisors: true,
+          canPayForSessions: true,
+          canJoinSessions: true,
+          canViewSessionHistory: true,
+          canRateAdvisors: true,
+          canSetAvailability: false,
+          canStartSessions: false,
+          canReceiveBookings: false,
+          canManageSessions: false,
+          canReceivePayments: false,
+          canViewClients: true,
+        },
+        lastUpdated: new Date().toISOString()
+      },
       advisor: {
         role: 'advisor',
         allowedFeatures: [

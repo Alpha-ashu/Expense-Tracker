@@ -24,13 +24,15 @@ export const PageHeaderCard: React.FC<PageHeaderProps> = ({
     onBack,
     className
 }) => {
-    const { setCurrentPage } = useApp();
+    const { setCurrentPage, goBack } = useApp();
 
     const handleBackClick = () => {
         if (onBack) {
             onBack();
-        } else {
+        } else if (backTo !== 'dashboard') {
             setCurrentPage(backTo);
+        } else {
+            goBack();
         }
     };
 

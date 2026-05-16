@@ -363,31 +363,29 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
         />
       </form>
 
-      <div className="w-[440px] bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 flex flex-col">
+      <div className="w-full max-w-md p-6 md:p-8 flex flex-col">
         {/* Header */}
-        <div className="pt-10 pb-6 flex flex-col items-center px-6">
-          <div className="w-16 h-16 rounded-[24px] bg-white flex items-center justify-center mb-5 shadow-sm border border-slate-100">
-            <KANKULogo className="w-10 h-10" />
+        <div className="pt-4 pb-6 flex flex-col items-center px-6">
+          <div className="mb-4">
+            <KANKULogo className="w-12 h-12" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">KANKU</h1>
-          <p className="text-sm text-gray-500 font-medium text-center">{currentStepSub}</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tighter mb-1">KANKU</h1>
+          <p className="text-sm text-gray-500 font-medium text-center max-w-[240px] leading-tight">{currentStepSub}</p>
         </div>
 
         {/* Card Content */}
         <div className="px-8 flex flex-col gap-6">
           {/* Step label + back button for confirm stage */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-0.5">
-                {isCreating ? `Step ${createStage === 'enter' ? '1' : '2'} of 2` : 'Secure Unlock'}
-              </p>
-              <h2 className="text-xl font-bold text-gray-900">{currentStepLabel}</h2>
-            </div>
+          <div className="flex flex-col items-center text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">
+              {isCreating ? `Step ${createStage === 'enter' ? '1' : '2'} of 2` : 'Secure Unlock'}
+            </p>
+            <h2 className="text-2xl font-black text-gray-900 tracking-tight">{currentStepLabel}</h2>
             {isCreating && createStage === 'confirm' && (
               <button
                 type="button"
                 onClick={() => { setCreateStage('enter'); setPin(''); setFirstPin(''); setErrorMsg(''); }}
-                className="flex items-center gap-1 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors"
+                className="flex items-center gap-1 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors mt-2"
               >
                 <ChevronLeft size={16} /> Back
               </button>
@@ -395,7 +393,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           </div>
 
           {/* PIN digit boxes */}
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 cursor-pointer" onClick={() => hiddenInputRef.current?.focus()}>
             {Array.from({ length: 6 }, (_, i) => {
               const isActive = i === pin.length;
               const isFilled = i < pin.length;
@@ -405,43 +403,43 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               return (
                 <div
                   key={i}
-                  className={`w-12 h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-bold transition-all ${hasError
+                  className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl border-2 flex items-center justify-center text-xl font-black transition-all ${hasError
                       ? 'border-red-400 bg-red-50 text-red-600'
                       : isActive
                         ? 'border-gray-900 bg-white ring-4 ring-gray-100'
                         : isFilled
                           ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-200 bg-gray-50 text-transparent'
+                          : 'border-gray-200 bg-gray-50/50 text-transparent'
                     } ${shake ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
                 >
-                  {revealed !== undefined ? revealed : isFilled ? '-' : ''}
-                  {isActive && <div className="w-[2px] h-5 bg-gray-900 animate-[blink_1s_infinite]" />}
+                  {revealed !== undefined ? revealed : isFilled ? '●' : ''}
+                  {isActive && <div className="w-[2.5px] h-5 bg-gray-900 animate-[blink_1s_infinite]" />}
                 </div>
               );
             })}
           </div>
 
           {/* Show/hide toggle + error */}
-          <div className="flex items-center justify-between -mt-2 px-1">
-            <div className="h-5">
-              {errorMsg && (
-                <p className="text-red-500 text-sm font-medium flex items-center gap-1.5">
-                  <AlertCircle size={13} /> {errorMsg}
-                </p>
-              )}
-            </div>
+          <div className="flex flex-col items-center">
             <button
               type="button"
               onClick={() => setShowReveal(r => !r)}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-900 text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 text-gray-400 hover:text-gray-900 text-[10px] font-bold transition-colors"
             >
-              {showReveal ? <EyeOff size={13} /> : <Eye size={13} />}
-              {showReveal ? 'Hide' : 'Show'}
+              {showReveal ? <EyeOff size={14} /> : <Eye size={14} />}
+              {showReveal ? 'HIDE PIN' : 'SHOW PIN'}
             </button>
+            <div className="h-4 mt-1">
+              {errorMsg && (
+                <p className="text-red-500 text-[10px] font-bold text-center flex items-center justify-center gap-1">
+                  <AlertCircle size={12} /> {errorMsg}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Number pad */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="hidden md:grid grid-cols-3 gap-3">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
               <button
                 key={n}
@@ -490,7 +488,7 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
               type="button"
               onClick={handleSignOut}
               disabled={isLoggingOut || isSubmitting}
-              className="flex items-center justify-center gap-2 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors py-1 mt-2"
+              className="flex items-center justify-center gap-2 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors py-1"
             >
               <LogOut size={15} />
               {isLoggingOut ? 'Signing out...' : 'Use a different account'}
@@ -498,12 +496,12 @@ export const PINAuth: React.FC<PINAuthProps> = ({ onAuthenticated }) => {
           )}
 
           {/* Security banner */}
-          <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 flex gap-3 mt-4 mb-8">
-            <ShieldCheck className="text-gray-500 flex-shrink-0 mt-0.5" size={18} />
+          <div className="bg-gray-100/50 border border-gray-100 rounded-[28px] p-5 flex flex-col items-center text-center gap-2 mt-2 mb-4">
+            <ShieldCheck className="text-emerald-500" size={20} />
             <div>
-              <p className="text-gray-900 text-sm font-semibold mb-0.5">Your data is secure</p>
-              <p className="text-gray-500 text-xs leading-relaxed">
-                Financial data stays encrypted on this device. Only PIN verification metadata is stored on the server.
+              <p className="text-gray-900 text-[11px] font-black uppercase tracking-wider mb-1">Secure Encryption</p>
+              <p className="text-gray-500 text-[10px] leading-relaxed max-w-[220px]">
+                Your financial data stays encrypted on this device. Only PIN verification metadata is stored securely.
               </p>
             </div>
           </div>

@@ -28,6 +28,8 @@ router.get('/users', AdminController.getAllUsers);
 router.get('/users/pending', AdminController.getPendingAdvisors);
 router.post('/users/:advisorId/approve', AdminController.approveAdvisor);
 router.post('/users/:advisorId/reject', AdminController.rejectAdvisor);
+router.get('/users/activity', AdminController.getUserActivity);
+router.post('/users/:userId/status', AdminController.toggleUserStatus);
 
 // Statistics
 router.get('/stats', AdminController.getPlatformStats);

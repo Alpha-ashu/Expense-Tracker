@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOptionalApp } from '@/contexts/AppContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { sidebarMenuItems, NavigationItem } from '@/app/constants/navigation';
+import { canAccessPage } from '@/lib/featureFlags';
+
 
 const MENU_ORDER_KEY = 'sidebar_menu_order';
 
@@ -55,21 +57,18 @@ export const useSharedMenu = () => {
   const visibleMenuItems = useMemo(() => {
 
     return sidebarMenuItems.filter(item => {
-      // If item has specific roles defined, check if user's role is in the list FIRST
-      // This ensures role-based items are shown to authorized users regardless of feature toggle
+      // 1. Role-based check (if item has roles defined)
       if (item.roles && item.roles.length > 0) {
-        return item.roles.includes(role);
+        if (!item.roles.includes(role)) return false;
       }
       
-      // For non-role-restricted items, check user's feature visibility preference
-      const featureKey = item.feature as keyof typeof visibleFeatures;
-      if (visibleFeatures[featureKey] === false) {
-        return false;
-      }
+      // 2. Feature-based check (uses centralized mapping)
+      // Special case: Admin items are ALWAYS visible to admins to prevent lockouts
+      if (['admin-feature-panel', 'admin-ai', 'manager-advisor-verification'].includes(item.id) && role === 'admin') return true;
       
-      // Items without roles are visible to everyone
-      return true;
+      return canAccessPage(item.id, visibleFeatures);
     });
+
   }, [role, visibleFeatures, updateTrigger]);
 
   // Load saved order from localStorage

@@ -4,7 +4,7 @@ import {
   Download, Upload, Trash2, Database, Calculator, Users, Globe, DollarSign, Eye, EyeOff, 
   LogOut, Settings as SettingsIcon, Smartphone, RefreshCw, AlertCircle, CheckCircle2, 
   Bell, ExternalLink, FileText, LayoutDashboard, Wallet, Receipt, Landmark, Target, 
-  TrendingUp, FileBarChart, Calendar, CheckSquare, UserCog 
+  TrendingUp, FileBarChart, Calendar, CheckSquare, UserCog, Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApp } from '@/contexts/AppContext';
@@ -36,7 +36,7 @@ import { runWithCloudSyncSuppressed } from '@/lib/auth-sync-integration';
 
 export const Settings: React.FC = () => {
   const { currency, setCurrency, language, setLanguage, visibleFeatures, setVisibleFeatures, accounts, refreshData, setCurrentPage } = useApp();
-  const { user, signOut } = useAuth();
+  const { user, signOut, role } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
   const [backups, setBackups] = useState<Array<any>>([]);
   const [showBackups, setShowBackups] = useState(false);
@@ -689,66 +689,6 @@ export const Settings: React.FC = () => {
 
         </motion.div>
 
-        {/*  Feature Visibility  */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
-        >
-          <div className="p-6 border-b border-white/10">
-            <h3 className="text-lg font-semibold text-gray-900">Feature Visibility</h3>
-          </div>
-
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-                { key: 'accounts', label: 'Accounts', icon: <Wallet size={18} /> },
-                { key: 'transactions', label: 'Transactions', icon: <Receipt size={18} /> },
-                { key: 'loans', label: 'Loans & EMIs', icon: <Landmark size={18} /> },
-                { key: 'goals', label: 'Goals', icon: <Target size={18} /> },
-                { key: 'groups', label: 'Group Expenses', icon: <Users size={18} /> },
-                { key: 'investments', label: 'Investments', icon: <TrendingUp size={18} /> },
-                { key: 'reports', label: 'Reports', icon: <FileBarChart size={18} /> },
-                { key: 'calendar', label: 'Calendar', icon: <Calendar size={18} /> },
-                { key: 'todoLists', label: 'To-Do Lists', icon: <CheckSquare size={18} /> },
-                { key: 'bookAdvisor', label: 'Book Advisor', icon: <UserCog size={18} /> },
-                { key: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
-              ].map(feature => (
-                <button
-                  key={feature.key}
-                  onClick={() => toggleFeature(feature.key)}
-                  className={cn(
-                    "p-4 rounded-2xl border-2 transition-all text-left backdrop-blur-sm",
-                    visibleFeatures[feature.key]
-                      ? 'border-black/10 bg-white/80 shadow-sm'
-                      : 'border-gray-200/50 bg-gray-50/60'
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-                        visibleFeatures[feature.key] ? "bg-black/5 text-black" : "bg-gray-200/50 text-gray-400"
-                      )}>
-                        {feature.icon}
-                      </div>
-                      <span className="font-medium text-gray-900 truncate">{feature.label}</span>
-                    </div>
-                    <div className="shrink-0">
-                      {visibleFeatures[feature.key] ? (
-                        <Eye size={18} className="text-gray-700" />
-                      ) : (
-                        <EyeOff size={18} className="text-gray-400" />
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
 
         {/*  Legal  */}
         <motion.div
@@ -931,66 +871,6 @@ export const Settings: React.FC = () => {
 
           </motion.div>
 
-          {/*  Feature Visibility  */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45 }}
-            className="rounded-[30px] overflow-hidden relative bg-white/60 backdrop-blur-xl border border-white/40 shadow-glass"
-          >
-            <div className="p-6 border-b border-white/10">
-              <h3 className="text-lg font-semibold text-gray-900">Feature Visibility</h3>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { key: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-                  { key: 'accounts', label: 'Accounts', icon: <Wallet size={18} /> },
-                  { key: 'transactions', label: 'Transactions', icon: <Receipt size={18} /> },
-                  { key: 'loans', label: 'Loans & EMIs', icon: <Landmark size={18} /> },
-                  { key: 'goals', label: 'Goals', icon: <Target size={18} /> },
-                  { key: 'groups', label: 'Group Expenses', icon: <Users size={18} /> },
-                  { key: 'investments', label: 'Investments', icon: <TrendingUp size={18} /> },
-                  { key: 'reports', label: 'Reports', icon: <FileBarChart size={18} /> },
-                  { key: 'calendar', label: 'Calendar', icon: <Calendar size={18} /> },
-                  { key: 'todoLists', label: 'To-Do Lists', icon: <CheckSquare size={18} /> },
-                  { key: 'bookAdvisor', label: 'Book Advisor', icon: <UserCog size={18} /> },
-                  { key: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
-                ].map(feature => (
-                  <button
-                    key={feature.key}
-                    onClick={() => toggleFeature(feature.key)}
-                    className={cn(
-                      "p-4 rounded-2xl border-2 transition-all text-left backdrop-blur-sm",
-                      visibleFeatures[feature.key]
-                        ? 'border-black/10 bg-white/80 shadow-sm'
-                        : 'border-gray-200/50 bg-gray-50/60'
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-                          visibleFeatures[feature.key] ? "bg-black/5 text-black" : "bg-gray-200/50 text-gray-400"
-                        )}>
-                          {feature.icon}
-                        </div>
-                        <span className="font-medium text-gray-900 truncate">{feature.label}</span>
-                      </div>
-                      <div className="shrink-0">
-                        {visibleFeatures[feature.key] ? (
-                          <Eye size={18} className="text-gray-700" />
-                        ) : (
-                          <EyeOff size={18} className="text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
 
         </div>
 
@@ -1211,6 +1091,7 @@ export const Settings: React.FC = () => {
             </div>
           </motion.div>
         </div>
+
       </div>
 
       {showImportModal && (

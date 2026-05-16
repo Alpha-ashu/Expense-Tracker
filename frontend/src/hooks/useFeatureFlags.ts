@@ -7,36 +7,52 @@ const FEATURE_FLAG_CHANGE_EVENT = 'featureFlagsChanged';
 export interface FeatureFlagState {
   [key: string]: {
     admin: boolean;
+    manager: boolean;
     advisor: boolean;
     user: boolean;
   };
 }
 
 const DEFAULT_FEATURE_FLAGS: FeatureFlagState = {
-  accounts: { admin: true, advisor: true, user: true },
-  transactions: { admin: true, advisor: true, user: true },
-  loans: { admin: true, advisor: true, user: true },
-  goals: { admin: true, advisor: true, user: true },
-  groups: { admin: true, advisor: true, user: true },
-  investments: { admin: true, advisor: true, user: true },
-  reports: { admin: true, advisor: true, user: true },
-  calendar: { admin: true, advisor: true, user: true },
-  todoLists: { admin: true, advisor: true, user: true },
-  transfer: { admin: true, advisor: true, user: true },
-  taxCalculator: { admin: true, advisor: true, user: true },
-  bookAdvisor: { admin: true, advisor: true, user: true },
-  adminPanel: { admin: true, advisor: false, user: false },
-  advisorPanel: { admin: false, advisor: true, user: false },
-  notifications: { admin: true, advisor: true, user: true },
-  userProfile: { admin: true, advisor: true, user: true },
-  settings: { admin: true, advisor: true, user: true },
-  dashboard: { admin: true, advisor: true, user: true },
+  accounts: { admin: true, manager: true, advisor: true, user: true },
+  transactions: { admin: true, manager: true, advisor: true, user: true },
+  loans: { admin: true, manager: true, advisor: true, user: true },
+  goals: { admin: true, manager: true, advisor: true, user: true },
+  groups: { admin: true, manager: true, advisor: true, user: true },
+  investments: { admin: true, manager: true, advisor: true, user: true },
+  reports: { admin: true, manager: true, advisor: true, user: true },
+  calendar: { admin: true, manager: true, advisor: true, user: true },
+  todoLists: { admin: true, manager: true, advisor: true, user: true },
+  transfer: { admin: true, manager: true, advisor: true, user: true },
+  taxCalculator: { admin: true, manager: true, advisor: true, user: true },
+  bookAdvisor: { admin: true, manager: true, advisor: true, user: true },
+  adminPanel: { admin: true, manager: true, advisor: false, user: false },
+  advisorPanel: { admin: false, manager: false, advisor: true, user: false },
+  notifications: { admin: true, manager: true, advisor: true, user: true },
+  userProfile: { admin: true, manager: true, advisor: true, user: true },
+  settings: { admin: true, manager: true, advisor: true, user: true },
+  clientManagement: { admin: true, manager: true, advisor: true, user: false },
+  dashboard: { admin: true, manager: true, advisor: true, user: true },
 };
 
 export const useFeatureFlags = () => {
   const [flags, setFlags] = useState<FeatureFlagState>(() => {
     const stored = localStorage.getItem(FEATURE_FLAG_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : DEFAULT_FEATURE_FLAGS;
+    if (!stored) return DEFAULT_FEATURE_FLAGS;
+    
+    try {
+      const parsed = JSON.parse(stored);
+      // Deep merge stored flags with defaults to ensure new roles/keys exist
+      const merged = { ...DEFAULT_FEATURE_FLAGS };
+      Object.keys(parsed).forEach(key => {
+        if (merged[key]) {
+          merged[key] = { ...merged[key], ...parsed[key] };
+        }
+      });
+      return merged;
+    } catch {
+      return DEFAULT_FEATURE_FLAGS;
+    }
   });
 
   // Sync with localStorage and dispatch custom event for same-tab updates
@@ -83,7 +99,12 @@ export const useFeatureFlags = () => {
 
   const getFeatureStatus = useCallback(
     (feature: FeatureKey) => {
-      return flags[feature] || DEFAULT_FEATURE_FLAGS[feature];
+      const flag = flags[feature] || DEFAULT_FEATURE_FLAGS[feature];
+      // Safety: ensure all roles exist in the returned status object
+      return {
+        ...DEFAULT_FEATURE_FLAGS[feature],
+        ...(flag || {})
+      };
     },
     [flags]
   );
